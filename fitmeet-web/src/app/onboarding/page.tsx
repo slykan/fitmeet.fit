@@ -160,8 +160,14 @@ export default function OnboardingPage() {
       const { data: res } = await api.patch('/me', payload)
       setUser(res.data)
       router.replace('/')
-    } catch {
-      setError('Failed to save profile. Please try again.')
+    } catch (err: unknown) {
+      const e = err as { response?: { status?: number; data?: { message?: string; errors?: Record<string, string[]> } } }
+      const status = e?.response?.status
+      const msg =
+        e?.response?.data?.message ??
+        Object.values(e?.response?.data?.errors ?? {})[0]?.[0] ??
+        `Failed to save profile (${status ?? 'network error'}). Please try again.`
+      setError(msg)
     } finally {
       setSaving(false)
     }
