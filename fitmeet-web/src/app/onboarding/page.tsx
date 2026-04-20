@@ -97,9 +97,8 @@ export default function OnboardingPage() {
   })
 
   useEffect(() => {
-    if (!token) { router.replace('/login'); return }
-    if (user?.onboarding_complete) router.replace('/')
-  }, [token, user, router])
+    if (!token) router.replace('/login')
+  }, [token, router])
 
   const watchedLat        = watch('home_lat')
   const watchedLng        = watch('home_lng')
