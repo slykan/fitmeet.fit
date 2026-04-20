@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { useForm, Controller } from 'react-hook-form'
-import { Globe, MapPin, Navigation, Phone, User, Check } from 'lucide-react'
+import { Globe, MapPin, Navigation, Phone, User, Check, LocateFixed } from 'lucide-react'
 
 import api from '@/lib/api'
 import { useAuthStore } from '@/store/auth'
@@ -73,6 +73,7 @@ export default function OnboardingPage() {
   const router = useRouter()
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [locating, setLocating] = useState(false)
 
   const {
     register,
@@ -111,6 +112,32 @@ export default function OnboardingPage() {
     setValue(
       'categories',
       current.includes(value) ? current.filter(c => c !== value) : [...current, value],
+    )
+  }
+
+  async function getCurrentLocation() {
+    if (!navigator.geolocation) return
+    setLocating(true)
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude: lat, longitude: lng } = pos.coords
+        setValue('home_lat', lat)
+        setValue('home_lng', lng)
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
+            { headers: { 'Accept-Language': 'en' } }
+          )
+          const data = await res.json()
+          const city = data.address?.city || data.address?.town || data.address?.village || data.address?.county || ''
+          const country = data.address?.country || ''
+          if (city)    setValue('home_city', city)
+          if (country) setValue('home_country', country)
+        } catch {}
+        setLocating(false)
+      },
+      () => setLocating(false),
+      { timeout: 10000 }
     )
   }
 
@@ -250,9 +277,21 @@ export default function OnboardingPage() {
             </div>
 
             <Field label="Pin your location on map" className="mb-4">
-              <p className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>
-                Click anywhere on the map to set your home location
-              </p>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                  Click on the map or use your current location
+                </p>
+                <button
+                  type="button"
+                  onClick={getCurrentLocation}
+                  disabled={locating}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all disabled:opacity-50"
+                  style={{ background: 'rgba(57,255,20,0.1)', color: 'var(--primary)' }}
+                >
+                  <LocateFixed size={13} className={locating ? 'animate-spin' : ''} />
+                  {locating ? 'Locating...' : 'Use my location'}
+                </button>
+              </div>
               <Controller
                 name="home_lat"
                 control={control}
