@@ -1,8 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useState, Suspense } from 'react'
+import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Eye, EyeOff } from 'lucide-react'
 
@@ -11,9 +11,11 @@ import { useAuthStore } from '@/store/auth'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
-interface LoginForm {
+interface RegisterForm {
+  name: string
   email: string
   password: string
+  confirm: string
 }
 
 const GoogleIcon = () => (
@@ -25,43 +27,32 @@ const GoogleIcon = () => (
   </svg>
 )
 
-function LoginContent() {
-  const { setAuth, user } = useAuthStore()
+export default function RegisterPage() {
+  const { setAuth } = useAuthStore()
   const router = useRouter()
-  const searchParams = useSearchParams()
   const [googleLoading, setGoogleLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginForm>()
+  const { register, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm<RegisterForm>()
 
-  // Handle Google OAuth callback token
-  useEffect(() => {
-    const token = searchParams.get('token')
-    if (!token) return
-    api.defaults.headers.common['Authorization'] = `Bearer ${token}`
-    api.get('/me')
-      .then(({ data }) => {
-        setAuth(token, data.data)
-        router.replace(data.data.onboarding_complete ? '/' : '/onboarding')
-      })
-      .catch(() => setError('Authentication failed. Please try again.'))
-  }, [searchParams, setAuth, router])
-
-  // Redirect if already logged in
-  useEffect(() => {
-    if (user) router.replace(user.onboarding_complete ? '/' : '/onboarding')
-  }, [user, router])
-
-  async function onSubmit(data: LoginForm) {
+  async function onSubmit(data: RegisterForm) {
     setError(null)
     try {
-      const { data: res } = await api.post('/auth/login', data)
+      const { data: res } = await api.post('/auth/register', {
+        name:     data.name,
+        email:    data.email,
+        password: data.password,
+      })
       setAuth(res.token, res.data)
-      router.replace(res.data.onboarding_complete ? '/' : '/onboarding')
+      router.replace('/onboarding')
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
-      setError(msg ?? 'Invalid email or password.')
+      const e = err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } }
+      const msg =
+        e?.response?.data?.message ??
+        Object.values(e?.response?.data?.errors ?? {})[0]?.[0] ??
+        'Registration failed. Please try again.'
+      setError(msg)
     }
   }
 
@@ -88,8 +79,8 @@ function LoginContent() {
 
         <div className="border rounded-2xl p-8 flex flex-col gap-5" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
           <div className="text-center">
-            <h2 className="text-xl font-semibold mb-1">Welcome back</h2>
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Sign in to your account</p>
+            <h2 className="text-xl font-semibold mb-1">Create account</h2>
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Join FitMeet today</p>
           </div>
 
           {error && (
@@ -98,8 +89,16 @@ function LoginContent() {
             </div>
           )}
 
-          {/* Email / password */}
           <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
+            <div>
+              <input
+                {...register('name', { required: 'Full name is required' })}
+                placeholder="Full name"
+                className={inputCls(!!errors.name)}
+              />
+              {errors.name && <p className="text-red-400 text-xs mt-1">{errors.name.message}</p>}
+            </div>
+
             <div>
               <input
                 {...register('email', { required: 'Email is required' })}
@@ -113,9 +112,12 @@ function LoginContent() {
             <div>
               <div className="relative">
                 <input
-                  {...register('password', { required: 'Password is required' })}
+                  {...register('password', {
+                    required: 'Password is required',
+                    minLength: { value: 8, message: 'Minimum 8 characters' },
+                  })}
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="Password"
+                  placeholder="Password (min 8 chars)"
                   className={cn(inputCls(!!errors.password), 'pr-10')}
                 />
                 <button
@@ -130,8 +132,21 @@ function LoginContent() {
               {errors.password && <p className="text-red-400 text-xs mt-1">{errors.password.message}</p>}
             </div>
 
+            <div>
+              <input
+                {...register('confirm', {
+                  required: 'Please confirm your password',
+                  validate: val => val === watch('password') || 'Passwords do not match',
+                })}
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Confirm password"
+                className={inputCls(!!errors.confirm)}
+              />
+              {errors.confirm && <p className="text-red-400 text-xs mt-1">{errors.confirm.message}</p>}
+            </div>
+
             <Button type="submit" size="lg" loading={isSubmitting} className="w-full mt-1">
-              Sign in
+              Create account
             </Button>
           </form>
 
@@ -149,9 +164,9 @@ function LoginContent() {
           </Button>
 
           <p className="text-center text-sm" style={{ color: 'var(--text-muted)' }}>
-            Don&apos;t have an account?{' '}
-            <Link href="/register" className="font-semibold" style={{ color: 'var(--primary)' }}>
-              Sign up
+            Already have an account?{' '}
+            <Link href="/login" className="font-semibold" style={{ color: 'var(--primary)' }}>
+              Sign in
             </Link>
           </p>
         </div>
@@ -161,14 +176,6 @@ function LoginContent() {
         </p>
       </div>
     </main>
-  )
-}
-
-export default function LoginPage() {
-  return (
-    <Suspense>
-      <LoginContent />
-    </Suspense>
   )
 }
 

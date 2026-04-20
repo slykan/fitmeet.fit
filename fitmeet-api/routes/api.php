@@ -6,9 +6,10 @@ use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
-// Google OAuth
 Route::prefix('auth')->group(function () {
-    Route::get('google', [AuthController::class, 'redirectToGoogle']);
+    Route::post('register',       [AuthController::class, 'register']);
+    Route::post('login',          [AuthController::class, 'loginWithEmail']);
+    Route::get('google',          [AuthController::class, 'redirectToGoogle']);
     Route::get('google/callback', [AuthController::class, 'handleGoogleCallback']);
 });
 
