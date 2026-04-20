@@ -30,7 +30,7 @@ function LoginContent() {
   }, [searchParams, setAuth, router])
 
   useEffect(() => {
-    if (user) router.replace('/')
+    if (user) router.replace(user.onboarding_complete ? '/' : '/onboarding')
   }, [user, router])
 
   async function handleGoogleLogin() {
