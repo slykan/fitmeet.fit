@@ -5,7 +5,7 @@ import { useTheme } from 'next-themes'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Moon, Sun, Plus, LogOut, User } from 'lucide-react'
+import { Moon, Sun, Plus, LogOut, User, CalendarDays } from 'lucide-react'
 import { Button } from './ui/button'
 import api from '@/lib/api'
 import { useEffect, useState } from 'react'
@@ -55,6 +55,13 @@ export function Navbar() {
 
           {user ? (
             <>
+              <Link
+                href="/events/my"
+                className="p-2 rounded-lg text-[--text-muted] hover:text-[--text-primary] transition-colors"
+                title="My events"
+              >
+                <CalendarDays size={18} />
+              </Link>
               <Button size="sm" onClick={() => router.push('/events/create')}>
                 <Plus size={15} className="mr-1" /> New Event
               </Button>
