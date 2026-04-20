@@ -2,7 +2,10 @@
 
 namespace App\Models;
 
+use App\Models\Event;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -20,7 +23,16 @@ class User extends Authenticatable
         'phone',
         'country',
         'city',
+        'lat',
+        'lng',
+        'home_lat',
+        'home_lng',
+        'home_city',
+        'home_country',
         'radius',
+        'categories',
+        'skill_level',
+        'fcm_token',
     ];
 
     protected $hidden = [
@@ -33,6 +45,43 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password'          => 'hashed',
+            'categories'        => 'array',
+            'lat'               => 'float',
+            'lng'               => 'float',
+            'home_lat'          => 'float',
+            'home_lng'          => 'float',
         ];
+    }
+
+    // Radius range in km for geolocation queries
+    public static array $radiusMap = [
+        'nearby'    => 50,
+        'city'      => 200,
+        'region'    => 500,
+        'unlimited' => 9999,
+    ];
+
+    public function getRadiusKmAttribute(): int
+    {
+        return self::$radiusMap[$this->radius] ?? 50;
+    }
+
+    public function events(): HasMany
+    {
+        return $this->hasMany(Event::class);
+    }
+
+    public function joinedEvents(): BelongsToMany
+    {
+        return $this->belongsToMany(Event::class, 'event_participants')
+            ->withPivot('status', 'joined_at')
+            ->wherePivot('status', 'joined');
+    }
+
+    public function isOnboardingComplete(): bool
+    {
+        return filled($this->phone)
+            && filled($this->home_city)
+            && filled($this->home_country);
     }
 }

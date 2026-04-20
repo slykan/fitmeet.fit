@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\UserResource;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Laravel\Socialite\Facades\Socialite;
@@ -16,12 +17,12 @@ class AuthController extends Controller
         return response()->json(['url' => $url]);
     }
 
-    public function handleGoogleCallback(): JsonResponse
+    public function handleGoogleCallback()
     {
         try {
             $googleUser = Socialite::driver('google')->stateless()->user();
         } catch (\Exception $e) {
-            return response()->json(['message' => 'Invalid Google token.'], 401);
+            return redirect(env('FRONTEND_URL') . '/login?error=auth_failed');
         }
 
         $user = User::updateOrCreate(
@@ -35,15 +36,14 @@ class AuthController extends Controller
 
         $token = $user->createToken('fitmeet')->plainTextToken;
 
-        return response()->json([
-            'token' => $token,
-            'user'  => $user,
-        ]);
+        return redirect(env('FRONTEND_URL') . '/login?token=' . $token);
     }
 
     public function me(): JsonResponse
     {
-        return response()->json(auth()->user());
+        return response()->json([
+            'data' => new UserResource(auth()->user()),
+        ]);
     }
 
     public function logout(): JsonResponse

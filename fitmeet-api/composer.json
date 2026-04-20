@@ -11,6 +11,7 @@
     "require": {
         "php": "^8.3",
         "doctrine/dbal": "^4.4",
+        "kreait/laravel-firebase": "^7.1",
         "laravel/framework": "^13.0",
         "laravel/sanctum": "^4.3",
         "laravel/socialite": "^5.26",
