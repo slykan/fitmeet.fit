@@ -165,7 +165,7 @@ export default function CreateEventPage() {
       if (data.pace)             payload.pace             = data.pace
 
       const { data: res } = await api.post('/events', payload)
-      router.replace(`/events/${res.data.id}`)
+      router.replace(`/events/view?id=${res.data.id}`)
     } catch (err: unknown) {
       const e   = err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } }
       const msg =
