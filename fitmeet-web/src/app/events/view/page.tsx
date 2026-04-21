@@ -8,8 +8,9 @@ import Link from 'next/link'
 import { Calendar, MapPin, Users, Zap, ChevronLeft, Lock } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
+import ElevationChart from '@/components/elevation-chart'
 import api from '@/lib/api'
-import { parseGpx } from '@/lib/parse-gpx'
+import { parseGpx, GpxResult } from '@/lib/parse-gpx'
 import { useAuthStore } from '@/store/auth'
 import { Button } from '@/components/ui/button'
 
@@ -22,7 +23,7 @@ interface Event {
   category: { value: string; label: string }
   location: { lat: number; lng: number; address: string | null }
   schedule: { start_at: string; duration_minutes: number | null }
-  activity: { distance_km: number | null; elevation_gain: number | null; pace: string | null }
+  activity: { distance_km: number | null; elevation_gain: number | null; pace: string | null; gpx_url: string | null }
   skill_level: string | null
   max_participants: number | null
   participants_count: number
@@ -51,7 +52,7 @@ function EventContent() {
   const [loading,  setLoading]  = useState(true)
   const [joining,  setJoining]  = useState(false)
   const [error,    setError]    = useState<string | null>(null)
-  const [gpxTrack, setGpxTrack] = useState<[number, number][]>([])
+  const [gpxResult, setGpxResult] = useState<GpxResult | null>(null)
 
   useEffect(() => {
     if (!token) { router.replace('/login'); return }
@@ -63,7 +64,7 @@ function EventContent() {
         if (data.data.activity?.gpx_url) {
           fetch(data.data.activity.gpx_url)
             .then(r => r.text())
-            .then(xml => setGpxTrack(parseGpx(xml)))
+            .then(xml => setGpxResult(parseGpx(xml)))
             .catch(() => {})
         }
       })
@@ -198,14 +199,22 @@ function EventContent() {
           </div>
 
           {/* Map */}
-          {(gpxTrack.length > 1 || (event.location.lat && event.location.lng)) && (
+          {(event.location.lat != null && event.location.lng != null) && (
             <LocationPickerMap
               lat={event.location.lat}
               lng={event.location.lng}
-              track={gpxTrack.length > 1 ? gpxTrack : undefined}
+              track={gpxResult && gpxResult.track.length > 1 ? gpxResult.track : undefined}
               readOnly
               height={280}
             />
+          )}
+
+          {/* Elevation chart */}
+          {gpxResult && gpxResult.elevationProfile.length >= 2 && (
+            <div>
+              <p className="text-xs font-medium mb-2 px-1" style={{ color: 'var(--text-muted)' }}>Elevation profile</p>
+              <ElevationChart profile={gpxResult.elevationProfile} totalKm={gpxResult.distanceKm} />
+            </div>
           )}
 
           {/* Action */}
