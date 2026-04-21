@@ -7,8 +7,9 @@ import { useForm, Controller } from 'react-hook-form'
 import { Calendar, MapPin, Info, Settings, Lock, Unlock, LocateFixed } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
+import ElevationChart from '@/components/elevation-chart'
 import api from '@/lib/api'
-import { parseGpx } from '@/lib/parse-gpx'
+import { parseGpx, GpxResult } from '@/lib/parse-gpx'
 import { useAuthStore } from '@/store/auth'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -86,7 +87,7 @@ function EditContent() {
   const [locating,     setLocating]     = useState(false)
   const [error,        setError]        = useState<string | null>(null)
   const [gpxFile,      setGpxFile]      = useState<File | null>(null)
-  const [gpxTrack,     setGpxTrack]     = useState<[number, number][]>([])
+  const [gpxResult,    setGpxResult]    = useState<GpxResult | null>(null)
   const [notFound,     setNotFound]     = useState(false)
 
   const {
@@ -126,7 +127,7 @@ function EditContent() {
         if (e.activity.gpx_url) {
           fetch(e.activity.gpx_url)
             .then(r => r.text())
-            .then(xml => setGpxTrack(parseGpx(xml)))
+            .then(xml => setGpxResult(parseGpx(xml)))
             .catch(() => {})
         }
       })
@@ -171,9 +172,10 @@ function EditContent() {
     const file = e.target.files?.[0]
     if (!file) return
     setGpxFile(file)
-    const text  = await file.text()
-    const track = parseGpx(text)
-    setGpxTrack(track)
+    const result = parseGpx(await file.text())
+    setGpxResult(result)
+    if (result.distanceKm > 0)    setValue('distance_km',    String(result.distanceKm))
+    if (result.elevationGain > 0) setValue('elevation_gain', String(result.elevationGain))
   }
 
   async function onSubmit(data: FormData) {
@@ -352,7 +354,7 @@ function EditContent() {
                   lat={watchedLat ?? null}
                   lng={watchedLng ?? null}
                   onChange={handleMapChange}
-                  track={gpxTrack}
+                  track={gpxResult?.track}
                 />
               )}
             />
@@ -381,13 +383,20 @@ function EditContent() {
               <input type="file" accept=".gpx,.xml" className="hidden" onChange={handleGpxChange} />
               <span className="text-sm">
                 {gpxFile
-                  ? `📍 ${gpxFile.name} · ${gpxTrack.length} points`
-                  : gpxTrack.length > 0
-                  ? `📍 Current route · ${gpxTrack.length} points (upload new to replace)`
+                  ? `📍 ${gpxFile.name} · ${gpxResult?.track.length ?? 0} points`
+                  : gpxResult && gpxResult.track.length > 0
+                  ? `📍 Current route · ${gpxResult.track.length} points (upload new to replace)`
                   : '+ Upload GPX file (optional)'}
               </span>
             </label>
           </Field>
+
+          {gpxResult && gpxResult.elevationProfile.length >= 2 && (
+            <div className="mt-4">
+              <p className="text-xs font-medium mb-2" style={{ color: 'var(--text-muted)' }}>Elevation profile</p>
+              <ElevationChart profile={gpxResult.elevationProfile} totalKm={gpxResult.distanceKm} />
+            </div>
+          )}
         </Section>
 
         {/* Details */}

@@ -7,8 +7,9 @@ import { useForm, Controller } from 'react-hook-form'
 import { Calendar, MapPin, Info, Settings, Lock, Unlock, LocateFixed } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
+import ElevationChart from '@/components/elevation-chart'
 import api from '@/lib/api'
-import { parseGpx } from '@/lib/parse-gpx'
+import { parseGpx, GpxResult } from '@/lib/parse-gpx'
 import { useAuthStore } from '@/store/auth'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -88,8 +89,8 @@ export default function CreateEventPage() {
   const [saving,   setSaving]   = useState(false)
   const [error,    setError]    = useState<string | null>(null)
   const [locating, setLocating] = useState(false)
-  const [gpxFile,  setGpxFile]  = useState<File | null>(null)
-  const [gpxTrack, setGpxTrack] = useState<[number, number][]>([])
+  const [gpxFile,   setGpxFile]   = useState<File | null>(null)
+  const [gpxResult, setGpxResult] = useState<GpxResult | null>(null)
 
   const {
     register,
@@ -150,13 +151,14 @@ export default function CreateEventPage() {
     const file = e.target.files?.[0]
     if (!file) return
     setGpxFile(file)
-    const text  = await file.text()
-    const track = parseGpx(text)
-    setGpxTrack(track)
-    if (track.length > 0 && watchedLat === null) {
-      setValue('lat', track[0][0])
-      setValue('lng', track[0][1])
+    const result = parseGpx(await file.text())
+    setGpxResult(result)
+    if (result.track.length > 0 && watchedLat === null) {
+      setValue('lat', result.track[0][0])
+      setValue('lng', result.track[0][1])
     }
+    if (result.distanceKm > 0)    setValue('distance_km',    String(result.distanceKm))
+    if (result.elevationGain > 0) setValue('elevation_gain', String(result.elevationGain))
   }
 
   async function onSubmit(data: FormData) {
@@ -334,7 +336,7 @@ export default function CreateEventPage() {
                       lat={watchedLat}
                       lng={watchedLng}
                       onChange={handleMapChange}
-                      track={gpxTrack}
+                      track={gpxResult?.track}
                     />
                   )}
                 />
@@ -369,11 +371,18 @@ export default function CreateEventPage() {
                   />
                   <span className="text-sm">
                     {gpxFile
-                      ? `📍 ${gpxFile.name} · ${gpxTrack.length} points`
+                      ? `📍 ${gpxFile.name} · ${gpxResult?.track.length ?? 0} points`
                       : '+ Upload GPX file (optional)'}
                   </span>
                 </label>
               </Field>
+
+              {gpxResult && gpxResult.elevationProfile.length >= 2 && (
+                <div className="mt-4">
+                  <p className="text-xs font-medium mb-2" style={{ color: 'var(--text-muted)' }}>Elevation profile</p>
+                  <ElevationChart profile={gpxResult.elevationProfile} totalKm={gpxResult.distanceKm} />
+                </div>
+              )}
             </Section>
 
             {/* ── Details ── */}
