@@ -25,6 +25,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Events
     Route::get('events/my', [EventController::class, 'my']);
     Route::get('events/joined', [EventController::class, 'joined']);
+    Route::get('events/{event}/gpx', [EventController::class, 'gpx']);
     Route::post('events/{event}/join', [EventController::class, 'join']);
     Route::post('events/{event}/leave', [EventController::class, 'leave']);
     Route::apiResource('events', EventController::class);

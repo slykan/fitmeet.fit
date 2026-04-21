@@ -62,9 +62,8 @@ function EventContent() {
       .then(({ data }) => {
         setEvent(data.data)
         if (data.data.activity?.gpx_url) {
-          fetch(data.data.activity.gpx_url)
-            .then(r => r.text())
-            .then(xml => setGpxResult(parseGpx(xml)))
+          api.get(data.data.activity.gpx_url, { responseType: 'text' })
+            .then(r => setGpxResult(parseGpx(r.data)))
             .catch(() => {})
         }
       })

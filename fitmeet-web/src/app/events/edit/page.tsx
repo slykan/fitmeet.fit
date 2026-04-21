@@ -125,9 +125,8 @@ function EditContent() {
           pace:             e.activity.pace ?? '',
         })
         if (e.activity.gpx_url) {
-          fetch(e.activity.gpx_url)
-            .then(r => r.text())
-            .then(xml => setGpxResult(parseGpx(xml)))
+          api.get(e.activity.gpx_url, { responseType: 'text' })
+            .then(r => setGpxResult(parseGpx(r.data)))
             .catch(() => {})
         }
       })

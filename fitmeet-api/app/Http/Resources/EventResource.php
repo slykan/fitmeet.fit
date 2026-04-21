@@ -36,7 +36,7 @@ class EventResource extends JsonResource
                 'distance_km'    => $this->distance_km,
                 'elevation_gain' => $this->elevation_gain,
                 'pace'           => $this->pace,
-                'gpx_url'        => $this->gpx_path ? asset('storage/' . $this->gpx_path) : null,
+                'gpx_url'        => $this->gpx_path ? url("/api/events/{$this->id}/gpx") : null,
             ],
 
             'skill_level'        => $this->skill_level,
