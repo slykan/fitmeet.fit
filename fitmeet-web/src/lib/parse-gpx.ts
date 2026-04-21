@@ -1,8 +1,14 @@
+export interface TrackSegment {
+  coords: [number, number][]
+  color:  string
+}
+
 export interface GpxResult {
   track:            [number, number][]
   distanceKm:       number
   elevationGain:    number
   elevationProfile: { km: number; ele: number }[]
+  coloredSegments:  TrackSegment[]
 }
 
 function haversineKm(
@@ -19,9 +25,14 @@ function haversineKm(
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
 
+export function slopeColor(grade: number): string {
+  if (grade < -2) return '#00ffaa'  // bright cyan-green — downhill
+  if (grade <  3) return '#39ff14'  // neon green        — flat
+  if (grade <  7) return '#ffaa00'  // orange            — moderate uphill
+  return '#ff2200'                  // red               — steep uphill
+}
+
 export function parseGpx(xml: string): GpxResult {
-  // Extract track points with optional elevation via regex
-  // Matches: lat="..." lon="..." blocks, then looks for <ele>...</ele> nearby
   const trkptRe = /<(?:[^:>]+:)?(?:trkpt|rtept|wpt)([^>]+)>([\s\S]*?)<\/(?:[^:>]+:)?(?:trkpt|rtept|wpt)>/gi
   const latRe   = /lat="([^"]+)"/
   const lonRe   = /lon="([^"]+)"/
@@ -42,7 +53,6 @@ export function parseGpx(xml: string): GpxResult {
     eleData.push(isNaN(ele) ? -Infinity : ele)
   }
 
-  // Fallback: parse lat/lon pairs if regex above found nothing
   if (track.length === 0) {
     const lats = [...xml.matchAll(/\blat="([^"]+)"/g)].map(x => parseFloat(x[1]))
     const lons = [...xml.matchAll(/\blon="([^"]+)"/g)].map(x => parseFloat(x[1]))
@@ -52,7 +62,6 @@ export function parseGpx(xml: string): GpxResult {
     }
   }
 
-  // Calculate cumulative distance
   let totalKm = 0
   const cumKm: number[] = [0]
   for (let i = 1; i < track.length; i++) {
@@ -60,7 +69,6 @@ export function parseGpx(xml: string): GpxResult {
     cumKm.push(totalKm)
   }
 
-  // Calculate elevation gain
   let elevationGain = 0
   for (let i = 1; i < eleData.length; i++) {
     if (eleData[i] !== -Infinity && eleData[i - 1] !== -Infinity) {
@@ -69,23 +77,51 @@ export function parseGpx(xml: string): GpxResult {
     }
   }
 
-  // Build elevation profile (sampled to max 300 points for chart)
   const hasEle    = eleData.some(e => e !== -Infinity)
   const maxPoints = 300
   const step      = Math.max(1, Math.floor(track.length / maxPoints))
+
   const elevationProfile: { km: number; ele: number }[] = []
+  const profileCoords:    [number, number][]             = []
 
   if (hasEle) {
     for (let i = 0; i < track.length; i += step) {
       if (eleData[i] !== -Infinity) {
         elevationProfile.push({ km: cumKm[i], ele: eleData[i] })
+        profileCoords.push(track[i])
       }
     }
-    // Always include last point
     const last = track.length - 1
     if (last % step !== 0 && eleData[last] !== -Infinity) {
       elevationProfile.push({ km: cumKm[last], ele: eleData[last] })
+      profileCoords.push(track[last])
     }
+  }
+
+  // Build colored segments from elevation profile
+  const coloredSegments: TrackSegment[] = []
+
+  if (profileCoords.length >= 2) {
+    let seg: TrackSegment = { coords: [profileCoords[0]], color: '#39ff14' }
+
+    for (let i = 1; i < profileCoords.length; i++) {
+      const distKm = elevationProfile[i].km - elevationProfile[i - 1].km
+      const eleM   = elevationProfile[i].ele - elevationProfile[i - 1].ele
+      const grade  = distKm > 0 ? (eleM / (distKm * 1000)) * 100 : 0
+      const color  = slopeColor(grade)
+
+      if (color === seg.color) {
+        seg.coords.push(profileCoords[i])
+      } else {
+        seg.coords.push(profileCoords[i]) // overlap for seamless join
+        coloredSegments.push(seg)
+        seg = { coords: [profileCoords[i]], color }
+      }
+    }
+    coloredSegments.push(seg)
+  } else if (track.length >= 2) {
+    // No elevation — single green segment
+    coloredSegments.push({ coords: track, color: '#39ff14' })
   }
 
   return {
@@ -93,5 +129,6 @@ export function parseGpx(xml: string): GpxResult {
     distanceKm:    Math.round(totalKm * 10) / 10,
     elevationGain: Math.round(elevationGain),
     elevationProfile,
+    coloredSegments,
   }
 }

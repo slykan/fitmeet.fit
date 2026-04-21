@@ -336,7 +336,7 @@ export default function CreateEventPage() {
                       lat={watchedLat}
                       lng={watchedLng}
                       onChange={handleMapChange}
-                      track={gpxResult?.track}
+                      coloredSegments={gpxResult?.coloredSegments}
                     />
                   )}
                 />

@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { MapContainer, TileLayer, Marker, Polyline, useMapEvents, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import type { TrackSegment } from '@/lib/parse-gpx'
 
 // Fix Leaflet default marker icons (broken in bundlers)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -15,12 +16,13 @@ L.Icon.Default.mergeOptions({
 })
 
 interface Props {
-  lat:       number | null
-  lng:       number | null
-  onChange?: (lat: number, lng: number) => void
-  track?:    [number, number][]
-  readOnly?: boolean
-  height?:   number
+  lat?:             number | null
+  lng?:             number | null
+  onChange?:        (lat: number, lng: number) => void
+  track?:           [number, number][]
+  coloredSegments?: TrackSegment[]
+  readOnly?:        boolean
+  height?:          number
 }
 
 function ClickHandler({ onChange }: { onChange: (lat: number, lng: number) => void }) {
@@ -28,26 +30,24 @@ function ClickHandler({ onChange }: { onChange: (lat: number, lng: number) => vo
   return null
 }
 
-function FitTrack({ track }: { track: [number, number][] }) {
+function FitTrack({ coords }: { coords: [number, number][] }) {
   const map = useMap()
   useEffect(() => {
-    if (track.length > 1) {
-      map.fitBounds(L.latLngBounds(track), { padding: [20, 20] })
-    }
-  }, [map, track])
+    if (coords.length > 1) map.fitBounds(L.latLngBounds(coords), { padding: [20, 20] })
+  }, [map, coords])
   return null
 }
 
 export default function LocationPickerMap({
-  lat, lng, onChange, track, readOnly = false, height = 220,
+  lat, lng, onChange, track, coloredSegments, readOnly = false, height = 220,
 }: Props) {
-  const hasPin   = lat !== null && lng !== null
-  const hasTrack = track && track.length > 1
+  const hasPin      = lat != null && lng != null
+  const allCoords   = coloredSegments?.flatMap(s => s.coords) ?? track ?? []
+  const hasTrack    = allCoords.length > 1
 
   const center: [number, number] = hasPin
     ? [lat!, lng!]
-    : hasTrack
-    ? track![0]
+    : hasTrack ? allCoords[0]
     : [44.5, 16.5]
 
   const zoom = hasPin || hasTrack ? 11 : 5
@@ -66,13 +66,25 @@ export default function LocationPickerMap({
         />
         {!readOnly && onChange && <ClickHandler onChange={onChange} />}
         {hasPin && <Marker position={[lat!, lng!]} />}
-        {hasTrack && (
+
+        {coloredSegments && coloredSegments.length > 0 ? (
+          <>
+            {coloredSegments.map((seg, i) => (
+              <Polyline
+                key={i}
+                positions={seg.coords}
+                pathOptions={{ color: seg.color, weight: 4, opacity: 0.9 }}
+              />
+            ))}
+            <FitTrack coords={allCoords} />
+          </>
+        ) : hasTrack && (
           <>
             <Polyline
-              positions={track!}
-              pathOptions={{ color: '#39ff14', weight: 3, opacity: 0.85 }}
+              positions={allCoords}
+              pathOptions={{ color: '#39ff14', weight: 4, opacity: 0.9 }}
             />
-            <FitTrack track={track!} />
+            <FitTrack coords={allCoords} />
           </>
         )}
       </MapContainer>

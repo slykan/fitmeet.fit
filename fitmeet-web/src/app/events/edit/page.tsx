@@ -353,7 +353,7 @@ function EditContent() {
                   lat={watchedLat ?? null}
                   lng={watchedLng ?? null}
                   onChange={handleMapChange}
-                  track={gpxResult?.track}
+                  coloredSegments={gpxResult?.coloredSegments}
                 />
               )}
             />

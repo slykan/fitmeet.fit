@@ -1,5 +1,7 @@
 'use client'
 
+import { slopeColor } from '@/lib/parse-gpx'
+
 interface Point { km: number; ele: number }
 
 interface Props {
@@ -14,31 +16,24 @@ export default function ElevationChart({ profile, totalKm }: Props) {
   const H = 120
   const padL = 44, padR = 12, padT = 10, padB = 28
 
-  const minEle = Math.min(...profile.map(p => p.ele))
-  const maxEle = Math.max(...profile.map(p => p.ele))
+  const minEle  = Math.min(...profile.map(p => p.ele))
+  const maxEle  = Math.max(...profile.map(p => p.ele))
   const eleRange = maxEle - minEle || 1
-  const maxKm  = profile[profile.length - 1].km || totalKm || 1
+  const maxKm   = profile[profile.length - 1].km || totalKm || 1
 
   function toX(km: number)  { return padL + (km / maxKm)     * (W - padL - padR) }
   function toY(ele: number) { return padT + (1 - (ele - minEle) / eleRange) * (H - padT - padB) }
 
-  const pts  = profile.map(p => `${toX(p.km).toFixed(1)},${toY(p.ele).toFixed(1)}`).join(' ')
-  const fill = [
-    `${toX(profile[0].km).toFixed(1)},${(H - padB).toFixed(1)}`,
-    ...profile.map(p => `${toX(p.km).toFixed(1)},${toY(p.ele).toFixed(1)}`),
-    `${toX(profile[profile.length - 1].km).toFixed(1)},${(H - padB).toFixed(1)}`,
-  ].join(' ')
+  const baseline = H - padB
 
   // Y axis labels
   const yLabels = [minEle, minEle + eleRange / 2, maxEle].map(e => ({
-    y:     toY(e),
-    label: `${Math.round(e)}m`,
+    y: toY(e), label: `${Math.round(e)}m`,
   }))
 
   // X axis labels (4 ticks)
   const xTicks = [0, 0.33, 0.66, 1].map(t => ({
-    x:     toX(t * maxKm),
-    label: `${(t * maxKm).toFixed(1)}km`,
+    x: toX(t * maxKm), label: `${(t * maxKm).toFixed(1)}km`,
   }))
 
   return (
@@ -55,11 +50,30 @@ export default function ElevationChart({ profile, totalKm }: Props) {
             stroke="var(--border)" strokeWidth="0.8" strokeDasharray="4 4" />
         ))}
 
-        {/* Fill */}
-        <polygon points={fill} fill="rgba(57,255,20,0.12)" />
+        {/* Colored fill + line — one segment per pair of points */}
+        {profile.slice(1).map((p, i) => {
+          const prev  = profile[i]
+          const distKm = p.km - prev.km
+          const eleM   = p.ele - prev.ele
+          const grade  = distKm > 0 ? (eleM / (distKm * 1000)) * 100 : 0
+          const color  = slopeColor(grade)
+          const x1 = toX(prev.km), y1 = toY(prev.ele)
+          const x2 = toX(p.km),   y2 = toY(p.ele)
 
-        {/* Line */}
-        <polyline points={pts} fill="none" stroke="#39ff14" strokeWidth="1.8" strokeLinejoin="round" />
+          return (
+            <g key={i}>
+              {/* Fill trapezoid under segment */}
+              <polygon
+                points={`${x1},${baseline} ${x1},${y1} ${x2},${y2} ${x2},${baseline}`}
+                fill={color}
+                opacity={0.12}
+              />
+              {/* Line segment */}
+              <line x1={x1} y1={y1} x2={x2} y2={y2}
+                stroke={color} strokeWidth="2" strokeLinecap="round" />
+            </g>
+          )
+        })}
 
         {/* Y labels */}
         {yLabels.map((l, i) => (

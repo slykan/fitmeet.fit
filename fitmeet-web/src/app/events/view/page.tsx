@@ -202,7 +202,7 @@ function EventContent() {
             <LocationPickerMap
               lat={event.location.lat}
               lng={event.location.lng}
-              track={gpxResult && gpxResult.track.length > 1 ? gpxResult.track : undefined}
+              coloredSegments={gpxResult?.coloredSegments}
               readOnly
               height={280}
             />
