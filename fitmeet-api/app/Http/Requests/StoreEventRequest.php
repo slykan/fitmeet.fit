@@ -31,7 +31,7 @@ class StoreEventRequest extends FormRequest
             'elevation_gain'   => ['nullable', 'integer', 'min:0'],
             'pace'             => ['nullable', 'string', 'max:20'],
 
-            'gpx_file'         => ['nullable', 'file', 'mimes:gpx,xml', 'max:5120'], // 5MB
+            'gpx_file'         => ['nullable', 'file', 'max:5120'], // 5MB
 
             'skill_level'      => ['nullable', Rule::in(['beginner', 'advanced', 'pro'])],
             'max_participants' => ['nullable', 'integer', 'min:2', 'max:9999'],
