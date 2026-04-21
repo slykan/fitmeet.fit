@@ -28,10 +28,10 @@ function haversineKm(
 }
 
 export function slopeColor(grade: number): string {
-  if (grade < -2) return '#00ffaa'  // bright cyan-green — downhill
-  if (grade <  3) return '#39ff14'  // neon green        — flat
-  if (grade <  7) return '#ffaa00'  // orange            — moderate uphill
-  return '#ff2200'                  // red               — steep uphill
+  if (grade < -2) return '#39ff14'  // green  — downhill
+  if (grade <  3) return '#3399ff'  // blue   — flat
+  if (grade <  7) return '#ffaa00'  // orange — moderate uphill
+  return '#ff2200'                  // red    — steep uphill
 }
 
 export function parseGpx(xml: string): GpxResult {
