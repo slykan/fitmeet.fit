@@ -8,6 +8,7 @@ import { Calendar, MapPin, Info, Settings, Lock, Unlock, LocateFixed } from 'luc
 
 import { Navbar } from '@/components/navbar'
 import api from '@/lib/api'
+import { parseGpx } from '@/lib/parse-gpx'
 import { useAuthStore } from '@/store/auth'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -84,6 +85,8 @@ function EditContent() {
   const [saving,       setSaving]       = useState(false)
   const [locating,     setLocating]     = useState(false)
   const [error,        setError]        = useState<string | null>(null)
+  const [gpxFile,      setGpxFile]      = useState<File | null>(null)
+  const [gpxTrack,     setGpxTrack]     = useState<[number, number][]>([])
   const [notFound,     setNotFound]     = useState(false)
 
   const {
@@ -120,6 +123,12 @@ function EditContent() {
           elevation_gain:   e.activity.elevation_gain ? String(e.activity.elevation_gain) : '',
           pace:             e.activity.pace ?? '',
         })
+        if (e.activity.gpx_url) {
+          fetch(e.activity.gpx_url)
+            .then(r => r.text())
+            .then(xml => setGpxTrack(parseGpx(xml)))
+            .catch(() => {})
+        }
       })
       .catch(() => setNotFound(true))
       .finally(() => setLoadingEvent(false))
@@ -158,27 +167,37 @@ function EditContent() {
     )
   }
 
+  async function handleGpxChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setGpxFile(file)
+    const text  = await file.text()
+    const track = parseGpx(text)
+    setGpxTrack(track)
+  }
+
   async function onSubmit(data: FormData) {
     setSaving(true)
     setError(null)
     try {
-      const payload: Record<string, unknown> = {}
-      if (data.title)            payload.title            = data.title
-      if (data.category)         payload.category         = data.category
-      payload.description      = data.description || null
-      if (data.start_at)         payload.start_at         = data.start_at + ':00'
-      payload.duration_minutes = data.duration_minutes ? Number(data.duration_minutes) : null
-      if (data.lat !== null)     payload.lat              = data.lat
-      if (data.lng !== null)     payload.lng              = data.lng
-      payload.address          = data.address || null
-      payload.skill_level      = data.skill_level || null
-      payload.max_participants = data.max_participants ? Number(data.max_participants) : null
-      payload.is_private       = data.is_private
-      payload.distance_km      = data.distance_km ? Number(data.distance_km) : null
-      payload.elevation_gain   = data.elevation_gain ? Number(data.elevation_gain) : null
-      payload.pace             = data.pace || null
+      const fd = new globalThis.FormData()
+      if (data.title)    fd.append('title',    data.title)
+      if (data.category) fd.append('category', data.category)
+      fd.append('description', data.description || '')
+      if (data.start_at) fd.append('start_at', data.start_at + ':00')
+      fd.append('duration_minutes', data.duration_minutes || '')
+      if (data.lat !== null) fd.append('lat', String(data.lat))
+      if (data.lng !== null) fd.append('lng', String(data.lng))
+      fd.append('address',          data.address || '')
+      fd.append('skill_level',      data.skill_level || '')
+      fd.append('max_participants',  data.max_participants || '')
+      fd.append('is_private',        data.is_private ? '1' : '0')
+      fd.append('distance_km',       data.distance_km || '')
+      fd.append('elevation_gain',    data.elevation_gain || '')
+      fd.append('pace',              data.pace || '')
+      if (gpxFile) fd.append('gpx_file', gpxFile)
 
-      await api.patch(`/events/${id}`, payload)
+      await api.patch(`/events/${id}`, fd)
       router.replace(`/events/view?id=${id}`)
     } catch (err: unknown) {
       const e   = err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } }
@@ -333,6 +352,7 @@ function EditContent() {
                   lat={watchedLat ?? null}
                   lng={watchedLng ?? null}
                   onChange={handleMapChange}
+                  track={gpxTrack}
                 />
               )}
             />
@@ -348,6 +368,25 @@ function EditContent() {
               placeholder="Auto-filled from map"
               className={inputCls(false)}
             />
+          </Field>
+
+          <Field label="GPX route" className="mt-4">
+            <label
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl border cursor-pointer transition-all"
+              style={gpxFile
+                ? { borderColor: 'var(--primary)', background: 'rgba(57,255,20,0.06)', color: 'var(--primary)' }
+                : { borderColor: 'var(--border)', color: 'var(--text-muted)' }
+              }
+            >
+              <input type="file" accept=".gpx,.xml" className="hidden" onChange={handleGpxChange} />
+              <span className="text-sm">
+                {gpxFile
+                  ? `📍 ${gpxFile.name} · ${gpxTrack.length} points`
+                  : gpxTrack.length > 0
+                  ? `📍 Current route · ${gpxTrack.length} points (upload new to replace)`
+                  : '+ Upload GPX file (optional)'}
+              </span>
+            </label>
           </Field>
         </Section>
 

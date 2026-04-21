@@ -8,6 +8,7 @@ import { Calendar, MapPin, Info, Settings, Lock, Unlock, LocateFixed } from 'luc
 
 import { Navbar } from '@/components/navbar'
 import api from '@/lib/api'
+import { parseGpx } from '@/lib/parse-gpx'
 import { useAuthStore } from '@/store/auth'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -87,6 +88,8 @@ export default function CreateEventPage() {
   const [saving,   setSaving]   = useState(false)
   const [error,    setError]    = useState<string | null>(null)
   const [locating, setLocating] = useState(false)
+  const [gpxFile,  setGpxFile]  = useState<File | null>(null)
+  const [gpxTrack, setGpxTrack] = useState<[number, number][]>([])
 
   const {
     register,
@@ -143,28 +146,41 @@ export default function CreateEventPage() {
     )
   }
 
+  async function handleGpxChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setGpxFile(file)
+    const text  = await file.text()
+    const track = parseGpx(text)
+    setGpxTrack(track)
+    if (track.length > 0 && watchedLat === null) {
+      setValue('lat', track[0][0])
+      setValue('lng', track[0][1])
+    }
+  }
+
   async function onSubmit(data: FormData) {
     setSaving(true)
     setError(null)
     try {
-      const payload: Record<string, unknown> = {
-        title:    data.title,
-        category: data.category,
-        start_at: data.start_at + ':00',
-        lat:      data.lat,
-        lng:      data.lng,
-      }
-      if (data.description)      payload.description      = data.description
-      if (data.address)          payload.address          = data.address
-      if (data.duration_minutes) payload.duration_minutes = Number(data.duration_minutes)
-      if (data.skill_level)      payload.skill_level      = data.skill_level
-      if (data.max_participants) payload.max_participants = Number(data.max_participants)
-      if (data.is_private)       payload.is_private       = true
-      if (data.distance_km)      payload.distance_km      = Number(data.distance_km)
-      if (data.elevation_gain)   payload.elevation_gain   = Number(data.elevation_gain)
-      if (data.pace)             payload.pace             = data.pace
+      const fd = new globalThis.FormData()
+      fd.append('title',    data.title)
+      fd.append('category', data.category)
+      fd.append('start_at', data.start_at + ':00')
+      if (data.lat !== null)     fd.append('lat',              String(data.lat))
+      if (data.lng !== null)     fd.append('lng',              String(data.lng))
+      if (data.description)      fd.append('description',      data.description)
+      if (data.address)          fd.append('address',          data.address)
+      if (data.duration_minutes) fd.append('duration_minutes', data.duration_minutes)
+      if (data.skill_level)      fd.append('skill_level',      data.skill_level)
+      if (data.max_participants) fd.append('max_participants',  data.max_participants)
+      fd.append('is_private', data.is_private ? '1' : '0')
+      if (data.distance_km)    fd.append('distance_km',    data.distance_km)
+      if (data.elevation_gain) fd.append('elevation_gain', data.elevation_gain)
+      if (data.pace)           fd.append('pace',           data.pace)
+      if (gpxFile)             fd.append('gpx_file',       gpxFile)
 
-      const { data: res } = await api.post('/events', payload)
+      const { data: res } = await api.post('/events', fd)
       router.replace(`/events/view?id=${res.data.id}`)
     } catch (err: unknown) {
       const e   = err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } }
@@ -318,6 +334,7 @@ export default function CreateEventPage() {
                       lat={watchedLat}
                       lng={watchedLng}
                       onChange={handleMapChange}
+                      track={gpxTrack}
                     />
                   )}
                 />
@@ -334,6 +351,28 @@ export default function CreateEventPage() {
                   placeholder="Auto-filled from map (or type manually)"
                   className={inputCls(false)}
                 />
+              </Field>
+
+              <Field label="GPX route" className="mt-4">
+                <label
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl border cursor-pointer transition-all"
+                  style={gpxFile
+                    ? { borderColor: 'var(--primary)', background: 'rgba(57,255,20,0.06)', color: 'var(--primary)' }
+                    : { borderColor: 'var(--border)', color: 'var(--text-muted)' }
+                  }
+                >
+                  <input
+                    type="file"
+                    accept=".gpx,.xml"
+                    className="hidden"
+                    onChange={handleGpxChange}
+                  />
+                  <span className="text-sm">
+                    {gpxFile
+                      ? `📍 ${gpxFile.name} · ${gpxTrack.length} points`
+                      : '+ Upload GPX file (optional)'}
+                  </span>
+                </label>
               </Field>
             </Section>
 

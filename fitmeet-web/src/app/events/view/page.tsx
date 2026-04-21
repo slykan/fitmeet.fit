@@ -1,5 +1,6 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
@@ -8,8 +9,11 @@ import { Calendar, MapPin, Users, Zap, ChevronLeft, Lock } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
 import api from '@/lib/api'
+import { parseGpx } from '@/lib/parse-gpx'
 import { useAuthStore } from '@/store/auth'
 import { Button } from '@/components/ui/button'
+
+const LocationPickerMap = dynamic(() => import('@/components/location-picker-map'), { ssr: false })
 
 interface Event {
   id: number
@@ -43,17 +47,26 @@ function EventContent() {
   const router       = useRouter()
   const id           = searchParams.get('id')
 
-  const [event,   setEvent]   = useState<Event | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [joining, setJoining] = useState(false)
-  const [error,   setError]   = useState<string | null>(null)
+  const [event,    setEvent]    = useState<Event | null>(null)
+  const [loading,  setLoading]  = useState(true)
+  const [joining,  setJoining]  = useState(false)
+  const [error,    setError]    = useState<string | null>(null)
+  const [gpxTrack, setGpxTrack] = useState<[number, number][]>([])
 
   useEffect(() => {
     if (!token) { router.replace('/login'); return }
     if (!id)    { router.replace('/');      return }
 
     api.get(`/events/${id}`)
-      .then(({ data }) => setEvent(data.data))
+      .then(({ data }) => {
+        setEvent(data.data)
+        if (data.data.activity?.gpx_url) {
+          fetch(data.data.activity.gpx_url)
+            .then(r => r.text())
+            .then(xml => setGpxTrack(parseGpx(xml)))
+            .catch(() => {})
+        }
+      })
       .catch(() => setError('Event not found.'))
       .finally(() => setLoading(false))
   }, [id, token, router])
@@ -183,6 +196,17 @@ function EventContent() {
               )}
             </div>
           </div>
+
+          {/* Map */}
+          {(gpxTrack.length > 1 || (event.location.lat && event.location.lng)) && (
+            <LocationPickerMap
+              lat={event.location.lat}
+              lng={event.location.lng}
+              track={gpxTrack.length > 1 ? gpxTrack : undefined}
+              readOnly
+              height={280}
+            />
+          )}
 
           {/* Action */}
           {error && (
