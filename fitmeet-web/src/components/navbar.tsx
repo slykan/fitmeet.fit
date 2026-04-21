@@ -89,16 +89,10 @@ export function Navbar() {
               <div className="relative" ref={menuRef}>
                 <button
                   onClick={() => setMenuOpen(o => !o)}
-                  className="flex items-center gap-2 p-1.5 rounded-xl hover:bg-[--border] transition-colors"
+                  className="p-2 rounded-xl hover:bg-[--border] transition-colors"
+                  style={{ color: 'var(--text-primary)' }}
                 >
-                  {user.avatar ? (
-                    <Image src={user.avatar} alt={user.name} width={32} height={32} className="rounded-full" />
-                  ) : (
-                    <div className="w-8 h-8 rounded-full bg-[--primary] flex items-center justify-center">
-                      <User size={15} className="text-black" />
-                    </div>
-                  )}
-                  <span className="text-sm font-medium hidden sm:block">{user.name.split(' ')[0]}</span>
+                  <User size={20} />
                 </button>
 
                 {menuOpen && (
