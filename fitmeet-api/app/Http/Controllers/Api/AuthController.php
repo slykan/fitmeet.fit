@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
 use Laravel\Socialite\Facades\Socialite;
 
 class AuthController extends Controller
@@ -15,10 +16,21 @@ class AuthController extends Controller
     public function register(Request $request): JsonResponse
     {
         $request->validate([
-            'name'     => ['required', 'string', 'max:100'],
-            'email'    => ['required', 'email', 'unique:users,email'],
-            'password' => ['required', 'string', 'min:8'],
+            'name'                  => ['required', 'string', 'max:100'],
+            'email'                 => ['required', 'email', 'unique:users,email'],
+            'password'              => ['required', 'string', 'min:8'],
+            'cf_turnstile_response' => ['required', 'string'],
         ]);
+
+        $verify = Http::asForm()->post('https://challenges.cloudflare.com/turnstile/v0/siteverify', [
+            'secret'   => env('TURNSTILE_SECRET'),
+            'response' => $request->cf_turnstile_response,
+            'remoteip' => $request->ip(),
+        ]);
+
+        if (! $verify->json('success')) {
+            return response()->json(['message' => 'Security check failed. Please try again.'], 422);
+        }
 
         $user = User::create([
             'name'     => $request->name,

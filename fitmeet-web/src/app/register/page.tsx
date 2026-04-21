@@ -1,8 +1,9 @@
 'use client'
 
 import Link from 'next/link'
+import Script from 'next/script'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Eye, EyeOff } from 'lucide-react'
 
@@ -11,12 +12,29 @@ import { useAuthStore } from '@/store/auth'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
+declare global {
+  interface Window {
+    turnstile?: {
+      render: (el: HTMLElement, opts: {
+        sitekey: string
+        callback: (token: string) => void
+        'expired-callback': () => void
+        'error-callback': () => void
+        theme?: string
+      }) => string
+      reset: (widgetId: string) => void
+    }
+  }
+}
+
 interface RegisterForm {
   name: string
   email: string
   password: string
   confirm: string
 }
+
+const SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!
 
 const GoogleIcon = () => (
   <svg viewBox="0 0 24 24" className="w-5 h-5 shrink-0" xmlns="http://www.w3.org/2000/svg">
@@ -28,21 +46,40 @@ const GoogleIcon = () => (
 )
 
 export default function RegisterPage() {
-  const { setAuth } = useAuthStore()
-  const router = useRouter()
+  const { setAuth }  = useAuthStore()
+  const router       = useRouter()
   const [googleLoading, setGoogleLoading] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [showPassword,  setShowPassword]  = useState(false)
+  const [error,         setError]         = useState<string | null>(null)
+  const [cfToken,       setCfToken]       = useState<string>('')
+  const turnstileRef = useRef<HTMLDivElement>(null)
+  const widgetId     = useRef<string>('')
 
   const { register, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm<RegisterForm>()
 
+  function onTurnstileLoad() {
+    if (!turnstileRef.current || !window.turnstile) return
+    widgetId.current = window.turnstile.render(turnstileRef.current, {
+      sitekey: SITE_KEY,
+      theme: 'dark',
+      callback:           (token) => setCfToken(token),
+      'expired-callback': ()      => setCfToken(''),
+      'error-callback':   ()      => setCfToken(''),
+    })
+  }
+
   async function onSubmit(data: RegisterForm) {
+    if (!cfToken) {
+      setError('Please complete the security check.')
+      return
+    }
     setError(null)
     try {
       const { data: res } = await api.post('/auth/register', {
-        name:     data.name,
-        email:    data.email,
-        password: data.password,
+        name:                  data.name,
+        email:                 data.email,
+        password:              data.password,
+        cf_turnstile_response: cfToken,
       })
       setAuth(res.token, res.data)
       router.replace('/onboarding')
@@ -53,6 +90,11 @@ export default function RegisterPage() {
         Object.values(e?.response?.data?.errors ?? {})[0]?.[0] ??
         'Registration failed. Please try again.'
       setError(msg)
+      // Reset widget after failed attempt
+      if (window.turnstile && widgetId.current) {
+        window.turnstile.reset(widgetId.current)
+        setCfToken('')
+      }
     }
   }
 
@@ -69,113 +111,128 @@ export default function RegisterPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center px-4" style={{ background: 'var(--background)' }}>
-      <div className="w-full max-w-sm">
+    <>
+      <Script
+        src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+        strategy="lazyOnload"
+        onLoad={onTurnstileLoad}
+      />
 
-        <div className="text-center mb-10">
-          <h1 className="text-4xl font-bold tracking-tight mb-2" style={{ color: 'var(--primary)' }}>FITMEET</h1>
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Find your people. Move together.</p>
-        </div>
+      <main className="min-h-screen flex items-center justify-center px-4" style={{ background: 'var(--background)' }}>
+        <div className="w-full max-w-sm">
 
-        <div className="border rounded-2xl p-8 flex flex-col gap-5" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
-          <div className="text-center">
-            <h2 className="text-xl font-semibold mb-1">Create account</h2>
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Join FitMeet today</p>
+          <div className="text-center mb-10">
+            <h1 className="text-4xl font-bold tracking-tight mb-2" style={{ color: 'var(--primary)' }}>FITMEET</h1>
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Find your people. Move together.</p>
           </div>
 
-          {error && (
-            <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-xl px-4 py-3">
-              {error}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
-            <div>
-              <input
-                {...register('name', { required: 'Full name is required' })}
-                placeholder="Full name"
-                className={inputCls(!!errors.name)}
-              />
-              {errors.name && <p className="text-red-400 text-xs mt-1">{errors.name.message}</p>}
+          <div className="border rounded-2xl p-8 flex flex-col gap-5" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
+            <div className="text-center">
+              <h2 className="text-xl font-semibold mb-1">Create account</h2>
+              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Join FitMeet today</p>
             </div>
 
-            <div>
-              <input
-                {...register('email', { required: 'Email is required' })}
-                type="email"
-                placeholder="Email"
-                className={inputCls(!!errors.email)}
-              />
-              {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email.message}</p>}
-            </div>
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-xl px-4 py-3">
+                {error}
+              </div>
+            )}
 
-            <div>
-              <div className="relative">
+            <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
+              <div>
                 <input
-                  {...register('password', {
-                    required: 'Password is required',
-                    minLength: { value: 8, message: 'Minimum 8 characters' },
+                  {...register('name', { required: 'Full name is required' })}
+                  placeholder="Full name"
+                  className={inputCls(!!errors.name)}
+                />
+                {errors.name && <p className="text-red-400 text-xs mt-1">{errors.name.message}</p>}
+              </div>
+
+              <div>
+                <input
+                  {...register('email', { required: 'Email is required' })}
+                  type="email"
+                  placeholder="Email"
+                  className={inputCls(!!errors.email)}
+                />
+                {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email.message}</p>}
+              </div>
+
+              <div>
+                <div className="relative">
+                  <input
+                    {...register('password', {
+                      required: 'Password is required',
+                      minLength: { value: 8, message: 'Minimum 8 characters' },
+                    })}
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Password (min 8 chars)"
+                    className={cn(inputCls(!!errors.password), 'pr-10')}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(p => !p)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2"
+                    style={{ color: 'var(--text-muted)' }}
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+                {errors.password && <p className="text-red-400 text-xs mt-1">{errors.password.message}</p>}
+              </div>
+
+              <div>
+                <input
+                  {...register('confirm', {
+                    required: 'Please confirm your password',
+                    validate: val => val === watch('password') || 'Passwords do not match',
                   })}
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="Password (min 8 chars)"
-                  className={cn(inputCls(!!errors.password), 'pr-10')}
+                  placeholder="Confirm password"
+                  className={inputCls(!!errors.confirm)}
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(p => !p)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2"
-                  style={{ color: 'var(--text-muted)' }}
-                >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
+                {errors.confirm && <p className="text-red-400 text-xs mt-1">{errors.confirm.message}</p>}
               </div>
-              {errors.password && <p className="text-red-400 text-xs mt-1">{errors.password.message}</p>}
+
+              {/* Turnstile widget */}
+              <div ref={turnstileRef} className="flex justify-center" />
+
+              <Button
+                type="submit"
+                size="lg"
+                loading={isSubmitting}
+                disabled={!cfToken}
+                className="w-full mt-1"
+              >
+                Create account
+              </Button>
+            </form>
+
+            <div className="flex items-center gap-3">
+              <div className="flex-1 h-px" style={{ background: 'var(--border)' }} />
+              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>or</span>
+              <div className="flex-1 h-px" style={{ background: 'var(--border)' }} />
             </div>
 
-            <div>
-              <input
-                {...register('confirm', {
-                  required: 'Please confirm your password',
-                  validate: val => val === watch('password') || 'Passwords do not match',
-                })}
-                type={showPassword ? 'text' : 'password'}
-                placeholder="Confirm password"
-                className={inputCls(!!errors.confirm)}
-              />
-              {errors.confirm && <p className="text-red-400 text-xs mt-1">{errors.confirm.message}</p>}
-            </div>
-
-            <Button type="submit" size="lg" loading={isSubmitting} className="w-full mt-1">
-              Create account
+            <Button variant="ghost" size="lg" onClick={handleGoogleLogin} loading={googleLoading} className="w-full gap-3 border">
+              {!googleLoading && <GoogleIcon />}
+              Continue with Google
             </Button>
-          </form>
 
-          {/* Divider */}
-          <div className="flex items-center gap-3">
-            <div className="flex-1 h-px" style={{ background: 'var(--border)' }} />
-            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>or</span>
-            <div className="flex-1 h-px" style={{ background: 'var(--border)' }} />
+            <p className="text-center text-sm" style={{ color: 'var(--text-muted)' }}>
+              Already have an account?{' '}
+              <Link href="/login" className="font-semibold" style={{ color: 'var(--primary)' }}>
+                Sign in
+              </Link>
+            </p>
           </div>
 
-          {/* Google */}
-          <Button variant="ghost" size="lg" onClick={handleGoogleLogin} loading={googleLoading} className="w-full gap-3 border">
-            {!googleLoading && <GoogleIcon />}
-            Continue with Google
-          </Button>
-
-          <p className="text-center text-sm" style={{ color: 'var(--text-muted)' }}>
-            Already have an account?{' '}
-            <Link href="/login" className="font-semibold" style={{ color: 'var(--primary)' }}>
-              Sign in
-            </Link>
+          <p className="text-center text-xs mt-6" style={{ color: 'var(--text-muted)' }}>
+            By continuing, you agree to our Terms of Service and Privacy Policy.
           </p>
         </div>
-
-        <p className="text-center text-xs mt-6" style={{ color: 'var(--text-muted)' }}>
-          By continuing, you agree to our Terms of Service and Privacy Policy.
-        </p>
-      </div>
-    </main>
+      </main>
+    </>
   )
 }
 
