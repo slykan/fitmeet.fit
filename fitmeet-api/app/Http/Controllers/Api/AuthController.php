@@ -90,7 +90,7 @@ class AuthController extends Controller
 
         $token = $user->createToken('fitmeet')->plainTextToken;
 
-        return redirect(env('FRONTEND_URL') . '/login?token=' . $token);
+        return redirect(env('FRONTEND_URL') . '/login/?token=' . $token);
     }
 
     public function me(): JsonResponse
