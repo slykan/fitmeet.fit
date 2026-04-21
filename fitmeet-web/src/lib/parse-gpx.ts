@@ -7,6 +7,8 @@ export interface GpxResult {
   track:            [number, number][]
   distanceKm:       number
   elevationGain:    number
+  maxGrade:         number   // steepest uphill %
+  maxDowngrade:     number   // steepest downhill % (negative)
   elevationProfile: { km: number; ele: number }[]
   coloredSegments:  TrackSegment[]
 }
@@ -98,6 +100,19 @@ export function parseGpx(xml: string): GpxResult {
     }
   }
 
+  // Max uphill and downhill grade
+  let maxGrade     = 0
+  let maxDowngrade = 0
+  for (let i = 1; i < elevationProfile.length; i++) {
+    const distKm = elevationProfile[i].km - elevationProfile[i - 1].km
+    const eleM   = elevationProfile[i].ele - elevationProfile[i - 1].ele
+    if (distKm > 0) {
+      const grade = (eleM / (distKm * 1000)) * 100
+      if (grade > maxGrade)     maxGrade     = grade
+      if (grade < maxDowngrade) maxDowngrade = grade
+    }
+  }
+
   // Build colored segments from elevation profile
   const coloredSegments: TrackSegment[] = []
 
@@ -128,6 +143,8 @@ export function parseGpx(xml: string): GpxResult {
     track,
     distanceKm:    Math.round(totalKm * 10) / 10,
     elevationGain: Math.round(elevationGain),
+    maxGrade:      Math.round(maxGrade * 10) / 10,
+    maxDowngrade:  Math.round(maxDowngrade * 10) / 10,
     elevationProfile,
     coloredSegments,
   }

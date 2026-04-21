@@ -71,6 +71,8 @@ interface FormData {
   is_private:       boolean
   distance_km:      string
   elevation_gain:   string
+  max_grade:        string
+  max_downgrade:    string
   pace:             string
 }
 
@@ -106,7 +108,7 @@ export default function CreateEventPage() {
       lat: null, lng: null, address: '',
       skill_level: '', max_participants: '',
       is_private: false,
-      distance_km: '', elevation_gain: '', pace: '',
+      distance_km: '', elevation_gain: '', max_grade: '', max_downgrade: '', pace: '',
     },
   })
 
@@ -159,6 +161,8 @@ export default function CreateEventPage() {
     }
     if (result.distanceKm > 0)    setValue('distance_km',    String(result.distanceKm))
     if (result.elevationGain > 0) setValue('elevation_gain', String(result.elevationGain))
+    if (result.maxGrade > 0)         setValue('max_grade',      String(result.maxGrade))
+    if (result.maxDowngrade < 0)     setValue('max_downgrade',  String(result.maxDowngrade))
   }
 
   async function onSubmit(data: FormData) {
@@ -179,6 +183,8 @@ export default function CreateEventPage() {
       fd.append('is_private', data.is_private ? '1' : '0')
       if (data.distance_km)    fd.append('distance_km',    data.distance_km)
       if (data.elevation_gain) fd.append('elevation_gain', data.elevation_gain)
+      if (data.max_grade)      fd.append('max_grade',      data.max_grade)
+      if (data.max_downgrade)  fd.append('max_downgrade',  data.max_downgrade)
       if (data.pace)           fd.append('pace',           data.pace)
       if (gpxFile)             fd.append('gpx_file',       gpxFile)
 
@@ -441,32 +447,23 @@ export default function CreateEventPage() {
                 </Field>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <Field label="Distance (km)">
-                  <input
-                    {...register('distance_km')}
-                    type="number"
-                    placeholder="e.g. 10"
-                    min={0}
-                    step={0.1}
-                    className={inputCls(false)}
-                  />
+                  <input {...register('distance_km')} type="number" placeholder="e.g. 10" min={0} step={0.1} className={inputCls(false)} />
                 </Field>
-                <Field label="Elevation (m)">
-                  <input
-                    {...register('elevation_gain')}
-                    type="number"
-                    placeholder="e.g. 250"
-                    min={0}
-                    className={inputCls(false)}
-                  />
+                <Field label="Elevation gain (m)">
+                  <input {...register('elevation_gain')} type="number" placeholder="e.g. 250" min={0} className={inputCls(false)} />
                 </Field>
+                <Field label="Max grade ▲ (%)">
+                  <input {...register('max_grade')} type="number" placeholder="e.g. 12" min={0} max={100} step={0.1} className={inputCls(false)} />
+                </Field>
+                <Field label="Max grade ▼ (%)">
+                  <input {...register('max_downgrade')} type="number" placeholder="e.g. -8" max={0} min={-100} step={0.1} className={inputCls(false)} />
+                </Field>
+              </div>
+              <div className="mt-4">
                 <Field label="Pace">
-                  <input
-                    {...register('pace')}
-                    placeholder="e.g. 5:30/km"
-                    className={inputCls(false)}
-                  />
+                  <input {...register('pace')} placeholder="e.g. 5:30/km" className={inputCls(false)} />
                 </Field>
               </div>
             </Section>

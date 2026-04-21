@@ -26,6 +26,8 @@ class Event extends Model
         'distance_km',
         'elevation_gain',
         'pace',
+        'max_grade',
+        'max_downgrade',
         'gpx_path',
         'skill_level',
         'max_participants',

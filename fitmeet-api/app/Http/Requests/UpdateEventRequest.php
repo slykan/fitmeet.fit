@@ -30,6 +30,8 @@ class UpdateEventRequest extends FormRequest
             'distance_km'      => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'elevation_gain'   => ['sometimes', 'nullable', 'integer', 'min:0'],
             'pace'             => ['sometimes', 'nullable', 'string', 'max:20'],
+            'max_grade'        => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:100'],
+            'max_downgrade'    => ['sometimes', 'nullable', 'numeric', 'min:-100', 'max:0'],
 
             'gpx_file'         => ['sometimes', 'nullable', 'file', 'max:5120'],
 

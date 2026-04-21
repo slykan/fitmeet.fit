@@ -23,7 +23,7 @@ interface Event {
   category: { value: string; label: string }
   location: { lat: number; lng: number; address: string | null }
   schedule: { start_at: string; duration_minutes: number | null }
-  activity: { distance_km: number | null; elevation_gain: number | null; pace: string | null; gpx_url: string | null }
+  activity: { distance_km: number | null; elevation_gain: number | null; pace: string | null; max_grade: number | null; max_downgrade: number | null; gpx_url: string | null }
   skill_level: string | null
   max_participants: number | null
   participants_count: number
@@ -182,13 +182,15 @@ function EventContent() {
                 </span>
               </div>
 
-              {(event.activity.distance_km || event.activity.pace || event.activity.elevation_gain) && (
-                <div className="flex items-center gap-2.5 text-sm">
-                  <Zap size={15} style={{ color: 'var(--primary)', flexShrink: 0 }} />
+              {(event.activity.distance_km || event.activity.pace || event.activity.elevation_gain || event.activity.max_grade || event.activity.max_downgrade) && (
+                <div className="flex items-start gap-2.5 text-sm">
+                  <Zap size={15} style={{ color: 'var(--primary)', flexShrink: 0, marginTop: 2 }} />
                   <span style={{ color: 'var(--text-muted)' }}>
                     {[
-                      event.activity.distance_km  && `${event.activity.distance_km} km`,
+                      event.activity.distance_km    && `${event.activity.distance_km} km`,
                       event.activity.elevation_gain && `↑${event.activity.elevation_gain} m`,
+                      event.activity.max_grade      && `▲ ${event.activity.max_grade}%`,
+                      event.activity.max_downgrade  && `▼ ${Math.abs(event.activity.max_downgrade)}%`,
                       event.activity.pace,
                     ].filter(Boolean).join(' · ')}
                   </span>

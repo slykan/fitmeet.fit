@@ -30,6 +30,8 @@ class StoreEventRequest extends FormRequest
             'distance_km'      => ['nullable', 'numeric', 'min:0', 'max:9999'],
             'elevation_gain'   => ['nullable', 'integer', 'min:0'],
             'pace'             => ['nullable', 'string', 'max:20'],
+            'max_grade'        => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'max_downgrade'    => ['nullable', 'numeric', 'min:-100', 'max:0'],
 
             'gpx_file'         => ['nullable', 'file', 'max:5120'], // 5MB
 
