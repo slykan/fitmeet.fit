@@ -58,9 +58,6 @@ export function Navbar() {
               className="object-contain"
             />
           )}
-          <span className="ml-2 text-lg font-bold tracking-widest uppercase text-[--text-primary]">
-            FitMeet
-          </span>
         </Link>
 
         <div className="flex items-center gap-2">
