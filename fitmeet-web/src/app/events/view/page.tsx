@@ -5,7 +5,7 @@ import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Calendar, MapPin, Users, Zap, ChevronLeft, Lock } from 'lucide-react'
+import { Calendar, MapPin, Users, Zap, ChevronLeft, Lock, Pencil } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
 import ElevationChart from '@/components/elevation-chart'
@@ -236,12 +236,14 @@ function EventContent() {
           )}
 
           {event.is_organizer && (
-            <div
-              className="rounded-xl border px-4 py-3 text-sm text-center"
-              style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}
+            <Button
+              size="lg"
+              variant="ghost"
+              className="w-full border flex items-center gap-2"
+              onClick={() => router.push(`/events/edit?id=${event.id}`)}
             >
-              You are the organizer of this event
-            </div>
+              <Pencil size={15} /> Edit event
+            </Button>
           )}
 
           {/* Organizer */}
