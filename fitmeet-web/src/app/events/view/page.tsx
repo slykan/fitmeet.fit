@@ -5,7 +5,7 @@ import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Calendar, MapPin, Users, Zap, ChevronLeft, Lock, Pencil, ChevronDown, ChevronUp } from 'lucide-react'
+import { Calendar, MapPin, Users, Zap, ChevronLeft, Lock, Pencil, ChevronDown, ChevronUp, Bell, Check, X } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
 import ElevationChart from '@/components/elevation-chart'
@@ -62,6 +62,9 @@ function EventContent() {
   const [error,    setError]    = useState<string | null>(null)
   const [gpxResult, setGpxResult] = useState<GpxResult | null>(null)
   const [showParticipants, setShowParticipants] = useState(false)
+  const [showReminderModal, setShowReminderModal] = useState(false)
+  const [selectedOffsets, setSelectedOffsets] = useState<Set<string>>(new Set())
+  const [settingReminders, setSettingReminders] = useState(false)
 
   useEffect(() => {
     if (!token) { router.replace('/login'); return }
@@ -87,11 +90,25 @@ function EventContent() {
     try {
       await api.post(`/events/${event.id}/join`)
       setEvent(e => e ? { ...e, is_joined: true, participants_count: e.participants_count + 1 } : e)
+      setSelectedOffsets(new Set())
+      setShowReminderModal(true)
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Failed to join.'
       setError(msg)
     } finally {
       setJoining(false)
+    }
+  }
+
+  async function handleSetReminders() {
+    if (!event || selectedOffsets.size === 0) { setShowReminderModal(false); return }
+    setSettingReminders(true)
+    try {
+      await api.post(`/events/${event.id}/remind`, { offsets: Array.from(selectedOffsets) })
+    } catch {}
+    finally {
+      setSettingReminders(false)
+      setShowReminderModal(false)
     }
   }
 
@@ -279,6 +296,77 @@ function EventContent() {
       )}
     </div>
     </main>
+
+    {/* Join success + reminder modal */}
+    {showReminderModal && event && (
+      <div className="fixed inset-0 z-[2000] flex items-end sm:items-center justify-center p-4"
+        style={{ background: 'rgba(0,0,0,0.7)' }}>
+        <div className="w-full rounded-2xl border p-6 space-y-5"
+          style={{ maxWidth: 420, background: 'var(--surface)', borderColor: 'var(--border)' }}>
+
+          {/* Header */}
+          <div className="flex items-start justify-between">
+            <div>
+              <div className="text-2xl mb-1">🎉</div>
+              <h2 className="font-bold text-lg">Successfully joined!</h2>
+              <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                Want a reminder before it starts?
+              </p>
+            </div>
+            <button onClick={() => setShowReminderModal(false)} style={{ color: 'var(--text-muted)' }}>
+              <X size={20} />
+            </button>
+          </div>
+
+          {/* Offset toggles */}
+          <div className="flex gap-2 flex-wrap">
+            {(['1h', '5h', '1d'] as const).map(offset => {
+              const label = offset === '1h' ? '1h before' : offset === '5h' ? '5h before' : '1 day before'
+              const active = selectedOffsets.has(offset)
+              return (
+                <button
+                  key={offset}
+                  onClick={() => setSelectedOffsets(prev => {
+                    const next = new Set(prev)
+                    next.has(offset) ? next.delete(offset) : next.add(offset)
+                    return next
+                  })}
+                  className="flex items-center gap-1.5 text-sm px-4 py-2 rounded-xl border font-medium transition-all"
+                  style={{
+                    borderColor: active ? 'var(--primary)' : 'var(--border)',
+                    color:       active ? 'var(--primary)' : 'var(--text-muted)',
+                    background:  active ? 'rgba(57,255,20,0.08)' : 'transparent',
+                  }}
+                >
+                  {active && <Check size={13} />}
+                  <Bell size={13} />
+                  {label}
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowReminderModal(false)}
+              className="flex-1 py-2.5 rounded-xl border text-sm font-medium transition-colors hover:bg-[--border]"
+              style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}
+            >
+              Skip
+            </button>
+            <button
+              onClick={handleSetReminders}
+              disabled={selectedOffsets.size === 0 || settingReminders}
+              className="flex-1 py-2.5 rounded-xl text-sm font-bold transition-opacity hover:opacity-80 disabled:opacity-40"
+              style={{ background: 'var(--primary)', color: '#000' }}
+            >
+              {settingReminders ? 'Saving…' : 'Set Reminders'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
   )
 }
 

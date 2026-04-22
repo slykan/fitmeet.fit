@@ -46,5 +46,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('events/{event}/gpx', [EventController::class, 'gpx']);
     Route::post('events/{event}/join', [EventController::class, 'join']);
     Route::post('events/{event}/leave', [EventController::class, 'leave']);
+    Route::post('events/{event}/remind', [EventController::class, 'setReminders']);
     Route::apiResource('events', EventController::class);
 });

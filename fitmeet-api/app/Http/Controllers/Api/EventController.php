@@ -8,6 +8,7 @@ use App\Http\Requests\UpdateEventRequest;
 use App\Http\Resources\EventResource;
 use App\Jobs\SendEventPushNotifications;
 use App\Models\Event;
+use App\Models\EventReminder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -206,5 +207,29 @@ class EventController extends Controller
             ->get();
 
         return response()->json(['data' => EventResource::collection($events)]);
+    }
+
+    // POST /api/events/{event}/remind
+    public function setReminders(Request $request, Event $event): JsonResponse
+    {
+        $request->validate([
+            'offsets'   => 'required|array|min:1',
+            'offsets.*' => 'in:1h,5h,1d',
+        ]);
+
+        $user      = $request->user();
+        $offsetMap = ['1h' => 60, '5h' => 300, '1d' => 1440];
+
+        foreach ($request->offsets as $offset) {
+            $remindAt = $event->start_at->copy()->subMinutes($offsetMap[$offset]);
+            if ($remindAt->isPast()) continue;
+
+            EventReminder::updateOrCreate(
+                ['user_id' => $user->id, 'event_id' => $event->id, 'remind_offset' => $offset],
+                ['remind_at' => $remindAt, 'sent_at' => null]
+            );
+        }
+
+        return response()->json(['message' => 'Reminders set.']);
     }
 }
