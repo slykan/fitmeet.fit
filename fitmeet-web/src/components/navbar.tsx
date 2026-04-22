@@ -88,9 +88,9 @@ export function Navbar() {
           {user ? (
             <>
               <Link
-                href="/events/my"
+                href="/meet"
                 className="p-2 rounded-lg text-[--text-muted] hover:text-[--text-primary] transition-colors"
-                title="My events"
+                title="Meet"
               >
                 <CalendarDays size={18} />
               </Link>
@@ -160,9 +160,10 @@ export function Navbar() {
                     </div>
 
                     <div className="py-1">
-                      <MenuItem icon={<Bell size={15} />} label="Notifications" onClick={() => navigate('/notifications')} badge={notifCount} />
-                      <MenuItem icon={<User size={15} />} label="Profile"       onClick={() => navigate('/onboarding')} />
-                      <MenuItem icon={<Users size={15} />} label="Meet"         onClick={() => navigate('/meet')} />
+                      <MenuItem icon={<Bell size={15} />}        label="Notifications" onClick={() => navigate('/notifications')} badge={notifCount} />
+                      <MenuItem icon={<User size={15} />}        label="Profile"       onClick={() => navigate('/onboarding')} />
+                      <MenuItem icon={<Users size={15} />}       label="Meet"          onClick={() => navigate('/meet')} />
+                      <MenuItem icon={<CalendarDays size={15} />} label="My Events"    onClick={() => navigate('/events/my')} />
                     </div>
 
                     <div className="border-t py-1" style={{ borderColor: 'var(--border)' }}>
