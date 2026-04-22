@@ -15,6 +15,8 @@
           {{-- Logo --}}
           <tr>
             <td align="center" style="padding-bottom:32px;">
+              <img src="https://fitmeet.fit/logo_c.png" alt="FitMeet" width="48" height="48"
+                style="display:block;margin:0 auto 10px;" />
               <span style="font-size:22px;font-weight:800;letter-spacing:-0.5px;">
                 <span style="color:#ffffff;">Fit</span><span style="color:#39FF14;">meet</span>
               </span>
