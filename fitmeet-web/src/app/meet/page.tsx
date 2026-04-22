@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import {
-  Search, Phone, UserPlus, UserCheck, UserMinus, Calendar, MapPin, Users, Zap, ChevronRight, ChevronDown,
+  Search, Phone, UserPlus, UserCheck, UserMinus, Calendar, MapPin, Users, Zap, ChevronRight,
   Bell, Check, X,
 } from 'lucide-react'
 
@@ -272,82 +272,29 @@ function PeopleTab() {
 
 // ─── Events Tab ───────────────────────────────────────────────────────────────
 
-const FEATURED_CATS = [
-  { value: '', label: 'All' },
-  ...CATEGORIES.filter(c => FILTER_FEATURED.includes(c.value)),
-]
-const MORE_CATS = CATEGORIES.filter(c => !FILTER_FEATURED.includes(c.value))
+const ALL_CATS = [{ value: '', label: 'All' }, ...CATEGORIES]
 
 function CategoryFilter({ category, setCategory }: { category: string; setCategory: (v: string) => void }) {
-  const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    function close(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener('mousedown', close)
-    return () => document.removeEventListener('mousedown', close)
-  }, [])
-
-  const selectedMore = MORE_CATS.find(c => c.value === category)
-
-  function pill(value: string, label: string, emoji?: string) {
-    const active = category === value
-    return (
-      <button
-        key={value}
-        onClick={() => setCategory(value)}
-        className="flex-shrink-0 text-xs px-3 py-1.5 rounded-full border font-medium transition-colors"
-        style={{
-          borderColor: active ? 'var(--primary)' : 'var(--border)',
-          color:       active ? 'var(--primary)' : 'var(--text-muted)',
-          background:  active ? 'rgba(57,255,20,0.08)' : 'transparent',
-        }}
-      >
-        {emoji ? `${emoji} ${label}` : label}
-      </button>
-    )
-  }
-
   return (
-    <div className="flex gap-2 items-center flex-wrap">
-      {FEATURED_CATS.map(c => pill(c.value, c.label, c.value ? CATEGORY_EMOJI[c.value] : undefined))}
-
-      {/* Show selected "more" category as an active pill */}
-      {selectedMore && pill(selectedMore.value, selectedMore.label, CATEGORY_EMOJI[selectedMore.value])}
-
-      {/* More... dropdown */}
-      <div className="relative flex-shrink-0" ref={ref}>
-        <button
-          onClick={() => setOpen(o => !o)}
-          className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-full border font-medium transition-colors"
-          style={{
-            borderColor: (selectedMore && !open) ? 'var(--primary)' : 'var(--border)',
-            color:       (selectedMore && !open) ? 'var(--primary)' : 'var(--text-muted)',
-            background:  (selectedMore && !open) ? 'rgba(57,255,20,0.08)' : 'transparent',
-          }}
-        >
-          More <ChevronDown size={11} />
-        </button>
-        {open && (
-          <div
-            className="absolute left-0 mt-1 rounded-xl border shadow-xl overflow-y-auto z-50"
-            style={{ background: 'var(--surface)', borderColor: 'var(--border)', minWidth: 160, maxHeight: 280 }}
+    <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+      {ALL_CATS.map(c => {
+        const active = category === c.value
+        return (
+          <button
+            key={c.value}
+            onClick={() => setCategory(c.value)}
+            className="flex-shrink-0 text-xs px-3 py-1.5 rounded-full border font-medium transition-colors"
+            style={{
+              borderColor: active ? 'var(--primary)' : 'var(--border)',
+              color:       active ? 'var(--primary)' : 'var(--text-muted)',
+              background:  active ? 'rgba(57,255,20,0.08)' : 'transparent',
+            }}
           >
-            {MORE_CATS.map(c => (
-              <button
-                key={c.value}
-                onClick={() => { setCategory(c.value); setOpen(false) }}
-                className="w-full flex items-center gap-2 px-4 py-2.5 text-sm transition-colors hover:bg-[--border] text-left"
-                style={{ color: category === c.value ? 'var(--primary)' : 'var(--text-primary)' }}
-              >
-                <span>{CATEGORY_EMOJI[c.value] ?? '📌'}</span> {c.label}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+            {c.value ? `${CATEGORY_EMOJI[c.value] ?? ''} ${c.label}` : c.label}
+          </button>
+        )
+      })}
+    </div>
     </div>
   )
 }
