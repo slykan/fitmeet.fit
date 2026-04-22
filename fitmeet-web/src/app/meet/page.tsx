@@ -456,7 +456,7 @@ function EventsTab() {
 export default function MeetPage() {
   const { token } = useAuthStore()
   const router    = useRouter()
-  const [tab, setTab] = useState<'people' | 'events'>('people')
+  const [tab, setTab] = useState<'people' | 'events'>('events')
 
   useEffect(() => {
     if (!token) router.replace('/login')
@@ -483,7 +483,7 @@ export default function MeetPage() {
 
           {/* Tabs */}
           <div className="flex gap-1 p-1 rounded-xl mb-6" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-            {(['people', 'events'] as const).map(t => (
+            {(['events', 'people'] as const).map(t => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
