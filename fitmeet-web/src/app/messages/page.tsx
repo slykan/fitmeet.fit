@@ -169,13 +169,14 @@ function MessagesContent() {
   const params    = useSearchParams()
   const userId    = params.get('user')
 
-  const [convos,   setConvos]   = useState<Conversation[]>([])
-  const [loading,  setLoading]  = useState(true)
-  const [compose,  setCompose]  = useState(false)
-  const [friends,  setFriends]  = useState<Person[]>([])
-  const [selected, setSelected] = useState<Person | null>(null)
-  const [body,     setBody]     = useState('')
-  const [sending,  setSending]  = useState(false)
+  const [convos,    setConvos]    = useState<Conversation[]>([])
+  const [loading,   setLoading]   = useState(true)
+  const [compose,   setCompose]   = useState(false)
+  const [friends,   setFriends]   = useState<Person[]>([])
+  const [selected,  setSelected]  = useState<Person | null>(null)
+  const [body,      setBody]      = useState('')
+  const [sending,   setSending]   = useState(false)
+  const [sendError, setSendError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!token) { router.replace('/login'); return }
@@ -197,10 +198,14 @@ function MessagesContent() {
   async function handleSend() {
     if (!selected || !body.trim()) return
     setSending(true)
+    setSendError(null)
     try {
       await api.post(`/messages/${selected.id}`, { body: body.trim() })
       setCompose(false)
       router.push(`/messages?user=${selected.id}`)
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      setSendError(msg ?? 'Failed to send. Try again.')
     } finally { setSending(false) }
   }
 
@@ -256,6 +261,11 @@ function MessagesContent() {
               <textarea value={body} onChange={e => setBody(e.target.value)} placeholder="Write a message…" rows={4}
                 className="w-full rounded-xl border px-4 py-3 text-sm outline-none focus:border-[--primary] resize-none"
                 style={{ background: 'var(--background)', borderColor: 'var(--border)', color: 'var(--text-primary)' }} />
+              {sendError && (
+                <p className="text-xs px-3 py-2 rounded-lg" style={{ background: 'rgba(248,113,113,0.1)', color: '#f87171' }}>
+                  {sendError}
+                </p>
+              )}
               <button onClick={handleSend} disabled={!selected || !body.trim() || sending}
                 className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm transition-opacity hover:opacity-80 disabled:opacity-40"
                 style={{ background: 'var(--primary)', color: '#000' }}>
