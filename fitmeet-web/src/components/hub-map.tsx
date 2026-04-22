@@ -85,13 +85,16 @@ function formatDate(iso: string) {
   })
 }
 
+interface Participant { id: number; name: string; avatar: string | null }
+
 export default function HubMap() {
   const { user }   = useAuthStore()
   const router     = useRouter()
-  const [events,   setEvents]   = useState<EventPin[]>([])
-  const [selected, setSelected] = useState<EventPin | null>(null)
-  const [ready,    setReady]    = useState(false)
-  const [radar,    setRadar]    = useState(true)
+  const [events,   setEvents]       = useState<EventPin[]>([])
+  const [selected, setSelected]     = useState<EventPin | null>(null)
+  const [participants, setParticipants] = useState<Participant[]>([])
+  const [ready,    setReady]        = useState(false)
+  const [radar,    setRadar]        = useState(true)
 
   const lat      = (user?.location?.lat  || user?.home?.lat  || null)
   const lng      = (user?.location?.lng  || user?.home?.lng  || null)
@@ -120,6 +123,13 @@ export default function HubMap() {
     const t = setTimeout(() => setRadar(false), 1600)
     return () => clearTimeout(t)
   }, [lat, lng, radiusKm])
+
+  useEffect(() => {
+    if (!selected) { setParticipants([]); return }
+    api.get(`/events/${selected.id}`)
+      .then(({ data }) => setParticipants(data.data.participants ?? []))
+      .catch(() => {})
+  }, [selected])
 
   const mapCenter: [number, number] = (lat && lng) ? [lat, lng] : [44.5, 16.5]
 
@@ -241,6 +251,31 @@ export default function HubMap() {
                   {selected.participants_count} joined
                   {selected.max_participants ? ` · max ${selected.max_participants}` : ''}
                 </div>
+                {participants.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4, marginLeft: 18 }}>
+                    {participants.map(p => (
+                      <div key={p.id} style={{
+                        display: 'flex', alignItems: 'center', gap: 5,
+                        fontSize: 11, color: 'var(--text-primary)',
+                        background: 'var(--background)', border: '1px solid var(--border)',
+                        borderRadius: 999, padding: '2px 8px 2px 3px',
+                      }}>
+                        {p.avatar ? (
+                          <img src={p.avatar} alt={p.name} width={16} height={16}
+                            style={{ borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                        ) : (
+                          <div style={{
+                            width: 16, height: 16, borderRadius: '50%',
+                            background: 'var(--primary)', color: '#000',
+                            fontSize: 9, fontWeight: 700, flexShrink: 0,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          }}>{p.name.charAt(0).toUpperCase()}</div>
+                        )}
+                        {p.name}
+                      </div>
+                    ))}
+                  </div>
+                )}
                 {(selected.activity.distance_km || selected.activity.elevation_gain) && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-muted)' }}>
                     <Zap size={12} style={{ color: 'var(--primary)' }} />
