@@ -163,13 +163,13 @@ export default function HubMap() {
           {/* Static ring */}
           <div style={{
             position: 'absolute',
-            width: 280, height: 280,
+            width: '100vmin', height: '100vmin',
             borderRadius: '50%',
-            border: '1px solid rgba(30,144,255,0.2)',
+            border: '1px solid rgba(30,144,255,0.15)',
           }} />
           {/* Rotating sweep */}
           <div style={{
-            width: 280, height: 280,
+            width: '100vmin', height: '100vmin',
             borderRadius: '50%',
             overflow: 'hidden',
             animation: 'fm-sweep 1.5s linear forwards',
