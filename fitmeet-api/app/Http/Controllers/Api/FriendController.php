@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
+use App\Mail\FriendRequestMail;
 use App\Models\FriendRequest;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 
 class FriendController extends Controller
 {
@@ -35,6 +37,8 @@ class FriendController extends Controller
             'receiver_id' => $user->id,
             'status'      => 'pending',
         ]);
+
+        Mail::to($user->email)->queue(new FriendRequestMail($me, $user));
 
         return response()->json(['message' => 'Friend request sent.']);
     }
@@ -74,6 +78,20 @@ class FriendController extends Controller
         ]);
 
         return response()->json(['data' => $data]);
+    }
+
+    // DELETE /friends/{user}
+    public function remove(Request $request, User $user): JsonResponse
+    {
+        $me = $request->user();
+
+        FriendRequest::where(function ($q) use ($me, $user) {
+            $q->where('sender_id', $me->id)->where('receiver_id', $user->id);
+        })->orWhere(function ($q) use ($me, $user) {
+            $q->where('sender_id', $user->id)->where('receiver_id', $me->id);
+        })->delete();
+
+        return response()->json(['message' => 'Friend removed.']);
     }
 
     private function authorizeReceiver(Request $request, FriendRequest $friendRequest): void

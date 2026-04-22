@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateProfileRequest;
 use App\Http\Resources\UserResource;
+use App\Models\FriendRequest;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -26,8 +27,32 @@ class UserController extends Controller
 
         $users = $query->orderBy('name')->paginate(30);
 
+        // Build a map of userId → friendship status for the current user
+        $userIds = collect($users->items())->pluck('id');
+        $requests = FriendRequest::where(function ($q) use ($me, $userIds) {
+            $q->where('sender_id', $me->id)->whereIn('receiver_id', $userIds);
+        })->orWhere(function ($q) use ($me, $userIds) {
+            $q->where('receiver_id', $me->id)->whereIn('sender_id', $userIds);
+        })->get();
+
+        $statusMap = [];
+        foreach ($requests as $r) {
+            $otherId = $r->sender_id === $me->id ? $r->receiver_id : $r->sender_id;
+            if ($r->status === 'accepted') {
+                $statusMap[$otherId] = 'friends';
+            } elseif ($r->status === 'pending') {
+                $statusMap[$otherId] = $r->sender_id === $me->id ? 'pending_sent' : 'pending_received';
+            }
+        }
+
+        $data = collect($users->items())->map(function ($user) use ($statusMap) {
+            $resource = (new UserResource($user))->resolve();
+            $resource['friendship_status'] = $statusMap[$user->id] ?? null;
+            return $resource;
+        });
+
         return response()->json([
-            'data' => UserResource::collection($users->items()),
+            'data' => $data,
             'meta' => [
                 'current_page' => $users->currentPage(),
                 'last_page'    => $users->lastPage(),

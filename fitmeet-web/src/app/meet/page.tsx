@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import {
-  Search, Phone, UserPlus, Calendar, MapPin, Users, Zap, ChevronRight, ChevronDown,
+  Search, Phone, UserPlus, UserCheck, UserMinus, Calendar, MapPin, Users, Zap, ChevronRight, ChevronDown,
 } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
@@ -25,6 +25,7 @@ interface UserItem {
   skill_level: string | null
   categories: string[]
   home: { city: string | null; country: string | null }
+  friendship_status: 'friends' | 'pending_sent' | 'pending_received' | null
 }
 
 interface EventItem {
@@ -83,8 +84,7 @@ function PeopleTab() {
   const [users,    setUsers]    = useState<UserItem[]>([])
   const [search,   setSearch]   = useState('')
   const [loading,  setLoading]  = useState(true)
-  const [adding,   setAdding]   = useState<number | null>(null)
-  const [sent,     setSent]     = useState<Set<number>>(new Set())
+  const [acting, setActing] = useState<number | null>(null)
 
   const load = useCallback((q: string) => {
     setLoading(true)
@@ -96,15 +96,21 @@ function PeopleTab() {
   }, [])
 
   async function handleAdd(userId: number) {
-    setAdding(userId)
+    setActing(userId)
     try {
       await api.post(`/friends/request/${userId}`)
-      setSent(s => new Set(s).add(userId))
-    } catch {
-      setSent(s => new Set(s).add(userId))
-    } finally {
-      setAdding(null)
-    }
+      setUsers(u => u.map(x => x.id === userId ? { ...x, friendship_status: 'pending_sent' } : x))
+    } catch {}
+    finally { setActing(null) }
+  }
+
+  async function handleRemove(userId: number) {
+    setActing(userId)
+    try {
+      await api.delete(`/friends/${userId}`)
+      setUsers(u => u.map(x => x.id === userId ? { ...x, friendship_status: null } : x))
+    } catch {}
+    finally { setActing(null) }
   }
 
   useEffect(() => { load('') }, [load])
@@ -150,19 +156,40 @@ function PeopleTab() {
                   </p>
                 )}
               </div>
-              <button
-                onClick={() => handleAdd(u.id)}
-                disabled={adding === u.id || sent.has(u.id)}
-                className="flex-shrink-0 flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors"
-                style={
-                  sent.has(u.id)
-                    ? { borderColor: 'var(--primary)', color: 'var(--primary)', background: 'rgba(57,255,20,0.08)' }
-                    : { borderColor: 'var(--border)', color: 'var(--text-muted)' }
-                }
-              >
-                <UserPlus size={13} />
-                {sent.has(u.id) ? 'Sent' : adding === u.id ? '…' : 'Add'}
-              </button>
+              {u.friendship_status === 'friends' ? (
+                <button
+                  onClick={() => handleRemove(u.id)}
+                  disabled={acting === u.id}
+                  title="Remove friend"
+                  className="flex-shrink-0 flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors hover:border-red-400 hover:text-red-400 disabled:opacity-50"
+                  style={{ borderColor: 'var(--primary)', color: 'var(--primary)', background: 'rgba(57,255,20,0.08)' }}
+                >
+                  {acting === u.id ? '…' : <><UserCheck size={13} /> Friends</>}
+                </button>
+              ) : u.friendship_status === 'pending_sent' ? (
+                <button disabled
+                  className="flex-shrink-0 flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border font-medium opacity-60 cursor-not-allowed"
+                  style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}
+                >
+                  <UserPlus size={13} /> Sent
+                </button>
+              ) : u.friendship_status === 'pending_received' ? (
+                <button disabled
+                  className="flex-shrink-0 flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border font-medium opacity-60 cursor-not-allowed"
+                  style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}
+                >
+                  <UserPlus size={13} /> Received
+                </button>
+              ) : (
+                <button
+                  onClick={() => handleAdd(u.id)}
+                  disabled={acting === u.id}
+                  className="flex-shrink-0 flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors disabled:opacity-50"
+                  style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}
+                >
+                  <UserPlus size={13} /> {acting === u.id ? '…' : 'Add'}
+                </button>
+              )}
             </div>
 
             <div className="flex flex-wrap items-center gap-2 mt-2">
