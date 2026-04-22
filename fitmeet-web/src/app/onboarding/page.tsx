@@ -12,7 +12,7 @@ import api from '@/lib/api'
 import { useAuthStore } from '@/store/auth'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { CATEGORIES } from '@/lib/categories'
+import { CategoryMultiPicker } from '@/components/category-picker'
 
 const LocationPickerMap = dynamic(() => import('@/components/location-picker-map'), { ssr: false })
 
@@ -341,27 +341,10 @@ export default function OnboardingPage() {
           <Section title="Interests" icon={<Navigation size={15} />} badge="optional">
 
             <Field label="Favourite activities" className="mb-5">
-              <div className="flex flex-wrap gap-2">
-                {CATEGORIES.map(cat => {
-                  const selected = watchedCategories.includes(cat.value)
-                  return (
-                    <button
-                      key={cat.value}
-                      type="button"
-                      onClick={() => toggleCategory(cat.value)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-sm transition-all active:scale-95"
-                      style={
-                        selected
-                          ? { borderColor: 'var(--primary)', background: 'rgba(57,255,20,0.08)', color: 'var(--primary)' }
-                          : { borderColor: 'var(--border)', color: 'var(--text-muted)' }
-                      }
-                    >
-                      <span>{cat.emoji}</span>
-                      {cat.label}
-                    </button>
-                  )
-                })}
-              </div>
+              <CategoryMultiPicker
+                value={watchedCategories}
+                onChange={cats => setValue('categories', cats)}
+              />
             </Field>
 
             <Field label="Skill level">

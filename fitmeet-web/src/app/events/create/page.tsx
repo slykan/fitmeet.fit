@@ -14,7 +14,7 @@ import { formatAddress } from '@/lib/format-address'
 import { useAuthStore } from '@/store/auth'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { CATEGORIES } from '@/lib/categories'
+import CategoryPicker from '@/components/category-picker'
 
 const LocationPickerMap = dynamic(() => import('@/components/location-picker-map'), { ssr: false })
 
@@ -213,27 +213,7 @@ export default function CreateEventPage() {
                   control={control}
                   rules={{ required: 'Select a category' }}
                   render={() => (
-                    <div className="flex flex-wrap gap-2">
-                      {CATEGORIES.map(cat => {
-                        const selected = watchedCategory === cat.value
-                        return (
-                          <button
-                            key={cat.value}
-                            type="button"
-                            onClick={() => setValue('category', cat.value)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-sm transition-all active:scale-95"
-                            style={
-                              selected
-                                ? { borderColor: 'var(--primary)', background: 'rgba(57,255,20,0.08)', color: 'var(--primary)' }
-                                : { borderColor: 'var(--border)', color: 'var(--text-muted)' }
-                            }
-                          >
-                            <span>{cat.emoji}</span>
-                            {cat.label}
-                          </button>
-                        )
-                      })}
-                    </div>
+                    <CategoryPicker value={watchedCategory} onChange={v => setValue('category', v)} />
                   )}
                 />
               </Field>
