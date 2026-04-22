@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
 use App\Mail\FriendAcceptedMail;
 use App\Mail\FriendRequestMail;
+use App\Models\EventReminder;
 use App\Models\FriendRequest;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -120,7 +121,28 @@ class FriendController extends Controller
             ->whereNull('accepted_read_at')
             ->update(['accepted_read_at' => now()]);
 
-        return response()->json(['data' => $pending->concat($accepted)->values()]);
+        // Event reminders sent in the last 24 h
+        $eventReminders = EventReminder::with('event')
+            ->where('user_id', $me->id)
+            ->whereNotNull('sent_at')
+            ->where('sent_at', '>=', now()->subHours(24))
+            ->latest('sent_at')
+            ->get()
+            ->map(fn ($r) => [
+                'id'            => $r->id,
+                'type'          => 'event_reminder',
+                'remind_offset' => $r->remind_offset,
+                'event'         => [
+                    'id'       => $r->event->id,
+                    'title'    => $r->event->title,
+                    'start_at' => $r->event->start_at->toIso8601String(),
+                    'address'  => $r->event->address,
+                    'category' => $r->event->category?->label() ?? 'Event',
+                ],
+                'created_at' => $r->sent_at->toDateTimeString(),
+            ]);
+
+        return response()->json(['data' => $pending->concat($accepted)->concat($eventReminders)->values()]);
     }
 
     // DELETE /friends/{user}  — remove accepted friend

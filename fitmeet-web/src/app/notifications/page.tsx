@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { UserPlus, UserCheck, Check, X } from 'lucide-react'
+import { UserPlus, UserCheck, Check, X, Bell, Calendar, MapPin } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
 import api from '@/lib/api'
@@ -35,7 +35,21 @@ interface FriendAcceptedNotif {
   created_at: string
 }
 
-type Notif = FriendRequestNotif | FriendAcceptedNotif
+interface EventReminderNotif {
+  id: number
+  type: 'event_reminder'
+  remind_offset: '1h' | '5h' | '1d'
+  event: {
+    id: number
+    title: string
+    start_at: string
+    address: string | null
+    category: string
+  }
+  created_at: string
+}
+
+type Notif = FriendRequestNotif | FriendAcceptedNotif | EventReminderNotif
 
 function timeAgo(iso: string) {
   const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000)
@@ -108,7 +122,35 @@ export default function NotificationsPage() {
           )}
 
           <div className="space-y-3">
-            {notifs.map(n => n.type === 'friend_request' ? (
+            {notifs.map(n => n.type === 'event_reminder' ? (
+              <div key={n.id}
+                className="rounded-2xl border p-4 flex items-start gap-3"
+                style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
+                <div className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0"
+                  style={{ background: 'rgba(57,255,20,0.12)', border: '1px solid var(--primary)' }}>
+                  <Bell size={18} style={{ color: 'var(--primary)' }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold">{n.event.title}</p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--primary)', fontWeight: 600 }}>
+                    ⏰ Starts in {n.remind_offset === '1h' ? '1 hour' : n.remind_offset === '5h' ? '5 hours' : '1 day'}
+                  </p>
+                  <div className="flex flex-col gap-0.5 mt-1">
+                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                      <Calendar size={10} className="inline mr-1" />
+                      {new Date(n.event.start_at).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                    {n.event.address && (
+                      <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
+                        <MapPin size={10} className="inline mr-1" />
+                        {n.event.address}
+                      </p>
+                    )}
+                  </div>
+                  <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{timeAgo(n.created_at)}</p>
+                </div>
+              </div>
+            ) : n.type === 'friend_request' ? (
               <div key={n.id}
                 className="rounded-2xl border p-4 flex items-start gap-3"
                 style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
