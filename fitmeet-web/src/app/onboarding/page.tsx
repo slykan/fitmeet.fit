@@ -180,7 +180,7 @@ export default function OnboardingPage() {
 
   return (
     <main className="min-h-screen py-12 px-4" style={{ background: 'var(--background)' }}>
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-3xl mx-auto">
 
         {/* Header */}
         <div className="text-center mb-10">

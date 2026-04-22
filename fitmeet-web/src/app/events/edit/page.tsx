@@ -237,7 +237,7 @@ function EditContent() {
   }
 
   return (
-    <main className="max-w-2xl mx-auto px-4 py-10">
+    <main className="max-w-3xl mx-auto px-4 py-10">
       <div className="mb-8">
         <h1 className="text-2xl font-bold mb-1">Edit event</h1>
         <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Update your event details</p>

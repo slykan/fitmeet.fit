@@ -29,7 +29,7 @@ export default function ProfilePage() {
   return (
     <>
       <Navbar />
-      <main className="max-w-2xl mx-auto px-4 py-10">
+      <main className="max-w-3xl mx-auto px-4 py-10">
 
         {/* Header */}
         <div

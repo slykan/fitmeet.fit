@@ -209,7 +209,7 @@ export default function CreateEventPage() {
     <>
       <Navbar />
       <main className="min-h-screen py-10 px-4" style={{ background: 'var(--background)' }}>
-        <div className="max-w-2xl mx-auto">
+        <div className="max-w-3xl mx-auto">
 
           <div className="mb-8">
             <h1 className="text-2xl font-bold mb-1">Create event</h1>
