@@ -5,7 +5,7 @@ import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Calendar, MapPin, Users, Zap, ChevronLeft, Lock, Pencil } from 'lucide-react'
+import { Calendar, MapPin, Users, Zap, ChevronLeft, Lock, Pencil, ChevronDown, ChevronUp } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
 import ElevationChart from '@/components/elevation-chart'
@@ -16,6 +16,12 @@ import { useAuthStore } from '@/store/auth'
 import { Button } from '@/components/ui/button'
 
 const LocationPickerMap = dynamic(() => import('@/components/location-picker-map'), { ssr: false })
+
+interface Participant {
+  id: number
+  name: string
+  avatar: string | null
+}
 
 interface Event {
   id: number
@@ -28,6 +34,7 @@ interface Event {
   skill_level: string | null
   max_participants: number | null
   participants_count: number
+  participants: Participant[]
   is_full: boolean
   is_private: boolean
   status: string
@@ -54,6 +61,7 @@ function EventContent() {
   const [joining,  setJoining]  = useState(false)
   const [error,    setError]    = useState<string | null>(null)
   const [gpxResult, setGpxResult] = useState<GpxResult | null>(null)
+  const [showParticipants, setShowParticipants] = useState(false)
 
   useEffect(() => {
     if (!token) { router.replace('/login'); return }
@@ -163,13 +171,42 @@ function EventContent() {
                   <span style={{ color: 'var(--text-muted)' }}>{shortAddress(event.location.address ?? '')}</span>
                 </div>
               )}
-              <div className="flex items-center gap-2.5 text-sm">
-                <Users size={15} style={{ color: 'var(--primary)', flexShrink: 0 }} />
-                <span>
-                  {event.participants_count} joined
-                  {event.max_participants ? ` · max ${event.max_participants}` : ''}
-                  {event.is_full && <span className="ml-2 text-red-400">· Full</span>}
-                </span>
+              <div className="text-sm">
+                <div className="flex items-center gap-2.5">
+                  <Users size={15} style={{ color: 'var(--primary)', flexShrink: 0 }} />
+                  <span>
+                    {event.participants_count} joined
+                    {event.max_participants ? ` · max ${event.max_participants}` : ''}
+                    {event.is_full && <span className="ml-2 text-red-400">· Full</span>}
+                  </span>
+                  {event.participants_count > 0 && (
+                    <button
+                      onClick={() => setShowParticipants(s => !s)}
+                      className="flex items-center gap-0.5 text-xs px-2 py-0.5 rounded-full border transition-colors hover:bg-[--border]"
+                      style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}
+                    >
+                      {showParticipants ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                    </button>
+                  )}
+                </div>
+                {showParticipants && event.participants?.length > 0 && (
+                  <div className="mt-2 ml-6 flex flex-wrap gap-2">
+                    {event.participants.map(p => (
+                      <div key={p.id} className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border"
+                        style={{ borderColor: 'var(--border)', background: 'var(--background)', color: 'var(--text-primary)' }}>
+                        {p.avatar ? (
+                          <Image src={p.avatar} alt={p.name} width={18} height={18} className="rounded-full object-cover" />
+                        ) : (
+                          <div className="w-[18px] h-[18px] rounded-full flex items-center justify-center font-bold text-[9px] text-black flex-shrink-0"
+                            style={{ background: 'var(--primary)' }}>
+                            {p.name.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                        {p.name}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
               {(event.activity.distance_km || event.activity.pace || event.activity.elevation_gain || event.activity.max_grade || event.activity.max_downgrade) && (
                 <div className="flex items-start gap-2.5 text-sm">

@@ -48,7 +48,13 @@ class EventResource extends JsonResource
             'is_private'         => $this->is_private,
             'status'             => $this->status,
 
-            'organizer'   => new UserResource($this->whenLoaded('organizer')),
+            'organizer'    => new UserResource($this->whenLoaded('organizer')),
+            'participants' => $this->whenLoaded('participants', fn () =>
+                $this->participants
+                    ->filter(fn ($p) => $p->pivot->status === 'joined')
+                    ->map(fn ($p) => ['id' => $p->id, 'name' => $p->name, 'avatar' => $p->avatar])
+                    ->values()
+            ),
 
             // Auth-dependent fields
             'is_organizer' => $user ? $this->isOrganizer($user) : false,
