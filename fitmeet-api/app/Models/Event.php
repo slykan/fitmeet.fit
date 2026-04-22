@@ -74,7 +74,7 @@ class Event extends Model
     // Scope: only active, future events
     public function scopeUpcoming(Builder $query): Builder
     {
-        return $query->where('status', 'active')->where('start_at', '>', now());
+        return $query->where('events.status', 'active')->where('events.start_at', '>', now());
     }
 
     // Scope: events within $radiusKm of given coordinates

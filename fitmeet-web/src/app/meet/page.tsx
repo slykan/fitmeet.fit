@@ -330,6 +330,7 @@ function EventsTab() {
     if (goingOnly) {
       api.get('/events/joined')
         .then(({ data }) => setEvents(data.data ?? []))
+        .catch(() => setEvents([]))
         .finally(() => setLoading(false))
       return
     }
