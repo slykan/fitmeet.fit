@@ -128,6 +128,7 @@ function EventContent() {
   }
 
   return (
+    <>
     <main className="min-h-screen py-8 px-4">
     <div style={{ maxWidth: 1024, margin: '0 auto' }}>
       <Link
@@ -297,7 +298,7 @@ function EventContent() {
     </div>
     </main>
 
-    {/* Join success + reminder modal */}
+    {/* Reminder modal */}
     {showReminderModal && event && (
       <div className="fixed inset-0 z-[2000] flex items-end sm:items-center justify-center p-4"
         style={{ background: 'rgba(0,0,0,0.7)' }}>
@@ -367,6 +368,7 @@ function EventContent() {
         </div>
       </div>
     )}
+    </>
   )
 }
 
