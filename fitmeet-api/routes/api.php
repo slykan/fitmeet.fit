@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\FriendController;
+use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -31,6 +32,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('friends/cancel/{user}',          [FriendController::class, 'cancel']);
     Route::delete('friends/{user}',                 [FriendController::class, 'remove']);
     Route::post('logout', [AuthController::class, 'logout']);
+
+    // Messages
+    Route::get('messages/unread-count',  [MessageController::class, 'unreadCount']);
+    Route::get('messages/{user}',        [MessageController::class, 'thread']);
+    Route::post('messages/{user}',       [MessageController::class, 'send']);
+    Route::get('messages',               [MessageController::class, 'index']);
 
     // Events
     Route::get('events/my', [EventController::class, 'my']);

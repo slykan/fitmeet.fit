@@ -25,6 +25,17 @@ class UserController extends Controller
             $query->where('skill_level', $request->skill_level);
         }
 
+        // friends_only — only users with accepted friendship
+        if ($request->boolean('friends_only')) {
+            $friendIds = FriendRequest::where(function ($q) use ($me) {
+                $q->where('sender_id', $me->id)->orWhere('receiver_id', $me->id);
+            })->where('status', 'accepted')
+              ->get()
+              ->map(fn ($r) => $r->sender_id === $me->id ? $r->receiver_id : $r->sender_id);
+
+            $query->whereIn('id', $friendIds);
+        }
+
         $users = $query->orderBy('name')->paginate(30);
 
         // Build a map of userId → friendship status for the current user

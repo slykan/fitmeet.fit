@@ -5,7 +5,7 @@ import { useTheme } from 'next-themes'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Moon, Sun, Plus, LogOut, User, CalendarDays, Bell, Users } from 'lucide-react'
+import { Moon, Sun, Plus, LogOut, User, CalendarDays, Bell, Users, MessageSquare } from 'lucide-react'
 import { Button } from './ui/button'
 import api from '@/lib/api'
 import { useEffect, useRef, useState } from 'react'
@@ -17,19 +17,23 @@ export function Navbar() {
   const [mounted,    setMounted]    = useState(false)
   const [menuOpen,   setMenuOpen]   = useState(false)
   const [notifCount, setNotifCount] = useState(0)
+  const [msgCount,   setMsgCount]   = useState(0)
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => setMounted(true), [])
 
   useEffect(() => {
     if (!user) return
-    function fetchCount() {
+    function fetchCounts() {
       api.get('/notifications').then(({ data }) => {
         setNotifCount((data.data ?? []).length)
       }).catch(() => {})
+      api.get('/messages/unread-count').then(({ data }) => {
+        setMsgCount(data.count ?? 0)
+      }).catch(() => {})
     }
-    fetchCount()
-    const id = setInterval(fetchCount, 60_000)
+    fetchCounts()
+    const id = setInterval(fetchCounts, 60_000)
     return () => clearInterval(id)
   }, [user])
 
@@ -107,6 +111,26 @@ export function Navbar() {
                     lineHeight: 1, padding: '0 3px',
                   }}>
                     {notifCount > 99 ? '99+' : notifCount}
+                  </span>
+                )}
+              </Link>
+
+              <Link
+                href="/messages"
+                className="relative p-2 rounded-lg text-[--text-muted] hover:text-[--text-primary] transition-colors"
+                title="Messages"
+              >
+                <MessageSquare size={18} />
+                {msgCount > 0 && (
+                  <span style={{
+                    position: 'absolute', top: 4, right: 4,
+                    minWidth: 16, height: 16, borderRadius: 999,
+                    background: '#ef4444', color: '#fff',
+                    fontSize: 10, fontWeight: 700,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    lineHeight: 1, padding: '0 3px',
+                  }}>
+                    {msgCount > 99 ? '99+' : msgCount}
                   </span>
                 )}
               </Link>
