@@ -105,7 +105,7 @@ function EventContent() {
   return (
     <main className="max-w-2xl mx-auto px-4 py-8">
       <Link
-        href="/"
+        href="/hub"
         className="inline-flex items-center gap-1.5 text-sm mb-6 transition-opacity hover:opacity-70"
         style={{ color: 'var(--text-muted)' }}
       >

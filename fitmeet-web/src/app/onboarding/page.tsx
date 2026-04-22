@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { useTheme } from 'next-themes'
 import { useForm, Controller } from 'react-hook-form'
 import { Globe, MapPin, Navigation, Phone, User, Check, LocateFixed } from 'lucide-react'
 
@@ -70,7 +71,9 @@ interface FormData {
 
 export default function OnboardingPage() {
   const { token, user, setUser } = useAuthStore()
-  const router = useRouter()
+  const router  = useRouter()
+  const { theme } = useTheme()
+  const [mounted, setMounted] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [locating, setLocating] = useState(false)
@@ -96,6 +99,7 @@ export default function OnboardingPage() {
     },
   })
 
+  useEffect(() => { setMounted(true) }, [])
   useEffect(() => {
     if (!token) router.replace('/login')
   }, [token, router])
@@ -180,10 +184,22 @@ export default function OnboardingPage() {
 
         {/* Header */}
         <div className="text-center mb-10">
-          <div className="text-3xl font-bold tracking-widest mb-2" style={{ color: 'var(--primary)' }}>
-            FITMEET
-          </div>
-          <h1 className="text-2xl font-bold mb-1">Complete your profile</h1>
+          {mounted && (
+            <div className="flex justify-center mb-4">
+              <Image
+                src={theme === 'dark' ? '/logo_c.png' : '/logo_b.png'}
+                alt="FitMeet"
+                width={72}
+                height={72}
+                className="object-contain"
+              />
+            </div>
+          )}
+          <h1 className="text-3xl font-bold tracking-tight mb-2">
+            <span style={{ color: 'var(--text-primary)' }}>Fit</span>
+            <span style={{ color: 'var(--primary)' }}>meet</span>
+          </h1>
+          <p className="text-sm font-medium mb-1">Complete your profile</p>
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
             Set up your account to start discovering events near you
           </p>
