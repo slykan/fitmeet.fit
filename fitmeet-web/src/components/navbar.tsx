@@ -135,8 +135,8 @@ export function Navbar() {
                 )}
               </Link>
 
-              <Button size="sm" onClick={() => router.push('/events/create')}>
-                <Plus size={15} className="mr-1" /> New Event
+              <Button size="sm" onClick={() => router.push('/events/create')} className="!px-2.5">
+                <Plus size={18} />
               </Button>
 
               {/* Profile dropdown */}
