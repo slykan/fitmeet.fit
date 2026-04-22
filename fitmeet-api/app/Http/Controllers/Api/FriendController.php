@@ -87,20 +87,40 @@ class FriendController extends Controller
     {
         $me = $request->user();
 
-        $requests = FriendRequest::with('sender')
+        // Pending requests I received
+        $pending = FriendRequest::with('sender')
             ->where('receiver_id', $me->id)
             ->where('status', 'pending')
             ->latest()
-            ->get();
+            ->get()
+            ->map(fn ($r) => [
+                'id'         => $r->id,
+                'type'       => 'friend_request',
+                'sender'     => new UserResource($r->sender),
+                'created_at' => $r->created_at->toDateTimeString(),
+            ]);
 
-        $data = $requests->map(fn ($r) => [
-            'id'         => $r->id,
-            'type'       => 'friend_request',
-            'sender'     => new UserResource($r->sender),
-            'created_at' => $r->created_at->toDateTimeString(),
-        ]);
+        // Accepted requests I sent (unread)
+        $accepted = FriendRequest::with('receiver')
+            ->where('sender_id', $me->id)
+            ->where('status', 'accepted')
+            ->whereNull('accepted_read_at')
+            ->latest('updated_at')
+            ->get()
+            ->map(fn ($r) => [
+                'id'         => $r->id,
+                'type'       => 'friend_accepted',
+                'friend'     => new UserResource($r->receiver),
+                'created_at' => $r->updated_at->toDateTimeString(),
+            ]);
 
-        return response()->json(['data' => $data]);
+        // Mark accepted as read now that user fetched them
+        FriendRequest::where('sender_id', $me->id)
+            ->where('status', 'accepted')
+            ->whereNull('accepted_read_at')
+            ->update(['accepted_read_at' => now()]);
+
+        return response()->json(['data' => $pending->concat($accepted)->values()]);
     }
 
     // DELETE /friends/{user}  — remove accepted friend
