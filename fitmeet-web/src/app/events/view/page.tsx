@@ -103,7 +103,7 @@ function EventContent() {
   }
 
   return (
-    <main className="max-w-4xl mx-auto px-4 py-8">
+    <main className="max-w-2xl mx-auto px-4 py-8">
       <Link
         href="/"
         className="inline-flex items-center gap-1.5 text-sm mb-6 transition-opacity hover:opacity-70"
