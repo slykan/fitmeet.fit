@@ -6,6 +6,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import {
   Search, Phone, UserPlus, UserCheck, UserMinus, Calendar, MapPin, Users, Zap, ChevronRight, ChevronDown,
+  Bell, Check, X,
 } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
@@ -39,6 +40,7 @@ interface EventItem {
   participants_count: number
   max_participants: number | null
   is_full: boolean
+  is_joined: boolean
   skill_level: string | null
 }
 
@@ -352,13 +354,27 @@ function CategoryFilter({ category, setCategory }: { category: string; setCatego
 
 function EventsTab() {
   const { user }      = useAuthStore()
+  const router        = useRouter()
   const [events,   setEvents]   = useState<EventItem[]>([])
   const [loading,  setLoading]  = useState(true)
   const [category, setCategory] = useState('')
   const [radiusKm, setRadiusKm] = useState<number | null>(null)
+  const [goingOnly, setGoingOnly] = useState(false)
+
+  // Reminder modal state
+  const [reminderEvent,    setReminderEvent]    = useState<EventItem | null>(null)
+  const [selectedOffsets,  setSelectedOffsets]  = useState<Set<string>>(new Set())
+  const [settingReminders, setSettingReminders] = useState(false)
+  const [reminderSet,      setReminderSet]      = useState<Set<number>>(new Set())
 
   useEffect(() => {
     setLoading(true)
+    if (goingOnly) {
+      api.get('/events/joined')
+        .then(({ data }) => setEvents(data.data ?? []))
+        .finally(() => setLoading(false))
+      return
+    }
     const params: Record<string, unknown> = {}
     if (category) params.category = category
     if (radiusKm !== null && user?.location?.lat && user?.location?.lng) {
@@ -373,29 +389,60 @@ function EventsTab() {
     api.get('/events', { params })
       .then(({ data }) => setEvents(data.data ?? []))
       .finally(() => setLoading(false))
-  }, [category, radiusKm, user])
+  }, [category, radiusKm, goingOnly, user])
+
+  async function handleSetReminders() {
+    if (!reminderEvent || selectedOffsets.size === 0) { setReminderEvent(null); return }
+    setSettingReminders(true)
+    try {
+      await api.post(`/events/${reminderEvent.id}/remind`, { offsets: Array.from(selectedOffsets) })
+      setReminderSet(prev => new Set([...prev, reminderEvent.id]))
+    } catch {}
+    finally {
+      setSettingReminders(false)
+      setReminderEvent(null)
+    }
+  }
+
+  function openReminder(e: React.MouseEvent, ev: EventItem) {
+    e.preventDefault()
+    e.stopPropagation()
+    setSelectedOffsets(new Set())
+    setReminderEvent(ev)
+  }
 
   return (
     <div className="space-y-3">
       {/* Category filter */}
-      <CategoryFilter category={category} setCategory={setCategory} />
+      <CategoryFilter category={category} setCategory={c => { setCategory(c); setGoingOnly(false) }} />
 
-      {/* Radius filter */}
+      {/* Radius + Going filter */}
       <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
         {RADIUS_OPTIONS.map(r => (
           <button
             key={String(r.km)}
-            onClick={() => setRadiusKm(r.km)}
+            onClick={() => { setRadiusKm(r.km); setGoingOnly(false) }}
             className="flex-shrink-0 text-xs px-3 py-1.5 rounded-full border font-medium transition-colors"
             style={{
-              borderColor: radiusKm === r.km ? 'var(--secondary)' : 'var(--border)',
-              color:       radiusKm === r.km ? 'var(--secondary)' : 'var(--text-muted)',
-              background:  radiusKm === r.km ? 'rgba(0,168,255,0.08)' : 'transparent',
+              borderColor: !goingOnly && radiusKm === r.km ? 'var(--secondary)' : 'var(--border)',
+              color:       !goingOnly && radiusKm === r.km ? 'var(--secondary)' : 'var(--text-muted)',
+              background:  !goingOnly && radiusKm === r.km ? 'rgba(0,168,255,0.08)' : 'transparent',
             }}
           >
             {r.label}
           </button>
         ))}
+        <button
+          onClick={() => setGoingOnly(g => !g)}
+          className="flex-shrink-0 text-xs px-3 py-1.5 rounded-full border font-medium transition-colors"
+          style={{
+            borderColor: goingOnly ? 'var(--primary)' : 'var(--border)',
+            color:       goingOnly ? 'var(--primary)' : 'var(--text-muted)',
+            background:  goingOnly ? 'rgba(57,255,20,0.08)' : 'transparent',
+          }}
+        >
+          ✓ Going
+        </button>
       </div>
 
       {loading && (
@@ -403,12 +450,15 @@ function EventsTab() {
       )}
 
       {!loading && events.length === 0 && (
-        <div className="text-center py-12 text-sm" style={{ color: 'var(--text-muted)' }}>No events found.</div>
+        <div className="text-center py-12 text-sm" style={{ color: 'var(--text-muted)' }}>
+          {goingOnly ? "You haven't joined any events yet." : 'No events found.'}
+        </div>
       )}
 
       {!loading && events.map(ev => (
-        <Link key={ev.id} href={`/events/view?id=${ev.id}`}
-          className="rounded-2xl border p-4 flex items-start justify-between gap-3 transition-opacity hover:opacity-80 block"
+        <div key={ev.id}
+          onClick={() => router.push(`/events/view?id=${ev.id}`)}
+          className="rounded-2xl border p-4 flex items-start justify-between gap-3 transition-opacity hover:opacity-80 cursor-pointer"
           style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1.5">
@@ -450,9 +500,79 @@ function EventsTab() {
               )}
             </div>
           </div>
-          <ChevronRight size={16} className="flex-shrink-0 mt-1" style={{ color: 'var(--text-muted)' }} />
-        </Link>
+          <div className="flex items-center gap-2 flex-shrink-0 mt-0.5">
+            {ev.is_joined && (
+              <button
+                onClick={e => openReminder(e, ev)}
+                title="Set reminder"
+                className="p-1.5 rounded-lg transition-colors hover:bg-[--border]"
+                style={{ color: reminderSet.has(ev.id) ? 'var(--primary)' : '#fff' }}
+              >
+                <Bell size={15} fill={reminderSet.has(ev.id) ? 'var(--primary)' : 'none'} />
+              </button>
+            )}
+            <ChevronRight size={16} style={{ color: 'var(--text-muted)' }} />
+          </div>
+        </div>
       ))}
+
+      {/* Reminder modal */}
+      {reminderEvent && (
+        <div className="fixed inset-0 z-[2000] flex items-end sm:items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.7)' }}
+          onClick={e => e.target === e.currentTarget && setReminderEvent(null)}>
+          <div className="w-full rounded-2xl border p-6 space-y-5"
+            style={{ maxWidth: 420, background: 'var(--surface)', borderColor: 'var(--border)' }}>
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="font-bold text-base truncate pr-4">{reminderEvent.title}</p>
+                <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>Set a reminder</p>
+              </div>
+              <button onClick={() => setReminderEvent(null)} style={{ color: 'var(--text-muted)' }}>
+                <X size={20} />
+              </button>
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              {(['1h', '5h', '1d'] as const).map(offset => {
+                const label = offset === '1h' ? '1h before' : offset === '5h' ? '5h before' : '1 day before'
+                const active = selectedOffsets.has(offset)
+                return (
+                  <button key={offset}
+                    onClick={() => setSelectedOffsets(prev => {
+                      const next = new Set(prev)
+                      next.has(offset) ? next.delete(offset) : next.add(offset)
+                      return next
+                    })}
+                    className="flex items-center gap-1.5 text-sm px-4 py-2 rounded-xl border font-medium transition-all"
+                    style={{
+                      borderColor: active ? 'var(--primary)' : 'var(--border)',
+                      color:       active ? 'var(--primary)' : 'var(--text-muted)',
+                      background:  active ? 'rgba(57,255,20,0.08)' : 'transparent',
+                    }}
+                  >
+                    {active && <Check size={13} />}
+                    <Bell size={13} />
+                    {label}
+                  </button>
+                )
+              })}
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => setReminderEvent(null)}
+                className="flex-1 py-2.5 rounded-xl border text-sm font-medium transition-colors hover:bg-[--border]"
+                style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}>
+                Cancel
+              </button>
+              <button onClick={handleSetReminders}
+                disabled={selectedOffsets.size === 0 || settingReminders}
+                className="flex-1 py-2.5 rounded-xl text-sm font-bold transition-opacity hover:opacity-80 disabled:opacity-40"
+                style={{ background: 'var(--primary)', color: '#000' }}>
+                {settingReminders ? 'Saving…' : 'Set Reminders'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
