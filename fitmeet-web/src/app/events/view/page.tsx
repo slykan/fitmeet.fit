@@ -124,147 +124,142 @@ function EventContent() {
       )}
 
       {event && (
-        <div className="space-y-5">
+        <div className="grid md:grid-cols-2 gap-5 items-start">
 
-          {/* Header */}
-          <div
-            className="rounded-2xl border p-7"
-            style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
-          >
-            <div className="flex flex-wrap items-center gap-2 mb-3">
-              <span
-                className="text-xs px-2.5 py-1 rounded-full font-medium border"
-                style={{ borderColor: 'var(--primary)', color: 'var(--primary)', background: 'rgba(57,255,20,0.08)' }}
-              >
-                {event.category.label}
-              </span>
-              {event.is_private && (
-                <span className="text-xs flex items-center gap-1 px-2.5 py-1 rounded-full border" style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}>
-                  <Lock size={10} /> Private
+          {/* LEFT — details + actions */}
+          <div className="space-y-4">
+
+            {/* Header card */}
+            <div className="rounded-2xl border p-7" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
+              <div className="flex flex-wrap items-center gap-2 mb-3">
+                <span
+                  className="text-xs px-2.5 py-1 rounded-full font-medium border"
+                  style={{ borderColor: 'var(--primary)', color: 'var(--primary)', background: 'rgba(57,255,20,0.08)' }}
+                >
+                  {event.category.label}
                 </span>
-              )}
-              {event.skill_level && (
-                <span className="text-xs px-2.5 py-1 rounded-full border capitalize" style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}>
-                  {event.skill_level}
-                </span>
-              )}
-            </div>
-
-            <h1 className="text-2xl font-bold leading-snug mb-4">{event.title}</h1>
-
-            {event.description && (
-              <p className="text-sm leading-relaxed mb-5" style={{ color: 'var(--text-muted)' }}>
-                {event.description}
-              </p>
-            )}
-
-            <div className="space-y-2.5">
-              <div className="flex items-center gap-2.5 text-sm">
-                <Calendar size={15} style={{ color: 'var(--primary)', flexShrink: 0 }} />
-                <span>{formatDate(event.schedule.start_at)}</span>
-                {event.schedule.duration_minutes && (
-                  <span style={{ color: 'var(--text-muted)' }}>· {event.schedule.duration_minutes} min</span>
+                {event.is_private && (
+                  <span className="text-xs flex items-center gap-1 px-2.5 py-1 rounded-full border" style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}>
+                    <Lock size={10} /> Private
+                  </span>
+                )}
+                {event.skill_level && (
+                  <span className="text-xs px-2.5 py-1 rounded-full border capitalize" style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}>
+                    {event.skill_level}
+                  </span>
                 )}
               </div>
 
-              {event.location.address && (
-                <div className="flex items-start gap-2.5 text-sm">
-                  <MapPin size={15} style={{ color: 'var(--primary)', flexShrink: 0, marginTop: 2 }} />
-                  <span style={{ color: 'var(--text-muted)' }}>{shortAddress(event.location.address ?? '')}</span>
-                </div>
+              <h1 className="text-2xl font-bold leading-snug mb-4">{event.title}</h1>
+
+              {event.description && (
+                <p className="text-sm leading-relaxed mb-5" style={{ color: 'var(--text-muted)' }}>
+                  {event.description}
+                </p>
               )}
 
-              <div className="flex items-center gap-2.5 text-sm">
-                <Users size={15} style={{ color: 'var(--primary)', flexShrink: 0 }} />
-                <span>
-                  {event.participants_count} joined
-                  {event.max_participants ? ` · max ${event.max_participants}` : ''}
-                  {event.is_full && <span className="ml-2 text-red-400">· Full</span>}
-                </span>
-              </div>
+              <div className="space-y-2.5">
+                <div className="flex items-center gap-2.5 text-sm">
+                  <Calendar size={15} style={{ color: 'var(--primary)', flexShrink: 0 }} />
+                  <span>{formatDate(event.schedule.start_at)}</span>
+                  {event.schedule.duration_minutes && (
+                    <span style={{ color: 'var(--text-muted)' }}>· {event.schedule.duration_minutes} min</span>
+                  )}
+                </div>
 
-              {(event.activity.distance_km || event.activity.pace || event.activity.elevation_gain || event.activity.max_grade || event.activity.max_downgrade) && (
-                <div className="flex items-start gap-2.5 text-sm">
-                  <Zap size={15} style={{ color: 'var(--primary)', flexShrink: 0, marginTop: 2 }} />
-                  <span style={{ color: 'var(--text-muted)' }}>
-                    {[
-                      event.activity.distance_km    && `${event.activity.distance_km} km`,
-                      event.activity.elevation_gain && `↑${event.activity.elevation_gain} m`,
-                      event.activity.max_grade      && `▲ ${event.activity.max_grade}%`,
-                      event.activity.max_downgrade  && `▼ ${Math.abs(event.activity.max_downgrade)}%`,
-                      event.activity.pace,
-                    ].filter(Boolean).join(' · ')}
+                {event.location.address && (
+                  <div className="flex items-start gap-2.5 text-sm">
+                    <MapPin size={15} style={{ color: 'var(--primary)', flexShrink: 0, marginTop: 2 }} />
+                    <span style={{ color: 'var(--text-muted)' }}>{shortAddress(event.location.address ?? '')}</span>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2.5 text-sm">
+                  <Users size={15} style={{ color: 'var(--primary)', flexShrink: 0 }} />
+                  <span>
+                    {event.participants_count} joined
+                    {event.max_participants ? ` · max ${event.max_participants}` : ''}
+                    {event.is_full && <span className="ml-2 text-red-400">· Full</span>}
                   </span>
                 </div>
+
+                {(event.activity.distance_km || event.activity.pace || event.activity.elevation_gain || event.activity.max_grade || event.activity.max_downgrade) && (
+                  <div className="flex items-start gap-2.5 text-sm">
+                    <Zap size={15} style={{ color: 'var(--primary)', flexShrink: 0, marginTop: 2 }} />
+                    <span style={{ color: 'var(--text-muted)' }}>
+                      {[
+                        event.activity.distance_km    && `${event.activity.distance_km} km`,
+                        event.activity.elevation_gain && `↑${event.activity.elevation_gain} m`,
+                        event.activity.max_grade      && `▲ ${event.activity.max_grade}%`,
+                        event.activity.max_downgrade  && `▼ ${Math.abs(event.activity.max_downgrade)}%`,
+                        event.activity.pace,
+                      ].filter(Boolean).join(' · ')}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Organizer */}
+            <div className="rounded-2xl border p-5 flex items-center gap-3" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
+              <div className="text-xs uppercase tracking-wide font-semibold" style={{ color: 'var(--text-muted)' }}>
+                Organized by
+              </div>
+              {event.organizer.avatar ? (
+                <Image src={event.organizer.avatar} alt={event.organizer.name} width={32} height={32} className="rounded-full" />
+              ) : (
+                <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm text-black" style={{ background: 'var(--primary)' }}>
+                  {event.organizer.name.charAt(0).toUpperCase()}
+                </div>
               )}
+              <span className="font-medium text-sm">{event.organizer.name}</span>
             </div>
-          </div>
 
-          {/* Map */}
-          {(event.location.lat != null && event.location.lng != null) && (
-            <LocationPickerMap
-              lat={event.location.lat}
-              lng={event.location.lng}
-              coloredSegments={gpxResult?.coloredSegments}
-              readOnly
-              height={280}
-            />
-          )}
-
-          {/* Elevation chart */}
-          {gpxResult && gpxResult.elevationProfile.length >= 2 && (
-            <div>
-              <p className="text-xs font-medium mb-2 px-1" style={{ color: 'var(--text-muted)' }}>Elevation profile</p>
-              <ElevationChart profile={gpxResult.elevationProfile} totalKm={gpxResult.distanceKm} />
-            </div>
-          )}
-
-          {/* Action */}
-          {error && (
-            <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-xl px-4 py-3">
-              {error}
-            </div>
-          )}
-
-          {event.status === 'active' && (
-            event.is_joined ? (
-              <Button variant="ghost" size="lg" className="w-full border" loading={joining} onClick={handleLeave}>
-                Leave event
-              </Button>
-            ) : (
-              <Button size="lg" className="w-full" loading={joining} onClick={handleJoin} disabled={event.is_full}>
-                {event.is_full ? 'Event is full' : 'Join event'}
-              </Button>
-            )
-          )}
-
-          {event.is_organizer && (
-            <Button
-              size="lg"
-              variant="ghost"
-              className="w-full border flex items-center gap-2"
-              onClick={() => router.push(`/events/edit?id=${event.id}`)}
-            >
-              <Pencil size={15} /> Edit event
-            </Button>
-          )}
-
-          {/* Organizer */}
-          <div
-            className="rounded-2xl border p-5 flex items-center gap-3"
-            style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
-          >
-            <div className="text-xs uppercase tracking-wide font-semibold" style={{ color: 'var(--text-muted)' }}>
-              Organized by
-            </div>
-            {event.organizer.avatar ? (
-              <Image src={event.organizer.avatar} alt={event.organizer.name} width={32} height={32} className="rounded-full" />
-            ) : (
-              <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm text-black" style={{ background: 'var(--primary)' }}>
-                {event.organizer.name.charAt(0).toUpperCase()}
+            {/* Actions */}
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-xl px-4 py-3">
+                {error}
               </div>
             )}
-            <span className="font-medium text-sm">{event.organizer.name}</span>
+
+            {event.status === 'active' && (
+              event.is_joined ? (
+                <Button variant="ghost" size="lg" className="w-full border" loading={joining} onClick={handleLeave}>
+                  Leave event
+                </Button>
+              ) : (
+                <Button size="lg" className="w-full" loading={joining} onClick={handleJoin} disabled={event.is_full}>
+                  {event.is_full ? 'Event is full' : 'Join event'}
+                </Button>
+              )
+            )}
+
+            {event.is_organizer && (
+              <Button size="lg" variant="ghost" className="w-full border flex items-center gap-2"
+                onClick={() => router.push(`/events/edit?id=${event.id}`)}>
+                <Pencil size={15} /> Edit event
+              </Button>
+            )}
+          </div>
+
+          {/* RIGHT — map + elevation */}
+          <div className="space-y-4">
+            {(event.location.lat != null && event.location.lng != null) && (
+              <LocationPickerMap
+                lat={event.location.lat}
+                lng={event.location.lng}
+                coloredSegments={gpxResult?.coloredSegments}
+                readOnly
+                height={360}
+              />
+            )}
+
+            {gpxResult && gpxResult.elevationProfile.length >= 2 && (
+              <div>
+                <p className="text-xs font-medium mb-2 px-1" style={{ color: 'var(--text-muted)' }}>Elevation profile</p>
+                <ElevationChart profile={gpxResult.elevationProfile} totalKm={gpxResult.distanceKm} />
+              </div>
+            )}
           </div>
 
         </div>
