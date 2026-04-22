@@ -105,7 +105,14 @@ export default function HubMap() {
       params.radius_km = radiusKm
     }
     api.get('/events', { params })
-      .then(({ data }) => setEvents(data.data ?? []))
+      .then(({ data }) => {
+        const events = data.data ?? []
+        if (events.length === 0 && (params.lat || params.lng)) {
+          // Location filter returned nothing — fall back to all events
+          return api.get('/events').then(({ data: d }) => setEvents(d.data ?? []))
+        }
+        setEvents(events)
+      })
       .catch(() => {})
       .finally(() => setReady(true))
 
