@@ -14,31 +14,9 @@ import { formatAddress } from '@/lib/format-address'
 import { useAuthStore } from '@/store/auth'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { CATEGORIES } from '@/lib/categories'
 
 const LocationPickerMap = dynamic(() => import('@/components/location-picker-map'), { ssr: false })
-
-const CATEGORIES = [
-  { value: 'running',     emoji: '🏃', label: 'Running' },
-  { value: 'cycling',     emoji: '🚴', label: 'Cycling' },
-  { value: 'hiking',      emoji: '🥾', label: 'Hiking' },
-  { value: 'swimming',    emoji: '🏊', label: 'Swimming' },
-  { value: 'football',    emoji: '⚽', label: 'Football' },
-  { value: 'basketball',  emoji: '🏀', label: 'Basketball' },
-  { value: 'tennis',      emoji: '🎾', label: 'Tennis' },
-  { value: 'volleyball',  emoji: '🏐', label: 'Volleyball' },
-  { value: 'yoga',        emoji: '🧘', label: 'Yoga' },
-  { value: 'fitness',     emoji: '💪', label: 'Fitness' },
-  { value: 'skiing',      emoji: '⛷️',  label: 'Skiing' },
-  { value: 'climbing',    emoji: '🏔️', label: 'Climbing' },
-  { value: 'padel',       emoji: '🏓', label: 'Padel' },
-  { value: 'party',       emoji: '🎉', label: 'Party' },
-  { value: 'chill',       emoji: '😎', label: 'Chill' },
-  { value: 'food_drinks', emoji: '🍕', label: 'Food & Drinks' },
-  { value: 'camping',     emoji: '🏕️', label: 'Camping' },
-  { value: 'beach',       emoji: '🏖️', label: 'Beach' },
-  { value: 'kayaking',    emoji: '🚣', label: 'Kayaking' },
-  { value: 'music',       emoji: '🎵', label: 'Music' },
-]
 
 const SKILL_OPTIONS = [
   { value: 'beginner', label: 'Beginner', desc: 'Just starting' },

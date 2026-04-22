@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation'
 import { Calendar, ArrowRight, X, Users, Zap } from 'lucide-react'
 import api from '@/lib/api'
 import { useAuthStore } from '@/store/auth'
+import { CATEGORY_EMOJI } from '@/lib/categories'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 delete (L.Icon.Default.prototype as any)._getIconUrl
@@ -16,12 +17,6 @@ L.Icon.Default.mergeOptions({
   iconUrl:       'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
   shadowUrl:     'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 })
-
-const CATEGORY_EMOJI: Record<string, string> = {
-  running:  '🏃', cycling:  '🚴', hiking:  '🥾', swimming: '🏊',
-  football: '⚽', party:    '🎉', chill:   '😎', yoga:     '🧘',
-  climbing: '🏔️', camping:  '🏕️',
-}
 
 interface EventPin {
   id: number

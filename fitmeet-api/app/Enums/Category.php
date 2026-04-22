@@ -20,6 +20,7 @@ enum Category: string
     case Surfing      = 'surfing';
     case Climbing     = 'climbing';
     case Padel        = 'padel';
+    case Darts        = 'darts';
 
     // Social
     case Party        = 'party';
@@ -36,6 +37,9 @@ enum Category: string
     // Culture
     case Photography  = 'photography';
     case Art          = 'art';
+
+    // Misc
+    case Other        = 'other';
 
     public function label(): string
     {
@@ -55,6 +59,7 @@ enum Category: string
             self::Surfing     => 'Surfing',
             self::Climbing    => 'Climbing',
             self::Padel       => 'Padel',
+            self::Darts       => 'Pikado',
             self::Party       => 'Party',
             self::Chill       => 'Chill',
             self::FoodDrinks  => 'Food & Drinks',
@@ -65,6 +70,7 @@ enum Category: string
             self::Kayaking    => 'Kayaking',
             self::Photography => 'Photography',
             self::Art         => 'Art',
+            self::Other       => 'Other',
         };
     }
 
@@ -74,7 +80,7 @@ enum Category: string
             self::Running, self::Cycling, self::Hiking, self::Swimming,
             self::Football, self::Basketball, self::Tennis, self::Volleyball,
             self::Yoga, self::Fitness, self::MartialArts, self::Skiing,
-            self::Surfing, self::Climbing, self::Padel => 'Sports',
+            self::Surfing, self::Climbing, self::Padel, self::Darts => 'Sports',
 
             self::Party, self::Chill, self::FoodDrinks,
             self::Music, self::Gaming => 'Social',
@@ -82,6 +88,8 @@ enum Category: string
             self::Beach, self::Camping, self::Kayaking => 'Outdoor',
 
             self::Photography, self::Art => 'Culture',
+
+            self::Other => 'Misc',
         };
     }
 

@@ -1,17 +1,18 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import {
-  Search, Phone, UserPlus, Calendar, MapPin, Users, Zap, ChevronRight,
+  Search, Phone, UserPlus, Calendar, MapPin, Users, Zap, ChevronRight, ChevronDown,
 } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
 import api from '@/lib/api'
 import { useAuthStore } from '@/store/auth'
 import { shortAddress } from '@/lib/format-address'
+import { CATEGORIES, CATEGORY_EMOJI, FILTER_FEATURED } from '@/lib/categories'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -40,26 +41,6 @@ interface EventItem {
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-
-const CATEGORY_EMOJI: Record<string, string> = {
-  running: '🏃', cycling: '🚴', hiking: '🥾', swimming: '🏊',
-  football: '⚽', party: '🎉', chill: '😎', yoga: '🧘',
-  climbing: '🏔️', camping: '🏕️',
-}
-
-const CATEGORIES = [
-  { value: '', label: 'All' },
-  { value: 'running', label: 'Running' },
-  { value: 'cycling', label: 'Cycling' },
-  { value: 'hiking', label: 'Hiking' },
-  { value: 'swimming', label: 'Swimming' },
-  { value: 'football', label: 'Football' },
-  { value: 'yoga', label: 'Yoga' },
-  { value: 'climbing', label: 'Climbing' },
-  { value: 'camping', label: 'Camping' },
-  { value: 'party', label: 'Party' },
-  { value: 'chill', label: 'Chill' },
-]
 
 const RADIUS_OPTIONS = [
   { label: 'All',    km: null },
@@ -195,6 +176,86 @@ function PeopleTab() {
 
 // ─── Events Tab ───────────────────────────────────────────────────────────────
 
+const FEATURED_CATS = [
+  { value: '', label: 'All' },
+  ...CATEGORIES.filter(c => FILTER_FEATURED.includes(c.value)),
+]
+const MORE_CATS = CATEGORIES.filter(c => !FILTER_FEATURED.includes(c.value))
+
+function CategoryFilter({ category, setCategory }: { category: string; setCategory: (v: string) => void }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function close(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', close)
+    return () => document.removeEventListener('mousedown', close)
+  }, [])
+
+  const selectedMore = MORE_CATS.find(c => c.value === category)
+
+  function pill(value: string, label: string, emoji?: string) {
+    const active = category === value
+    return (
+      <button
+        key={value}
+        onClick={() => setCategory(value)}
+        className="flex-shrink-0 text-xs px-3 py-1.5 rounded-full border font-medium transition-colors"
+        style={{
+          borderColor: active ? 'var(--primary)' : 'var(--border)',
+          color:       active ? 'var(--primary)' : 'var(--text-muted)',
+          background:  active ? 'rgba(57,255,20,0.08)' : 'transparent',
+        }}
+      >
+        {emoji ? `${emoji} ${label}` : label}
+      </button>
+    )
+  }
+
+  return (
+    <div className="flex gap-2 items-center flex-wrap">
+      {FEATURED_CATS.map(c => pill(c.value, c.label, c.value ? CATEGORY_EMOJI[c.value] : undefined))}
+
+      {/* Show selected "more" category as an active pill */}
+      {selectedMore && pill(selectedMore.value, selectedMore.label, CATEGORY_EMOJI[selectedMore.value])}
+
+      {/* More... dropdown */}
+      <div className="relative flex-shrink-0" ref={ref}>
+        <button
+          onClick={() => setOpen(o => !o)}
+          className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-full border font-medium transition-colors"
+          style={{
+            borderColor: (selectedMore && !open) ? 'var(--primary)' : 'var(--border)',
+            color:       (selectedMore && !open) ? 'var(--primary)' : 'var(--text-muted)',
+            background:  (selectedMore && !open) ? 'rgba(57,255,20,0.08)' : 'transparent',
+          }}
+        >
+          More <ChevronDown size={11} />
+        </button>
+        {open && (
+          <div
+            className="absolute left-0 mt-1 rounded-xl border shadow-xl overflow-y-auto z-50"
+            style={{ background: 'var(--surface)', borderColor: 'var(--border)', minWidth: 160, maxHeight: 280 }}
+          >
+            {MORE_CATS.map(c => (
+              <button
+                key={c.value}
+                onClick={() => { setCategory(c.value); setOpen(false) }}
+                className="w-full flex items-center gap-2 px-4 py-2.5 text-sm transition-colors hover:bg-[--border] text-left"
+                style={{ color: category === c.value ? 'var(--primary)' : 'var(--text-primary)' }}
+              >
+                <span>{CATEGORY_EMOJI[c.value] ?? '📌'}</span> {c.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function EventsTab() {
   const { user }      = useAuthStore()
   const [events,   setEvents]   = useState<EventItem[]>([])
@@ -223,22 +284,7 @@ function EventsTab() {
   return (
     <div className="space-y-3">
       {/* Category filter */}
-      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-        {CATEGORIES.map(c => (
-          <button
-            key={c.value}
-            onClick={() => setCategory(c.value)}
-            className="flex-shrink-0 text-xs px-3 py-1.5 rounded-full border font-medium transition-colors"
-            style={{
-              borderColor: category === c.value ? 'var(--primary)' : 'var(--border)',
-              color:       category === c.value ? 'var(--primary)' : 'var(--text-muted)',
-              background:  category === c.value ? 'rgba(57,255,20,0.08)' : 'transparent',
-            }}
-          >
-            {c.value ? `${CATEGORY_EMOJI[c.value] ?? ''} ${c.label}` : c.label}
-          </button>
-        ))}
-      </div>
+      <CategoryFilter category={category} setCategory={setCategory} />
 
       {/* Radius filter */}
       <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
