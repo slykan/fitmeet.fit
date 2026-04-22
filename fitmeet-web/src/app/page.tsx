@@ -2,6 +2,7 @@ import { Navbar } from '@/components/navbar'
 import { HeroMap } from '@/components/hero-map'
 import { MapPin, Users, Zap, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
+import Image from 'next/image'
 
 const categories = [
   { emoji: '🏃', label: 'Running', value: 'running' },
@@ -29,7 +30,26 @@ export default function HomePage() {
             style={{ background: 'radial-gradient(ellipse, #39ff14 0%, transparent 70%)' }}
           />
 
-          <div className="relative max-w-6xl mx-auto px-4 pt-20 pb-10 text-center">
+          <div className="relative max-w-6xl mx-auto px-4 pt-16 pb-10 text-center">
+
+            {/* Logo */}
+            <div className="flex justify-center mb-6">
+              <Image
+                src="/logo_c.png"
+                alt="FitMeet"
+                width={96}
+                height={96}
+                className="object-contain dark:block hidden"
+              />
+              <Image
+                src="/logo_b.png"
+                alt="FitMeet"
+                width={96}
+                height={96}
+                className="object-contain dark:hidden block"
+              />
+            </div>
+
             <div
               className="inline-flex items-center gap-2 border rounded-full px-4 py-1.5 text-sm mb-8"
               style={{ borderColor: 'var(--border)', color: 'var(--text-muted)', background: 'var(--surface)' }}
