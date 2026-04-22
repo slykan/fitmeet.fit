@@ -63,7 +63,7 @@ function localDatetimeMin(): string {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function CreateEventPage() {
-  const { token, hasHydrated } = useAuthStore()
+  const { token } = useAuthStore()
   const router    = useRouter()
   const [saving,   setSaving]   = useState(false)
   const [error,    setError]    = useState<string | null>(null)
@@ -90,9 +90,8 @@ export default function CreateEventPage() {
   })
 
   useEffect(() => {
-    if (!hasHydrated) return
     if (!token) router.replace('/login?redirect=/events/create/')
-  }, [hasHydrated, token, router])
+  }, [token, router])
 
   const watchedLat      = watch('lat')
   const watchedLng      = watch('lng')

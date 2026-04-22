@@ -99,7 +99,8 @@ export default function HubMap() {
 
   useEffect(() => {
     const params: Record<string, unknown> = {}
-    if (lat !== null && lng !== null) {
+    const hasCoords = Boolean(lat && lng)
+    if (hasCoords) {
       params.lat = lat
       params.lng = lng
       params.radius_km = radiusKm
@@ -107,7 +108,7 @@ export default function HubMap() {
     api.get('/events', { params })
       .then(({ data }) => {
         const events = data.data ?? []
-        if (events.length === 0 && (params.lat || params.lng)) {
+        if (events.length === 0 && hasCoords) {
           // Location filter returned nothing — fall back to all events
           return api.get('/events').then(({ data: d }) => setEvents(d.data ?? []))
         }
@@ -120,7 +121,7 @@ export default function HubMap() {
     return () => clearTimeout(t)
   }, [lat, lng, radiusKm])
 
-  const mapCenter: [number, number] = (lat !== null && lng !== null) ? [lat, lng] : [44.5, 16.5]
+  const mapCenter: [number, number] = (lat && lng) ? [lat, lng] : [44.5, 16.5]
 
   return (
     <div style={{ position: 'relative', height: '100%', width: '100%' }}>

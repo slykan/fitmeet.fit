@@ -84,7 +84,8 @@ function PeopleTab() {
   const [users,    setUsers]    = useState<UserItem[]>([])
   const [search,   setSearch]   = useState('')
   const [loading,  setLoading]  = useState(true)
-  const [acting, setActing] = useState<number | null>(null)
+  const [acting,   setActing]   = useState<number | null>(null)
+  const [addError, setAddError] = useState<string | null>(null)
 
   const load = useCallback((q: string) => {
     setLoading(true)
@@ -97,9 +98,23 @@ function PeopleTab() {
 
   async function handleAdd(userId: number) {
     setActing(userId)
+    setAddError(null)
     try {
       await api.post(`/friends/request/${userId}`)
       setUsers(u => u.map(x => x.id === userId ? { ...x, friendship_status: 'pending_sent' } : x))
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      setAddError(msg ?? 'Could not send request. Try again.')
+      setTimeout(() => setAddError(null), 4000)
+    }
+    finally { setActing(null) }
+  }
+
+  async function handleCancel(userId: number) {
+    setActing(userId)
+    try {
+      await api.delete(`/friends/cancel/${userId}`)
+      setUsers(u => u.map(x => x.id === userId ? { ...x, friendship_status: null } : x))
     } catch {}
     finally { setActing(null) }
   }
@@ -134,6 +149,12 @@ function PeopleTab() {
         />
       </div>
 
+      {addError && (
+        <div className="text-sm px-4 py-2.5 rounded-xl border" style={{ background: 'rgba(248,113,113,0.1)', borderColor: '#f87171', color: '#f87171' }}>
+          {addError}
+        </div>
+      )}
+
       {loading && (
         <div className="text-center py-12 text-sm" style={{ color: 'var(--text-muted)' }}>Loading…</div>
       )}
@@ -167,11 +188,14 @@ function PeopleTab() {
                   {acting === u.id ? '…' : <><UserCheck size={13} /> Friends</>}
                 </button>
               ) : u.friendship_status === 'pending_sent' ? (
-                <button disabled
-                  className="flex-shrink-0 flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border font-medium opacity-60 cursor-not-allowed"
+                <button
+                  onClick={() => handleCancel(u.id)}
+                  disabled={acting === u.id}
+                  title="Cancel request"
+                  className="flex-shrink-0 flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors hover:border-red-400 hover:text-red-400 disabled:opacity-50"
                   style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}
                 >
-                  <UserPlus size={13} /> Sent
+                  {acting === u.id ? '…' : <><UserPlus size={13} /> Sent</>}
                 </button>
               ) : u.friendship_status === 'pending_received' ? (
                 <button disabled

@@ -153,8 +153,8 @@ export default function OnboardingPage() {
         home_city:    data.home_city,
         radius:       data.radius,
       }
-      if (data.home_lat !== null)      payload.home_lat     = data.home_lat
-      if (data.home_lng !== null)      payload.home_lng     = data.home_lng
+      if (data.home_lat)               payload.home_lat     = data.home_lat
+      if (data.home_lng)               payload.home_lng     = data.home_lng
       if (data.categories.length > 0)  payload.categories   = data.categories
       if (data.skill_level)            payload.skill_level  = data.skill_level
 
