@@ -127,18 +127,21 @@ class EventController extends Controller
             return response()->json(['message' => 'Event is full.'], 422);
         }
 
-        $existing = $event->participants()->withPivot('status')->find($user->id);
+        $existingRow = \DB::table('event_participants')
+            ->where('event_id', $event->id)
+            ->where('user_id', $user->id)
+            ->first();
 
-        if ($existing && $existing->pivot->status === 'joined') {
+        if ($existingRow?->status === 'joined') {
             return response()->json(['message' => 'Already joined.'], 422);
         }
 
-        if ($existing) {
-            // Rejoin after cancel
-            $event->participants()->updateExistingPivot($user->id, [
-                'status'    => 'joined',
-                'joined_at' => now(),
-            ]);
+        if ($existingRow) {
+            // Rejoin after leave/cancel
+            \DB::table('event_participants')
+                ->where('event_id', $event->id)
+                ->where('user_id', $user->id)
+                ->update(['status' => 'joined', 'joined_at' => now()]);
         } else {
             $event->participants()->attach($user->id, [
                 'status'    => 'joined',
