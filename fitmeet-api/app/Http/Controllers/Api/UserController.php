@@ -28,25 +28,29 @@ class UserController extends Controller
         $users = $query->orderBy('name')->paginate(30);
 
         // Build a map of userId → friendship status for the current user
-        $userIds = collect($users->items())->pluck('id');
-        $requests = FriendRequest::where(function ($q) use ($me, $userIds) {
-            $q->where('sender_id', $me->id)->whereIn('receiver_id', $userIds);
-        })->orWhere(function ($q) use ($me, $userIds) {
-            $q->where('receiver_id', $me->id)->whereIn('sender_id', $userIds);
-        })->get();
-
         $statusMap = [];
-        foreach ($requests as $r) {
-            $otherId = $r->sender_id === $me->id ? $r->receiver_id : $r->sender_id;
-            if ($r->status === 'accepted') {
-                $statusMap[$otherId] = 'friends';
-            } elseif ($r->status === 'pending') {
-                $statusMap[$otherId] = $r->sender_id === $me->id ? 'pending_sent' : 'pending_received';
+        try {
+            $userIds  = collect($users->items())->pluck('id');
+            $requests = FriendRequest::where(function ($q) use ($me, $userIds) {
+                $q->where('sender_id', $me->id)->whereIn('receiver_id', $userIds);
+            })->orWhere(function ($q) use ($me, $userIds) {
+                $q->where('receiver_id', $me->id)->whereIn('sender_id', $userIds);
+            })->get();
+
+            foreach ($requests as $r) {
+                $otherId = $r->sender_id === $me->id ? $r->receiver_id : $r->sender_id;
+                if ($r->status === 'accepted') {
+                    $statusMap[$otherId] = 'friends';
+                } elseif ($r->status === 'pending') {
+                    $statusMap[$otherId] = $r->sender_id === $me->id ? 'pending_sent' : 'pending_received';
+                }
             }
+        } catch (\Throwable) {
+            // friend_requests table may not exist yet — degrade gracefully
         }
 
-        $data = collect($users->items())->map(function ($user) use ($statusMap) {
-            $resource = (new UserResource($user))->resolve();
+        $data = collect($users->items())->map(function ($user) use ($statusMap, $request) {
+            $resource = (new UserResource($user))->toArray($request);
             $resource['friendship_status'] = $statusMap[$user->id] ?? null;
             return $resource;
         });
