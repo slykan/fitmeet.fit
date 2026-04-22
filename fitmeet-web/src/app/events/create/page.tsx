@@ -90,7 +90,7 @@ export default function CreateEventPage() {
   })
 
   useEffect(() => {
-    if (!token) router.replace('/login?redirect=/events/create/')
+    if (!token) router.replace('/login')
   }, [token, router])
 
   const watchedLat      = watch('lat')

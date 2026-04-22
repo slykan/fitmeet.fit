@@ -14,11 +14,24 @@ export function Navbar() {
   const { user, logout } = useAuthStore()
   const { theme, setTheme } = useTheme()
   const router  = useRouter()
-  const [mounted,  setMounted]  = useState(false)
-  const [menuOpen, setMenuOpen] = useState(false)
+  const [mounted,    setMounted]    = useState(false)
+  const [menuOpen,   setMenuOpen]   = useState(false)
+  const [notifCount, setNotifCount] = useState(0)
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => setMounted(true), [])
+
+  useEffect(() => {
+    if (!user) return
+    function fetchCount() {
+      api.get('/notifications').then(({ data }) => {
+        setNotifCount((data.data ?? []).length)
+      }).catch(() => {})
+    }
+    fetchCount()
+    const id = setInterval(fetchCount, 60_000)
+    return () => clearInterval(id)
+  }, [user])
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -78,6 +91,26 @@ export function Navbar() {
                 <CalendarDays size={18} />
               </Link>
 
+              <Link
+                href="/notifications"
+                className="relative p-2 rounded-lg text-[--text-muted] hover:text-[--text-primary] transition-colors"
+                title="Notifications"
+              >
+                <Bell size={18} />
+                {notifCount > 0 && (
+                  <span style={{
+                    position: 'absolute', top: 4, right: 4,
+                    minWidth: 16, height: 16, borderRadius: 999,
+                    background: '#ef4444', color: '#fff',
+                    fontSize: 10, fontWeight: 700,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    lineHeight: 1, padding: '0 3px',
+                  }}>
+                    {notifCount > 99 ? '99+' : notifCount}
+                  </span>
+                )}
+              </Link>
+
               <Button size="sm" onClick={() => router.push('/events/create')}>
                 <Plus size={15} className="mr-1" /> New Event
               </Button>
@@ -103,7 +136,7 @@ export function Navbar() {
                     </div>
 
                     <div className="py-1">
-                      <MenuItem icon={<Bell size={15} />} label="Notifications" onClick={() => navigate('/notifications')} />
+                      <MenuItem icon={<Bell size={15} />} label="Notifications" onClick={() => navigate('/notifications')} badge={notifCount} />
                       <MenuItem icon={<User size={15} />} label="Profile"       onClick={() => navigate('/onboarding')} />
                       <MenuItem icon={<Users size={15} />} label="Meet"         onClick={() => navigate('/meet')} />
                     </div>
@@ -130,12 +163,13 @@ export function Navbar() {
 }
 
 function MenuItem({
-  icon, label, onClick, danger,
+  icon, label, onClick, danger, badge,
 }: {
   icon: React.ReactNode
   label: string
   onClick: () => void
   danger?: boolean
+  badge?: number
 }) {
   return (
     <button
@@ -144,7 +178,18 @@ function MenuItem({
       style={{ color: danger ? 'var(--destructive, #f87171)' : 'var(--text-primary)' }}
     >
       <span style={{ color: danger ? 'inherit' : 'var(--text-muted)' }}>{icon}</span>
-      {label}
+      <span className="flex-1 text-left">{label}</span>
+      {badge != null && badge > 0 && (
+        <span style={{
+          minWidth: 18, height: 18, borderRadius: 999,
+          background: '#ef4444', color: '#fff',
+          fontSize: 11, fontWeight: 700,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '0 4px',
+        }}>
+          {badge > 99 ? '99+' : badge}
+        </span>
+      )}
     </button>
   )
 }

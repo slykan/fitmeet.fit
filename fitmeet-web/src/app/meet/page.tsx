@@ -78,6 +78,29 @@ function Avatar({ user }: { user: UserItem }) {
   )
 }
 
+function FriendButton({ acting, onRemove }: { acting: boolean; onRemove: () => void }) {
+  const [hover, setHover] = useState(false)
+  return (
+    <button
+      onClick={onRemove}
+      disabled={acting}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      className="flex-shrink-0 flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border font-medium transition-all disabled:opacity-50"
+      style={{
+        borderColor: hover ? '#f87171' : 'var(--primary)',
+        color:       hover ? '#f87171' : 'var(--primary)',
+        background:  hover ? 'rgba(248,113,113,0.08)' : 'rgba(57,255,20,0.08)',
+      }}
+    >
+      {acting ? '…' : hover
+        ? <><UserMinus size={13} /> Remove</>
+        : <><UserCheck size={13} /> Friends</>
+      }
+    </button>
+  )
+}
+
 // ─── People Tab ───────────────────────────────────────────────────────────────
 
 function PeopleTab() {
@@ -178,15 +201,10 @@ function PeopleTab() {
                 )}
               </div>
               {u.friendship_status === 'friends' ? (
-                <button
-                  onClick={() => handleRemove(u.id)}
-                  disabled={acting === u.id}
-                  title="Remove friend"
-                  className="flex-shrink-0 flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors hover:border-red-400 hover:text-red-400 disabled:opacity-50"
-                  style={{ borderColor: 'var(--primary)', color: 'var(--primary)', background: 'rgba(57,255,20,0.08)' }}
-                >
-                  {acting === u.id ? '…' : <><UserCheck size={13} /> Friends</>}
-                </button>
+                <FriendButton
+                  acting={acting === u.id}
+                  onRemove={() => handleRemove(u.id)}
+                />
               ) : u.friendship_status === 'pending_sent' ? (
                 <button
                   onClick={() => handleCancel(u.id)}

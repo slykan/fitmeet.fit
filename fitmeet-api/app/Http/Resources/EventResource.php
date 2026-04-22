@@ -15,11 +15,11 @@ class EventResource extends JsonResource
             'id'          => $this->id,
             'title'       => $this->title,
             'description' => $this->description,
-            'category'    => [
+            'category'    => $this->category ? [
                 'value' => $this->category->value,
                 'label' => $this->category->label(),
                 'group' => $this->category->group(),
-            ],
+            ] : ['value' => 'other', 'label' => 'Other', 'group' => 'Misc'],
 
             'location' => [
                 'lat'     => $this->lat,
