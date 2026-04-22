@@ -36,7 +36,7 @@ class UserController extends Controller
             $query->whereIn('id', $friendIds);
         }
 
-        $users = $query->orderBy('name')->paginate(30);
+        $users = $query->withCount('events')->orderBy('name')->paginate(30);
 
         // Build a map of userId → friendship status for the current user
         $statusMap = [];
@@ -63,6 +63,7 @@ class UserController extends Controller
         $data = collect($users->items())->map(function ($user) use ($statusMap, $request) {
             $resource = (new UserResource($user))->toArray($request);
             $resource['friendship_status'] = $statusMap[$user->id] ?? null;
+            $resource['events_count'] = $user->events_count ?? 0;
             return $resource;
         });
 

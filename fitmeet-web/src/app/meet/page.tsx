@@ -26,6 +26,7 @@ interface UserItem {
   categories: string[]
   home: { city: string | null; country: string | null }
   friendship_status: 'friends' | 'pending_sent' | 'pending_received' | null
+  events_count: number
 }
 
 interface EventItem {
@@ -197,6 +198,11 @@ function PeopleTab() {
                 {(u.home.city || u.home.country) && (
                   <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
                     {[u.home.city, u.home.country].filter(Boolean).join(', ')}
+                  </p>
+                )}
+                {u.events_count > 0 && (
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                    <span style={{ color: 'var(--primary)', fontWeight: 600 }}>{u.events_count}</span> event{u.events_count !== 1 ? 's' : ''} created
                   </p>
                 )}
               </div>
