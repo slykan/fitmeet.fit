@@ -14,7 +14,8 @@ class UserResource extends JsonResource
             'name'         => $this->name,
             'email'        => $this->email,
             'avatar'       => $this->avatar,
-            'phone'        => $this->phone,
+            'phone'        => ($this->hide_phone && $request->user()?->id !== $this->id) ? null : $this->phone,
+            'hide_phone'   => (bool) $this->hide_phone,
 
             'location' => [
                 'lat' => $this->lat,

@@ -36,6 +36,7 @@ class UpdateProfileRequest extends FormRequest
 
             'skill_level'  => ['sometimes', 'nullable', Rule::in(['beginner', 'advanced', 'pro'])],
 
+            'hide_phone'   => ['sometimes', 'boolean'],
             'fcm_token'    => ['sometimes', 'nullable', 'string'],
         ];
     }

@@ -36,6 +36,7 @@ const SKILL_OPTIONS = [
 interface FormData {
   name:         string
   phone:        string
+  hide_phone:   boolean
   home_country: string
   home_city:    string
   home_lat:     number | null
@@ -67,6 +68,7 @@ export default function OnboardingPage() {
     defaultValues: {
       name:         user?.name         ?? '',
       phone:        user?.phone        ?? '',
+      hide_phone:   (user as { hide_phone?: boolean })?.hide_phone ?? false,
       home_country: user?.home?.country ?? '',
       home_city:    user?.home?.city    ?? '',
       home_lat:     user?.home?.lat     ?? null,
@@ -87,6 +89,7 @@ export default function OnboardingPage() {
   const watchedRadius     = watch('radius')
   const watchedCategories = watch('categories')
   const watchedSkill      = watch('skill_level')
+  const watchedHidePhone  = watch('hide_phone')
 
   function toggleCategory(value: string) {
     const current = watchedCategories
@@ -157,6 +160,7 @@ export default function OnboardingPage() {
       if (data.home_lng)               payload.home_lng     = data.home_lng
       if (data.categories.length > 0)  payload.categories   = data.categories
       if (data.skill_level)            payload.skill_level  = data.skill_level
+      payload.hide_phone = data.hide_phone
 
       const { data: res } = await api.patch('/me', payload)
       setUser(res.data)
@@ -263,6 +267,26 @@ export default function OnboardingPage() {
                     className={cn(inputCls(!!errors.phone), 'pl-9')}
                   />
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setValue('hide_phone', !watchedHidePhone)}
+                  className="mt-2 flex items-center gap-2 text-xs select-none"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  <div
+                    className="relative w-8 h-4 rounded-full transition-colors flex-shrink-0"
+                    style={{ background: watchedHidePhone ? 'var(--primary)' : 'var(--border)' }}
+                  >
+                    <div
+                      className="absolute top-0.5 w-3 h-3 rounded-full transition-all"
+                      style={{
+                        left: watchedHidePhone ? '18px' : '2px',
+                        background: watchedHidePhone ? '#000' : 'var(--text-muted)',
+                      }}
+                    />
+                  </div>
+                  Hide phone from other users
+                </button>
               </Field>
             </div>
           </Section>
