@@ -80,9 +80,11 @@ function Avatar({ user }: { user: UserItem }) {
 // ─── People Tab ───────────────────────────────────────────────────────────────
 
 function PeopleTab() {
-  const [users,   setUsers]   = useState<UserItem[]>([])
-  const [search,  setSearch]  = useState('')
-  const [loading, setLoading] = useState(true)
+  const [users,    setUsers]    = useState<UserItem[]>([])
+  const [search,   setSearch]   = useState('')
+  const [loading,  setLoading]  = useState(true)
+  const [adding,   setAdding]   = useState<number | null>(null)
+  const [sent,     setSent]     = useState<Set<number>>(new Set())
 
   const load = useCallback((q: string) => {
     setLoading(true)
@@ -92,6 +94,18 @@ function PeopleTab() {
       .then(({ data }) => setUsers(data.data ?? []))
       .finally(() => setLoading(false))
   }, [])
+
+  async function handleAdd(userId: number) {
+    setAdding(userId)
+    try {
+      await api.post(`/friends/request/${userId}`)
+      setSent(s => new Set(s).add(userId))
+    } catch {
+      setSent(s => new Set(s).add(userId))
+    } finally {
+      setAdding(null)
+    }
+  }
 
   useEffect(() => { load('') }, [load])
 
@@ -137,12 +151,17 @@ function PeopleTab() {
                 )}
               </div>
               <button
-                disabled
-                title="Coming soon"
-                className="flex-shrink-0 flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border font-medium opacity-40 cursor-not-allowed"
-                style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}
+                onClick={() => handleAdd(u.id)}
+                disabled={adding === u.id || sent.has(u.id)}
+                className="flex-shrink-0 flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors"
+                style={
+                  sent.has(u.id)
+                    ? { borderColor: 'var(--primary)', color: 'var(--primary)', background: 'rgba(57,255,20,0.08)' }
+                    : { borderColor: 'var(--border)', color: 'var(--text-muted)' }
+                }
               >
-                <UserPlus size={13} /> Add
+                <UserPlus size={13} />
+                {sent.has(u.id) ? 'Sent' : adding === u.id ? '…' : 'Add'}
               </button>
             </div>
 

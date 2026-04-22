@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\EventController;
+use App\Http\Controllers\Api\FriendController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -21,6 +22,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('me', [AuthController::class, 'me']);
     Route::patch('me', [UserController::class, 'update']);
     Route::get('users', [UserController::class, 'index']);
+
+    // Friends & notifications
+    Route::get('notifications',                   [FriendController::class, 'notifications']);
+    Route::post('friends/request/{user}',         [FriendController::class, 'request']);
+    Route::post('friends/accept/{friendRequest}', [FriendController::class, 'accept']);
+    Route::post('friends/decline/{friendRequest}',[FriendController::class, 'decline']);
     Route::post('logout', [AuthController::class, 'logout']);
 
     // Events
