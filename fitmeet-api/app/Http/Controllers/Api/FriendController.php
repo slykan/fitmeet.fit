@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
 use App\Mail\FriendAcceptedMail;
 use App\Mail\FriendRequestMail;
+use App\Models\EventNotification;
 use App\Models\EventReminder;
 use App\Models\FriendRequest;
 use App\Models\User;
@@ -142,7 +143,29 @@ class FriendController extends Controller
                 'created_at' => $r->sent_at->toDateTimeString(),
             ]);
 
-        return response()->json(['data' => $pending->concat($accepted)->concat($eventReminders)->values()]);
+        // New events matching interests (last 7 days, event not yet started)
+        $newEvents = EventNotification::with('event')
+            ->where('user_id', $me->id)
+            ->where('created_at', '>=', now()->subDays(7))
+            ->whereHas('event', fn ($q) => $q->where('events.start_at', '>', now())->where('events.status', 'active'))
+            ->latest()
+            ->get()
+            ->map(fn ($n) => [
+                'id'         => $n->id,
+                'type'       => 'new_event',
+                'event'      => [
+                    'id'           => $n->event->id,
+                    'title'        => $n->event->title,
+                    'start_at'     => $n->event->start_at->toIso8601String(),
+                    'address'      => $n->event->address,
+                    'category'     => $n->event->category?->label() ?? 'Event',
+                    'distance_km'  => $n->event->distance_km,
+                    'elevation_gain' => $n->event->elevation_gain,
+                ],
+                'created_at' => $n->created_at->toDateTimeString(),
+            ]);
+
+        return response()->json(['data' => $pending->concat($accepted)->concat($eventReminders)->concat($newEvents)->values()]);
     }
 
     // DELETE /friends/{user}  — remove accepted friend

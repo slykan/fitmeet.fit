@@ -7,6 +7,7 @@ use App\Http\Requests\StoreEventRequest;
 use App\Http\Requests\UpdateEventRequest;
 use App\Http\Resources\EventResource;
 use App\Jobs\SendEventPushNotifications;
+use App\Jobs\SendNewEventNotifications;
 use App\Models\Event;
 use App\Models\EventReminder;
 use Illuminate\Http\JsonResponse;
@@ -69,6 +70,7 @@ class EventController extends Controller
         $event->load('organizer');
 
         SendEventPushNotifications::dispatch($event);
+        SendNewEventNotifications::dispatch($event);
 
         return response()->json(['data' => new EventResource($event)], 201);
     }
