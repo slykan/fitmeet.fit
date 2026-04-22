@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\Category;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -79,17 +80,18 @@ class Event extends Model
     // Scope: events within $radiusKm of given coordinates
     public function scopeNearby(Builder $query, float $lat, float $lng, int $radiusKm): Builder
     {
-        return $query->selectRaw("*, (
-            6371 * ACOS(
-                LEAST(1, GREATEST(-1,
-                    COS(RADIANS(?)) * COS(RADIANS(lat)) *
-                    COS(RADIANS(lng) - RADIANS(?)) +
-                    SIN(RADIANS(?)) * SIN(RADIANS(lat))
-                ))
-            )
-        ) AS distance_from_user", [$lat, $lng, $lat])
-        ->having('distance_from_user', '<=', $radiusKm)
-        ->orderBy('distance_from_user');
+        return $query
+            ->addSelect(DB::raw("(
+                6371 * ACOS(
+                    LEAST(1, GREATEST(-1,
+                        COS(RADIANS({$lat})) * COS(RADIANS(lat)) *
+                        COS(RADIANS(lng) - RADIANS({$lng})) +
+                        SIN(RADIANS({$lat})) * SIN(RADIANS(lat))
+                    ))
+                )
+            ) AS distance_from_user"))
+            ->having('distance_from_user', '<=', $radiusKm)
+            ->orderBy('distance_from_user');
     }
 
     public function scopePublic(Builder $query): Builder
