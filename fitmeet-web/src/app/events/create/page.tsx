@@ -199,7 +199,7 @@ export default function CreateEventPage() {
     }
   }
 
-  if (!hasHydrated || !token) return null
+  if (!token) return null
 
   return (
     <>
