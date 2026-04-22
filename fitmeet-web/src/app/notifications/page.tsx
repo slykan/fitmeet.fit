@@ -63,16 +63,20 @@ function PersonAvatar({ person }: { person: { name: string; avatar: string | nul
 export default function NotificationsPage() {
   const { token }  = useAuthStore()
   const router     = useRouter()
+  const [mounted,  setMounted]  = useState(false)
   const [notifs,   setNotifs]   = useState<Notif[]>([])
   const [loading,  setLoading]  = useState(true)
   const [acting,   setActing]   = useState<number | null>(null)
 
+  useEffect(() => setMounted(true), [])
+
   useEffect(() => {
-    if (!token) { router.replace('/login'); return }
+    if (!mounted) return
+    if (!token) { router.replace('/login?redirect=/notifications'); return }
     api.get('/notifications')
       .then(({ data }) => setNotifs(data.data ?? []))
       .finally(() => setLoading(false))
-  }, [token, router])
+  }, [mounted, token, router])
 
   async function handle(id: number, action: 'accept' | 'decline') {
     setActing(id)

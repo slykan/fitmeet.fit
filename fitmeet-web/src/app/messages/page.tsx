@@ -169,6 +169,7 @@ function MessagesContent() {
   const params    = useSearchParams()
   const userId    = params.get('user')
 
+  const [mounted,   setMounted]   = useState(false)
   const [convos,    setConvos]    = useState<Conversation[]>([])
   const [loading,   setLoading]   = useState(true)
   const [compose,   setCompose]   = useState(false)
@@ -179,14 +180,17 @@ function MessagesContent() {
   const [sendError, setSendError] = useState<string | null>(null)
   const [deleting,  setDeleting]  = useState<number | null>(null)
 
+  useEffect(() => setMounted(true), [])
+
   useEffect(() => {
-    if (!token) { router.replace('/login'); return }
+    if (!mounted) return
+    if (!token) { router.replace('/login?redirect=/messages'); return }
     if (!userId) {
       api.get('/messages')
         .then(({ data }) => setConvos(data.data ?? []))
         .finally(() => setLoading(false))
     }
-  }, [token, router, userId])
+  }, [mounted, token, router, userId])
 
   const loadFriends = useCallback(() => {
     api.get('/users', { params: { friends_only: 1 } })
@@ -218,7 +222,7 @@ function MessagesContent() {
     } finally { setSending(false) }
   }
 
-  if (!token) return null
+  if (!mounted || !token) return null
 
   // Thread view
   if (userId) {

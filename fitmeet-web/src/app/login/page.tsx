@@ -54,17 +54,19 @@ function LoginContent() {
       .catch(() => setError('Authentication failed. Please try again.'))
   }, [searchParams, setAuth, router])
 
+  const redirect = searchParams.get('redirect')
+
   // Redirect if already logged in
   useEffect(() => {
-    if (user) router.replace(user.onboarding_complete ? '/hub' : '/onboarding')
-  }, [user, router])
+    if (user) router.replace(user.onboarding_complete ? (redirect || '/hub') : '/onboarding')
+  }, [user, router, redirect])
 
   async function onSubmit(data: LoginForm) {
     setError(null)
     try {
       const { data: res } = await api.post('/auth/login', data)
       setAuth(res.token, res.data)
-      router.replace(res.data.onboarding_complete ? '/hub' : '/onboarding')
+      router.replace(res.data.onboarding_complete ? (redirect || '/hub') : '/onboarding')
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
       setError(msg ?? 'Invalid email or password.')
