@@ -20,6 +20,7 @@ Route::get('categories', [CategoryController::class, 'index']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('me', [AuthController::class, 'me']);
     Route::patch('me', [UserController::class, 'update']);
+    Route::get('users', [UserController::class, 'index']);
     Route::post('logout', [AuthController::class, 'logout']);
 
     // Events

@@ -23,9 +23,9 @@ class EventController extends Controller
             ->upcoming()
             ->public();
 
-        // Nearby filter — use user's active location or provided coords
-        $lat = $request->float('lat', $user->lat);
-        $lng = $request->float('lng', $user->lng);
+        // Nearby filter — only when caller explicitly provides coordinates
+        $lat = $request->filled('lat') ? $request->float('lat') : null;
+        $lng = $request->filled('lng') ? $request->float('lng') : null;
 
         if ($lat && $lng) {
             $radiusKm = $request->integer('radius_km', $user->radius_km);
