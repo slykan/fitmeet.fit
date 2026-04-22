@@ -81,9 +81,11 @@ class Event extends Model
     {
         return $query->selectRaw("*, (
             6371 * ACOS(
-                COS(RADIANS(?)) * COS(RADIANS(lat)) *
-                COS(RADIANS(lng) - RADIANS(?)) +
-                SIN(RADIANS(?)) * SIN(RADIANS(lat))
+                LEAST(1, GREATEST(-1,
+                    COS(RADIANS(?)) * COS(RADIANS(lat)) *
+                    COS(RADIANS(lng) - RADIANS(?)) +
+                    SIN(RADIANS(?)) * SIN(RADIANS(lat))
+                ))
             )
         ) AS distance_from_user", [$lat, $lng, $lat])
         ->having('distance_from_user', '<=', $radiusKm)
