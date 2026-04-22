@@ -470,7 +470,16 @@ export default function MeetPage() {
       <main className="min-h-screen py-8 px-4">
         <div style={{ maxWidth: 720, margin: '0 auto' }}>
 
-          <h1 className="text-2xl font-bold mb-6">Meet</h1>
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-2xl font-bold">Meet</h1>
+            <button
+              onClick={() => router.push('/events/create')}
+              className="flex items-center gap-2 text-sm px-4 py-2 rounded-xl font-semibold transition-opacity hover:opacity-80"
+              style={{ background: 'var(--primary)', color: '#000' }}
+            >
+              <span className="text-base leading-none">+</span> New Event
+            </button>
+          </div>
 
           {/* Tabs */}
           <div className="flex gap-1 p-1 rounded-xl mb-6" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
