@@ -311,7 +311,19 @@ function EventsTab() {
   const [reminderEvent,    setReminderEvent]    = useState<EventItem | null>(null)
   const [selectedOffsets,  setSelectedOffsets]  = useState<Set<string>>(new Set())
   const [settingReminders, setSettingReminders] = useState(false)
-  const [reminderSet,      setReminderSet]      = useState<Set<number>>(new Set())
+  // Map<eventId, string[]> — offsets that are currently active for that event
+  const [reminderOffsets, setReminderOffsets]   = useState<Map<number, string[]>>(new Map())
+
+  // Fetch existing reminders once
+  useEffect(() => {
+    api.get('/events/my-reminders').then(({ data }) => {
+      const map = new Map<number, string[]>()
+      Object.entries(data.data as Record<string, string[]>).forEach(([id, offsets]) => {
+        map.set(Number(id), offsets)
+      })
+      setReminderOffsets(map)
+    }).catch(() => {})
+  }, [])
 
   useEffect(() => {
     setLoading(true)
@@ -338,11 +350,16 @@ function EventsTab() {
   }, [category, radiusKm, goingOnly, user])
 
   async function handleSetReminders() {
-    if (!reminderEvent || selectedOffsets.size === 0) { setReminderEvent(null); return }
+    if (!reminderEvent) { setReminderEvent(null); return }
     setSettingReminders(true)
     try {
       await api.post(`/events/${reminderEvent.id}/remind`, { offsets: Array.from(selectedOffsets) })
-      setReminderSet(prev => new Set([...prev, reminderEvent.id]))
+      const id = reminderEvent.id
+      setReminderOffsets(prev => {
+        const next = new Map(prev)
+        next.set(id, Array.from(selectedOffsets))
+        return next
+      })
     } catch {}
     finally {
       setSettingReminders(false)
@@ -353,7 +370,8 @@ function EventsTab() {
   function openReminder(e: React.MouseEvent, ev: EventItem) {
     e.preventDefault()
     e.stopPropagation()
-    setSelectedOffsets(new Set())
+    // Pre-populate with already-set offsets for this event
+    setSelectedOffsets(new Set(reminderOffsets.get(ev.id) ?? []))
     setReminderEvent(ev)
   }
 
@@ -362,7 +380,7 @@ function EventsTab() {
       {/* Category filter */}
       <CategoryFilter category={category} setCategory={c => { setCategory(c); setGoingOnly(false) }} />
 
-      {/* Radius + Going filter */}
+      {/* Radius filter */}
       <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
         {RADIUS_OPTIONS.map(r => (
           <button
@@ -378,9 +396,13 @@ function EventsTab() {
             {r.label}
           </button>
         ))}
+      </div>
+
+      {/* Going filter — separate row */}
+      <div>
         <button
           onClick={() => setGoingOnly(g => !g)}
-          className="flex-shrink-0 text-xs px-3 py-1.5 rounded-full border font-medium transition-colors"
+          className="text-xs px-4 py-1.5 rounded-full border font-semibold transition-colors"
           style={{
             borderColor: goingOnly ? 'var(--primary)' : 'var(--border)',
             color:       goingOnly ? 'var(--primary)' : 'var(--text-muted)',
@@ -452,9 +474,9 @@ function EventsTab() {
                 onClick={e => openReminder(e, ev)}
                 title="Set reminder"
                 className="p-1.5 rounded-lg transition-colors hover:bg-[--border]"
-                style={{ color: reminderSet.has(ev.id) ? 'var(--primary)' : '#fff' }}
+                style={{ color: (reminderOffsets.get(ev.id)?.length ?? 0) > 0 ? 'var(--primary)' : '#fff' }}
               >
-                <Bell size={15} fill={reminderSet.has(ev.id) ? 'var(--primary)' : 'none'} />
+                <Bell size={15} fill={(reminderOffsets.get(ev.id)?.length ?? 0) > 0 ? 'var(--primary)' : 'none'} />
               </button>
             )}
             <ChevronRight size={16} style={{ color: 'var(--text-muted)' }} />
@@ -510,10 +532,10 @@ function EventsTab() {
                 Cancel
               </button>
               <button onClick={handleSetReminders}
-                disabled={selectedOffsets.size === 0 || settingReminders}
+                disabled={settingReminders}
                 className="flex-1 py-2.5 rounded-xl text-sm font-bold transition-opacity hover:opacity-80 disabled:opacity-40"
                 style={{ background: 'var(--primary)', color: '#000' }}>
-                {settingReminders ? 'Saving…' : 'Set Reminders'}
+                {settingReminders ? 'Saving…' : selectedOffsets.size === 0 ? 'Clear Reminders' : 'Save Reminders'}
               </button>
             </div>
           </div>

@@ -213,14 +213,21 @@ class EventController extends Controller
     public function setReminders(Request $request, Event $event): JsonResponse
     {
         $request->validate([
-            'offsets'   => 'required|array|min:1',
+            'offsets'   => 'required|array',
             'offsets.*' => 'in:1h,5h,1d',
         ]);
 
         $user      = $request->user();
+        $offsets   = $request->offsets;
         $offsetMap = ['1h' => 60, '5h' => 300, '1d' => 1440];
 
-        foreach ($request->offsets as $offset) {
+        // Delete removed offsets
+        EventReminder::where('user_id', $user->id)
+            ->where('event_id', $event->id)
+            ->whereNotIn('remind_offset', $offsets)
+            ->delete();
+
+        foreach ($offsets as $offset) {
             $remindAt = $event->start_at->copy()->subMinutes($offsetMap[$offset]);
             if ($remindAt->isPast()) continue;
 
@@ -230,6 +237,29 @@ class EventController extends Controller
             );
         }
 
-        return response()->json(['message' => 'Reminders set.']);
+        return response()->json(['message' => 'Reminders updated.']);
+    }
+
+    // GET /api/events/my-reminders — active (unsent) reminders for current user
+    public function myReminders(Request $request): JsonResponse
+    {
+        $reminders = EventReminder::where('user_id', $request->user()->id)
+            ->whereNull('sent_at')
+            ->get()
+            ->groupBy('event_id')
+            ->map(fn ($group) => $group->pluck('remind_offset')->values());
+
+        return response()->json(['data' => $reminders]);
+    }
+
+    // DELETE /api/events/{event}/remind/{offset} — cancel one reminder
+    public function deleteReminder(Request $request, Event $event, string $offset): JsonResponse
+    {
+        EventReminder::where('user_id', $request->user()->id)
+            ->where('event_id', $event->id)
+            ->where('remind_offset', $offset)
+            ->delete();
+
+        return response()->json(['message' => 'Reminder cancelled.']);
     }
 }

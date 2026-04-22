@@ -63,8 +63,9 @@ function EventContent() {
   const [gpxResult, setGpxResult] = useState<GpxResult | null>(null)
   const [showParticipants, setShowParticipants] = useState(false)
   const [showReminderModal, setShowReminderModal] = useState(false)
-  const [selectedOffsets, setSelectedOffsets] = useState<Set<string>>(new Set())
+  const [selectedOffsets,  setSelectedOffsets]  = useState<Set<string>>(new Set())
   const [settingReminders, setSettingReminders] = useState(false)
+  const [activeOffsets,    setActiveOffsets]    = useState<string[]>([])
 
   useEffect(() => {
     if (!token) { router.replace('/login'); return }
@@ -81,6 +82,12 @@ function EventContent() {
       })
       .catch(() => setError('Event not found.'))
       .finally(() => setLoading(false))
+
+    // Load existing reminders for this event
+    api.get('/events/my-reminders').then(({ data }) => {
+      const offsets = (data.data as Record<string, string[]>)[id] ?? []
+      setActiveOffsets(offsets)
+    }).catch(() => {})
   }, [id, token, router])
 
   async function handleJoin() {
@@ -90,6 +97,7 @@ function EventContent() {
     try {
       await api.post(`/events/${event.id}/join`)
       setEvent(e => e ? { ...e, is_joined: true, participants_count: e.participants_count + 1 } : e)
+      setActiveOffsets([])
       setSelectedOffsets(new Set())
       setShowReminderModal(true)
     } catch (err: unknown) {
@@ -101,15 +109,21 @@ function EventContent() {
   }
 
   async function handleSetReminders() {
-    if (!event || selectedOffsets.size === 0) { setShowReminderModal(false); return }
+    if (!event) { setShowReminderModal(false); return }
     setSettingReminders(true)
     try {
       await api.post(`/events/${event.id}/remind`, { offsets: Array.from(selectedOffsets) })
+      setActiveOffsets(Array.from(selectedOffsets))
     } catch {}
     finally {
       setSettingReminders(false)
       setShowReminderModal(false)
     }
+  }
+
+  function openReminderModal() {
+    setSelectedOffsets(new Set(activeOffsets))
+    setShowReminderModal(true)
   }
 
   async function handleLeave() {
@@ -266,7 +280,20 @@ function EventContent() {
 
           {event.status === 'active' && (
             event.is_joined ? (
-              <Button variant="ghost" size="lg" className="w-full border" loading={joining} onClick={handleLeave}>Leave event</Button>
+              <div className="flex gap-2">
+                <Button variant="ghost" size="lg" className="flex-1 border" loading={joining} onClick={handleLeave}>Leave event</Button>
+                <button
+                  onClick={openReminderModal}
+                  title="Reminders"
+                  className="flex-shrink-0 px-4 rounded-xl border transition-colors hover:bg-[--border]"
+                  style={{
+                    borderColor: activeOffsets.length > 0 ? 'var(--primary)' : 'var(--border)',
+                    color:       activeOffsets.length > 0 ? 'var(--primary)' : 'var(--text-muted)',
+                  }}
+                >
+                  <Bell size={18} fill={activeOffsets.length > 0 ? 'var(--primary)' : 'none'} />
+                </button>
+              </div>
             ) : (
               <Button size="lg" className="w-full" loading={joining} onClick={handleJoin} disabled={event.is_full}>
                 {event.is_full ? 'Event is full' : 'Join event'}
@@ -358,11 +385,11 @@ function EventContent() {
             </button>
             <button
               onClick={handleSetReminders}
-              disabled={selectedOffsets.size === 0 || settingReminders}
+              disabled={settingReminders}
               className="flex-1 py-2.5 rounded-xl text-sm font-bold transition-opacity hover:opacity-80 disabled:opacity-40"
               style={{ background: 'var(--primary)', color: '#000' }}
             >
-              {settingReminders ? 'Saving…' : 'Set Reminders'}
+              {settingReminders ? 'Saving…' : selectedOffsets.size === 0 ? 'Clear Reminders' : 'Save Reminders'}
             </button>
           </div>
         </div>
