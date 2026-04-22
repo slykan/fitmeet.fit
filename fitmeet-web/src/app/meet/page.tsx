@@ -295,7 +295,6 @@ function CategoryFilter({ category, setCategory }: { category: string; setCatego
         )
       })}
     </div>
-    </div>
   )
 }
 
