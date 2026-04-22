@@ -103,7 +103,8 @@ function EventContent() {
   }
 
   return (
-    <main style={{ maxWidth: 1024, margin: '0 auto', padding: '2rem 1rem' }}>
+    <main className="min-h-screen py-8 px-4">
+    <div style={{ maxWidth: 1024, margin: '0 auto' }}>
       <Link
         href="/hub"
         className="inline-flex items-center gap-1.5 text-sm mb-6 transition-opacity hover:opacity-70"
@@ -239,6 +240,7 @@ function EventContent() {
 
         </div>
       )}
+    </div>
     </main>
   )
 }
