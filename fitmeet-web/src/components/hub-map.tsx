@@ -5,7 +5,7 @@ import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { useRouter } from 'next/navigation'
-import { Calendar, ArrowRight, X, Users } from 'lucide-react'
+import { Calendar, ArrowRight, X, Users, Zap } from 'lucide-react'
 import api from '@/lib/api'
 import { useAuthStore } from '@/store/auth'
 
@@ -29,6 +29,7 @@ interface EventPin {
   category: { value: string; label: string }
   location: { lat: number; lng: number; address: string | null }
   schedule: { start_at: string }
+  activity: { distance_km: number | null; elevation_gain: number | null }
   participants_count: number
   max_participants: number | null
   is_full: boolean
@@ -237,6 +238,15 @@ export default function HubMap() {
                   {selected.participants_count} joined
                   {selected.max_participants ? ` · max ${selected.max_participants}` : ''}
                 </div>
+                {(selected.activity.distance_km || selected.activity.elevation_gain) && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-muted)' }}>
+                    <Zap size={12} style={{ color: 'var(--primary)' }} />
+                    {[
+                      selected.activity.distance_km    && `${selected.activity.distance_km} km`,
+                      selected.activity.elevation_gain && `↑${selected.activity.elevation_gain} m`,
+                    ].filter(Boolean).join(' · ')}
+                  </div>
+                )}
               </div>
             </div>
             <button
