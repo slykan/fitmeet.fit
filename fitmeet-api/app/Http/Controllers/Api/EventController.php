@@ -19,7 +19,6 @@ class EventController extends Controller
         $user = $request->user();
 
         $query = Event::with('organizer')
-            ->withCount(['participants as participants_count'])
             ->upcoming()
             ->public();
 
