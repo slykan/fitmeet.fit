@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic'
 import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useForm, Controller } from 'react-hook-form'
-import { Calendar, MapPin, Info, Settings, Lock, Unlock, LocateFixed } from 'lucide-react'
+import { Calendar, MapPin, Info, Settings, Lock, Unlock, LocateFixed, Search } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
 import ElevationChart from '@/components/elevation-chart'
@@ -135,6 +135,26 @@ function EditContent() {
       const data = await res.json()
       if (data.address) setValue('address', formatAddress(data.address))
     } catch {}
+  }
+
+  async function geocodeAddress() {
+    const address = watch('address')
+    if (!address.trim()) return
+    setLocating(true)
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`,
+        { headers: { 'Accept-Language': 'en' } }
+      )
+      const results = await res.json()
+      if (results[0]) {
+        const { lat, lon, display_name } = results[0]
+        setValue('lat', parseFloat(lat))
+        setValue('lng', parseFloat(lon))
+        setValue('address', display_name.split(',').slice(0, 3).join(',').trim())
+      }
+    } catch {}
+    finally { setLocating(false) }
   }
 
   async function useMyLocation() {
@@ -331,11 +351,23 @@ function EditContent() {
             )}
           </Field>
           <Field label="Address" className="mt-4">
-            <input
-              {...register('address')}
-              placeholder="Auto-filled from map"
-              className={inputCls(false)}
-            />
+            <div className="flex gap-2">
+              <input
+                {...register('address')}
+                placeholder="Type city or address, then press Enter"
+                className={inputCls(false)}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); geocodeAddress() } }}
+              />
+              <button
+                type="button"
+                onClick={geocodeAddress}
+                disabled={locating}
+                className="flex-shrink-0 px-3 rounded-xl border transition-colors hover:border-[--primary] disabled:opacity-50"
+                style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}
+              >
+                <Search size={15} className={locating ? 'animate-spin' : ''} />
+              </button>
+            </div>
           </Field>
 
           <Field label="GPX route" className="mt-4">

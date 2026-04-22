@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { useTheme } from 'next-themes'
 import { useForm, Controller } from 'react-hook-form'
-import { Globe, MapPin, Navigation, Phone, User, Check, LocateFixed } from 'lucide-react'
+import { Globe, MapPin, Navigation, Phone, User, Check, LocateFixed, Search } from 'lucide-react'
 
 import api from '@/lib/api'
 import { useAuthStore } from '@/store/auth'
@@ -94,6 +94,26 @@ export default function OnboardingPage() {
       'categories',
       current.includes(value) ? current.filter(c => c !== value) : [...current, value],
     )
+  }
+
+  async function geocodeHomeLocation() {
+    const city    = watch('home_city')
+    const country = watch('home_country')
+    const q       = [city, country].filter(Boolean).join(', ')
+    if (!q.trim()) return
+    setLocating(true)
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1`,
+        { headers: { 'Accept-Language': 'en' } }
+      )
+      const results = await res.json()
+      if (results[0]) {
+        setValue('home_lat', parseFloat(results[0].lat))
+        setValue('home_lng', parseFloat(results[0].lon))
+      }
+    } catch {}
+    finally { setLocating(false) }
   }
 
   async function getCurrentLocation() {
@@ -267,11 +287,24 @@ export default function OnboardingPage() {
               </Field>
 
               <Field label="City *" error={errors.home_city?.message}>
-                <input
-                  {...register('home_city', { required: 'City is required' })}
-                  placeholder="Zagreb"
-                  className={inputCls(!!errors.home_city)}
-                />
+                <div className="flex gap-2">
+                  <input
+                    {...register('home_city', { required: 'City is required' })}
+                    placeholder="Zagreb"
+                    className={inputCls(!!errors.home_city)}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); geocodeHomeLocation() } }}
+                  />
+                  <button
+                    type="button"
+                    onClick={geocodeHomeLocation}
+                    disabled={locating}
+                    title="Find on map"
+                    className="flex-shrink-0 px-3 rounded-xl border transition-colors hover:border-[--primary] disabled:opacity-50"
+                    style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}
+                  >
+                    <Search size={15} className={locating ? 'animate-spin' : ''} />
+                  </button>
+                </div>
               </Field>
             </div>
 
