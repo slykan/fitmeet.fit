@@ -10,6 +10,7 @@ import { Navbar } from '@/components/navbar'
 import ElevationChart from '@/components/elevation-chart'
 import api from '@/lib/api'
 import { parseGpx, GpxResult } from '@/lib/parse-gpx'
+import { formatAddress } from '@/lib/format-address'
 import { useAuthStore } from '@/store/auth'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -128,11 +129,11 @@ export default function CreateEventPage() {
     setValue('lng', lng)
     try {
       const res  = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
+        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`,
         { headers: { 'Accept-Language': 'en' } }
       )
       const data = await res.json()
-      if (data.display_name) setValue('address', data.display_name)
+      if (data.address) setValue('address', formatAddress(data.address))
     } catch {}
   }
 

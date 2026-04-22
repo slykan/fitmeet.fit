@@ -9,6 +9,7 @@ import { Calendar, MapPin, Users, Zap, ChevronLeft, Lock, Pencil } from 'lucide-
 
 import { Navbar } from '@/components/navbar'
 import ElevationChart from '@/components/elevation-chart'
+import { shortAddress } from '@/lib/format-address'
 import api from '@/lib/api'
 import { parseGpx, GpxResult } from '@/lib/parse-gpx'
 import { useAuthStore } from '@/store/auth'
@@ -169,7 +170,7 @@ function EventContent() {
               {event.location.address && (
                 <div className="flex items-start gap-2.5 text-sm">
                   <MapPin size={15} style={{ color: 'var(--primary)', flexShrink: 0, marginTop: 2 }} />
-                  <span style={{ color: 'var(--text-muted)' }}>{event.location.address}</span>
+                  <span style={{ color: 'var(--text-muted)' }}>{shortAddress(event.location.address ?? '')}</span>
                 </div>
               )}
 

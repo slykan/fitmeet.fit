@@ -7,6 +7,7 @@ import { Calendar, Users, Pencil, Plus, XCircle, MapPin } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
 import api from '@/lib/api'
+import { shortAddress } from '@/lib/format-address'
 import { useAuthStore } from '@/store/auth'
 import { Button } from '@/components/ui/button'
 
@@ -135,7 +136,7 @@ export default function MyEventsPage() {
                   {event.location.address && (
                     <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
                       <MapPin size={12} />
-                      <span className="truncate">{event.location.address}</span>
+                      <span className="truncate">{shortAddress(event.location.address ?? '')}</span>
                     </div>
                   )}
                   <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
