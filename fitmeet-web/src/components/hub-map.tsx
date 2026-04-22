@@ -62,7 +62,7 @@ function getZoomForRadius(km: number): number {
 }
 
 function AutoZoom({ events, lat, lng, radiusKm, ready }: {
-  events: EventPin[]; lat: number; lng: number; radiusKm: number; ready: boolean
+  events: EventPin[]; lat: number | null; lng: number | null; radiusKm: number; ready: boolean
 }) {
   const map  = useMap()
   const done = useRef(false)
@@ -72,9 +72,9 @@ function AutoZoom({ events, lat, lng, radiusKm, ready }: {
     done.current = true
     if (events.length > 0) {
       const pts: [number, number][] = events.map(e => [e.location.lat, e.location.lng])
-      pts.push([lat, lng])
+      if (lat !== null && lng !== null) pts.push([lat, lng])
       map.fitBounds(L.latLngBounds(pts), { padding: [60, 60], animate: true, duration: 1 })
-    } else {
+    } else if (lat !== null && lng !== null) {
       map.setView([lat, lng], getZoomForRadius(radiusKm), { animate: true, duration: 1 })
     }
   }, [ready, map, events, lat, lng, radiusKm])
@@ -97,12 +97,18 @@ export default function HubMap() {
   const [ready,    setReady]    = useState(false)
   const [radar,    setRadar]    = useState(true)
 
-  const lat      = user?.location?.lat  ?? user?.home?.lat  ?? 44.5
-  const lng      = user?.location?.lng  ?? user?.home?.lng  ?? 16.5
-  const radiusKm = user?.radius_km      ?? 50
+  const lat      = user?.location?.lat ?? user?.home?.lat ?? null
+  const lng      = user?.location?.lng ?? user?.home?.lng ?? null
+  const radiusKm = user?.radius_km ?? 50
 
   useEffect(() => {
-    api.get('/events', { params: { lat, lng, radius_km: radiusKm } })
+    const params: Record<string, unknown> = {}
+    if (lat !== null && lng !== null) {
+      params.lat = lat
+      params.lng = lng
+      params.radius_km = radiusKm
+    }
+    api.get('/events', { params })
       .then(({ data }) => setEvents(data.data ?? []))
       .catch(() => {})
       .finally(() => setReady(true))
@@ -111,11 +117,13 @@ export default function HubMap() {
     return () => clearTimeout(t)
   }, [lat, lng, radiusKm])
 
+  const mapCenter: [number, number] = (lat !== null && lng !== null) ? [lat, lng] : [44.5, 16.5]
+
   return (
     <div style={{ position: 'relative', height: '100%', width: '100%' }}>
 
       <MapContainer
-        center={[lat, lng]}
+        center={mapCenter}
         zoom={11}
         style={{ height: '100%', width: '100%' }}
         scrollWheelZoom
@@ -126,6 +134,7 @@ export default function HubMap() {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         />
         <AutoZoom events={events} lat={lat} lng={lng} radiusKm={radiusKm} ready={ready} />
+
         {events.map(ev => (
           <Marker
             key={ev.id}
@@ -136,7 +145,7 @@ export default function HubMap() {
         ))}
       </MapContainer>
 
-      {/* Radar pulse */}
+      {/* Radar sweep */}
       {radar && (
         <div style={{
           position: 'absolute', inset: 0,
@@ -144,16 +153,34 @@ export default function HubMap() {
           pointerEvents: 'none', zIndex: 500,
         }}>
           <style>{`
-            @keyframes fm-radar {
-              0%   { transform: scale(0.3); opacity: 0.85; }
-              100% { transform: scale(10);  opacity: 0; }
+            @keyframes fm-sweep {
+              from { transform: rotate(0deg);   opacity: 1; }
+              85%  {                             opacity: 1; }
+              to   { transform: rotate(360deg); opacity: 0; }
             }
           `}</style>
+          {/* Static ring */}
           <div style={{
-            width: 70, height: 70,
+            position: 'absolute',
+            width: 280, height: 280,
             borderRadius: '50%',
-            border: '3px solid #39FF14',
-            animation: 'fm-radar 1.5s ease-out forwards',
+            border: '1px solid rgba(30,144,255,0.2)',
+          }} />
+          {/* Rotating sweep */}
+          <div style={{
+            width: 280, height: 280,
+            borderRadius: '50%',
+            overflow: 'hidden',
+            animation: 'fm-sweep 1.5s linear forwards',
+            background: 'conic-gradient(from 0deg, rgba(30,144,255,0.95) 0deg 2deg, rgba(30,144,255,0.5) 2deg 45deg, rgba(30,144,255,0.15) 45deg 75deg, transparent 75deg 360deg)',
+          }} />
+          {/* Center dot */}
+          <div style={{
+            position: 'absolute',
+            width: 7, height: 7,
+            borderRadius: '50%',
+            background: 'rgba(30,144,255,0.9)',
+            boxShadow: '0 0 6px rgba(30,144,255,0.8)',
           }} />
         </div>
       )}

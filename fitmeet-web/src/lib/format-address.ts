@@ -10,21 +10,30 @@ export function formatAddress(addr: Record<string, string>): string {
   return [street, city, country].filter(Boolean).join(', ')
 }
 
-// Parse a long Nominatim display_name string → short display (for legacy stored addresses)
+// Parse a long Nominatim display_name string → "Street Number, City, Country"
 export function shortAddress(full: string): string {
   if (!full) return ''
   const parts = full.split(',').map(s => s.trim()).filter(Boolean)
-  if (parts.length <= 3) return full
+  if (parts.length <= 2) return full
 
-  // Skip administrative noise
-  const noise = /county|district|grad |četvrt|quarter|region|province|oblast|municipality/i
-  const clean = parts.filter(p => !noise.test(p) && !/^\d{4,5}$/.test(p))
+  // Noise: neighbourhoods, counties, postcodes
+  const noise = /county|district|grad |četvrt|quarter|region|province|oblast|municipality|naselje|settlement/i
+  const isPostcode = (s: string) => /^\d{4,6}$/.test(s)
 
-  // Street = first 1-2 clean parts, city = next, country = last
-  const street  = clean.slice(0, 2).join(', ')
-  const country = clean[clean.length - 1]
-  const city    = clean.find((p, i) => i >= 2 && p !== country) ?? ''
+  // Nominatim sometimes puts house number first
+  let street: string
+  let rest: string[]
+  if (/^\d+[a-zA-Z]?$/.test(parts[0]) && parts.length > 1) {
+    street = `${parts[1]} ${parts[0]}`   // "Ilirska ulica 25"
+    rest   = parts.slice(2)
+  } else {
+    street = parts[0]
+    rest   = parts.slice(1)
+  }
 
-  return [street, city && city !== country ? city : '', country]
-    .filter(Boolean).join(', ')
+  const clean   = rest.filter(p => !noise.test(p) && !isPostcode(p))
+  const country = clean[clean.length - 1] ?? ''
+  const city    = clean.find(p => p !== country) ?? ''
+
+  return [street, city, country].filter(Boolean).join(', ')
 }
