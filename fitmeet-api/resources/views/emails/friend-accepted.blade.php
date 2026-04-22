@@ -63,7 +63,7 @@
               <table width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td align="center">
-                    <a href="https://fitmeet.fit/meet/"
+                    <a href="https://fitmeet.fit/notifications/"
                       style="
                         display:inline-block;background:#39FF14;color:#000;
                         font-weight:700;font-size:15px;text-decoration:none;
