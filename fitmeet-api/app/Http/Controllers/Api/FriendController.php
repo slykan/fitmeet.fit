@@ -27,7 +27,7 @@ class FriendController extends Controller
             $q->where('sender_id', $me->id)->where('receiver_id', $user->id);
         })->orWhere(function ($q) use ($me, $user) {
             $q->where('sender_id', $user->id)->where('receiver_id', $me->id);
-        })->first();
+        })->whereIn('status', ['pending', 'accepted'])->first();
 
         if ($existing) {
             return response()->json(['message' => 'Request already exists.', 'status' => $existing->status], 422);
@@ -78,7 +78,7 @@ class FriendController extends Controller
     public function decline(Request $request, FriendRequest $friendRequest): JsonResponse
     {
         $this->authorizeReceiver($request, $friendRequest);
-        $friendRequest->update(['status' => 'declined']);
+        $friendRequest->delete();
         return response()->json(['message' => 'Friend request declined.']);
     }
 
