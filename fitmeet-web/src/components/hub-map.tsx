@@ -68,9 +68,9 @@ function AutoZoom({ events, lat, lng, radiusKm, ready }: {
     done.current = true
     if (events.length > 0) {
       const pts: [number, number][] = events.map(e => [e.location.lat, e.location.lng])
-      if (lat !== null && lng !== null) pts.push([lat, lng])
+      if (lat && lng) pts.push([lat, lng])
       map.fitBounds(L.latLngBounds(pts), { padding: [60, 60], animate: true, duration: 1 })
-    } else if (lat !== null && lng !== null) {
+    } else if (lat && lng) {
       map.setView([lat, lng], getZoomForRadius(radiusKm), { animate: true, duration: 1 })
     }
   }, [ready, map, events, lat, lng, radiusKm])
@@ -93,8 +93,8 @@ export default function HubMap() {
   const [ready,    setReady]    = useState(false)
   const [radar,    setRadar]    = useState(true)
 
-  const lat      = user?.location?.lat ?? user?.home?.lat ?? null
-  const lng      = user?.location?.lng ?? user?.home?.lng ?? null
+  const lat      = (user?.location?.lat  || user?.home?.lat  || null)
+  const lng      = (user?.location?.lng  || user?.home?.lng  || null)
   const radiusKm = user?.radius_km ?? 50
 
   useEffect(() => {
