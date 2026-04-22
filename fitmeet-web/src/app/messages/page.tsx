@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
-import { ArrowLeft, MessageSquare, Plus, X, Send } from 'lucide-react'
+import { ArrowLeft, MessageSquare, Plus, X, Send, Trash2 } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
 import api from '@/lib/api'
@@ -177,6 +177,7 @@ function MessagesContent() {
   const [body,      setBody]      = useState('')
   const [sending,   setSending]   = useState(false)
   const [sendError, setSendError] = useState<string | null>(null)
+  const [deleting,  setDeleting]  = useState<number | null>(null)
 
   useEffect(() => {
     if (!token) { router.replace('/login'); return }
@@ -192,6 +193,14 @@ function MessagesContent() {
       .then(({ data }) => setFriends(data.data ?? []))
       .catch(() => {})
   }, [])
+
+  async function handleDelete(partnerId: number) {
+    setDeleting(partnerId)
+    try {
+      await api.delete(`/messages/${partnerId}`)
+      setConvos(c => c.filter(x => x.partner.id !== partnerId))
+    } finally { setDeleting(null) }
+  }
 
   function openCompose() { setCompose(true); setSelected(null); setBody(''); loadFriends() }
 
@@ -285,27 +294,42 @@ function MessagesContent() {
 
         <div className="space-y-2">
           {convos.map(c => (
-            <button key={c.partner.id} onClick={() => router.push(`/messages?user=${c.partner.id}`)}
-              className="w-full flex items-center gap-3 p-4 rounded-2xl border transition-colors hover:bg-[--border] text-left"
-              style={{ background: 'var(--surface)', borderColor: c.unread_count > 0 ? 'var(--primary)' : 'var(--border)' }}>
-              <Avatar person={c.partner} />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="font-semibold text-sm truncate">{c.partner.name}</p>
-                  <span className="text-xs flex-shrink-0" style={{ color: 'var(--text-muted)' }}>{timeAgo(c.last_message.created_at)}</span>
+            <div key={c.partner.id} className="flex items-center gap-2">
+              <button onClick={() => router.push(`/messages?user=${c.partner.id}`)}
+                className="flex-1 flex items-center gap-3 p-4 rounded-2xl border transition-colors hover:bg-[--border] text-left min-w-0"
+                style={{ background: 'var(--surface)', borderColor: c.unread_count > 0 ? 'var(--primary)' : 'var(--border)' }}>
+                <Avatar person={c.partner} />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-semibold text-sm truncate">{c.partner.name}</p>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      {c.unread_count > 0 && (
+                        <span style={{
+                          minWidth: 20, height: 20, borderRadius: 999, background: '#ef4444', color: '#fff',
+                          fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          padding: '0 4px',
+                        }}>{c.unread_count}</span>
+                      )}
+                      <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{timeAgo(c.last_message.created_at)}</span>
+                    </div>
+                  </div>
+                  <p className="text-xs truncate mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                    {c.last_message.is_mine ? 'You: ' : ''}{c.last_message.body}
+                  </p>
                 </div>
-                <p className="text-xs truncate mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                  {c.last_message.is_mine ? 'You: ' : ''}{c.last_message.body}
-                </p>
-              </div>
-              {c.unread_count > 0 && (
-                <span style={{
-                  minWidth: 20, height: 20, borderRadius: 999, background: '#ef4444', color: '#fff',
-                  fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  padding: '0 4px', flexShrink: 0,
-                }}>{c.unread_count}</span>
-              )}
-            </button>
+              </button>
+              <button
+                onClick={() => handleDelete(c.partner.id)}
+                disabled={deleting === c.partner.id}
+                title="Delete conversation"
+                className="flex-shrink-0 p-2.5 rounded-xl transition-colors hover:bg-red-500/10 disabled:opacity-40"
+                style={{ color: 'var(--text-muted)' }}
+                onMouseEnter={e => (e.currentTarget.style.color = '#f87171')}
+                onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
+              >
+                {deleting === c.partner.id ? '…' : <Trash2 size={16} />}
+              </button>
+            </div>
           ))}
         </div>
       </div>

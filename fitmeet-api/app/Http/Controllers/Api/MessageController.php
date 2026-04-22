@@ -94,6 +94,20 @@ class MessageController extends Controller
         ]);
     }
 
+    // DELETE /messages/{user} — delete entire conversation
+    public function destroy(Request $request, User $user): JsonResponse
+    {
+        $me = $request->user()->id;
+
+        Message::where(function ($q) use ($me, $user) {
+            $q->where('sender_id', $me)->where('receiver_id', $user->id);
+        })->orWhere(function ($q) use ($me, $user) {
+            $q->where('sender_id', $user->id)->where('receiver_id', $me);
+        })->delete();
+
+        return response()->json(['message' => 'Conversation deleted.']);
+    }
+
     // POST /messages/{user} — send a message
     public function send(Request $request, User $user): JsonResponse
     {
