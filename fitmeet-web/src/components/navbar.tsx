@@ -48,7 +48,7 @@ export function Navbar() {
     <nav className="sticky top-0 z-50 border-b border-[--border] bg-[--surface]/80 backdrop-blur-md">
       <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
 
-        <Link href="/" className="flex items-center">
+        <Link href={user ? '/hub' : '/'} className="flex items-center">
           {mounted && (
             <Image
               src={isDark ? '/logo_c.png' : '/logo_b.png'}

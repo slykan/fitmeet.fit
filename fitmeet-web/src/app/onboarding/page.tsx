@@ -158,7 +158,7 @@ export default function OnboardingPage() {
 
       const { data: res } = await api.patch('/me', payload)
       setUser(res.data)
-      router.replace('/')
+      router.replace('/hub')
     } catch (err: unknown) {
       const e = err as { response?: { status?: number; data?: { message?: string; errors?: Record<string, string[]> } } }
       const status = e?.response?.status

@@ -123,10 +123,6 @@ class EventController extends Controller
             return response()->json(['message' => 'Event is not active.'], 422);
         }
 
-        if ($event->isOrganizer($user)) {
-            return response()->json(['message' => 'You are the organizer.'], 422);
-        }
-
         if ($event->isFull()) {
             return response()->json(['message' => 'Event is full.'], 422);
         }

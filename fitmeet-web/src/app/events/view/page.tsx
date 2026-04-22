@@ -226,7 +226,7 @@ function EventContent() {
             </div>
           )}
 
-          {!event.is_organizer && event.status === 'active' && (
+          {event.status === 'active' && (
             event.is_joined ? (
               <Button variant="ghost" size="lg" className="w-full border" loading={joining} onClick={handleLeave}>
                 Leave event

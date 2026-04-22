@@ -1,20 +1,22 @@
-import { Navbar } from '@/components/navbar'
-import { HeroMap } from '@/components/hero-map'
 import { MapPin, Users, Zap, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 
+import { Navbar } from '@/components/navbar'
+import { HeroMap } from '@/components/hero-map'
+
+
 const categories = [
-  { emoji: '🏃', label: 'Running', value: 'running' },
-  { emoji: '🚴', label: 'Cycling', value: 'cycling' },
-  { emoji: '🥾', label: 'Hiking', value: 'hiking' },
+  { emoji: '🏃', label: 'Running',  value: 'running'  },
+  { emoji: '🚴', label: 'Cycling',  value: 'cycling'  },
+  { emoji: '🥾', label: 'Hiking',   value: 'hiking'   },
   { emoji: '🏊', label: 'Swimming', value: 'swimming' },
   { emoji: '⚽', label: 'Football', value: 'football' },
-  { emoji: '🎉', label: 'Party', value: 'party' },
-  { emoji: '😎', label: 'Chill', value: 'chill' },
-  { emoji: '🧘', label: 'Yoga', value: 'yoga' },
+  { emoji: '🎉', label: 'Party',    value: 'party'    },
+  { emoji: '😎', label: 'Chill',    value: 'chill'    },
+  { emoji: '🧘', label: 'Yoga',     value: 'yoga'     },
   { emoji: '🏔️', label: 'Climbing', value: 'climbing' },
-  { emoji: '🏕️', label: 'Camping', value: 'camping' },
+  { emoji: '🏕️', label: 'Camping',  value: 'camping'  },
 ]
 
 export default function HomePage() {
@@ -68,13 +70,13 @@ export default function HomePage() {
 
             <div className="flex gap-3 justify-center flex-wrap mb-16">
               <Link
-                href="/events"
+                href="/login"
                 className="btn-primary inline-flex items-center gap-2 px-8 py-3.5 rounded-xl active:scale-95 transition-transform"
               >
                 Explore Events <ArrowRight size={16} />
               </Link>
               <Link
-                href="/login"
+                href="/register"
                 className="inline-flex items-center gap-2 border font-semibold px-8 py-3.5 rounded-xl transition-colors hover:opacity-80"
                 style={{ borderColor: 'var(--border)', color: 'var(--text-primary)' }}
               >
@@ -92,7 +94,7 @@ export default function HomePage() {
             {categories.map(({ emoji, label, value }) => (
               <Link
                 key={value}
-                href={`/events?category=${value}`}
+                href={`/login`}
                 className="inline-flex items-center gap-2 border px-4 py-2 rounded-full text-sm font-medium transition-all"
                 style={{ borderColor: 'var(--border)', background: 'var(--surface)', color: 'var(--text-primary)' }}
               >
@@ -106,8 +108,8 @@ export default function HomePage() {
         <section className="max-w-6xl mx-auto px-4 pb-28 grid md:grid-cols-3 gap-5">
           {[
             { icon: MapPin, title: 'Discover', desc: 'Find events near you filtered by sport, category and skill level. See them on a live map.' },
-            { icon: Users, title: 'Meet', desc: 'Connect with people who share your passions. Build your local crew one event at a time.' },
-            { icon: Zap, title: 'Move', desc: 'From casual walks to competitive rides — find the perfect activity for your level.' },
+            { icon: Users,  title: 'Meet',     desc: 'Connect with people who share your passions. Build your local crew one event at a time.' },
+            { icon: Zap,    title: 'Move',     desc: 'From casual walks to competitive rides — find the perfect activity for your level.' },
           ].map(({ icon: Icon, title, desc }) => (
             <div
               key={title}

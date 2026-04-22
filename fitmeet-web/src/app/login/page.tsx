@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState, Suspense } from 'react'
 import { useForm } from 'react-hook-form'
 import { Eye, EyeOff } from 'lucide-react'
+import Image from 'next/image'
+import { useTheme } from 'next-themes'
 
 import api from '@/lib/api'
 import { useAuthStore } from '@/store/auth'
@@ -29,9 +31,13 @@ function LoginContent() {
   const { setAuth, user } = useAuthStore()
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { theme } = useTheme()
+  const [mounted, setMounted] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => setMounted(true), [])
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginForm>()
 
@@ -43,14 +49,14 @@ function LoginContent() {
     api.get('/me')
       .then(({ data }) => {
         setAuth(token, data.data)
-        router.replace(data.data.onboarding_complete ? '/' : '/onboarding')
+        router.replace(data.data.onboarding_complete ? '/hub' : '/onboarding')
       })
       .catch(() => setError('Authentication failed. Please try again.'))
   }, [searchParams, setAuth, router])
 
   // Redirect if already logged in
   useEffect(() => {
-    if (user) router.replace(user.onboarding_complete ? '/' : '/onboarding')
+    if (user) router.replace(user.onboarding_complete ? '/hub' : '/onboarding')
   }, [user, router])
 
   async function onSubmit(data: LoginForm) {
@@ -58,7 +64,7 @@ function LoginContent() {
     try {
       const { data: res } = await api.post('/auth/login', data)
       setAuth(res.token, res.data)
-      router.replace(res.data.onboarding_complete ? '/' : '/onboarding')
+      router.replace(res.data.onboarding_complete ? '/hub' : '/onboarding')
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
       setError(msg ?? 'Invalid email or password.')
@@ -82,7 +88,21 @@ function LoginContent() {
       <div className="w-full max-w-sm">
 
         <div className="text-center mb-10">
-          <h1 className="text-4xl font-bold tracking-tight mb-2" style={{ color: 'var(--primary)' }}>FITMEET</h1>
+          {mounted && (
+            <div className="flex justify-center mb-4">
+              <Image
+                src={theme === 'dark' ? '/logo_c.png' : '/logo_b.png'}
+                alt="FitMeet"
+                width={80}
+                height={80}
+                className="object-contain"
+              />
+            </div>
+          )}
+          <h1 className="text-4xl font-bold tracking-tight mb-2">
+            <span style={{ color: 'var(--text-primary)' }}>Fit</span>
+            <span style={{ color: 'var(--primary)' }}>meet</span>
+          </h1>
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Find your people. Move together.</p>
         </div>
 
