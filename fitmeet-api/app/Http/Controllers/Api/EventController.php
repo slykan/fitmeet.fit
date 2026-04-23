@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\PublicEventShareResource;
 use App\Http\Requests\StoreEventRequest;
 use App\Http\Requests\UpdateEventRequest;
 use App\Http\Resources\EventResource;
@@ -81,6 +82,18 @@ class EventController extends Controller
         $event->load('organizer', 'participants');
 
         return response()->json(['data' => new EventResource($event)]);
+    }
+
+    // GET /api/events/public/{event}
+    public function publicShow(Event $event): JsonResponse
+    {
+        if ($event->is_private || $event->status !== 'active') {
+            return response()->json(['message' => 'Event not found.'], 404);
+        }
+
+        $event->load('organizer');
+
+        return response()->json(['data' => new PublicEventShareResource($event)]);
     }
 
     // PATCH /api/events/{event}

@@ -17,6 +17,7 @@ Route::prefix('auth')->group(function () {
 
 // Public
 Route::get('categories', [CategoryController::class, 'index']);
+Route::get('events/public/{event}', [EventController::class, 'publicShow']);
 
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {

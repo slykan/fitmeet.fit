@@ -5,7 +5,7 @@ import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Calendar, MapPin, Users, Zap, ChevronLeft, Lock, Pencil, ChevronDown, ChevronUp, Bell, Check, X } from 'lucide-react'
+import { Calendar, MapPin, Users, Zap, ChevronLeft, Lock, Pencil, ChevronDown, ChevronUp, Bell, Check, X, Share2 } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
 import ElevationChart from '@/components/elevation-chart'
@@ -66,6 +66,7 @@ function EventContent() {
   const [selectedOffsets,  setSelectedOffsets]  = useState<Set<string>>(new Set())
   const [settingReminders, setSettingReminders] = useState(false)
   const [activeOffsets,    setActiveOffsets]    = useState<string[]>([])
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     if (!token) { router.replace('/login'); return }
@@ -141,6 +142,24 @@ function EventContent() {
     }
   }
 
+  async function handleShare() {
+    if (!event || typeof window === 'undefined') return
+    const url = `${window.location.origin}/events/share?id=${event.id}`
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: event.title,
+          text: `${event.category.label} on FitMeet`,
+          url,
+        })
+        return
+      }
+      await navigator.clipboard.writeText(url)
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 1800)
+    } catch {}
+  }
+
   return (
     <>
     <main className="min-h-screen py-8 px-4">
@@ -183,6 +202,14 @@ function EventContent() {
                   {event.skill_level}
                 </span>
               )}
+              <button
+                type="button"
+                onClick={handleShare}
+                className="text-xs flex items-center gap-1 px-2.5 py-1 rounded-full border transition-colors hover:bg-[--border]"
+                style={{ borderColor: 'var(--border)', color: copied ? 'var(--primary)' : 'var(--text-muted)' }}
+              >
+                <Share2 size={10} /> {copied ? 'Copied' : 'Share'}
+              </button>
             </div>
 
             <h1 className="text-2xl font-bold leading-snug mb-4">{event.title}</h1>
