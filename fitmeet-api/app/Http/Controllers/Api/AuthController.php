@@ -29,7 +29,8 @@ class AuthController extends Controller
         ]);
 
         if (! $verify->json('success')) {
-            return response()->json(['message' => 'Security check failed. Please try again.'], 422);
+            $codes = implode(', ', $verify->json('error-codes') ?? []);
+            return response()->json(['message' => "Security check failed: {$codes}"], 422);
         }
 
         $user = User::create([
