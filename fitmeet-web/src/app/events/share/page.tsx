@@ -36,6 +36,14 @@ function formatDate(iso: string) {
   })
 }
 
+function formatDateParts(iso: string) {
+  const date = new Date(iso)
+  return {
+    day: date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }),
+    time: date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+  }
+}
+
 function buildPath(coords: [number, number][], width: number, height: number, padding: number) {
   if (coords.length < 2) return ''
 
@@ -77,7 +85,7 @@ function createProjector(coords: [number, number][], width: number, height: numb
   })
 }
 
-function RoutePoster({ gpx }: { gpx: GpxResult }) {
+function RoutePoster({ gpx, event }: { gpx: GpxResult; event: SharedEvent }) {
   const width = 1200
   const height = 620
   const padding = 84
@@ -87,6 +95,7 @@ function RoutePoster({ gpx }: { gpx: GpxResult }) {
   const project = createProjector(gpx.track, width, height, padding)
   const startPoint = start ? project(start) : null
   const endPoint = end ? project(end) : null
+  const dateParts = formatDateParts(event.schedule.start_at)
 
   return (
     <div
@@ -137,11 +146,18 @@ function RoutePoster({ gpx }: { gpx: GpxResult }) {
           <circle cx={endPoint.x} cy={endPoint.y} r="10" fill="#091019" stroke="#ffffff" strokeWidth="5" />
         )}
       </svg>
+      <div className="absolute inset-x-4 bottom-4 grid grid-cols-3 gap-2 sm:max-w-lg">
+        <InfoBadge label="Sport" value={event.category.label} />
+        <InfoBadge label="Date" value={dateParts.day} />
+        <InfoBadge label="Time" value={dateParts.time} />
+      </div>
     </div>
   )
 }
 
-function StaticEventCover({ categoryLabel, address }: { categoryLabel: string; address: string | null }) {
+function StaticEventCover({ event }: { event: SharedEvent }) {
+  const dateParts = formatDateParts(event.schedule.start_at)
+
   return (
     <div
       className="relative h-[240px] sm:h-[300px] overflow-hidden"
@@ -158,15 +174,39 @@ function StaticEventCover({ categoryLabel, address }: { categoryLabel: string; a
       <div className="absolute inset-0 flex items-center justify-center px-6 text-center">
         <div className="space-y-3">
           <div className="inline-flex rounded-full border px-3 py-1.5 text-xs font-semibold" style={{ borderColor: 'rgba(57,255,20,0.35)', color: 'var(--primary)', background: 'rgba(7,17,13,0.72)' }}>
-            {categoryLabel}
+            {event.category.label}
           </div>
           <div className="text-lg font-semibold">FitMeet event</div>
-          {address && (
+          {event.location.address && (
             <p className="mx-auto max-w-md text-sm" style={{ color: 'rgba(255,255,255,0.7)' }}>
-              {shortAddress(address)}
+              {shortAddress(event.location.address)}
             </p>
           )}
         </div>
+      </div>
+      <div className="absolute inset-x-4 bottom-4 grid grid-cols-3 gap-2 sm:max-w-lg">
+        <InfoBadge label="Sport" value={event.category.label} />
+        <InfoBadge label="Date" value={dateParts.day} />
+        <InfoBadge label="Time" value={dateParts.time} />
+      </div>
+    </div>
+  )
+}
+
+function InfoBadge({ label, value }: { label: string; value: string }) {
+  return (
+    <div
+      className="rounded-2xl border px-3 py-2.5"
+      style={{
+        borderColor: 'rgba(255,255,255,0.1)',
+        background: 'rgba(7,16,25,0.76)',
+      }}
+    >
+      <div className="text-[10px] uppercase font-semibold" style={{ color: 'rgba(255,255,255,0.52)' }}>
+        {label}
+      </div>
+      <div className="mt-1 truncate text-sm font-semibold">
+        {value}
       </div>
     </div>
   )
@@ -273,9 +313,9 @@ function ShareEventContent() {
             <>
               <section className="rounded-2xl border overflow-hidden" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
                 {route ? (
-                  <RoutePoster gpx={route} />
+                  <RoutePoster gpx={route} event={event} />
                 ) : (
-                  <StaticEventCover categoryLabel={event.category.label} address={event.location.address} />
+                  <StaticEventCover event={event} />
                 )}
                 <div className="p-6 space-y-4">
                   <div className="flex flex-wrap items-center gap-2">
