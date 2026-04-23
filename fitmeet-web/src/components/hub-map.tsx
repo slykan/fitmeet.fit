@@ -376,32 +376,25 @@ export default function HubMap() {
       </MapContainer>
 
       {/* Filters */}
-      <div style={{
-        position: 'absolute',
-        top: 14,
-        left: 12,
-        right: 12,
-        zIndex: 700,
-        display: 'flex',
-        alignItems: 'stretch',
-        gap: 10,
-        pointerEvents: 'none',
-      }}>
-        <div style={{
-          flex: 1,
-          minWidth: 0,
-          border: '1px solid var(--border)',
-          background: 'color-mix(in srgb, var(--surface) 92%, transparent)',
-          borderRadius: 14,
-          padding: '9px 10px',
-          boxShadow: '0 6px 22px rgba(0,0,0,0.35)',
-          pointerEvents: 'auto',
-        }}>
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
+      <div
+        className="absolute top-3 left-3 right-3 z-[700] pointer-events-none flex flex-col gap-2 md:flex-row md:items-stretch md:gap-3"
+      >
+        <div
+          className="min-w-0 pointer-events-auto"
+          style={{
+            flex: 1,
+            border: '1px solid var(--border)',
+            background: 'color-mix(in srgb, var(--surface) 92%, transparent)',
+            borderRadius: 14,
+            padding: '8px 10px',
+            boxShadow: '0 6px 22px rgba(0,0,0,0.35)',
+          }}
+        >
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-hide md:gap-2">
             <button
               type="button"
               onClick={() => setSelectedCategories(new Set())}
-              className="flex-shrink-0 text-xs px-3 py-1.5 rounded-full border font-semibold transition-colors"
+              className="flex-shrink-0 text-[11px] px-2.5 py-1.5 rounded-full border font-semibold transition-colors md:text-xs md:px-3"
               style={{
                 borderColor: categoryCount === 0 ? 'var(--primary)' : 'var(--border)',
                 color: categoryCount === 0 ? 'var(--primary)' : 'var(--text-muted)',
@@ -417,7 +410,7 @@ export default function HubMap() {
                   key={c.value}
                   type="button"
                   onClick={() => toggleCategory(c.value)}
-                  className="flex-shrink-0 text-xs px-3 py-1.5 rounded-full border font-semibold transition-colors"
+                  className="flex-shrink-0 text-[11px] px-2.5 py-1.5 rounded-full border font-semibold transition-colors md:text-xs md:px-3"
                   style={{
                     borderColor: active ? 'var(--primary)' : 'var(--border)',
                     color: active ? 'var(--primary)' : 'var(--text-muted)',
@@ -430,14 +423,8 @@ export default function HubMap() {
             })}
           </div>
 
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'minmax(150px, 1fr) auto auto',
-            gap: 10,
-            alignItems: 'center',
-            marginTop: 8,
-          }}>
-            <label style={{ minWidth: 0 }}>
+          <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-[minmax(150px,1fr)_auto_auto] md:items-center md:gap-2.5">
+            <label style={{ minWidth: 0 }} className="order-1">
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginBottom: 4 }}>
                 <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)' }}>Radius</span>
                 <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary)' }}>
@@ -455,32 +442,48 @@ export default function HubMap() {
               />
             </label>
 
-            <button
-              type="button"
-              onClick={() => setGoingOnly(v => !v)}
-              className="inline-flex items-center gap-1.5 text-xs px-3 py-2 rounded-full border font-semibold transition-colors"
-              style={{
-                borderColor: goingOnly ? 'var(--primary)' : 'var(--border)',
-                color: goingOnly ? 'var(--primary)' : 'var(--text-muted)',
-                background: goingOnly ? 'rgba(57,255,20,0.1)' : 'var(--background)',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              <Check size={13} /> Going
-            </button>
-            <button
-              type="button"
-              onClick={() => setFriendsOnly(v => !v)}
-              className="inline-flex items-center gap-1.5 text-xs px-3 py-2 rounded-full border font-semibold transition-colors"
-              style={{
-                borderColor: friendsOnly ? 'var(--primary)' : 'var(--border)',
-                color: friendsOnly ? 'var(--primary)' : 'var(--text-muted)',
-                background: friendsOnly ? 'rgba(57,255,20,0.1)' : 'var(--background)',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              <Users size={13} /> Friends
-            </button>
+            <div className="order-2 flex items-center gap-2 md:contents">
+              <button
+                type="button"
+                onClick={() => setGoingOnly(v => !v)}
+                className="inline-flex flex-1 items-center justify-center gap-1.5 text-[11px] px-3 py-2 rounded-full border font-semibold transition-colors md:flex-none md:text-xs"
+                style={{
+                  borderColor: goingOnly ? 'var(--primary)' : 'var(--border)',
+                  color: goingOnly ? 'var(--primary)' : 'var(--text-muted)',
+                  background: goingOnly ? 'rgba(57,255,20,0.1)' : 'var(--background)',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                <Check size={13} /> Going
+              </button>
+              <button
+                type="button"
+                onClick={() => setFriendsOnly(v => !v)}
+                className="inline-flex flex-1 items-center justify-center gap-1.5 text-[11px] px-3 py-2 rounded-full border font-semibold transition-colors md:flex-none md:text-xs"
+                style={{
+                  borderColor: friendsOnly ? 'var(--primary)' : 'var(--border)',
+                  color: friendsOnly ? 'var(--primary)' : 'var(--text-muted)',
+                  background: friendsOnly ? 'rgba(57,255,20,0.1)' : 'var(--background)',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                <Users size={13} /> Friends
+              </button>
+              <button
+                type="button"
+                onClick={() => setRecenterKey(key => key + 1)}
+                title="Recenter"
+                aria-label="Recenter map"
+                className="inline-flex h-9 w-9 min-w-9 items-center justify-center rounded-full border md:hidden"
+                style={{
+                  borderColor: 'var(--border)',
+                  background: 'var(--background)',
+                  color: 'var(--primary)',
+                }}
+              >
+                <LocateFixed size={16} />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -489,6 +492,7 @@ export default function HubMap() {
           onClick={() => setRecenterKey(key => key + 1)}
           title="Recenter"
           aria-label="Recenter map"
+          className="hidden md:flex"
           style={{
             width: 44,
             minWidth: 44,
