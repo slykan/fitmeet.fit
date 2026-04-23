@@ -168,8 +168,8 @@ interface MarkerDisplay {
 
 function getBouquetAngle(index: number, total: number): number {
   if (total <= 1) return 0
-  const maxSpread = total <= 3 ? 18 : 30
-  const step = Math.min(18, (maxSpread * 2) / Math.max(1, total - 1))
+  const maxSpread = total <= 3 ? 28 : 42
+  const step = Math.min(24, (maxSpread * 2) / Math.max(1, total - 1))
   return (index - (total - 1) / 2) * step
 }
 
