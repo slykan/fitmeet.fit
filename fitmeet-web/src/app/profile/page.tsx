@@ -1,13 +1,13 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { type ReactNode, useEffect, useState } from 'react'
+import { type ChangeEvent, type ReactNode, useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useAuthStore } from '@/store/auth'
 import { Navbar } from '@/components/navbar'
 import { Button } from '@/components/ui/button'
-import { Bell, Calendar, Mail, MapPin, Phone, Globe, Navigation, Pencil, UserPlus } from 'lucide-react'
+import { Bell, Calendar, Camera, Mail, MapPin, Phone, Globe, Navigation, Pencil, Trash2, UserPlus } from 'lucide-react'
 import api from '@/lib/api'
 
 const RADIUS_LABELS: Record<string, string> = {
@@ -22,8 +22,11 @@ type EmailPreferenceField = 'email_friend_requests' | 'email_new_events' | 'emai
 export default function ProfilePage() {
   const { token, user, setUser } = useAuthStore()
   const router = useRouter()
+  const avatarInputRef = useRef<HTMLInputElement | null>(null)
   const [savingPreference, setSavingPreference] = useState<EmailPreferenceField | null>(null)
   const [preferenceError, setPreferenceError] = useState<string | null>(null)
+  const [avatarLoading, setAvatarLoading] = useState(false)
+  const [avatarError, setAvatarError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!token) router.replace('/login')
@@ -53,6 +56,57 @@ export default function ProfilePage() {
   const newEventEmails = user.email_preferences?.new_events ?? true
   const reminderEmails = user.email_preferences?.event_reminders ?? true
 
+  async function uploadAvatar(file: File) {
+    const formData = new FormData()
+    formData.append('_method', 'PATCH')
+    formData.append('avatar_file', file)
+
+    setAvatarLoading(true)
+    setAvatarError(null)
+    try {
+      const { data: res } = await api.post('/me', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      setUser(res.data)
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } }
+      const msg =
+        e?.response?.data?.message ??
+        Object.values(e?.response?.data?.errors ?? {})[0]?.[0] ??
+        'Could not update profile photo.'
+      setAvatarError(msg)
+    } finally {
+      setAvatarLoading(false)
+      if (avatarInputRef.current) {
+        avatarInputRef.current.value = ''
+      }
+    }
+  }
+
+  async function removeAvatar() {
+    setAvatarLoading(true)
+    setAvatarError(null)
+    try {
+      const { data: res } = await api.patch('/me', { avatar_remove: true })
+      setUser(res.data)
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } }
+      const msg =
+        e?.response?.data?.message ??
+        Object.values(e?.response?.data?.errors ?? {})[0]?.[0] ??
+        'Could not remove profile photo.'
+      setAvatarError(msg)
+    } finally {
+      setAvatarLoading(false)
+    }
+  }
+
+  function handleAvatarChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    if (!file) return
+    uploadAvatar(file)
+  }
+
   return (
     <>
       <Navbar />
@@ -80,6 +134,38 @@ export default function ProfilePage() {
               <p className="text-sm mt-0.5 flex items-center gap-1.5" style={{ color: 'var(--text-muted)' }}>
                 <Phone size={12} /> {user.phone}
               </p>
+            )}
+            <div className="mt-3 flex flex-wrap gap-2">
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatarChange}
+              />
+              <Button
+                size="sm"
+                variant="ghost"
+                loading={avatarLoading}
+                onClick={() => avatarInputRef.current?.click()}
+              >
+                <Camera size={14} className="mr-1.5" />
+                {user.avatar ? 'Change photo' : 'Upload photo'}
+              </Button>
+              {user.avatar && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={avatarLoading}
+                  onClick={removeAvatar}
+                >
+                  <Trash2 size={14} className="mr-1.5" />
+                  Remove
+                </Button>
+              )}
+            </div>
+            {avatarError && (
+              <p className="text-xs mt-2 text-red-400">{avatarError}</p>
             )}
           </div>
           <Link href="/onboarding">

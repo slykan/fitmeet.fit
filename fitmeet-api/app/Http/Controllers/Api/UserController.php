@@ -9,6 +9,8 @@ use App\Models\FriendRequest;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class UserController extends Controller
 {
@@ -80,10 +82,44 @@ class UserController extends Controller
     public function update(UpdateProfileRequest $request): JsonResponse
     {
         $user = auth()->user();
-        $user->update($request->validated());
+        $data = $request->validated();
+
+        if ($request->boolean('avatar_remove')) {
+            $this->deleteStoredAvatar($user->avatar);
+            $data['avatar'] = null;
+        }
+
+        if ($request->hasFile('avatar_file')) {
+            $this->deleteStoredAvatar($user->avatar);
+            $path = $request->file('avatar_file')->store('avatars', 'public');
+            $data['avatar'] = Storage::disk('public')->url($path);
+        }
+
+        unset($data['avatar_file'], $data['avatar_remove']);
+
+        $user->update($data);
 
         return response()->json([
             'data' => new UserResource($user),
         ]);
+    }
+
+    private function deleteStoredAvatar(?string $avatarUrl): void
+    {
+        if (! $avatarUrl) {
+            return;
+        }
+
+        $path = parse_url($avatarUrl, PHP_URL_PATH);
+
+        if (! is_string($path) || ! Str::contains($path, '/storage/avatars/')) {
+            return;
+        }
+
+        $storagePath = Str::after($path, '/storage/');
+
+        if ($storagePath !== '') {
+            Storage::disk('public')->delete($storagePath);
+        }
     }
 }

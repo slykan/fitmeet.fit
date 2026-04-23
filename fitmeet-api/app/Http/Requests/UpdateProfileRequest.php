@@ -41,6 +41,8 @@ class UpdateProfileRequest extends FormRequest
             'email_new_events'      => ['sometimes', 'boolean'],
             'email_event_reminders' => ['sometimes', 'boolean'],
             'fcm_token'    => ['sometimes', 'nullable', 'string'],
+            'avatar_file'  => ['sometimes', 'nullable', 'image', 'max:5120'],
+            'avatar_remove' => ['sometimes', 'boolean'],
         ];
     }
 }
