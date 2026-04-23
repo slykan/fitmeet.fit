@@ -1,13 +1,14 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
+import { type ReactNode, useEffect, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useAuthStore } from '@/store/auth'
 import { Navbar } from '@/components/navbar'
 import { Button } from '@/components/ui/button'
 import { Bell, Calendar, Mail, MapPin, Phone, Globe, Navigation, Pencil, UserPlus } from 'lucide-react'
+import api from '@/lib/api'
 
 const RADIUS_LABELS: Record<string, string> = {
   nearby: 'Nearby (50 km)',
@@ -16,15 +17,41 @@ const RADIUS_LABELS: Record<string, string> = {
   unlimited: 'Unlimited',
 }
 
+type EmailPreferenceField = 'email_friend_requests' | 'email_new_events' | 'email_event_reminders'
+
 export default function ProfilePage() {
-  const { token, user } = useAuthStore()
+  const { token, user, setUser } = useAuthStore()
   const router = useRouter()
+  const [savingPreference, setSavingPreference] = useState<EmailPreferenceField | null>(null)
+  const [preferenceError, setPreferenceError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!token) router.replace('/login')
   }, [token, router])
 
   if (!user) return null
+
+  async function toggleEmailPreference(field: EmailPreferenceField, current: boolean) {
+    setSavingPreference(field)
+    setPreferenceError(null)
+    try {
+      const { data: res } = await api.patch('/me', { [field]: !current })
+      setUser(res.data)
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } }
+      const msg =
+        e?.response?.data?.message ??
+        Object.values(e?.response?.data?.errors ?? {})[0]?.[0] ??
+        'Could not save email settings.'
+      setPreferenceError(msg)
+    } finally {
+      setSavingPreference(null)
+    }
+  }
+
+  const friendEmails = user.email_preferences?.friend_requests ?? true
+  const newEventEmails = user.email_preferences?.new_events ?? true
+  const reminderEmails = user.email_preferences?.event_reminders ?? true
 
   return (
     <>
@@ -135,19 +162,31 @@ export default function ProfilePage() {
             <PreferenceRow
               icon={<UserPlus size={14} />}
               label="Friend activity"
-              enabled={user.email_preferences?.friend_requests ?? true}
+              description="Friend requests and accepted requests."
+              enabled={friendEmails}
+              disabled={savingPreference !== null}
+              onToggle={() => toggleEmailPreference('email_friend_requests', friendEmails)}
             />
             <PreferenceRow
               icon={<Calendar size={14} />}
               label="New events near you"
-              enabled={user.email_preferences?.new_events ?? true}
+              description="Events that match your interests and radius."
+              enabled={newEventEmails}
+              disabled={savingPreference !== null}
+              onToggle={() => toggleEmailPreference('email_new_events', newEventEmails)}
             />
             <PreferenceRow
               icon={<Bell size={14} />}
               label="Event reminders"
-              enabled={user.email_preferences?.event_reminders ?? true}
+              description="Reminder emails for events you joined."
+              enabled={reminderEmails}
+              disabled={savingPreference !== null}
+              onToggle={() => toggleEmailPreference('email_event_reminders', reminderEmails)}
             />
           </div>
+          {preferenceError && (
+            <p className="text-xs mt-4 text-red-400">{preferenceError}</p>
+          )}
         </div>
 
         {/* No profile yet */}
@@ -168,26 +207,42 @@ export default function ProfilePage() {
 function PreferenceRow({
   icon,
   label,
+  description,
   enabled,
+  disabled,
+  onToggle,
 }: {
-  icon: React.ReactNode
+  icon: ReactNode
   label: string
+  description: string
   enabled: boolean
+  disabled: boolean
+  onToggle: () => void
 }) {
   return (
     <div className="flex items-center gap-3 text-sm">
       <span style={{ color: enabled ? 'var(--primary)' : 'var(--text-muted)' }}>{icon}</span>
-      <span className="flex-1">{label}</span>
-      <span
-        className="text-xs font-semibold px-2 py-0.5 rounded-full"
+      <div className="flex-1 min-w-0">
+        <p className="font-medium">{label}</p>
+        <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{description}</p>
+      </div>
+      <button
+        type="button"
+        onClick={onToggle}
+        disabled={disabled}
+        aria-pressed={enabled}
+        aria-label={`${label} email notifications`}
+        className="relative h-7 w-12 rounded-full border transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
         style={{
-          color: enabled ? 'var(--primary)' : 'var(--text-muted)',
-          background: enabled ? 'rgba(57,255,20,0.08)' : 'var(--background)',
-          border: '1px solid var(--border)',
+          background: enabled ? 'var(--primary)' : 'var(--background)',
+          borderColor: enabled ? 'var(--primary)' : 'var(--border)',
         }}
       >
-        {enabled ? 'On' : 'Off'}
-      </span>
+        <span
+          className="absolute top-1 h-5 w-5 rounded-full bg-black transition-transform"
+          style={{ left: 4, transform: enabled ? 'translateX(20px)' : 'translateX(0)' }}
+        />
+      </button>
     </div>
   )
 }

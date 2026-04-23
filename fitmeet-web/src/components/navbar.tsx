@@ -161,7 +161,7 @@ export function Navbar() {
 
                     <div className="py-1">
                       <MenuItem icon={<Bell size={15} />}        label="Notifications" onClick={() => navigate('/notifications')} badge={notifCount} />
-                      <MenuItem icon={<User size={15} />}        label="Profile"       onClick={() => navigate('/onboarding')} />
+                      <MenuItem icon={<User size={15} />}        label="Profile"       onClick={() => navigate('/profile')} />
                       <MenuItem icon={<Users size={15} />}       label="Meet"          onClick={() => navigate('/meet')} />
                       <MenuItem icon={<CalendarDays size={15} />} label="My Events"    onClick={() => navigate('/events/my')} />
                     </div>
