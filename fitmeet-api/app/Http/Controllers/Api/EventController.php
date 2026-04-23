@@ -17,14 +17,27 @@ use Illuminate\Http\Request;
 
 class EventController extends Controller
 {
+    private function applyTimeWindow(Request $request, $query)
+    {
+        if ($request->boolean('past')) {
+            return $query
+                ->whereIn('events.status', ['active', 'cancelled'])
+                ->where('events.start_at', '<=', now())
+                ->orderByDesc('events.start_at');
+        }
+
+        return $query->upcoming()->orderBy('events.start_at');
+    }
+
     // GET /api/events
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
 
         $query = Event::with('organizer')
-            ->upcoming()
             ->public();
+
+        $query = $this->applyTimeWindow($request, $query);
 
         // Nearby filter — only when caller explicitly provides coordinates
         $lat = $request->filled('lat') ? $request->float('lat') : null;
@@ -196,11 +209,11 @@ class EventController extends Controller
     // GET /api/events/my
     public function my(Request $request): JsonResponse
     {
-        $events = $request->user()
+        $query = $request->user()
             ->events()
-            ->with('organizer')
-            ->where('start_at', '>', now())
-            ->orderBy('start_at')
+            ->with('organizer');
+
+        $events = $this->applyTimeWindow($request, $query)
             ->get();
 
         return response()->json(['data' => EventResource::collection($events)]);
@@ -221,11 +234,11 @@ class EventController extends Controller
     // GET /api/events/joined
     public function joined(Request $request): JsonResponse
     {
-        $events = $request->user()
+        $query = $request->user()
             ->joinedEvents()
-            ->with('organizer')
-            ->where('start_at', '>', now())
-            ->orderBy('start_at')
+            ->with('organizer');
+
+        $events = $this->applyTimeWindow($request, $query)
             ->get();
 
         return response()->json(['data' => EventResource::collection($events)]);

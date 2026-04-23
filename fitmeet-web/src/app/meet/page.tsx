@@ -66,6 +66,10 @@ function formatDate(iso: string) {
   })
 }
 
+function isPastEvent(iso: string) {
+  return new Date(iso).getTime() <= Date.now()
+}
+
 function Avatar({ user }: { user: UserItem }) {
   if (user.avatar) {
     return (
@@ -311,6 +315,7 @@ function EventsTab() {
   const [goingOnly, setGoingOnly] = useState(false)
   const [friendsOnly, setFriendsOnly] = useState(false)
   const [myOnly, setMyOnly] = useState(false)
+  const [pastOnly, setPastOnly] = useState(false)
   const [friendIds, setFriendIds] = useState<Set<number>>(new Set())
 
   // Reminder modal state
@@ -351,20 +356,21 @@ function EventsTab() {
   useEffect(() => {
     setLoading(true)
     if (goingOnly) {
-      api.get('/events/joined')
+      api.get('/events/joined', { params: pastOnly ? { past: 1 } : {} })
         .then(({ data }) => setEvents(applyFriendsFilter(data.data ?? [])))
         .catch(() => setEvents([]))
         .finally(() => setLoading(false))
       return
     }
     if (myOnly) {
-      api.get('/events/my')
+      api.get('/events/my', { params: pastOnly ? { past: 1 } : {} })
         .then(({ data }) => setEvents(applyFriendsFilter(data.data ?? [])))
         .catch(() => setEvents([]))
         .finally(() => setLoading(false))
       return
     }
     const params: Record<string, unknown> = {}
+    if (pastOnly) params.past = 1
     if (category) params.category = category
     if (radiusKm !== null && user?.location?.lat && user?.location?.lng) {
       params.lat       = user.location.lat
@@ -378,7 +384,7 @@ function EventsTab() {
     api.get('/events', { params })
       .then(({ data }) => setEvents(applyFriendsFilter(data.data ?? [])))
       .finally(() => setLoading(false))
-  }, [category, radiusKm, goingOnly, friendsOnly, myOnly, friendIds, user])
+  }, [category, radiusKm, goingOnly, friendsOnly, myOnly, pastOnly, friendIds, user])
 
   async function handleSetReminders() {
     if (!reminderEvent) { setReminderEvent(null); return }
@@ -464,6 +470,17 @@ function EventsTab() {
         >
           My
         </button>
+        <button
+          onClick={() => setPastOnly(p => !p)}
+          className="flex-shrink-0 text-xs px-4 py-1.5 rounded-full border font-semibold transition-colors"
+          style={{
+            borderColor: pastOnly ? 'var(--secondary)' : 'var(--border)',
+            color:       pastOnly ? 'var(--secondary)' : 'var(--text-muted)',
+            background:  pastOnly ? 'rgba(0,168,255,0.08)' : 'transparent',
+          }}
+        >
+          Past
+        </button>
       </div>
 
       {loading && (
@@ -472,18 +489,26 @@ function EventsTab() {
 
       {!loading && events.length === 0 && (
         <div className="text-center py-12 text-sm" style={{ color: 'var(--text-muted)' }}>
-          {goingOnly ? "You haven't joined any matching events yet." : myOnly ? "You haven't created any matching events yet." : 'No events found.'}
+          {goingOnly
+            ? pastOnly ? "You don't have any past matching joined events." : "You haven't joined any matching events yet."
+            : myOnly
+              ? pastOnly ? "You don't have any past matching created events." : "You haven't created any matching events yet."
+              : pastOnly ? 'No past events found.' : 'No events found.'}
         </div>
       )}
 
-      {!loading && events.map(ev => (
+      {!loading && events.map(ev => {
+        const pastEvent = isPastEvent(ev.schedule.start_at)
+        const mutedEvent = ev.status === 'cancelled' || pastEvent
+
+        return (
         <div key={ev.id}
           onClick={() => router.push(`/events/view?id=${ev.id}`)}
           className="rounded-2xl border p-4 flex items-start justify-between gap-3 transition-opacity hover:opacity-80 cursor-pointer"
           style={{
             background: 'var(--surface)',
             borderColor: ev.status === 'cancelled' ? 'rgba(248,113,113,0.35)' : 'var(--border)',
-            opacity: ev.status === 'cancelled' ? 0.68 : 1,
+            opacity: mutedEvent ? 0.68 : 1,
           }}>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1.5">
@@ -491,6 +516,7 @@ function EventsTab() {
                 style={{ borderColor: 'var(--primary)', color: 'var(--primary)', background: 'rgba(57,255,20,0.08)' }}>
                 {CATEGORY_EMOJI[ev.category.value] ?? ''} {ev.category.label}
               </span>
+              {pastEvent && <span className="text-xs font-medium" style={{ color: 'var(--secondary)' }}>Past</span>}
               {ev.status === 'cancelled' && <span className="text-xs text-red-400 font-medium">Cancelled</span>}
               {ev.is_full && <span className="text-xs text-red-400 font-medium">Full</span>}
               {ev.skill_level && (
@@ -531,7 +557,7 @@ function EventsTab() {
               <button
                 onClick={e => openReminder(e, ev)}
                 title="Set reminder"
-                disabled={ev.status === 'cancelled'}
+                disabled={ev.status === 'cancelled' || pastEvent}
                 className="p-1.5 rounded-lg transition-colors hover:bg-[--border]"
                 style={{ color: (reminderOffsets.get(ev.id)?.length ?? 0) > 0 ? 'var(--primary)' : '#fff' }}
               >
@@ -541,7 +567,8 @@ function EventsTab() {
             <ChevronRight size={16} style={{ color: 'var(--text-muted)' }} />
           </div>
         </div>
-      ))}
+        )
+      })}
 
       {/* Reminder modal */}
       {reminderEvent && (
