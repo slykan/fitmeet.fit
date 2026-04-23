@@ -71,10 +71,12 @@ class Event extends Model
         return $this->user_id === $user->id;
     }
 
-    // Scope: only active, future events
+    // Scope: future events that still matter in feeds (active or cancelled)
     public function scopeUpcoming(Builder $query): Builder
     {
-        return $query->where('events.status', 'active')->where('events.start_at', '>', now());
+        return $query
+            ->whereIn('events.status', ['active', 'cancelled'])
+            ->where('events.start_at', '>', now());
     }
 
     // Scope: events within $radiusKm of given coordinates
