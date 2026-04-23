@@ -29,6 +29,7 @@ interface EventPin {
   max_participants: number | null
   is_full: boolean
   is_joined: boolean
+  is_organizer: boolean
   organizer: { id: number; name: string } | null
 }
 
@@ -217,6 +218,7 @@ export default function HubMap() {
   const [radiusIndex, setRadiusIndex] = useState(0)
   const [goingOnly, setGoingOnly] = useState(false)
   const [friendsOnly, setFriendsOnly] = useState(false)
+  const [myOnly, setMyOnly] = useState(false)
   const [friendIds, setFriendIds] = useState<Set<number>>(new Set())
   const [recenterKey, setRecenterKey] = useState(0)
 
@@ -285,6 +287,7 @@ export default function HubMap() {
   const visibleEvents = useMemo(() => {
     const source = goingOnly ? joinedEvents : events
     return source.filter(ev => {
+      if (myOnly && !ev.is_organizer) return false
       if (friendsOnly && (!ev.organizer?.id || !friendIds.has(ev.organizer.id))) return false
       if (selectedCategories.size > 0 && !selectedCategories.has(ev.category.value)) return false
       if (radiusKm !== null && lat && lng) {
@@ -292,7 +295,7 @@ export default function HubMap() {
       }
       return true
     })
-  }, [events, joinedEvents, goingOnly, friendsOnly, friendIds, selectedCategories, radiusKm, lat, lng])
+  }, [events, joinedEvents, goingOnly, friendsOnly, myOnly, friendIds, selectedCategories, radiusKm, lat, lng])
 
   const markerDisplays = useMemo<MarkerDisplay[]>(() => {
     return getNearbyMarkerGroups(visibleEvents).flatMap(group =>
@@ -472,6 +475,19 @@ export default function HubMap() {
               </button>
               <button
                 type="button"
+                onClick={() => setMyOnly(v => !v)}
+                className="inline-flex flex-1 items-center justify-center gap-1.5 text-[11px] px-3 py-2 rounded-full border font-semibold transition-colors md:flex-none md:text-xs"
+                style={{
+                  borderColor: myOnly ? 'var(--primary)' : 'var(--border)',
+                  color: myOnly ? 'var(--primary)' : 'var(--text-muted)',
+                  background: myOnly ? 'rgba(57,255,20,0.1)' : 'var(--background)',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                My
+              </button>
+              <button
+                type="button"
                 onClick={() => setRecenterKey(key => key + 1)}
                 title="Recenter"
                 aria-label="Recenter map"
@@ -583,7 +599,7 @@ export default function HubMap() {
           whiteSpace: 'nowrap',
           boxShadow: '0 2px 12px rgba(0,0,0,0.4)',
         }}>
-          {goingOnly ? "No joined events match these filters" : 'No events match these filters'}
+          {goingOnly ? "No joined events match these filters" : myOnly ? 'No created events match these filters' : 'No events match these filters'}
         </div>
       )}
 

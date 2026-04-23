@@ -41,6 +41,7 @@ interface EventItem {
   max_participants: number | null
   is_full: boolean
   is_joined: boolean
+  is_organizer: boolean
   skill_level: string | null
   organizer: { id: number; name: string } | null
 }
@@ -308,6 +309,7 @@ function EventsTab() {
   const [radiusKm, setRadiusKm] = useState<number | null>(null)
   const [goingOnly, setGoingOnly] = useState(false)
   const [friendsOnly, setFriendsOnly] = useState(false)
+  const [myOnly, setMyOnly] = useState(false)
   const [friendIds, setFriendIds] = useState<Set<number>>(new Set())
 
   // Reminder modal state
@@ -338,8 +340,11 @@ function EventsTab() {
   }, [])
 
   function applyFriendsFilter(items: EventItem[]) {
-    if (!friendsOnly) return items
-    return items.filter(ev => ev.organizer?.id && friendIds.has(ev.organizer.id))
+    return items.filter(ev => {
+      if (friendsOnly && (!ev.organizer?.id || !friendIds.has(ev.organizer.id))) return false
+      if (myOnly && !ev.is_organizer) return false
+      return true
+    })
   }
 
   useEffect(() => {
@@ -396,19 +401,19 @@ function EventsTab() {
   return (
     <div className="space-y-3">
       {/* Category filter */}
-      <CategoryFilter category={category} setCategory={c => { setCategory(c); setGoingOnly(false) }} />
+      <CategoryFilter category={category} setCategory={setCategory} />
 
       {/* Radius filter */}
       <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
         {RADIUS_OPTIONS.map(r => (
           <button
             key={String(r.km)}
-            onClick={() => { setRadiusKm(r.km); setGoingOnly(false) }}
+            onClick={() => setRadiusKm(r.km)}
             className="flex-shrink-0 text-xs px-3 py-1.5 rounded-full border font-medium transition-colors"
             style={{
-              borderColor: !goingOnly && radiusKm === r.km ? 'var(--secondary)' : 'var(--border)',
-              color:       !goingOnly && radiusKm === r.km ? 'var(--secondary)' : 'var(--text-muted)',
-              background:  !goingOnly && radiusKm === r.km ? 'rgba(0,168,255,0.08)' : 'transparent',
+              borderColor: radiusKm === r.km ? 'var(--secondary)' : 'var(--border)',
+              color:       radiusKm === r.km ? 'var(--secondary)' : 'var(--text-muted)',
+              background:  radiusKm === r.km ? 'rgba(0,168,255,0.08)' : 'transparent',
             }}
           >
             {r.label}
@@ -416,7 +421,7 @@ function EventsTab() {
         ))}
       </div>
 
-      {/* Going filter — separate row */}
+      {/* Event ownership filters */}
       <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
         <button
           onClick={() => setGoingOnly(g => !g)}
@@ -440,6 +445,17 @@ function EventsTab() {
         >
           <Users size={13} className="inline mr-1" /> Friends
         </button>
+        <button
+          onClick={() => setMyOnly(m => !m)}
+          className="flex-shrink-0 text-xs px-4 py-1.5 rounded-full border font-semibold transition-colors"
+          style={{
+            borderColor: myOnly ? 'var(--primary)' : 'var(--border)',
+            color:       myOnly ? 'var(--primary)' : 'var(--text-muted)',
+            background:  myOnly ? 'rgba(57,255,20,0.08)' : 'transparent',
+          }}
+        >
+          My
+        </button>
       </div>
 
       {loading && (
@@ -448,7 +464,7 @@ function EventsTab() {
 
       {!loading && events.length === 0 && (
         <div className="text-center py-12 text-sm" style={{ color: 'var(--text-muted)' }}>
-          {goingOnly ? "You haven't joined any matching events yet." : 'No events found.'}
+          {goingOnly ? "You haven't joined any matching events yet." : myOnly ? "You haven't created any matching events yet." : 'No events found.'}
         </div>
       )}
 
