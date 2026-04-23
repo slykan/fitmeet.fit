@@ -192,6 +192,12 @@ function EventContent() {
                 style={{ borderColor: 'var(--primary)', color: 'var(--primary)', background: 'rgba(57,255,20,0.08)' }}>
                 {event.category.label}
               </span>
+              {event.status === 'cancelled' && (
+                <span className="text-xs px-2.5 py-1 rounded-full border font-medium"
+                  style={{ borderColor: '#f87171', color: '#f87171', background: 'rgba(248,113,113,0.08)' }}>
+                  Cancelled
+                </span>
+              )}
               {event.is_private && (
                 <span className="text-xs flex items-center gap-1 px-2.5 py-1 rounded-full border" style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}>
                   <Lock size={10} /> Private
@@ -216,6 +222,13 @@ function EventContent() {
 
             {event.description && (
               <p className="text-sm leading-relaxed mb-5" style={{ color: 'var(--text-muted)' }}>{event.description}</p>
+            )}
+
+            {event.status === 'cancelled' && (
+              <div className="mb-5 rounded-xl border px-4 py-3 text-sm"
+                style={{ borderColor: 'rgba(248,113,113,0.35)', background: 'rgba(248,113,113,0.08)', color: '#fca5a5' }}>
+                This event has been cancelled. Joined participants were notified.
+              </div>
             )}
 
             <div className="space-y-2.5">
@@ -328,7 +341,7 @@ function EventContent() {
             )
           )}
 
-          {event.is_organizer && (
+          {event.is_organizer && event.status === 'active' && (
             <Button size="lg" variant="ghost" className="w-full border flex items-center gap-2"
               onClick={() => router.push(`/events/edit?id=${event.id}`)}>
               <Pencil size={15} /> Edit event

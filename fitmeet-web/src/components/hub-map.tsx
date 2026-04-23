@@ -27,15 +27,18 @@ interface EventPin {
   activity: { distance_km: number | null; elevation_gain: number | null }
   participants_count: number
   max_participants: number | null
+  status: string
   is_full: boolean
   is_joined: boolean
   is_organizer: boolean
   organizer: { id: number; name: string } | null
 }
 
-function createEmojiIcon(emoji: string, angle = 0, zIndex = 1, delayMs = 0) {
+function createEmojiIcon(emoji: string, angle = 0, zIndex = 1, delayMs = 0, cancelled = false) {
   const offsetPx = Math.round(Math.sin(angle * Math.PI / 180) * 30)
   const stemHeight = 40 + Math.round(Math.abs(angle) * 0.22)
+  const accent = cancelled ? '#f87171' : '#39FF14'
+  const secondary = cancelled ? '#7f1d1d' : '#0ea5e9'
 
   return L.divIcon({
     html: `<div style="
@@ -60,8 +63,8 @@ function createEmojiIcon(emoji: string, angle = 0, zIndex = 1, delayMs = 0) {
         transform:translateX(-50%) rotate(${angle}deg);
         transform-origin:bottom center;
         border-radius:999px;
-        background:linear-gradient(180deg,#39FF14,#0ea5e9);
-        box-shadow:0 0 10px rgba(57,255,20,0.35);
+        background:linear-gradient(180deg,${accent},${secondary});
+        box-shadow:0 0 10px ${cancelled ? 'rgba(248,113,113,0.35)' : 'rgba(57,255,20,0.35)'};
       "></div>
       <div style="
         position:absolute;
@@ -70,14 +73,14 @@ function createEmojiIcon(emoji: string, angle = 0, zIndex = 1, delayMs = 0) {
         width:38px;
         height:38px;
         background:#16161F;
-        border:2.5px solid #39FF14;
+        border:2.5px solid ${accent};
         border-radius:50%;
         display:flex;
         align-items:center;
         justify-content:center;
         font-size:18px;
         transform:rotate(${angle * 0.18}deg);
-        box-shadow:0 4px 14px rgba(0,0,0,0.65),0 0 16px rgba(57,255,20,0.22);
+        box-shadow:0 4px 14px rgba(0,0,0,0.65),0 0 16px ${cancelled ? 'rgba(248,113,113,0.22)' : 'rgba(57,255,20,0.22)'};
       ">${emoji}</div>
       <div style="
         position:absolute;
@@ -87,8 +90,8 @@ function createEmojiIcon(emoji: string, angle = 0, zIndex = 1, delayMs = 0) {
         height:8px;
         transform:translateX(-50%);
         border-radius:50%;
-        background:#39FF14;
-        box-shadow:0 0 10px rgba(57,255,20,0.55);
+        background:${accent};
+        box-shadow:0 0 10px ${cancelled ? 'rgba(248,113,113,0.55)' : 'rgba(57,255,20,0.55)'};
       "></div>
       </div>
     </div>`,
@@ -210,6 +213,7 @@ export default function HubMap() {
   const router     = useRouter()
   const [events,   setEvents]       = useState<EventPin[]>([])
   const [joinedEvents, setJoinedEvents] = useState<EventPin[]>([])
+  const [myEvents, setMyEvents] = useState<EventPin[]>([])
   const [selected, setSelected]     = useState<EventPin | null>(null)
   const [participants, setParticipants] = useState<Participant[]>([])
   const [ready,    setReady]        = useState(false)
@@ -266,6 +270,12 @@ export default function HubMap() {
   }, [])
 
   useEffect(() => {
+    api.get('/events/my')
+      .then(({ data }) => setMyEvents(data.data ?? []))
+      .catch(() => setMyEvents([]))
+  }, [])
+
+  useEffect(() => {
     api.get('/users', { params: { friends_only: 1 } })
       .then(({ data }) => {
         const ids = (data.data ?? []).map((friend: { id: number }) => friend.id)
@@ -285,7 +295,7 @@ export default function HubMap() {
   const categoryCount = selectedCategories.size
 
   const visibleEvents = useMemo(() => {
-    const source = goingOnly ? joinedEvents : events
+    const source = myOnly && !goingOnly ? myEvents : goingOnly ? joinedEvents : events
     return source.filter(ev => {
       if (myOnly && !ev.is_organizer) return false
       if (friendsOnly && (!ev.organizer?.id || !friendIds.has(ev.organizer.id))) return false
@@ -295,7 +305,7 @@ export default function HubMap() {
       }
       return true
     })
-  }, [events, joinedEvents, goingOnly, friendsOnly, myOnly, friendIds, selectedCategories, radiusKm, lat, lng])
+  }, [events, joinedEvents, myEvents, goingOnly, friendsOnly, myOnly, friendIds, selectedCategories, radiusKm, lat, lng])
 
   const markerDisplays = useMemo<MarkerDisplay[]>(() => {
     return getNearbyMarkerGroups(visibleEvents).flatMap(group =>
@@ -372,7 +382,7 @@ export default function HubMap() {
           <Marker
             key={ev.id}
             position={[ev.location.lat, ev.location.lng]}
-            icon={createEmojiIcon(CATEGORY_EMOJI[ev.category.value] ?? '📍', angle, zIndex, delayMs)}
+            icon={createEmojiIcon(CATEGORY_EMOJI[ev.category.value] ?? '📍', angle, zIndex, delayMs, ev.status === 'cancelled')}
             zIndexOffset={zIndex}
             eventHandlers={{ click: () => setSelected(ev) }}
           />
@@ -623,6 +633,9 @@ export default function HubMap() {
                 }}>
                   {CATEGORY_EMOJI[selected.category.value] ?? '📍'} {selected.category.label}
                 </span>
+                {selected.status === 'cancelled' && (
+                  <span style={{ fontSize: 11, color: '#f87171', fontWeight: 600 }}>Cancelled</span>
+                )}
                 {selected.is_full && (
                   <span style={{ fontSize: 11, color: '#f87171', fontWeight: 600 }}>Full</span>
                 )}
@@ -691,14 +704,14 @@ export default function HubMap() {
             onClick={() => router.push(`/events/view?id=${selected.id}`)}
             style={{
               width: '100%', padding: '12px',
-              background: '#39FF14', color: '#000',
+              background: selected.status === 'cancelled' ? '#f87171' : '#39FF14', color: '#000',
               border: 'none', borderRadius: 12,
               fontWeight: 700, fontSize: 15,
               cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
             }}
           >
-            View &amp; Join <ArrowRight size={15} />
+            {selected.status === 'cancelled' ? 'View Cancelled Event' : 'View & Join'} <ArrowRight size={15} />
           </button>
         </div>
       )}

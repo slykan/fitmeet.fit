@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\PublicEventShareResource;
+use App\Jobs\SendCancelledEventNotifications;
 use App\Http\Requests\StoreEventRequest;
 use App\Http\Requests\UpdateEventRequest;
 use App\Http\Resources\EventResource;
@@ -124,7 +125,13 @@ class EventController extends Controller
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
+        if ($event->status === 'cancelled') {
+            return response()->json(['message' => 'Event already cancelled.']);
+        }
+
         $event->update(['status' => 'cancelled']);
+        EventReminder::where('event_id', $event->id)->delete();
+        SendCancelledEventNotifications::dispatch($event->load('organizer', 'participants'));
 
         return response()->json(['message' => 'Event cancelled.']);
     }
@@ -192,7 +199,7 @@ class EventController extends Controller
         $events = $request->user()
             ->events()
             ->with('organizer')
-            ->upcoming()
+            ->where('start_at', '>', now())
             ->orderBy('start_at')
             ->get();
 
@@ -217,7 +224,7 @@ class EventController extends Controller
         $events = $request->user()
             ->joinedEvents()
             ->with('organizer')
-            ->upcoming()
+            ->where('start_at', '>', now())
             ->orderBy('start_at')
             ->get();
 

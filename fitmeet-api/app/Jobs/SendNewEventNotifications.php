@@ -63,6 +63,7 @@ class SendNewEventNotifications implements ShouldQueue
             EventNotification::firstOrCreate([
                 'user_id'  => $user->id,
                 'event_id' => $event->id,
+                'type'     => 'new_event',
             ]);
 
             if ($user->email_new_events) {

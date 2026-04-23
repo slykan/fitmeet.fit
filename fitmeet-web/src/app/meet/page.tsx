@@ -39,6 +39,7 @@ interface EventItem {
   activity: { distance_km: number | null; elevation_gain: number | null }
   participants_count: number
   max_participants: number | null
+  status: string
   is_full: boolean
   is_joined: boolean
   is_organizer: boolean
@@ -356,6 +357,13 @@ function EventsTab() {
         .finally(() => setLoading(false))
       return
     }
+    if (myOnly) {
+      api.get('/events/my')
+        .then(({ data }) => setEvents(applyFriendsFilter(data.data ?? [])))
+        .catch(() => setEvents([]))
+        .finally(() => setLoading(false))
+      return
+    }
     const params: Record<string, unknown> = {}
     if (category) params.category = category
     if (radiusKm !== null && user?.location?.lat && user?.location?.lng) {
@@ -370,7 +378,7 @@ function EventsTab() {
     api.get('/events', { params })
       .then(({ data }) => setEvents(applyFriendsFilter(data.data ?? [])))
       .finally(() => setLoading(false))
-  }, [category, radiusKm, goingOnly, friendsOnly, friendIds, user])
+  }, [category, radiusKm, goingOnly, friendsOnly, myOnly, friendIds, user])
 
   async function handleSetReminders() {
     if (!reminderEvent) { setReminderEvent(null); return }
@@ -472,13 +480,18 @@ function EventsTab() {
         <div key={ev.id}
           onClick={() => router.push(`/events/view?id=${ev.id}`)}
           className="rounded-2xl border p-4 flex items-start justify-between gap-3 transition-opacity hover:opacity-80 cursor-pointer"
-          style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
+          style={{
+            background: 'var(--surface)',
+            borderColor: ev.status === 'cancelled' ? 'rgba(248,113,113,0.35)' : 'var(--border)',
+            opacity: ev.status === 'cancelled' ? 0.68 : 1,
+          }}>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1.5">
               <span className="text-xs px-2 py-0.5 rounded-full border font-medium"
                 style={{ borderColor: 'var(--primary)', color: 'var(--primary)', background: 'rgba(57,255,20,0.08)' }}>
                 {CATEGORY_EMOJI[ev.category.value] ?? ''} {ev.category.label}
               </span>
+              {ev.status === 'cancelled' && <span className="text-xs text-red-400 font-medium">Cancelled</span>}
               {ev.is_full && <span className="text-xs text-red-400 font-medium">Full</span>}
               {ev.skill_level && (
                 <span className="text-xs capitalize" style={{ color: 'var(--text-muted)' }}>{ev.skill_level}</span>
@@ -518,6 +531,7 @@ function EventsTab() {
               <button
                 onClick={e => openReminder(e, ev)}
                 title="Set reminder"
+                disabled={ev.status === 'cancelled'}
                 className="p-1.5 rounded-lg transition-colors hover:bg-[--border]"
                 style={{ color: (reminderOffsets.get(ev.id)?.length ?? 0) > 0 ? 'var(--primary)' : '#fff' }}
               >

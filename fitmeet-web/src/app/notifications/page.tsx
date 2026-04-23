@@ -64,7 +64,20 @@ interface NewEventNotif {
   created_at: string
 }
 
-type Notif = FriendRequestNotif | FriendAcceptedNotif | EventReminderNotif | NewEventNotif
+interface EventCancelledNotif {
+  id: number
+  type: 'event_cancelled'
+  event: {
+    id: number
+    title: string
+    start_at: string
+    address: string | null
+    category: string
+  }
+  created_at: string
+}
+
+type Notif = FriendRequestNotif | FriendAcceptedNotif | EventReminderNotif | NewEventNotif | EventCancelledNotif
 
 function timeAgo(iso: string) {
   const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000)
@@ -169,6 +182,35 @@ export default function NotificationsPage() {
                           n.event.distance_km    && `${n.event.distance_km} km`,
                           n.event.elevation_gain && `↑${n.event.elevation_gain} m`,
                         ].filter(Boolean).join(' · ')}
+                      </p>
+                    )}
+                  </div>
+                  <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{timeAgo(n.created_at)}</p>
+                </div>
+              </div>
+            ) : n.type === 'event_cancelled' ? (
+              <div key={n.id}
+                onClick={() => router.push(`/events/view?id=${n.event.id}`)}
+                className="rounded-2xl border p-4 flex items-start gap-3 cursor-pointer transition-opacity hover:opacity-80"
+                style={{ background: 'var(--surface)', borderColor: 'rgba(248,113,113,0.35)' }}>
+                <div className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0"
+                  style={{ background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.45)' }}>
+                  <X size={18} style={{ color: '#f87171' }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold mb-0.5" style={{ color: '#f87171' }}>
+                    {n.event.category} event cancelled
+                  </p>
+                  <p className="text-sm font-semibold truncate">{n.event.title}</p>
+                  <div className="flex flex-col gap-0.5 mt-1">
+                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                      <Calendar size={10} className="inline mr-1" />
+                      {new Date(n.event.start_at).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                    {n.event.address && (
+                      <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
+                        <MapPin size={10} className="inline mr-1" />
+                        {n.event.address}
                       </p>
                     )}
                   </div>

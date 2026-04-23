@@ -150,6 +150,7 @@ class FriendController extends Controller
         // New events matching interests (last 7 days, event not yet started)
         $newEvents = EventNotification::with('event')
             ->where('user_id', $me->id)
+            ->where('type', 'new_event')
             ->where('created_at', '>=', now()->subDays(7))
             ->whereHas('event', fn ($q) => $q->where('events.start_at', '>', now())->where('events.status', 'active'))
             ->latest()
@@ -169,7 +170,27 @@ class FriendController extends Controller
                 'created_at' => $n->created_at->toDateTimeString(),
             ]);
 
-        return response()->json(['data' => $pending->concat($accepted)->concat($eventReminders)->concat($newEvents)->values()]);
+        $cancelledEvents = EventNotification::with('event')
+            ->where('user_id', $me->id)
+            ->where('type', 'event_cancelled')
+            ->where('created_at', '>=', now()->subDays(30))
+            ->whereHas('event', fn ($q) => $q->where('events.status', 'cancelled'))
+            ->latest()
+            ->get()
+            ->map(fn ($n) => [
+                'id'         => $n->id,
+                'type'       => 'event_cancelled',
+                'event'      => [
+                    'id'       => $n->event->id,
+                    'title'    => $n->event->title,
+                    'start_at' => $n->event->start_at->toIso8601String(),
+                    'address'  => $n->event->address,
+                    'category' => $n->event->category?->label() ?? 'Event',
+                ],
+                'created_at' => $n->created_at->toDateTimeString(),
+            ]);
+
+        return response()->json(['data' => $pending->concat($accepted)->concat($eventReminders)->concat($newEvents)->concat($cancelledEvents)->values()]);
     }
 
     // DELETE /friends/{user}  — remove accepted friend
