@@ -10,6 +10,7 @@ import { Calendar, Lock, MapPin, Share2, Users, Zap } from 'lucide-react'
 import { Navbar } from '@/components/navbar'
 import { Button } from '@/components/ui/button'
 import { shortAddress } from '@/lib/format-address'
+import { GpxResult, parseGpx } from '@/lib/parse-gpx'
 import { useAuthStore } from '@/store/auth'
 
 const LocationPickerMap = dynamic(() => import('@/components/location-picker-map'), { ssr: false })
@@ -21,7 +22,7 @@ interface SharedEvent {
   category: { value: string; label: string }
   location: { lat: number; lng: number; address: string | null }
   schedule: { start_at: string; duration_minutes: number | null }
-  activity: { distance_km: number | null; elevation_gain: number | null; pace: string | null; max_grade: number | null; max_downgrade: number | null }
+  activity: { distance_km: number | null; elevation_gain: number | null; pace: string | null; max_grade: number | null; max_downgrade: number | null; gpx_url?: string | null }
   skill_level: string | null
   max_participants: number | null
   participants_count: number
@@ -38,6 +39,142 @@ function formatDate(iso: string) {
   })
 }
 
+function formatMetric(value: number) {
+  if (!Number.isFinite(value)) return null
+  return value >= 10 ? value.toFixed(0) : value.toFixed(1)
+}
+
+function buildPath(coords: [number, number][], width: number, height: number, padding: number) {
+  if (coords.length < 2) return ''
+
+  const lats = coords.map(([lat]) => lat)
+  const lngs = coords.map(([, lng]) => lng)
+  const minLat = Math.min(...lats)
+  const maxLat = Math.max(...lats)
+  const minLng = Math.min(...lngs)
+  const maxLng = Math.max(...lngs)
+  const latSpan = Math.max(maxLat - minLat, 0.0001)
+  const lngSpan = Math.max(maxLng - minLng, 0.0001)
+  const scale = Math.min((width - padding * 2) / lngSpan, (height - padding * 2) / latSpan)
+  const offsetX = (width - lngSpan * scale) / 2
+  const offsetY = (height - latSpan * scale) / 2
+
+  return coords.map(([lat, lng], index) => {
+    const x = offsetX + (lng - minLng) * scale
+    const y = height - (offsetY + (lat - minLat) * scale)
+    return `${index === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`
+  }).join(' ')
+}
+
+function createProjector(coords: [number, number][], width: number, height: number, padding: number) {
+  const lats = coords.map(([lat]) => lat)
+  const lngs = coords.map(([, lng]) => lng)
+  const minLat = Math.min(...lats)
+  const maxLat = Math.max(...lats)
+  const minLng = Math.min(...lngs)
+  const maxLng = Math.max(...lngs)
+  const latSpan = Math.max(maxLat - minLat, 0.0001)
+  const lngSpan = Math.max(maxLng - minLng, 0.0001)
+  const scale = Math.min((width - padding * 2) / lngSpan, (height - padding * 2) / latSpan)
+  const offsetX = (width - lngSpan * scale) / 2
+  const offsetY = (height - latSpan * scale) / 2
+
+  return ([lat, lng]: [number, number]) => ({
+    x: offsetX + (lng - minLng) * scale,
+    y: height - (offsetY + (lat - minLat) * scale),
+  })
+}
+
+function RoutePoster({ gpx, categoryLabel, title }: { gpx: GpxResult; categoryLabel: string; title: string }) {
+  const width = 1200
+  const height = 620
+  const padding = 84
+  const segments = gpx.coloredSegments.length > 0 ? gpx.coloredSegments : [{ coords: gpx.track, color: '#39ff14' }]
+  const start = gpx.track[0]
+  const end = gpx.track[gpx.track.length - 1]
+  const project = createProjector(gpx.track, width, height, padding)
+  const startPoint = start ? project(start) : null
+  const endPoint = end ? project(end) : null
+  const distance = gpx.distanceKm > 0 ? formatMetric(gpx.distanceKm) : null
+
+  return (
+    <div
+      className="relative h-[240px] sm:h-[300px] overflow-hidden"
+      style={{
+        background:
+          'radial-gradient(circle at 18% 18%, rgba(57,255,20,0.16), transparent 32%), radial-gradient(circle at 82% 20%, rgba(51,153,255,0.18), transparent 28%), linear-gradient(180deg, #07110d 0%, #091019 100%)',
+      }}
+    >
+      <div className="absolute inset-0 opacity-30" style={{
+        backgroundImage:
+          'linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px)',
+        backgroundSize: '36px 36px',
+        maskImage: 'linear-gradient(180deg, rgba(0,0,0,0.85), transparent)',
+      }} />
+
+      <svg viewBox={`0 0 ${width} ${height}`} className="absolute inset-0 h-full w-full">
+        {segments.map((segment, index) => {
+          const d = buildPath(segment.coords, width, height, padding)
+          if (!d) return null
+
+          return (
+            <g key={`${segment.color}-${index}`}>
+              <path
+                d={d}
+                fill="none"
+                stroke={segment.color}
+                strokeWidth="18"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                opacity="0.22"
+              />
+              <path
+                d={d}
+                fill="none"
+                stroke={segment.color}
+                strokeWidth="8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </g>
+          )
+        })}
+
+        {startPoint && (
+          <circle cx={startPoint.x} cy={startPoint.y} r="12" fill="#091019" stroke="#39ff14" strokeWidth="6" />
+        )}
+        {endPoint && (
+          <circle cx={endPoint.x} cy={endPoint.y} r="10" fill="#091019" stroke="#ffffff" strokeWidth="5" />
+        )}
+      </svg>
+
+      <div className="absolute left-4 top-4 right-4 flex items-start justify-between gap-3">
+        <div className="rounded-full border px-3 py-1.5 text-xs font-semibold" style={{ borderColor: 'rgba(57,255,20,0.4)', background: 'rgba(7,17,13,0.72)', color: 'var(--primary)' }}>
+          {categoryLabel}
+        </div>
+        <div className="rounded-full border px-3 py-1.5 text-xs" style={{ borderColor: 'rgba(255,255,255,0.12)', background: 'rgba(7,16,25,0.72)', color: 'rgba(255,255,255,0.72)' }}>
+          Route preview
+        </div>
+      </div>
+
+      <div className="absolute inset-x-4 bottom-4 grid grid-cols-3 gap-2 text-center">
+        <div className="rounded-2xl border px-3 py-2.5" style={{ borderColor: 'rgba(255,255,255,0.1)', background: 'rgba(7,16,25,0.74)' }}>
+          <div className="text-[11px] uppercase tracking-[0.08em]" style={{ color: 'rgba(255,255,255,0.54)' }}>Distance</div>
+          <div className="mt-1 text-sm sm:text-base font-semibold">{distance ? `${distance} km` : 'Route'}</div>
+        </div>
+        <div className="rounded-2xl border px-3 py-2.5" style={{ borderColor: 'rgba(255,255,255,0.1)', background: 'rgba(7,16,25,0.74)' }}>
+          <div className="text-[11px] uppercase tracking-[0.08em]" style={{ color: 'rgba(255,255,255,0.54)' }}>Climb</div>
+          <div className="mt-1 text-sm sm:text-base font-semibold">{gpx.elevationGain > 0 ? `${gpx.elevationGain} m` : 'Flat-ish'}</div>
+        </div>
+        <div className="rounded-2xl border px-3 py-2.5" style={{ borderColor: 'rgba(255,255,255,0.1)', background: 'rgba(7,16,25,0.74)' }}>
+          <div className="text-[11px] uppercase tracking-[0.08em]" style={{ color: 'rgba(255,255,255,0.54)' }}>Shape</div>
+          <div className="mt-1 truncate text-sm sm:text-base font-semibold">{title}</div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function ShareEventContent() {
   const searchParams = useSearchParams()
   const { token } = useAuthStore()
@@ -46,6 +183,7 @@ function ShareEventContent() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const [route, setRoute] = useState<GpxResult | null>(null)
 
   const apiBase = useMemo(
     () => process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000/api',
@@ -70,6 +208,33 @@ function ShareEventContent() {
       .catch(() => setError('This event is not available for public sharing.'))
       .finally(() => setLoading(false))
   }, [apiBase, id])
+
+  useEffect(() => {
+    let cancelled = false
+
+    if (!event?.activity.gpx_url) {
+      setRoute(null)
+      return
+    }
+
+    fetch(event.activity.gpx_url)
+      .then((res) => {
+        if (!res.ok) throw new Error('Missing route')
+        return res.text()
+      })
+      .then((xml) => {
+        if (cancelled) return
+        const parsed = parseGpx(xml)
+        setRoute(parsed.track.length >= 2 ? parsed : null)
+      })
+      .catch(() => {
+        if (!cancelled) setRoute(null)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [event?.activity.gpx_url])
 
   async function handleShare() {
     if (!event || typeof window === 'undefined') return
@@ -110,14 +275,18 @@ function ShareEventContent() {
           {event && (
             <>
               <section className="rounded-2xl border overflow-hidden" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
-                <div className="h-[240px] sm:h-[300px]">
-                  <LocationPickerMap
-                    lat={event.location.lat}
-                    lng={event.location.lng}
-                    readOnly
-                    height={300}
-                  />
-                </div>
+                {route ? (
+                  <RoutePoster gpx={route} categoryLabel={event.category.label} title={event.title} />
+                ) : (
+                  <div className="h-[240px] sm:h-[300px]">
+                    <LocationPickerMap
+                      lat={event.location.lat}
+                      lng={event.location.lng}
+                      readOnly
+                      height={300}
+                    />
+                  </div>
+                )}
                 <div className="p-6 space-y-4">
                   <div className="flex flex-wrap items-center gap-2">
                     <span
