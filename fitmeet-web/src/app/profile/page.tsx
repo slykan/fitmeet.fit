@@ -89,6 +89,45 @@ export default function ProfilePage() {
           </Link>
         </div>
 
+        {/* Email notifications */}
+        <div
+          className="rounded-2xl border p-6 mb-5"
+          style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
+        >
+          <h2 className="font-bold text-sm uppercase tracking-wide mb-4 flex items-center gap-2">
+            <Mail size={14} style={{ color: 'var(--primary)' }} /> Email settings
+          </h2>
+          <div className="space-y-3">
+            <PreferenceRow
+              icon={<UserPlus size={14} />}
+              label="Friend activity"
+              description="Friend requests and accepted requests."
+              enabled={friendEmails}
+              disabled={savingPreference !== null}
+              onToggle={() => toggleEmailPreference('email_friend_requests', friendEmails)}
+            />
+            <PreferenceRow
+              icon={<Calendar size={14} />}
+              label="New events near you"
+              description="Events that match your interests and radius."
+              enabled={newEventEmails}
+              disabled={savingPreference !== null}
+              onToggle={() => toggleEmailPreference('email_new_events', newEventEmails)}
+            />
+            <PreferenceRow
+              icon={<Bell size={14} />}
+              label="Event reminders"
+              description="Reminder emails for events you joined."
+              enabled={reminderEmails}
+              disabled={savingPreference !== null}
+              onToggle={() => toggleEmailPreference('email_event_reminders', reminderEmails)}
+            />
+          </div>
+          {preferenceError && (
+            <p className="text-xs mt-4 text-red-400">{preferenceError}</p>
+          )}
+        </div>
+
         {/* Location */}
         <div
           className="rounded-2xl border p-6 mb-5"
@@ -149,45 +188,6 @@ export default function ProfilePage() {
             )}
           </div>
         )}
-
-        {/* Email notifications */}
-        <div
-          className="rounded-2xl border p-6 mb-5"
-          style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
-        >
-          <h2 className="font-bold text-sm uppercase tracking-wide mb-4 flex items-center gap-2">
-            <Mail size={14} style={{ color: 'var(--primary)' }} /> Email notifications
-          </h2>
-          <div className="space-y-3">
-            <PreferenceRow
-              icon={<UserPlus size={14} />}
-              label="Friend activity"
-              description="Friend requests and accepted requests."
-              enabled={friendEmails}
-              disabled={savingPreference !== null}
-              onToggle={() => toggleEmailPreference('email_friend_requests', friendEmails)}
-            />
-            <PreferenceRow
-              icon={<Calendar size={14} />}
-              label="New events near you"
-              description="Events that match your interests and radius."
-              enabled={newEventEmails}
-              disabled={savingPreference !== null}
-              onToggle={() => toggleEmailPreference('email_new_events', newEventEmails)}
-            />
-            <PreferenceRow
-              icon={<Bell size={14} />}
-              label="Event reminders"
-              description="Reminder emails for events you joined."
-              enabled={reminderEmails}
-              disabled={savingPreference !== null}
-              onToggle={() => toggleEmailPreference('email_event_reminders', reminderEmails)}
-            />
-          </div>
-          {preferenceError && (
-            <p className="text-xs mt-4 text-red-400">{preferenceError}</p>
-          )}
-        </div>
 
         {/* No profile yet */}
         {!user.home.city && !user.categories?.length && (
