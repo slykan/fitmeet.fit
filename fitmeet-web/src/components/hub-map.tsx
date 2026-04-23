@@ -1,14 +1,14 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { useRouter } from 'next/navigation'
-import { Calendar, ArrowRight, X, Users, Zap } from 'lucide-react'
+import { Calendar, ArrowRight, X, Users, Zap, LocateFixed, Check } from 'lucide-react'
 import api from '@/lib/api'
 import { useAuthStore } from '@/store/auth'
-import { CATEGORY_EMOJI } from '@/lib/categories'
+import { CATEGORIES, CATEGORY_EMOJI } from '@/lib/categories'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 delete (L.Icon.Default.prototype as any)._getIconUrl
@@ -28,6 +28,7 @@ interface EventPin {
   participants_count: number
   max_participants: number | null
   is_full: boolean
+  is_joined: boolean
 }
 
 function createEmojiIcon(emoji: string) {
@@ -57,23 +58,46 @@ function getZoomForRadius(km: number): number {
   return 8
 }
 
-function AutoZoom({ events, lat, lng, radiusKm, ready }: {
-  events: EventPin[]; lat: number | null; lng: number | null; radiusKm: number; ready: boolean
+const RADIUS_OPTIONS = [
+  { label: 'Nearby', km: 50 },
+  { label: 'City', km: 200 },
+  { label: 'Region', km: 500 },
+  { label: 'All', km: null },
+] as const
+
+function getDistanceKm(aLat: number, aLng: number, bLat: number, bLng: number): number {
+  const toRad = (deg: number) => deg * Math.PI / 180
+  const earthKm = 6371
+  const dLat = toRad(bLat - aLat)
+  const dLng = toRad(bLng - aLng)
+  const lat1 = toRad(aLat)
+  const lat2 = toRad(bLat)
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2
+  return earthKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+}
+
+function MapViewport({ events, lat, lng, radiusKm, ready, recenterKey }: {
+  events: EventPin[]
+  lat: number | null
+  lng: number | null
+  radiusKm: number | null
+  ready: boolean
+  recenterKey: number
 }) {
-  const map  = useMap()
-  const done = useRef(false)
+  const map = useMap()
 
   useEffect(() => {
-    if (!ready || done.current) return
-    done.current = true
+    if (!ready) return
     if (events.length > 0) {
       const pts: [number, number][] = events.map(e => [e.location.lat, e.location.lng])
       if (lat && lng) pts.push([lat, lng])
       map.fitBounds(L.latLngBounds(pts), { padding: [60, 60], animate: true, duration: 1 })
     } else if (lat && lng) {
-      map.setView([lat, lng], getZoomForRadius(radiusKm), { animate: true, duration: 1 })
+      map.setView([lat, lng], getZoomForRadius(radiusKm ?? 500), { animate: true, duration: 1 })
     }
-  }, [ready, map, events, lat, lng, radiusKm])
+  }, [ready, map, events, lat, lng, radiusKm, recenterKey])
 
   return null
 }
@@ -91,14 +115,28 @@ export default function HubMap() {
   const { user }   = useAuthStore()
   const router     = useRouter()
   const [events,   setEvents]       = useState<EventPin[]>([])
+  const [joinedEvents, setJoinedEvents] = useState<EventPin[]>([])
   const [selected, setSelected]     = useState<EventPin | null>(null)
   const [participants, setParticipants] = useState<Participant[]>([])
   const [ready,    setReady]        = useState(false)
   const [radar,    setRadar]        = useState(true)
+  const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set())
+  const [radiusIndex, setRadiusIndex] = useState(0)
+  const [goingOnly, setGoingOnly] = useState(false)
+  const [recenterKey, setRecenterKey] = useState(0)
 
   const lat      = (user?.location?.lat  || user?.home?.lat  || null)
   const lng      = (user?.location?.lng  || user?.home?.lng  || null)
-  const radiusKm = user?.radius_km ?? 50
+  const baseRadiusKm = user?.radius_km ?? 50
+  const radiusKm = RADIUS_OPTIONS[radiusIndex]?.km ?? null
+
+  useEffect(() => {
+    setSelectedCategories(new Set(user?.categories ?? []))
+    const initialIndex = baseRadiusKm >= 9999
+      ? RADIUS_OPTIONS.length - 1
+      : RADIUS_OPTIONS.findIndex(r => r.km === baseRadiusKm)
+    setRadiusIndex(initialIndex >= 0 ? initialIndex : 0)
+  }, [user?.categories, baseRadiusKm])
 
   useEffect(() => {
     const params: Record<string, unknown> = {}
@@ -106,7 +144,7 @@ export default function HubMap() {
     if (hasCoords) {
       params.lat = lat
       params.lng = lng
-      params.radius_km = radiusKm
+      params.radius_km = 500
     }
     api.get('/events', { params })
       .then(({ data }) => {
@@ -122,7 +160,13 @@ export default function HubMap() {
 
     const t = setTimeout(() => setRadar(false), 5200)
     return () => clearTimeout(t)
-  }, [lat, lng, radiusKm])
+  }, [lat, lng])
+
+  useEffect(() => {
+    api.get('/events/joined')
+      .then(({ data }) => setJoinedEvents(data.data ?? []))
+      .catch(() => setJoinedEvents([]))
+  }, [])
 
   useEffect(() => {
     if (!selected) { setParticipants([]); return }
@@ -132,6 +176,32 @@ export default function HubMap() {
   }, [selected])
 
   const mapCenter: [number, number] = (lat && lng) ? [lat, lng] : [44.5, 16.5]
+  const categoryCount = selectedCategories.size
+
+  const visibleEvents = useMemo(() => {
+    const source = goingOnly ? joinedEvents : events
+    return source.filter(ev => {
+      if (selectedCategories.size > 0 && !selectedCategories.has(ev.category.value)) return false
+      if (radiusKm !== null && lat && lng) {
+        return getDistanceKm(lat, lng, ev.location.lat, ev.location.lng) <= radiusKm
+      }
+      return true
+    })
+  }, [events, joinedEvents, goingOnly, selectedCategories, radiusKm, lat, lng])
+
+  useEffect(() => {
+    setSelected(current => current && visibleEvents.some(ev => ev.id === current.id) ? current : null)
+    setRecenterKey(key => key + 1)
+  }, [visibleEvents])
+
+  function toggleCategory(value: string) {
+    setSelectedCategories(prev => {
+      const next = new Set(prev)
+      if (next.has(value)) next.delete(value)
+      else next.add(value)
+      return next
+    })
+  }
 
   return (
     <div style={{ position: 'relative', height: '100%', width: '100%' }}>
@@ -147,9 +217,16 @@ export default function HubMap() {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         />
-        <AutoZoom events={events} lat={lat} lng={lng} radiusKm={radiusKm} ready={ready} />
+        <MapViewport
+          events={visibleEvents}
+          lat={lat}
+          lng={lng}
+          radiusKm={radiusKm}
+          ready={ready}
+          recenterKey={recenterKey}
+        />
 
-        {events.map(ev => (
+        {visibleEvents.map(ev => (
           <Marker
             key={ev.id}
             position={[ev.location.lat, ev.location.lng]}
@@ -158,6 +235,126 @@ export default function HubMap() {
           />
         ))}
       </MapContainer>
+
+      {/* Filters */}
+      <div style={{
+        position: 'absolute',
+        top: 14,
+        left: 12,
+        right: 12,
+        zIndex: 700,
+        display: 'flex',
+        alignItems: 'stretch',
+        gap: 10,
+        pointerEvents: 'none',
+      }}>
+        <div style={{
+          flex: 1,
+          minWidth: 0,
+          border: '1px solid var(--border)',
+          background: 'color-mix(in srgb, var(--surface) 92%, transparent)',
+          borderRadius: 14,
+          padding: '9px 10px',
+          boxShadow: '0 6px 22px rgba(0,0,0,0.35)',
+          pointerEvents: 'auto',
+        }}>
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
+            <button
+              type="button"
+              onClick={() => setSelectedCategories(new Set())}
+              className="flex-shrink-0 text-xs px-3 py-1.5 rounded-full border font-semibold transition-colors"
+              style={{
+                borderColor: categoryCount === 0 ? 'var(--primary)' : 'var(--border)',
+                color: categoryCount === 0 ? 'var(--primary)' : 'var(--text-muted)',
+                background: categoryCount === 0 ? 'rgba(57,255,20,0.1)' : 'var(--background)',
+              }}
+            >
+              All interests
+            </button>
+            {CATEGORIES.map(c => {
+              const active = selectedCategories.has(c.value)
+              return (
+                <button
+                  key={c.value}
+                  type="button"
+                  onClick={() => toggleCategory(c.value)}
+                  className="flex-shrink-0 text-xs px-3 py-1.5 rounded-full border font-semibold transition-colors"
+                  style={{
+                    borderColor: active ? 'var(--primary)' : 'var(--border)',
+                    color: active ? 'var(--primary)' : 'var(--text-muted)',
+                    background: active ? 'rgba(57,255,20,0.1)' : 'var(--background)',
+                  }}
+                >
+                  {c.emoji} {c.label}
+                </button>
+              )
+            })}
+          </div>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'minmax(150px, 1fr) auto',
+            gap: 10,
+            alignItems: 'center',
+            marginTop: 8,
+          }}>
+            <label style={{ minWidth: 0 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginBottom: 4 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)' }}>Radius</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary)' }}>
+                  {RADIUS_OPTIONS[radiusIndex]?.label}
+                </span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={RADIUS_OPTIONS.length - 1}
+                step={1}
+                value={radiusIndex}
+                onChange={e => setRadiusIndex(Number(e.target.value))}
+                style={{ width: '100%', accentColor: '#39FF14', display: 'block' }}
+              />
+            </label>
+
+            <button
+              type="button"
+              onClick={() => setGoingOnly(v => !v)}
+              className="inline-flex items-center gap-1.5 text-xs px-3 py-2 rounded-full border font-semibold transition-colors"
+              style={{
+                borderColor: goingOnly ? 'var(--primary)' : 'var(--border)',
+                color: goingOnly ? 'var(--primary)' : 'var(--text-muted)',
+                background: goingOnly ? 'rgba(57,255,20,0.1)' : 'var(--background)',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <Check size={13} /> Going
+            </button>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setRecenterKey(key => key + 1)}
+          title="Recenter"
+          aria-label="Recenter map"
+          style={{
+            width: 44,
+            minWidth: 44,
+            border: '1px solid var(--border)',
+            borderRadius: 14,
+            background: 'var(--surface)',
+            color: 'var(--primary)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 6px 22px rgba(0,0,0,0.35)',
+            cursor: 'pointer',
+            pointerEvents: 'auto',
+          }}
+        >
+          <LocateFixed size={18} />
+        </button>
+      </div>
 
       {/* Radar sweep */}
       {radar && (
@@ -219,9 +416,9 @@ export default function HubMap() {
       )}
 
       {/* Empty state */}
-      {ready && events.length === 0 && !selected && (
+      {ready && visibleEvents.length === 0 && !selected && (
         <div style={{
-          position: 'absolute', top: 16, left: '50%', transform: 'translateX(-50%)',
+          position: 'absolute', top: 118, left: '50%', transform: 'translateX(-50%)',
           zIndex: 600, pointerEvents: 'none',
           background: 'var(--surface)', border: '1px solid var(--border)',
           borderRadius: 12, padding: '8px 16px',
@@ -229,7 +426,7 @@ export default function HubMap() {
           whiteSpace: 'nowrap',
           boxShadow: '0 2px 12px rgba(0,0,0,0.4)',
         }}>
-          No events nearby · try expanding your radius
+          {goingOnly ? "No joined events match these filters" : 'No events match these filters'}
         </div>
       )}
 
