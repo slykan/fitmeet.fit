@@ -57,6 +57,10 @@ function toDatetimeLocal(iso: string): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
+function toUtcIso(localDatetime: string): string {
+  return new Date(localDatetime).toISOString()
+}
+
 function EditContent() {
   const searchParams = useSearchParams()
   const { token }    = useAuthStore()
@@ -190,7 +194,7 @@ function EditContent() {
       if (data.title)    fd.append('title',    data.title)
       if (data.category) fd.append('category', data.category)
       fd.append('description', data.description || '')
-      if (data.start_at) fd.append('start_at', data.start_at + ':00')
+      if (data.start_at) fd.append('start_at', toUtcIso(data.start_at))
       fd.append('duration_minutes', data.duration_minutes || '')
       if (data.lat !== null) fd.append('lat', String(data.lat))
       if (data.lng !== null) fd.append('lng', String(data.lng))

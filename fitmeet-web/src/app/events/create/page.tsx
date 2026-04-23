@@ -60,6 +60,10 @@ function localDatetimeMin(): string {
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`
 }
 
+function toUtcIso(localDatetime: string): string {
+  return new Date(localDatetime).toISOString()
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function CreateEventPage() {
@@ -169,7 +173,7 @@ export default function CreateEventPage() {
       const fd = new globalThis.FormData()
       fd.append('title',    data.title)
       fd.append('category', data.category)
-      fd.append('start_at', data.start_at + ':00')
+      fd.append('start_at', toUtcIso(data.start_at))
       if (data.lat !== null)     fd.append('lat',              String(data.lat))
       if (data.lng !== null)     fd.append('lng',              String(data.lng))
       if (data.description)      fd.append('description',      data.description)
