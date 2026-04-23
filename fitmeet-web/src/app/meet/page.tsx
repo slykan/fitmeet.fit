@@ -42,6 +42,7 @@ interface EventItem {
   is_full: boolean
   is_joined: boolean
   skill_level: string | null
+  organizer: { id: number; name: string } | null
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -306,6 +307,8 @@ function EventsTab() {
   const [category, setCategory] = useState('')
   const [radiusKm, setRadiusKm] = useState<number | null>(null)
   const [goingOnly, setGoingOnly] = useState(false)
+  const [friendsOnly, setFriendsOnly] = useState(false)
+  const [friendIds, setFriendIds] = useState<Set<number>>(new Set())
 
   // Reminder modal state
   const [reminderEvent,    setReminderEvent]    = useState<EventItem | null>(null)
@@ -326,10 +329,24 @@ function EventsTab() {
   }, [])
 
   useEffect(() => {
+    api.get('/users', { params: { friends_only: 1 } })
+      .then(({ data }) => {
+        const ids = (data.data ?? []).map((friend: { id: number }) => friend.id)
+        setFriendIds(new Set(ids))
+      })
+      .catch(() => setFriendIds(new Set()))
+  }, [])
+
+  function applyFriendsFilter(items: EventItem[]) {
+    if (!friendsOnly) return items
+    return items.filter(ev => ev.organizer?.id && friendIds.has(ev.organizer.id))
+  }
+
+  useEffect(() => {
     setLoading(true)
     if (goingOnly) {
       api.get('/events/joined')
-        .then(({ data }) => setEvents(data.data ?? []))
+        .then(({ data }) => setEvents(applyFriendsFilter(data.data ?? [])))
         .catch(() => setEvents([]))
         .finally(() => setLoading(false))
       return
@@ -346,9 +363,9 @@ function EventsTab() {
       params.radius_km = radiusKm
     }
     api.get('/events', { params })
-      .then(({ data }) => setEvents(data.data ?? []))
+      .then(({ data }) => setEvents(applyFriendsFilter(data.data ?? [])))
       .finally(() => setLoading(false))
-  }, [category, radiusKm, goingOnly, user])
+  }, [category, radiusKm, goingOnly, friendsOnly, friendIds, user])
 
   async function handleSetReminders() {
     if (!reminderEvent) { setReminderEvent(null); return }
@@ -400,10 +417,10 @@ function EventsTab() {
       </div>
 
       {/* Going filter — separate row */}
-      <div>
+      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
         <button
           onClick={() => setGoingOnly(g => !g)}
-          className="text-xs px-4 py-1.5 rounded-full border font-semibold transition-colors"
+          className="flex-shrink-0 text-xs px-4 py-1.5 rounded-full border font-semibold transition-colors"
           style={{
             borderColor: goingOnly ? 'var(--primary)' : 'var(--border)',
             color:       goingOnly ? 'var(--primary)' : 'var(--text-muted)',
@@ -411,6 +428,17 @@ function EventsTab() {
           }}
         >
           ✓ Going
+        </button>
+        <button
+          onClick={() => setFriendsOnly(f => !f)}
+          className="flex-shrink-0 text-xs px-4 py-1.5 rounded-full border font-semibold transition-colors"
+          style={{
+            borderColor: friendsOnly ? 'var(--primary)' : 'var(--border)',
+            color:       friendsOnly ? 'var(--primary)' : 'var(--text-muted)',
+            background:  friendsOnly ? 'rgba(57,255,20,0.08)' : 'transparent',
+          }}
+        >
+          <Users size={13} className="inline mr-1" /> Friends
         </button>
       </div>
 
@@ -420,7 +448,7 @@ function EventsTab() {
 
       {!loading && events.length === 0 && (
         <div className="text-center py-12 text-sm" style={{ color: 'var(--text-muted)' }}>
-          {goingOnly ? "You haven't joined any events yet." : 'No events found.'}
+          {goingOnly ? "You haven't joined any matching events yet." : 'No events found.'}
         </div>
       )}
 

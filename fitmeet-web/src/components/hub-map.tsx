@@ -29,6 +29,7 @@ interface EventPin {
   max_participants: number | null
   is_full: boolean
   is_joined: boolean
+  organizer: { id: number; name: string } | null
 }
 
 function createEmojiIcon(emoji: string, angle = 0, zIndex = 1) {
@@ -179,6 +180,8 @@ export default function HubMap() {
   const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set())
   const [radiusIndex, setRadiusIndex] = useState(0)
   const [goingOnly, setGoingOnly] = useState(false)
+  const [friendsOnly, setFriendsOnly] = useState(false)
+  const [friendIds, setFriendIds] = useState<Set<number>>(new Set())
   const [recenterKey, setRecenterKey] = useState(0)
 
   const lat      = (user?.location?.lat  || user?.home?.lat  || null)
@@ -225,6 +228,15 @@ export default function HubMap() {
   }, [])
 
   useEffect(() => {
+    api.get('/users', { params: { friends_only: 1 } })
+      .then(({ data }) => {
+        const ids = (data.data ?? []).map((friend: { id: number }) => friend.id)
+        setFriendIds(new Set(ids))
+      })
+      .catch(() => setFriendIds(new Set()))
+  }, [])
+
+  useEffect(() => {
     if (!selected) { setParticipants([]); return }
     api.get(`/events/${selected.id}`)
       .then(({ data }) => setParticipants(data.data.participants ?? []))
@@ -237,13 +249,14 @@ export default function HubMap() {
   const visibleEvents = useMemo(() => {
     const source = goingOnly ? joinedEvents : events
     return source.filter(ev => {
+      if (friendsOnly && (!ev.organizer?.id || !friendIds.has(ev.organizer.id))) return false
       if (selectedCategories.size > 0 && !selectedCategories.has(ev.category.value)) return false
       if (radiusKm !== null && lat && lng) {
         return getDistanceKm(lat, lng, ev.location.lat, ev.location.lng) <= radiusKm
       }
       return true
     })
-  }, [events, joinedEvents, goingOnly, selectedCategories, radiusKm, lat, lng])
+  }, [events, joinedEvents, goingOnly, friendsOnly, friendIds, selectedCategories, radiusKm, lat, lng])
 
   const markerDisplays = useMemo<MarkerDisplay[]>(() => {
     const groups = new Map<string, EventPin[]>()
@@ -369,7 +382,7 @@ export default function HubMap() {
 
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'minmax(150px, 1fr) auto',
+            gridTemplateColumns: 'minmax(150px, 1fr) auto auto',
             gap: 10,
             alignItems: 'center',
             marginTop: 8,
@@ -404,6 +417,19 @@ export default function HubMap() {
               }}
             >
               <Check size={13} /> Going
+            </button>
+            <button
+              type="button"
+              onClick={() => setFriendsOnly(v => !v)}
+              className="inline-flex items-center gap-1.5 text-xs px-3 py-2 rounded-full border font-semibold transition-colors"
+              style={{
+                borderColor: friendsOnly ? 'var(--primary)' : 'var(--border)',
+                color: friendsOnly ? 'var(--primary)' : 'var(--text-muted)',
+                background: friendsOnly ? 'rgba(57,255,20,0.1)' : 'var(--background)',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <Users size={13} /> Friends
             </button>
           </div>
         </div>
