@@ -15,6 +15,8 @@ return new class extends Migration {
         DB::table('event_notifications')->update(['type' => 'new_event']);
 
         Schema::table('event_notifications', function (Blueprint $table) {
+            $table->index('user_id');
+            $table->index('event_id');
             $table->dropUnique('event_notifications_user_id_event_id_unique');
             $table->unique(['user_id', 'event_id', 'type']);
         });
@@ -24,6 +26,8 @@ return new class extends Migration {
     {
         Schema::table('event_notifications', function (Blueprint $table) {
             $table->dropUnique(['user_id', 'event_id', 'type']);
+            $table->dropIndex(['user_id']);
+            $table->dropIndex(['event_id']);
             $table->unique(['user_id', 'event_id']);
             $table->dropColumn('type');
         });
