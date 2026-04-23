@@ -1,6 +1,5 @@
 'use client'
 
-import dynamic from 'next/dynamic'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
@@ -12,8 +11,6 @@ import { Button } from '@/components/ui/button'
 import { shortAddress } from '@/lib/format-address'
 import { GpxResult, parseGpx } from '@/lib/parse-gpx'
 import { useAuthStore } from '@/store/auth'
-
-const LocationPickerMap = dynamic(() => import('@/components/location-picker-map'), { ssr: false })
 
 interface SharedEvent {
   id: number
@@ -37,11 +34,6 @@ function formatDate(iso: string) {
     weekday: 'short', day: 'numeric', month: 'short',
     year: 'numeric', hour: '2-digit', minute: '2-digit',
   })
-}
-
-function formatMetric(value: number) {
-  if (!Number.isFinite(value)) return null
-  return value >= 10 ? value.toFixed(0) : value.toFixed(1)
 }
 
 function buildPath(coords: [number, number][], width: number, height: number, padding: number) {
@@ -85,7 +77,7 @@ function createProjector(coords: [number, number][], width: number, height: numb
   })
 }
 
-function RoutePoster({ gpx, categoryLabel, title }: { gpx: GpxResult; categoryLabel: string; title: string }) {
+function RoutePoster({ gpx }: { gpx: GpxResult }) {
   const width = 1200
   const height = 620
   const padding = 84
@@ -95,14 +87,12 @@ function RoutePoster({ gpx, categoryLabel, title }: { gpx: GpxResult; categoryLa
   const project = createProjector(gpx.track, width, height, padding)
   const startPoint = start ? project(start) : null
   const endPoint = end ? project(end) : null
-  const distance = gpx.distanceKm > 0 ? formatMetric(gpx.distanceKm) : null
 
   return (
     <div
       className="relative h-[240px] sm:h-[300px] overflow-hidden"
       style={{
-        background:
-          'radial-gradient(circle at 18% 18%, rgba(57,255,20,0.16), transparent 32%), radial-gradient(circle at 82% 20%, rgba(51,153,255,0.18), transparent 28%), linear-gradient(180deg, #07110d 0%, #091019 100%)',
+        background: 'linear-gradient(180deg, #07110d 0%, #091019 100%)',
       }}
     >
       <div className="absolute inset-0 opacity-30" style={{
@@ -147,28 +137,35 @@ function RoutePoster({ gpx, categoryLabel, title }: { gpx: GpxResult; categoryLa
           <circle cx={endPoint.x} cy={endPoint.y} r="10" fill="#091019" stroke="#ffffff" strokeWidth="5" />
         )}
       </svg>
+    </div>
+  )
+}
 
-      <div className="absolute left-4 top-4 right-4 flex items-start justify-between gap-3">
-        <div className="rounded-full border px-3 py-1.5 text-xs font-semibold" style={{ borderColor: 'rgba(57,255,20,0.4)', background: 'rgba(7,17,13,0.72)', color: 'var(--primary)' }}>
-          {categoryLabel}
-        </div>
-        <div className="rounded-full border px-3 py-1.5 text-xs" style={{ borderColor: 'rgba(255,255,255,0.12)', background: 'rgba(7,16,25,0.72)', color: 'rgba(255,255,255,0.72)' }}>
-          Route preview
-        </div>
-      </div>
-
-      <div className="absolute inset-x-4 bottom-4 grid grid-cols-3 gap-2 text-center">
-        <div className="rounded-2xl border px-3 py-2.5" style={{ borderColor: 'rgba(255,255,255,0.1)', background: 'rgba(7,16,25,0.74)' }}>
-          <div className="text-[11px] uppercase tracking-[0.08em]" style={{ color: 'rgba(255,255,255,0.54)' }}>Distance</div>
-          <div className="mt-1 text-sm sm:text-base font-semibold">{distance ? `${distance} km` : 'Route'}</div>
-        </div>
-        <div className="rounded-2xl border px-3 py-2.5" style={{ borderColor: 'rgba(255,255,255,0.1)', background: 'rgba(7,16,25,0.74)' }}>
-          <div className="text-[11px] uppercase tracking-[0.08em]" style={{ color: 'rgba(255,255,255,0.54)' }}>Climb</div>
-          <div className="mt-1 text-sm sm:text-base font-semibold">{gpx.elevationGain > 0 ? `${gpx.elevationGain} m` : 'Flat-ish'}</div>
-        </div>
-        <div className="rounded-2xl border px-3 py-2.5" style={{ borderColor: 'rgba(255,255,255,0.1)', background: 'rgba(7,16,25,0.74)' }}>
-          <div className="text-[11px] uppercase tracking-[0.08em]" style={{ color: 'rgba(255,255,255,0.54)' }}>Shape</div>
-          <div className="mt-1 truncate text-sm sm:text-base font-semibold">{title}</div>
+function StaticEventCover({ categoryLabel, address }: { categoryLabel: string; address: string | null }) {
+  return (
+    <div
+      className="relative h-[240px] sm:h-[300px] overflow-hidden"
+      style={{
+        background:
+          'radial-gradient(circle at 22% 18%, rgba(57,255,20,0.14), transparent 26%), linear-gradient(180deg, #07110d 0%, #091019 100%)',
+      }}
+    >
+      <div className="absolute inset-0 opacity-25" style={{
+        backgroundImage:
+          'linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px)',
+        backgroundSize: '40px 40px',
+      }} />
+      <div className="absolute inset-0 flex items-center justify-center px-6 text-center">
+        <div className="space-y-3">
+          <div className="inline-flex rounded-full border px-3 py-1.5 text-xs font-semibold" style={{ borderColor: 'rgba(57,255,20,0.35)', color: 'var(--primary)', background: 'rgba(7,17,13,0.72)' }}>
+            {categoryLabel}
+          </div>
+          <div className="text-lg font-semibold">FitMeet event</div>
+          {address && (
+            <p className="mx-auto max-w-md text-sm" style={{ color: 'rgba(255,255,255,0.7)' }}>
+              {shortAddress(address)}
+            </p>
+          )}
         </div>
       </div>
     </div>
@@ -276,16 +273,9 @@ function ShareEventContent() {
             <>
               <section className="rounded-2xl border overflow-hidden" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
                 {route ? (
-                  <RoutePoster gpx={route} categoryLabel={event.category.label} title={event.title} />
+                  <RoutePoster gpx={route} />
                 ) : (
-                  <div className="h-[240px] sm:h-[300px]">
-                    <LocationPickerMap
-                      lat={event.location.lat}
-                      lng={event.location.lng}
-                      readOnly
-                      height={300}
-                    />
-                  </div>
+                  <StaticEventCover categoryLabel={event.category.label} address={event.location.address} />
                 )}
                 <div className="p-6 space-y-4">
                   <div className="flex flex-wrap items-center gap-2">
