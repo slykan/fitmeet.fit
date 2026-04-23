@@ -177,7 +177,8 @@ export default function NotificationsPage() {
               </div>
             ) : n.type === 'event_reminder' ? (
               <div key={n.id}
-                className="rounded-2xl border p-4 flex items-start gap-3"
+                onClick={() => router.push(`/events/view?id=${n.event.id}`)}
+                className="rounded-2xl border p-4 flex items-start gap-3 cursor-pointer transition-opacity hover:opacity-80"
                 style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
                 <div className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0"
                   style={{ background: 'rgba(57,255,20,0.12)', border: '1px solid var(--primary)' }}>

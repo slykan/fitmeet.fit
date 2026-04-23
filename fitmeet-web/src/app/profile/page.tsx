@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { useAuthStore } from '@/store/auth'
 import { Navbar } from '@/components/navbar'
 import { Button } from '@/components/ui/button'
-import { MapPin, Phone, Globe, Navigation, Pencil } from 'lucide-react'
+import { Bell, Calendar, Mail, MapPin, Phone, Globe, Navigation, Pencil, UserPlus } from 'lucide-react'
 
 const RADIUS_LABELS: Record<string, string> = {
   nearby: 'Nearby (50 km)',
@@ -96,7 +96,7 @@ export default function ProfilePage() {
         {/* Interests */}
         {(user.categories?.length > 0 || user.skill_level) && (
           <div
-            className="rounded-2xl border p-6"
+            className="rounded-2xl border p-6 mb-5"
             style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
           >
             <h2 className="font-bold text-sm uppercase tracking-wide mb-4 flex items-center gap-2">
@@ -123,6 +123,33 @@ export default function ProfilePage() {
           </div>
         )}
 
+        {/* Email notifications */}
+        <div
+          className="rounded-2xl border p-6 mb-5"
+          style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
+        >
+          <h2 className="font-bold text-sm uppercase tracking-wide mb-4 flex items-center gap-2">
+            <Mail size={14} style={{ color: 'var(--primary)' }} /> Email notifications
+          </h2>
+          <div className="space-y-3">
+            <PreferenceRow
+              icon={<UserPlus size={14} />}
+              label="Friend activity"
+              enabled={user.email_preferences?.friend_requests ?? true}
+            />
+            <PreferenceRow
+              icon={<Calendar size={14} />}
+              label="New events near you"
+              enabled={user.email_preferences?.new_events ?? true}
+            />
+            <PreferenceRow
+              icon={<Bell size={14} />}
+              label="Event reminders"
+              enabled={user.email_preferences?.event_reminders ?? true}
+            />
+          </div>
+        </div>
+
         {/* No profile yet */}
         {!user.home.city && !user.categories?.length && (
           <div className="text-center py-8">
@@ -135,5 +162,32 @@ export default function ProfilePage() {
 
       </main>
     </>
+  )
+}
+
+function PreferenceRow({
+  icon,
+  label,
+  enabled,
+}: {
+  icon: React.ReactNode
+  label: string
+  enabled: boolean
+}) {
+  return (
+    <div className="flex items-center gap-3 text-sm">
+      <span style={{ color: enabled ? 'var(--primary)' : 'var(--text-muted)' }}>{icon}</span>
+      <span className="flex-1">{label}</span>
+      <span
+        className="text-xs font-semibold px-2 py-0.5 rounded-full"
+        style={{
+          color: enabled ? 'var(--primary)' : 'var(--text-muted)',
+          background: enabled ? 'rgba(57,255,20,0.08)' : 'var(--background)',
+          border: '1px solid var(--border)',
+        }}
+      >
+        {enabled ? 'On' : 'Off'}
+      </span>
+    </div>
   )
 }

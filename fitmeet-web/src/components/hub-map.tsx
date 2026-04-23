@@ -161,36 +161,32 @@ export default function HubMap() {
 
       {/* Radar sweep */}
       {radar && (
-        <div style={{
-          position: 'absolute', inset: 0,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          pointerEvents: 'none', zIndex: 500,
-          background: '#060b14',
-          animation: 'fm-radar-fade 5s linear forwards',
-        }}>
+        <>
           <style>{`
             @keyframes fm-radar-fade { 0% { opacity:1; } 100% { opacity:0; } }
           `}</style>
           <svg viewBox="0 0 220 220" xmlns="http://www.w3.org/2000/svg"
-            style={{ width: '100vmin', height: '100vmin', display: 'block' }}>
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              width: '100vmin',
+              height: '100vmin',
+              transform: 'translate(-50%, -50%)',
+              display: 'block',
+              pointerEvents: 'none',
+              zIndex: 500,
+              overflow: 'visible',
+              animation: 'fm-radar-fade 5s linear forwards',
+            }}>
             <defs>
-              <radialGradient id="fm-rg" cx="50%" cy="50%" r="50%">
-                <stop offset="0%"   stopColor="#00aaff" stopOpacity="0.9"/>
-                <stop offset="40%"  stopColor="#00aaff" stopOpacity="0.25"/>
-                <stop offset="100%" stopColor="#00aaff" stopOpacity="0"/>
-              </radialGradient>
-              <filter id="fm-glow" x="-50%" y="-50%" width="200%" height="200%">
-                <feGaussianBlur stdDeviation="4"/>
-              </filter>
               <clipPath id="fm-clip">
                 <circle cx="110" cy="110" r="100"/>
               </clipPath>
             </defs>
 
-            <circle cx="110" cy="110" r="100" fill="url(#fm-rg)"/>
-
             <g clipPath="url(#fm-clip)">
-              <circle cx="110" cy="110" r="100" fill="rgba(0,170,255,0.04)" stroke="#00aaff" strokeOpacity="0.25" strokeWidth="2"/>
+              <circle cx="110" cy="110" r="100" fill="none" stroke="#00aaff" strokeOpacity="0.25" strokeWidth="2"/>
               <circle cx="110" cy="110" r="75"  fill="none" stroke="#00aaff" strokeOpacity="0.18"/>
               <circle cx="110" cy="110" r="50"  fill="none" stroke="#00aaff" strokeOpacity="0.18"/>
               <circle cx="110" cy="110" r="25"  fill="none" stroke="#00aaff" strokeOpacity="0.18"/>
@@ -198,11 +194,11 @@ export default function HubMap() {
               <line x1="110" y1="10"  x2="110" y2="210" stroke="#00aaff" strokeOpacity="0.15"/>
 
               <g transform="translate(110 110)">
-                <path d="M0,0 L0,-100 A100,100 0 0,1 38,-92 Z"
-                  fill="#00aaff" fillOpacity="0.22" filter="url(#fm-glow)">
+                <line x1="0" y1="0" x2="0" y2="-100"
+                  stroke="#00aaff" strokeOpacity="0.65" strokeWidth="2" strokeLinecap="round">
                   <animateTransform attributeName="transform" type="rotate"
                     from="0" to="360" dur="3s" repeatCount="indefinite"/>
-                </path>
+                </line>
               </g>
 
               <circle cx="110" cy="110" r="8" fill="none" stroke="#00aaff" strokeWidth="2">
@@ -214,12 +210,12 @@ export default function HubMap() {
                 <animate attributeName="opacity" from="0.8" to="0" dur="2.4s" begin="1.2s" repeatCount="indefinite"/>
               </circle>
 
-              <circle cx="110" cy="110" r="5" fill="#00aaff" filter="url(#fm-glow)">
+              <circle cx="110" cy="110" r="5" fill="#00aaff">
                 <animate attributeName="opacity" values="1;0.5;1" dur="1.2s" repeatCount="indefinite"/>
               </circle>
             </g>
           </svg>
-        </div>
+        </>
       )}
 
       {/* Empty state */}

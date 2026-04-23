@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { useTheme } from 'next-themes'
 import { useForm, Controller } from 'react-hook-form'
-import { Globe, MapPin, Navigation, Phone, User, Check, LocateFixed, Search } from 'lucide-react'
+import { Bell, Calendar, Globe, Mail, MapPin, Navigation, Phone, User, Check, LocateFixed, Search, UserPlus } from 'lucide-react'
 
 import api from '@/lib/api'
 import { useAuthStore } from '@/store/auth'
@@ -44,6 +44,9 @@ interface FormData {
   radius:       'nearby' | 'city' | 'region' | 'unlimited'
   categories:   string[]
   skill_level:  'beginner' | 'advanced' | 'pro' | null
+  email_friend_requests: boolean
+  email_new_events: boolean
+  email_event_reminders: boolean
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -76,6 +79,9 @@ export default function OnboardingPage() {
       radius:       user?.radius        ?? 'nearby',
       categories:   user?.categories    ?? [],
       skill_level:  user?.skill_level   ?? null,
+      email_friend_requests: user?.email_preferences?.friend_requests ?? true,
+      email_new_events:      user?.email_preferences?.new_events ?? true,
+      email_event_reminders: user?.email_preferences?.event_reminders ?? true,
     },
   })
 
@@ -90,6 +96,9 @@ export default function OnboardingPage() {
   const watchedCategories = watch('categories')
   const watchedSkill      = watch('skill_level')
   const watchedHidePhone  = watch('hide_phone')
+  const watchedFriendEmails   = watch('email_friend_requests')
+  const watchedNewEventEmails = watch('email_new_events')
+  const watchedReminderEmails = watch('email_event_reminders')
 
   function toggleCategory(value: string) {
     const current = watchedCategories
@@ -161,6 +170,9 @@ export default function OnboardingPage() {
       if (data.categories.length > 0)  payload.categories   = data.categories
       if (data.skill_level)            payload.skill_level  = data.skill_level
       payload.hide_phone = data.hide_phone
+      payload.email_friend_requests = data.email_friend_requests
+      payload.email_new_events = data.email_new_events
+      payload.email_event_reminders = data.email_event_reminders
 
       const { data: res } = await api.patch('/me', payload)
       setUser(res.data)
@@ -429,6 +441,32 @@ export default function OnboardingPage() {
             </Field>
           </Section>
 
+          <Section title="Email notifications" icon={<Mail size={15} />}>
+            <div className="space-y-3">
+              <ToggleRow
+                icon={<UserPlus size={15} />}
+                title="Friend activity"
+                description="Friend requests and accepted requests."
+                checked={watchedFriendEmails}
+                onToggle={() => setValue('email_friend_requests', !watchedFriendEmails)}
+              />
+              <ToggleRow
+                icon={<Calendar size={15} />}
+                title="New events near you"
+                description="Events that match your interests and radius."
+                checked={watchedNewEventEmails}
+                onToggle={() => setValue('email_new_events', !watchedNewEventEmails)}
+              />
+              <ToggleRow
+                icon={<Bell size={15} />}
+                title="Event reminders"
+                description="Reminder emails for events you joined."
+                checked={watchedReminderEmails}
+                onToggle={() => setValue('email_event_reminders', !watchedReminderEmails)}
+              />
+            </div>
+          </Section>
+
           {error && (
             <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-xl px-4 py-3">
               {error}
@@ -502,6 +540,47 @@ function Field({
       {children}
       {error && <p className="text-red-400 text-xs mt-1">{error}</p>}
     </div>
+  )
+}
+
+function ToggleRow({
+  icon,
+  title,
+  description,
+  checked,
+  onToggle,
+}: {
+  icon: React.ReactNode
+  title: string
+  description: string
+  checked: boolean
+  onToggle: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className="w-full flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors hover:border-[--primary]"
+      style={{ borderColor: checked ? 'var(--primary)' : 'var(--border)' }}
+    >
+      <span style={{ color: checked ? 'var(--primary)' : 'var(--text-muted)' }}>{icon}</span>
+      <span className="flex-1 min-w-0">
+        <span className="block text-sm font-semibold">{title}</span>
+        <span className="block text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{description}</span>
+      </span>
+      <span
+        className="relative w-9 h-5 rounded-full transition-colors flex-shrink-0"
+        style={{ background: checked ? 'var(--primary)' : 'var(--border)' }}
+      >
+        <span
+          className="absolute top-0.5 w-4 h-4 rounded-full transition-all"
+          style={{
+            left: checked ? '18px' : '2px',
+            background: checked ? '#000' : 'var(--text-muted)',
+          }}
+        />
+      </span>
+    </button>
   )
 }
 

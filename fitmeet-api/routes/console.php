@@ -18,6 +18,16 @@ Artisan::command('reminders:send', function () {
         ->get();
 
     foreach ($reminders as $reminder) {
+        if ($reminder->event->status !== 'active') {
+            $reminder->update(['sent_at' => now()]);
+            continue;
+        }
+
+        if (! $reminder->user->email_event_reminders) {
+            $reminder->update(['sent_at' => now()]);
+            continue;
+        }
+
         try {
             Mail::to($reminder->user->email)->send(new EventReminderMail($reminder));
             $reminder->update(['sent_at' => now()]);

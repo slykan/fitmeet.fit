@@ -7,6 +7,12 @@ export interface User {
   email: string
   avatar: string | null
   phone: string | null
+  hide_phone: boolean
+  email_preferences: {
+    friend_requests: boolean
+    new_events: boolean
+    event_reminders: boolean
+  }
   location: { lat: number | null; lng: number | null }
   home: { lat: number | null; lng: number | null; city: string | null; country: string | null }
   radius: 'nearby' | 'city' | 'region' | 'unlimited'

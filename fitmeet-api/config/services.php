@@ -41,4 +41,8 @@ return [
         'redirect'      => env('GOOGLE_REDIRECT_URI'),
     ],
 
+    'turnstile' => [
+        'secret' => env('TURNSTILE_SECRET'),
+    ],
+
 ];

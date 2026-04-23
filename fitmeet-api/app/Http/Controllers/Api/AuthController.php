@@ -23,7 +23,7 @@ class AuthController extends Controller
         ]);
 
         $verify = Http::asForm()->post('https://challenges.cloudflare.com/turnstile/v0/siteverify', [
-            'secret'   => env('TURNSTILE_SECRET'),
+            'secret'   => $this->turnstileSecret(),
             'response' => $request->cf_turnstile_response,
             'remoteip' => $request->ip(),
         ]);
@@ -45,6 +45,28 @@ class AuthController extends Controller
             'token' => $token,
             'data'  => new UserResource($user),
         ], 201);
+    }
+
+    private function turnstileSecret(): string
+    {
+        $secret = (string) (config('services.turnstile.secret') ?: env('TURNSTILE_SECRET', ''));
+
+        if ($secret !== '') {
+            return $secret;
+        }
+
+        $envPath = base_path('.env');
+        if (! is_readable($envPath)) {
+            return '';
+        }
+
+        foreach (file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [] as $line) {
+            if (str_starts_with($line, 'TURNSTILE_SECRET=')) {
+                return trim(substr($line, strlen('TURNSTILE_SECRET=')), " \t\n\r\0\x0B\"'");
+            }
+        }
+
+        return '';
     }
 
     public function loginWithEmail(Request $request): JsonResponse

@@ -41,9 +41,11 @@ class FriendController extends Controller
             'status'      => 'pending',
         ]);
 
-        try {
-            Mail::to($user->email)->send(new FriendRequestMail($me, $user));
-        } catch (\Throwable) {}
+        if ($user->email_friend_requests) {
+            try {
+                Mail::to($user->email)->send(new FriendRequestMail($me, $user));
+            } catch (\Throwable) {}
+        }
 
         return response()->json(['message' => 'Friend request sent.']);
     }
@@ -68,10 +70,12 @@ class FriendController extends Controller
         $friendRequest->load('sender');
         $friendRequest->update(['status' => 'accepted']);
 
-        try {
-            Mail::to($friendRequest->sender->email)
-                ->send(new FriendAcceptedMail($request->user(), $friendRequest->sender));
-        } catch (\Throwable) {}
+        if ($friendRequest->sender->email_friend_requests) {
+            try {
+                Mail::to($friendRequest->sender->email)
+                    ->send(new FriendAcceptedMail($request->user(), $friendRequest->sender));
+            } catch (\Throwable) {}
+        }
 
         return response()->json(['message' => 'Friend request accepted.']);
     }

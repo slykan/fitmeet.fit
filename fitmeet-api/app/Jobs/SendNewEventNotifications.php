@@ -65,9 +65,11 @@ class SendNewEventNotifications implements ShouldQueue
                 'event_id' => $event->id,
             ]);
 
-            try {
-                Mail::to($user->email)->send(new NewEventMail($event, $user));
-            } catch (\Throwable) {}
+            if ($user->email_new_events) {
+                try {
+                    Mail::to($user->email)->send(new NewEventMail($event, $user));
+                } catch (\Throwable) {}
+            }
         }
     }
 }
