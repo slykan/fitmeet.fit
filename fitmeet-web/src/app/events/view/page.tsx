@@ -5,7 +5,7 @@ import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Calendar, MapPin, Users, Zap, ChevronLeft, Lock, Pencil, ChevronDown, ChevronUp, Bell, Check, X, Share2 } from 'lucide-react'
+import { Calendar, MapPin, Users, Zap, ChevronLeft, Lock, Pencil, ChevronDown, ChevronUp, Bell, Check, X, Share2, XCircle } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
 import ElevationChart from '@/components/elevation-chart'
@@ -67,6 +67,7 @@ function EventContent() {
   const [settingReminders, setSettingReminders] = useState(false)
   const [activeOffsets,    setActiveOffsets]    = useState<string[]>([])
   const [copied, setCopied] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
 
   useEffect(() => {
     if (!token) { router.replace('/login'); return }
@@ -158,6 +159,23 @@ function EventContent() {
       setCopied(true)
       window.setTimeout(() => setCopied(false), 1800)
     } catch {}
+  }
+
+  async function handleCancelEvent() {
+    if (!event) return
+    if (!confirm('Cancel this event? Joined users will be notified.')) return
+
+    setCancelling(true)
+    setError(null)
+    try {
+      await api.delete(`/events/${event.id}`)
+      setEvent(current => current ? { ...current, status: 'cancelled' } : current)
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Failed to cancel event.'
+      setError(msg)
+    } finally {
+      setCancelling(false)
+    }
   }
 
   return (
@@ -342,10 +360,16 @@ function EventContent() {
           )}
 
           {event.is_organizer && event.status === 'active' && (
-            <Button size="lg" variant="ghost" className="w-full border flex items-center gap-2"
-              onClick={() => router.push(`/events/edit?id=${event.id}`)}>
-              <Pencil size={15} /> Edit event
-            </Button>
+            <div className="flex gap-2">
+              <Button size="lg" variant="ghost" className="flex-1 border flex items-center gap-2"
+                onClick={() => router.push(`/events/edit?id=${event.id}`)}>
+                <Pencil size={15} /> Edit event
+              </Button>
+              <Button size="lg" variant="ghost" loading={cancelling} className="flex-1 border text-red-400 hover:text-red-400 flex items-center gap-2"
+                onClick={handleCancelEvent}>
+                <XCircle size={15} /> Cancel event
+              </Button>
+            </div>
           )}
 
           <div className="rounded-2xl border p-5 flex items-center gap-3" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
