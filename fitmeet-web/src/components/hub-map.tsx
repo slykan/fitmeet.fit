@@ -69,6 +69,7 @@ function createEmojiIcon(emoji: string, angle = 0, zIndex = 1) {
         align-items:center;
         justify-content:center;
         font-size:18px;
+        transform:rotate(${angle * 0.18}deg);
         box-shadow:0 4px 14px rgba(0,0,0,0.65),0 0 16px rgba(57,255,20,0.22);
       ">${emoji}</div>
       <div style="
@@ -157,15 +158,42 @@ interface MarkerDisplay {
   zIndex: number
 }
 
-function getMarkerGroupKey(event: EventPin): string {
-  return `${event.location.lat.toFixed(3)}:${event.location.lng.toFixed(3)}`
-}
-
 function getBouquetAngle(index: number, total: number): number {
   if (total <= 1) return 0
   const maxSpread = total <= 3 ? 18 : 30
   const step = Math.min(18, (maxSpread * 2) / Math.max(1, total - 1))
   return (index - (total - 1) / 2) * step
+}
+
+function getNearbyMarkerGroups(events: EventPin[]): EventPin[][] {
+  const remaining = [...events].sort((a, b) => a.id - b.id)
+  const groups: EventPin[][] = []
+  const closeKm = 0.9
+
+  while (remaining.length > 0) {
+    const seed = remaining.shift()
+    if (!seed) break
+
+    const group = [seed]
+    for (let i = remaining.length - 1; i >= 0; i -= 1) {
+      const candidate = remaining[i]
+      const isClose = group.some(event =>
+        getDistanceKm(
+          event.location.lat,
+          event.location.lng,
+          candidate.location.lat,
+          candidate.location.lng,
+        ) <= closeKm
+      )
+      if (isClose) {
+        group.push(candidate)
+        remaining.splice(i, 1)
+      }
+    }
+    groups.push(group.sort((a, b) => a.id - b.id))
+  }
+
+  return groups
 }
 
 export default function HubMap() {
@@ -259,22 +287,13 @@ export default function HubMap() {
   }, [events, joinedEvents, goingOnly, friendsOnly, friendIds, selectedCategories, radiusKm, lat, lng])
 
   const markerDisplays = useMemo<MarkerDisplay[]>(() => {
-    const groups = new Map<string, EventPin[]>()
-    visibleEvents.forEach(event => {
-      const key = getMarkerGroupKey(event)
-      groups.set(key, [...(groups.get(key) ?? []), event])
-    })
-
-    return visibleEvents.map(event => {
-      const group = groups.get(getMarkerGroupKey(event)) ?? [event]
-      const sortedGroup = [...group].sort((a, b) => a.id - b.id)
-      const index = sortedGroup.findIndex(item => item.id === event.id)
-      return {
+    return getNearbyMarkerGroups(visibleEvents).flatMap(group =>
+      group.map((event, index) => ({
         event,
-        angle: getBouquetAngle(index, sortedGroup.length),
+        angle: getBouquetAngle(index, group.length),
         zIndex: 1000 + index,
-      }
-    })
+      }))
+    )
   }, [visibleEvents])
 
   useEffect(() => {
