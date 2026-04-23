@@ -32,7 +32,7 @@ interface EventPin {
   organizer: { id: number; name: string } | null
 }
 
-function createEmojiIcon(emoji: string, angle = 0, zIndex = 1) {
+function createEmojiIcon(emoji: string, angle = 0, zIndex = 1, delayMs = 0) {
   const offsetPx = Math.round(Math.sin(angle * Math.PI / 180) * 30)
   const stemHeight = 40 + Math.round(Math.abs(angle) * 0.22)
 
@@ -44,6 +44,12 @@ function createEmojiIcon(emoji: string, angle = 0, zIndex = 1) {
       z-index:${zIndex};
       cursor:pointer;
     ">
+      <div style="
+        position:absolute;
+        inset:0;
+        transform-origin:50% calc(100% - 3px);
+        animation:fm-marker-bloom 620ms cubic-bezier(.2,.85,.2,1) ${delayMs}ms both;
+      ">
       <div style="
         position:absolute;
         left:50%;
@@ -83,6 +89,7 @@ function createEmojiIcon(emoji: string, angle = 0, zIndex = 1) {
         background:#39FF14;
         box-shadow:0 0 10px rgba(57,255,20,0.55);
       "></div>
+      </div>
     </div>`,
     className: '',
     iconSize: [78, 82],
@@ -156,6 +163,7 @@ interface MarkerDisplay {
   event: EventPin
   angle: number
   zIndex: number
+  delayMs: number
 }
 
 function getBouquetAngle(index: number, total: number): number {
@@ -292,6 +300,7 @@ export default function HubMap() {
         event,
         angle: getBouquetAngle(index, group.length),
         zIndex: 1000 + index,
+        delayMs: index * 55,
       }))
     )
   }, [visibleEvents])
@@ -312,6 +321,28 @@ export default function HubMap() {
 
   return (
     <div style={{ position: 'relative', height: '100%', width: '100%' }}>
+      <style>{`
+        @keyframes fm-marker-bloom {
+          0% {
+            opacity: 0.45;
+            transform: translateY(10px) scale(0.08);
+          }
+          58% {
+            opacity: 1;
+            transform: translateY(0) scale(1.04);
+          }
+          76% {
+            transform: translateX(-1px) rotate(1.1deg) scale(0.98);
+          }
+          88% {
+            transform: translateX(1px) rotate(-1deg) scale(1.02);
+          }
+          100% {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+      `}</style>
 
       <MapContainer
         center={mapCenter}
@@ -333,11 +364,11 @@ export default function HubMap() {
           recenterKey={recenterKey}
         />
 
-        {markerDisplays.map(({ event: ev, angle, zIndex }) => (
+        {markerDisplays.map(({ event: ev, angle, zIndex, delayMs }) => (
           <Marker
             key={ev.id}
             position={[ev.location.lat, ev.location.lng]}
-            icon={createEmojiIcon(CATEGORY_EMOJI[ev.category.value] ?? '📍', angle, zIndex)}
+            icon={createEmojiIcon(CATEGORY_EMOJI[ev.category.value] ?? '📍', angle, zIndex, delayMs)}
             zIndexOffset={zIndex}
             eventHandlers={{ click: () => setSelected(ev) }}
           />
