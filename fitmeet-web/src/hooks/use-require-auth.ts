@@ -5,10 +5,11 @@ import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth'
 
 export function useRequireAuth() {
-  const { token, user } = useAuthStore()
+  const { token, user, hasHydrated } = useAuthStore()
   const router = useRouter()
 
   useEffect(() => {
+    if (!hasHydrated) return
     if (!token) {
       router.replace('/login')
       return
@@ -16,7 +17,7 @@ export function useRequireAuth() {
     if (user && !user.onboarding_complete) {
       router.replace('/onboarding')
     }
-  }, [token, user, router])
+  }, [hasHydrated, token, user, router])
 
-  return { user, token }
+  return { user, token, hasHydrated }
 }
