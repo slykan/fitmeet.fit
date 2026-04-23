@@ -31,21 +31,60 @@ interface EventPin {
   is_joined: boolean
 }
 
-function createEmojiIcon(emoji: string) {
+function createEmojiIcon(emoji: string, angle = 0, zIndex = 1) {
+  const offsetPx = Math.round(Math.sin(angle * Math.PI / 180) * 30)
+  const stemHeight = 40 + Math.round(Math.abs(angle) * 0.22)
+
   return L.divIcon({
     html: `<div style="
-      width:38px;height:38px;
-      background:#16161F;
-      border:2.5px solid #39FF14;
-      border-radius:50%;
-      display:flex;align-items:center;justify-content:center;
-      font-size:18px;
-      box-shadow:0 2px 10px rgba(0,0,0,0.6);
+      position:relative;
+      width:78px;
+      height:82px;
+      z-index:${zIndex};
       cursor:pointer;
-    ">${emoji}</div>`,
+    ">
+      <div style="
+        position:absolute;
+        left:50%;
+        bottom:8px;
+        width:3px;
+        height:${stemHeight}px;
+        transform:translateX(-50%) rotate(${angle}deg);
+        transform-origin:bottom center;
+        border-radius:999px;
+        background:linear-gradient(180deg,#39FF14,#0ea5e9);
+        box-shadow:0 0 10px rgba(57,255,20,0.35);
+      "></div>
+      <div style="
+        position:absolute;
+        left:calc(50% - 19px + ${offsetPx}px);
+        top:${Math.max(2, 10 - Math.abs(angle) * 0.12)}px;
+        width:38px;
+        height:38px;
+        background:#16161F;
+        border:2.5px solid #39FF14;
+        border-radius:50%;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        font-size:18px;
+        box-shadow:0 4px 14px rgba(0,0,0,0.65),0 0 16px rgba(57,255,20,0.22);
+      ">${emoji}</div>
+      <div style="
+        position:absolute;
+        left:50%;
+        bottom:3px;
+        width:8px;
+        height:8px;
+        transform:translateX(-50%);
+        border-radius:50%;
+        background:#39FF14;
+        box-shadow:0 0 10px rgba(57,255,20,0.55);
+      "></div>
+    </div>`,
     className: '',
-    iconSize: [38, 38],
-    iconAnchor: [19, 19],
+    iconSize: [78, 82],
+    iconAnchor: [39, 79],
   })
 }
 
@@ -110,6 +149,23 @@ function formatDate(iso: string) {
 }
 
 interface Participant { id: number; name: string; avatar: string | null }
+
+interface MarkerDisplay {
+  event: EventPin
+  angle: number
+  zIndex: number
+}
+
+function getMarkerGroupKey(event: EventPin): string {
+  return `${event.location.lat.toFixed(3)}:${event.location.lng.toFixed(3)}`
+}
+
+function getBouquetAngle(index: number, total: number): number {
+  if (total <= 1) return 0
+  const maxSpread = total <= 3 ? 18 : 30
+  const step = Math.min(18, (maxSpread * 2) / Math.max(1, total - 1))
+  return (index - (total - 1) / 2) * step
+}
 
 export default function HubMap() {
   const { user }   = useAuthStore()
@@ -189,6 +245,25 @@ export default function HubMap() {
     })
   }, [events, joinedEvents, goingOnly, selectedCategories, radiusKm, lat, lng])
 
+  const markerDisplays = useMemo<MarkerDisplay[]>(() => {
+    const groups = new Map<string, EventPin[]>()
+    visibleEvents.forEach(event => {
+      const key = getMarkerGroupKey(event)
+      groups.set(key, [...(groups.get(key) ?? []), event])
+    })
+
+    return visibleEvents.map(event => {
+      const group = groups.get(getMarkerGroupKey(event)) ?? [event]
+      const sortedGroup = [...group].sort((a, b) => a.id - b.id)
+      const index = sortedGroup.findIndex(item => item.id === event.id)
+      return {
+        event,
+        angle: getBouquetAngle(index, sortedGroup.length),
+        zIndex: 1000 + index,
+      }
+    })
+  }, [visibleEvents])
+
   useEffect(() => {
     setSelected(current => current && visibleEvents.some(ev => ev.id === current.id) ? current : null)
     setRecenterKey(key => key + 1)
@@ -226,11 +301,12 @@ export default function HubMap() {
           recenterKey={recenterKey}
         />
 
-        {visibleEvents.map(ev => (
+        {markerDisplays.map(({ event: ev, angle, zIndex }) => (
           <Marker
             key={ev.id}
             position={[ev.location.lat, ev.location.lng]}
-            icon={createEmojiIcon(CATEGORY_EMOJI[ev.category.value] ?? '📍')}
+            icon={createEmojiIcon(CATEGORY_EMOJI[ev.category.value] ?? '📍', angle, zIndex)}
+            zIndexOffset={zIndex}
             eventHandlers={{ click: () => setSelected(ev) }}
           />
         ))}
