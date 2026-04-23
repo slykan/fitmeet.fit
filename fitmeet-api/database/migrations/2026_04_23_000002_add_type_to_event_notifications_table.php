@@ -8,18 +8,33 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-        Schema::table('event_notifications', function (Blueprint $table) {
-            $table->string('type')->default('new_event')->after('event_id');
-        });
+        if (! Schema::hasColumn('event_notifications', 'type')) {
+            Schema::table('event_notifications', function (Blueprint $table) {
+                $table->string('type')->default('new_event')->after('event_id');
+            });
+        }
 
-        DB::table('event_notifications')->update(['type' => 'new_event']);
+        DB::table('event_notifications')->whereNull('type')->update(['type' => 'new_event']);
 
-        Schema::table('event_notifications', function (Blueprint $table) {
-            $table->index('user_id');
-            $table->index('event_id');
-            $table->dropUnique('event_notifications_user_id_event_id_unique');
-            $table->unique(['user_id', 'event_id', 'type']);
-        });
+        try {
+            DB::statement('ALTER TABLE event_notifications ADD INDEX event_notifications_user_id_index (user_id)');
+        } catch (\Throwable) {
+        }
+
+        try {
+            DB::statement('ALTER TABLE event_notifications ADD INDEX event_notifications_event_id_index (event_id)');
+        } catch (\Throwable) {
+        }
+
+        try {
+            DB::statement('ALTER TABLE event_notifications DROP INDEX event_notifications_user_id_event_id_unique');
+        } catch (\Throwable) {
+        }
+
+        try {
+            DB::statement('ALTER TABLE event_notifications ADD UNIQUE event_notifications_user_id_event_id_type_unique (user_id, event_id, type)');
+        } catch (\Throwable) {
+        }
     }
 
     public function down(): void
