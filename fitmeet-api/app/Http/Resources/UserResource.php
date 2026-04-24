@@ -40,7 +40,7 @@ class UserResource extends JsonResource
 
             'onboarding_complete' => $this->isOnboardingComplete(),
 
-            'created_at' => $this->created_at->toDateTimeString(),
+            'created_at' => $this->created_at?->toDateTimeString(),
         ];
     }
 }
