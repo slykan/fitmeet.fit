@@ -10,6 +10,7 @@ const spaceGrotesk = Space_Grotesk({
 })
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'https://fitmeet.fit'),
   title: 'FitMeet — Find your people. Move together.',
   description: 'Discover and join local sports and social events near you.',
   icons: {
