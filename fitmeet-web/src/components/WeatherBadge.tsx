@@ -75,7 +75,7 @@ export function WeatherBadge({ lat, lng, startAt, inline = false }: Props) {
       style={{
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'flex-end',
+        justifyContent: 'flex-start',
         gap: 5,
         marginTop: 8,
         fontSize: 11,
