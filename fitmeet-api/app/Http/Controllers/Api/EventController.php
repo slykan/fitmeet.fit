@@ -134,6 +134,90 @@ class EventController extends Controller
         return response()->json(['data' => new PublicEventShareResource($event)]);
     }
 
+    // GET /api/events/og?id=X  — OG meta HTML for social crawlers
+    public function ogPage(Request $request): \Illuminate\Http\Response
+    {
+        $siteUrl  = 'https://fitmeet.fit';
+        $id       = (int) $request->query('id', 0);
+        $shareUrl = $siteUrl . '/events/share/?id=' . $id;
+        $fallback = redirect()->away($shareUrl);
+
+        $event = $id ? Event::find($id) : null;
+
+        if (! $event || $event->is_private || $event->status !== 'active') {
+            return response(
+                '<html><head><meta http-equiv="refresh" content="0;url=' . e($shareUrl) . '"></head><body></body></html>',
+                200, ['Content-Type' => 'text/html']
+            );
+        }
+
+        $event->load('category', 'location');
+
+        // Title
+        $title = $event->title . ' | FitMeet';
+
+        // Description
+        $startAt = $event->start_at ?? ($event->schedule['start_at'] ?? null);
+        $dateStr = $startAt ? \Carbon\Carbon::parse($startAt)->format('D, j M Y · H:i') : '';
+
+        $parts = [];
+        $parts[] = optional($event->category)->label ?? $event->category_value ?? '';
+        if ($dateStr) $parts[] = $dateStr;
+        if ($event->duration_minutes) $parts[] = $event->duration_minutes . ' min';
+        if ($event->distance_km)      $parts[] = $event->distance_km . ' km';
+        if ($event->elevation_gain)   $parts[] = '↑' . $event->elevation_gain . ' m';
+        if ($event->skill_level)      $parts[] = ucfirst($event->skill_level);
+        $parts[] = ($event->participants_count ?? 0) . ' going';
+        if ($event->description)      $parts[] = $event->description;
+
+        $description = mb_substr(implode(' · ', array_filter($parts)), 0, 300);
+
+        // Image — OSM tile at event location
+        $lat   = $event->lat ?? ($event->location['lat'] ?? null);
+        $lng   = $event->lng ?? ($event->location['lng'] ?? null);
+        $image = $siteUrl . '/logo_full.png';
+        if ($lat && $lng) {
+            $z = 14;
+            $x = (int) floor(($lng + 180) / 360 * (1 << $z));
+            $y = (int) floor((1 - log(tan(deg2rad($lat)) + 1 / cos(deg2rad($lat))) / M_PI) / 2 * (1 << $z));
+            $image = "https://tile.openstreetmap.org/{$z}/{$x}/{$y}.png";
+        }
+
+        $h = fn($s) => htmlspecialchars((string) $s, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+        $html = <<<HTML
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>{$h($title)}</title>
+<meta name="description" content="{$h($description)}">
+<meta property="og:type"          content="article">
+<meta property="og:site_name"     content="FitMeet">
+<meta property="og:title"         content="{$h($title)}">
+<meta property="og:description"   content="{$h($description)}">
+<meta property="og:url"           content="{$h($shareUrl)}">
+<meta property="og:image"         content="{$h($image)}">
+<meta name="twitter:card"         content="summary_large_image">
+<meta name="twitter:title"        content="{$h($title)}">
+<meta name="twitter:description"  content="{$h($description)}">
+<meta name="twitter:image"        content="{$h($image)}">
+<meta http-equiv="refresh" content="0;url={$h($shareUrl)}">
+</head>
+<body>
+<h1>{$h($event->title)}</h1>
+<p>{$h($description)}</p>
+<a href="{$h($shareUrl)}">Open in FitMeet</a>
+</body>
+</html>
+HTML;
+
+        return response($html, 200, [
+            'Content-Type'  => 'text/html; charset=UTF-8',
+            'Cache-Control' => 'public, max-age=300',
+        ]);
+    }
+
     // PATCH /api/events/{event}
     public function update(UpdateEventRequest $request, Event $event): JsonResponse
     {

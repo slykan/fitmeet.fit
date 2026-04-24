@@ -18,6 +18,7 @@ Route::prefix('auth')->group(function () {
 // Public
 Route::get('categories', [CategoryController::class, 'index']);
 Route::get('events/public/{event}', [EventController::class, 'publicShow']);
+Route::get('events/og',            [EventController::class, 'ogPage']);
 
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
