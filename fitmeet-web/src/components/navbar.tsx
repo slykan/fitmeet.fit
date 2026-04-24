@@ -72,6 +72,11 @@ export function Navbar() {
   }
 
   function navigate(path: string) {
+    if (path === '/notifications' && user && typeof window !== 'undefined') {
+      window.localStorage.setItem(notificationsSeenKey(user.id), new Date().toISOString())
+      setNotifCount(0)
+      window.dispatchEvent(new Event('fitmeet-notifications-seen'))
+    }
     setMenuOpen(false)
     router.push(path)
   }

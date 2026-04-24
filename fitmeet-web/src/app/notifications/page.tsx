@@ -117,6 +117,10 @@ export default function NotificationsPage() {
   useEffect(() => {
     if (!mounted) return
     if (!token) { router.replace('/login?redirect=/notifications'); return }
+    if (typeof window !== 'undefined' && user?.id) {
+      window.localStorage.setItem(notificationsSeenKey(user.id), new Date().toISOString())
+      window.dispatchEvent(new Event('fitmeet-notifications-seen'))
+    }
     api.get('/notifications')
       .then(({ data }) => {
         const items = data.data ?? []
