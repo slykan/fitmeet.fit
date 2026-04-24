@@ -154,7 +154,7 @@ class EventController extends Controller
         $dateStr = $event->start_at ? $event->start_at->format('D, j M Y · H:i') : '';
 
         $parts   = [];
-        $parts[] = $event->category?->label ?? (string) $event->category;
+        $parts[] = $event->category?->label() ?? $event->category?->value ?? '';
         if ($dateStr)              $parts[] = $dateStr;
         if ($event->duration_minutes) $parts[] = $event->duration_minutes . ' min';
         if ($event->distance_km)   $parts[] = $event->distance_km . ' km';
