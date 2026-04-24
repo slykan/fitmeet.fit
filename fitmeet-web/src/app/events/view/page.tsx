@@ -5,7 +5,7 @@ import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Calendar, MapPin, Users, Zap, ChevronLeft, Lock, Pencil, ChevronDown, ChevronUp, Bell, Check, X, Share2, XCircle } from 'lucide-react'
+import { Calendar, MapPin, Users, Zap, ChevronLeft, Lock, Pencil, ChevronDown, ChevronUp, Bell, Check, X, Share2, XCircle, Download } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
 import ElevationChart from '@/components/elevation-chart'
@@ -310,6 +310,19 @@ function EventContent() {
                       event.activity.pace,
                     ].filter(Boolean).join(' · ')}
                   </span>
+                </div>
+              )}
+              {event.activity.gpx_url && (
+                <div className="flex items-start gap-2.5 text-sm">
+                  <Download size={15} style={{ color: 'var(--primary)', flexShrink: 0, marginTop: 2 }} />
+                  <a
+                    href={event.activity.gpx_url}
+                    download={`fitmeet-event-${event.id}.gpx`}
+                    className="inline-flex items-center gap-2 font-medium transition-opacity hover:opacity-75"
+                    style={{ color: 'var(--primary)' }}
+                  >
+                    Download GPX
+                  </a>
                 </div>
               )}
             </div>
