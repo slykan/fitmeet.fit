@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
+import { WeatherBadge } from '@/components/WeatherBadge'
 import api from '@/lib/api'
 import { useAuthStore } from '@/store/auth'
 import { shortAddress } from '@/lib/format-address'
@@ -34,7 +35,7 @@ interface EventItem {
   id: number
   title: string
   category: { value: string; label: string }
-  location: { address: string | null }
+  location: { lat: number | null; lng: number | null; address: string | null }
   schedule: { start_at: string; duration_minutes: number | null }
   activity: { distance_km: number | null; elevation_gain: number | null }
   participants_count: number
@@ -552,6 +553,13 @@ function EventsTab() {
                 </div>
               )}
             </div>
+            {ev.location.lat != null && ev.location.lng != null && (
+              <WeatherBadge
+                lat={ev.location.lat}
+                lng={ev.location.lng}
+                startAt={ev.schedule.start_at}
+              />
+            )}
           </div>
           <div className="flex items-center gap-2 flex-shrink-0 mt-0.5">
             {ev.is_joined && (

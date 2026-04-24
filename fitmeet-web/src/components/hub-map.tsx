@@ -9,6 +9,7 @@ import { Calendar, ArrowRight, X, Users, Zap, LocateFixed, Check } from 'lucide-
 import api from '@/lib/api'
 import { useAuthStore } from '@/store/auth'
 import { CATEGORIES, CATEGORY_EMOJI } from '@/lib/categories'
+import { WeatherBadge } from '@/components/WeatherBadge'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 delete (L.Icon.Default.prototype as any)._getIconUrl
@@ -682,6 +683,12 @@ export default function HubMap() {
             </button>
           </div>
 
+          <WeatherBadge
+            lat={selected.location.lat}
+            lng={selected.location.lng}
+            startAt={selected.schedule.start_at}
+          />
+
           <button
             onClick={() => router.push(`/events/view?id=${selected.id}`)}
             style={{
@@ -691,6 +698,7 @@ export default function HubMap() {
               fontWeight: 700, fontSize: 15,
               cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              marginTop: 8,
             }}
           >
             {selected.status === 'cancelled' ? 'View Cancelled Event' : 'View & Join'} <ArrowRight size={15} />

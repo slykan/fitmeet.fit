@@ -1,0 +1,82 @@
+export type EventWeather = {
+  code: number
+  tempMin: number
+  tempMax: number
+  windSpeed: number
+  windDir: number
+}
+
+type OpenMeteoResponse = {
+  hourly?: {
+    time: string[]
+    temperature_2m: number[]
+    weathercode: number[]
+    windspeed_10m: number[]
+    winddirection_10m: number[]
+  }
+  daily?: {
+    temperature_2m_max: number[]
+    temperature_2m_min: number[]
+  }
+  error?: boolean
+}
+
+const cache = new Map<string, EventWeather | null>()
+
+export async function fetchEventWeather(
+  lat: number,
+  lng: number,
+  isoDate: string,
+  hour: number,
+): Promise<EventWeather | null> {
+  const key = `${lat},${lng},${isoDate},${hour}`
+  if (cache.has(key)) return cache.get(key)!
+
+  try {
+    const url =
+      `https://api.open-meteo.com/v1/forecast` +
+      `?latitude=${lat}&longitude=${lng}` +
+      `&hourly=temperature_2m,weathercode,windspeed_10m,winddirection_10m` +
+      `&daily=temperature_2m_max,temperature_2m_min` +
+      `&timezone=auto&start_date=${isoDate}&end_date=${isoDate}`
+
+    const res = await fetch(url, { next: { revalidate: 3600 } })
+    const data: OpenMeteoResponse = await res.json()
+
+    if (data.error || !data.hourly || !data.daily) {
+      cache.set(key, null)
+      return null
+    }
+
+    const targetTime = `${isoDate}T${String(hour).padStart(2, '0')}:00`
+    const idx = data.hourly.time.indexOf(targetTime)
+    if (idx === -1) {
+      cache.set(key, null)
+      return null
+    }
+
+    const result: EventWeather = {
+      code: data.hourly.weathercode[idx],
+      tempMin: Math.round(data.daily.temperature_2m_min[0]),
+      tempMax: Math.round(data.daily.temperature_2m_max[0]),
+      windSpeed: Math.round(data.hourly.windspeed_10m[idx]),
+      windDir: Math.round(data.hourly.winddirection_10m[idx]),
+    }
+
+    cache.set(key, result)
+    return result
+  } catch {
+    cache.set(key, null)
+    return null
+  }
+}
+
+export function weatherIcon(code: number): string {
+  if (code === 0) return 'sun'
+  if (code <= 3) return 'cloud-sun'
+  if (code <= 48) return 'cloud'
+  if (code <= 67) return 'cloud-rain'
+  if (code <= 77) return 'cloud-snow'
+  if (code <= 82) return 'cloud-rain'
+  return 'cloud-lightning'
+}
