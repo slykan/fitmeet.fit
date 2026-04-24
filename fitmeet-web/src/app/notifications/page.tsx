@@ -9,6 +9,8 @@ import { Navbar } from '@/components/navbar'
 import api from '@/lib/api'
 import { useAuthStore } from '@/store/auth'
 
+const notificationsSeenKey = (userId: number) => `fitmeet-notifications-last-seen:${userId}`
+
 interface FriendRequestNotif {
   id: number
   type: 'friend_request'
@@ -103,7 +105,7 @@ function PersonAvatar({ person }: { person: { name: string; avatar: string | nul
 }
 
 export default function NotificationsPage() {
-  const { token }  = useAuthStore()
+  const { token, user }  = useAuthStore()
   const router     = useRouter()
   const [mounted,  setMounted]  = useState(false)
   const [notifs,   setNotifs]   = useState<Notif[]>([])
@@ -116,9 +118,26 @@ export default function NotificationsPage() {
     if (!mounted) return
     if (!token) { router.replace('/login?redirect=/notifications'); return }
     api.get('/notifications')
-      .then(({ data }) => setNotifs(data.data ?? []))
+      .then(({ data }) => {
+        const items = data.data ?? []
+        setNotifs(items)
+
+        if (typeof window !== 'undefined' && user?.id) {
+          const newestCreatedAt = items.reduce((latest: string | null, item: { created_at?: string }) => {
+            if (!item.created_at) return latest
+            if (!latest) return item.created_at
+            return new Date(item.created_at).getTime() > new Date(latest).getTime() ? item.created_at : latest
+          }, null)
+
+          window.localStorage.setItem(
+            notificationsSeenKey(user.id),
+            newestCreatedAt ?? new Date().toISOString()
+          )
+          window.dispatchEvent(new Event('fitmeet-notifications-seen'))
+        }
+      })
       .finally(() => setLoading(false))
-  }, [mounted, token, router])
+  }, [mounted, token, router, user])
 
   async function handle(id: number, action: 'accept' | 'decline') {
     setActing(id)

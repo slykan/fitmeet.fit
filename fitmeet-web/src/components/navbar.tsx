@@ -10,6 +10,8 @@ import { Button } from './ui/button'
 import api from '@/lib/api'
 import { useEffect, useRef, useState } from 'react'
 
+const notificationsSeenKey = (userId: number) => `fitmeet-notifications-last-seen:${userId}`
+
 export function Navbar() {
   const { user, logout } = useAuthStore()
   const { theme, setTheme } = useTheme()
@@ -26,7 +28,14 @@ export function Navbar() {
     if (!user) return
     function fetchCounts() {
       api.get('/notifications').then(({ data }) => {
-        setNotifCount((data.data ?? []).length)
+        const items = data.data ?? []
+        const lastSeenRaw = window.localStorage.getItem(notificationsSeenKey(user.id))
+        const lastSeenAt = lastSeenRaw ? new Date(lastSeenRaw).getTime() : 0
+        const unseenCount = items.filter((item: { created_at?: string }) => {
+          if (!item.created_at) return true
+          return new Date(item.created_at).getTime() > lastSeenAt
+        }).length
+        setNotifCount(unseenCount)
       }).catch(() => {})
       api.get('/messages/unread-count').then(({ data }) => {
         setMsgCount(data.count ?? 0)
@@ -34,7 +43,14 @@ export function Navbar() {
     }
     fetchCounts()
     const id = setInterval(fetchCounts, 60_000)
-    return () => clearInterval(id)
+    const handleSeen = () => setNotifCount(0)
+    window.addEventListener('fitmeet-notifications-seen', handleSeen)
+    window.addEventListener('storage', fetchCounts)
+    return () => {
+      clearInterval(id)
+      window.removeEventListener('fitmeet-notifications-seen', handleSeen)
+      window.removeEventListener('storage', fetchCounts)
+    }
   }, [user])
 
   useEffect(() => {
