@@ -61,10 +61,11 @@ const RADIUS_OPTIONS = [
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleString('en-GB', {
-    weekday: 'short', day: 'numeric', month: 'short',
-    hour: '2-digit', minute: '2-digit',
-  })
+  const d = new Date(iso)
+  return {
+    date: d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }),
+    time: d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+  }
 }
 
 function isPastEvent(iso: string) {
@@ -527,10 +528,15 @@ function EventsTab() {
             </div>
             <p className="font-semibold text-sm truncate mb-1.5">{ev.title}</p>
             <div className="space-y-1">
-              <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
-                <Calendar size={11} />
-                {formatDate(ev.schedule.start_at)}
-                {ev.schedule.duration_minutes && <span>· {ev.schedule.duration_minutes} min</span>}
+              <div className="flex items-start gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
+                <Calendar size={11} style={{ marginTop: 2, flexShrink: 0 }} />
+                <div>
+                  <div>{formatDate(ev.schedule.start_at).date}</div>
+                  <div>
+                    {formatDate(ev.schedule.start_at).time}
+                    {ev.schedule.duration_minutes && <span> · {ev.schedule.duration_minutes} min</span>}
+                  </div>
+                </div>
               </div>
               {ev.location.address && (
                 <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
