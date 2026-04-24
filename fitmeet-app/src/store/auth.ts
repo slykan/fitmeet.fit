@@ -1,10 +1,26 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import Constants from 'expo-constants'
 import { create } from 'zustand'
 
 export interface MobileUser {
   id: number
   name: string
   email: string
+  avatar: string | null
+  phone: string | null
+  hide_phone: boolean
+  email_preferences: {
+    friend_requests: boolean
+    new_events: boolean
+    event_reminders: boolean
+  }
+  location: { lat: number | null; lng: number | null }
+  home: { lat: number | null; lng: number | null; city: string | null; country: string | null }
+  radius: 'nearby' | 'city' | 'region' | 'unlimited'
+  radius_km: number
+  categories: string[]
+  skill_level: 'beginner' | 'advanced' | 'pro' | null
+  onboarding_complete: boolean
 }
 
 type AuthState = {
@@ -12,11 +28,46 @@ type AuthState = {
   user: MobileUser | null
   hasHydrated: boolean
   hydrate: () => Promise<void>
-  setDemoSession: (input: { name: string; email: string }) => Promise<void>
+  login: (input: { email: string; password: string }) => Promise<void>
+  refreshMe: () => Promise<void>
   logout: () => Promise<void>
 }
 
 const STORAGE_KEY = 'fitmeet-mobile-auth'
+const fallbackUrl = 'https://api.fitmeet.fit/api'
+const extra = Constants.expoConfig?.extra as { apiUrl?: string } | undefined
+const API_URL = process.env.EXPO_PUBLIC_API_URL ?? extra?.apiUrl ?? fallbackUrl
+
+async function storeSession(input: { token: string; user: MobileUser }) {
+  await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(input))
+}
+
+async function requestJson<T>(path: string, init?: RequestInit, token?: string): Promise<T> {
+  const res = await fetch(`${API_URL}${path}`, {
+    ...init,
+    headers: {
+      Accept: 'application/json',
+      ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(init?.headers ?? {}),
+    },
+  })
+
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    throw new Error(data?.message ?? 'Something went wrong.')
+  }
+  return data as T
+}
+
+type AuthResponse = {
+  token: string
+  data: MobileUser
+}
+
+type MeResponse = {
+  data: MobileUser
+}
 
 export const useAuthStore = create<AuthState>((set) => ({
   token: null,
@@ -31,19 +82,28 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
     set({ hasHydrated: true })
   },
-  setDemoSession: async ({ name, email }) => {
-    const payload = {
-      token: 'demo-session',
-      user: {
-        id: 1,
-        name,
-        email,
-      },
-    }
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(payload))
-    set({ ...payload })
+  login: async ({ email, password }) => {
+    const payload = await requestJson<AuthResponse>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    })
+    await storeSession({ token: payload.token, user: payload.data })
+    set({ token: payload.token, user: payload.data })
+  },
+  refreshMe: async () => {
+    const token = useAuthStore.getState().token
+    if (!token) return
+    const payload = await requestJson<MeResponse>('/me', undefined, token)
+    await storeSession({ token, user: payload.data })
+    set({ user: payload.data })
   },
   logout: async () => {
+    const token = useAuthStore.getState().token
+    if (token) {
+      try {
+        await requestJson('/logout', { method: 'POST' }, token)
+      } catch {}
+    }
     await AsyncStorage.removeItem(STORAGE_KEY)
     set({ token: null, user: null })
   },

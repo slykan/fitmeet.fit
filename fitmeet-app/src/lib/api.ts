@@ -20,3 +20,13 @@ api.interceptors.request.use((config) => {
   }
   return config
 })
+
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (error.response?.status === 401) {
+      await useAuthStore.getState().logout()
+    }
+    return Promise.reject(error)
+  }
+)

@@ -46,7 +46,7 @@ export default function ProfileScreen() {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Next mobile slices</Text>
-          {['Real auth', 'Hub filters', 'Create event', 'Join and reminders'].map((item) => (
+          {['Hub filters', 'Create event', 'Join and reminders', 'Messages sync'].map((item) => (
             <View key={item} style={styles.todoRow}>
               <Ionicons name="checkmark-circle-outline" size={18} color={palette.accent} />
               <Text style={styles.todoText}>{item}</Text>
@@ -56,7 +56,7 @@ export default function ProfileScreen() {
 
         <Pressable
           onPress={() => {
-            logout()
+            void logout()
             router.replace('/welcome')
           }}
           style={styles.logoutButton}

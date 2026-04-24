@@ -59,12 +59,12 @@ export default function WelcomeScreen() {
         <View style={styles.actions}>
           <Link href="/login" asChild>
             <Pressable style={styles.primaryButton}>
-              <Text style={styles.primaryLabel}>Continue</Text>
+              <Text style={styles.primaryLabel}>Sign in</Text>
               <Ionicons name="arrow-forward" size={18} color="#03110a" />
             </Pressable>
           </Link>
           <Text style={styles.helper}>
-            We can wire real auth next. For now the mobile shell is ready to explore and iterate.
+            The shell is ready, and email login is the first live flow we are wiring in.
           </Text>
         </View>
       </ScrollView>

@@ -3,15 +3,19 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useMemo, useState } from 'react'
+import * as Linking from 'expo-linking'
 
 import { useAuthStore } from '@/src/store/auth'
 import { palette, spacing } from '@/src/theme'
 
 export default function LoginScreen() {
-  const setDemoSession = useAuthStore((state) => state.setDemoSession)
-  const [email, setEmail] = useState('hello@fitmeet.fit')
-  const [name, setName] = useState('FitMeet Demo')
-  const disabled = useMemo(() => !email.trim() || !name.trim(), [email, name])
+  const login = useAuthStore((state) => state.login)
+  const refreshMe = useAuthStore((state) => state.refreshMe)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const disabled = useMemo(() => !email.trim() || !password.trim() || submitting, [email, password, submitting])
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -24,17 +28,13 @@ export default function LoginScreen() {
 
         <View style={styles.header}>
           <Text style={styles.eyebrow}>Mobile alpha</Text>
-          <Text style={styles.title}>Start with a demo session</Text>
+          <Text style={styles.title}>Sign in to FitMeet</Text>
           <Text style={styles.subtitle}>
-            We are keeping the entry simple so we can shape the mobile flows first, then wire real auth cleanly.
+            Real auth is now wired for email login. Registration stays on web for the moment because it is protected by Cloudflare Turnstile.
           </Text>
         </View>
 
         <View style={styles.form}>
-          <View style={styles.field}>
-            <Text style={styles.label}>Name</Text>
-            <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="Your name" placeholderTextColor={palette.textDim} />
-          </View>
           <View style={styles.field}>
             <Text style={styles.label}>Email</Text>
             <TextInput
@@ -47,18 +47,48 @@ export default function LoginScreen() {
               placeholderTextColor={palette.textDim}
             />
           </View>
+          <View style={styles.field}>
+            <Text style={styles.label}>Password</Text>
+            <TextInput
+              style={styles.input}
+              secureTextEntry
+              value={password}
+              onChangeText={setPassword}
+              placeholder="Your password"
+              placeholderTextColor={palette.textDim}
+            />
+          </View>
         </View>
+
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
         <Pressable
           disabled={disabled}
-          onPress={() => {
-            setDemoSession({ name: name.trim(), email: email.trim() })
-            router.replace('/(tabs)/hub')
+          onPress={async () => {
+            setSubmitting(true)
+            setError(null)
+            try {
+              await login({ email: email.trim(), password })
+              await refreshMe()
+              router.replace('/(tabs)/hub')
+            } catch (err) {
+              setError(err instanceof Error ? err.message : 'Login failed.')
+            } finally {
+              setSubmitting(false)
+            }
           }}
           style={[styles.primaryButton, disabled && styles.primaryButtonDisabled]}
         >
-          <Text style={styles.primaryLabel}>Enter FitMeet</Text>
+          <Text style={styles.primaryLabel}>{submitting ? 'Signing in...' : 'Sign In'}</Text>
           <Ionicons name="arrow-forward" size={18} color="#03110a" />
+        </Pressable>
+
+        <Pressable
+          onPress={() => Linking.openURL('https://fitmeet.fit/register')}
+          style={styles.secondaryButton}
+        >
+          <Ionicons name="open-outline" size={16} color={palette.text} />
+          <Text style={styles.secondaryLabel}>Create account on web</Text>
         </Pressable>
       </View>
     </SafeAreaView>
@@ -145,5 +175,26 @@ const styles = StyleSheet.create({
     color: '#041109',
     fontSize: 16,
     fontWeight: '800',
+  },
+  secondaryButton: {
+    height: 50,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: palette.line,
+    backgroundColor: palette.panel,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  secondaryLabel: {
+    color: palette.text,
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  errorText: {
+    color: '#ff8b8b',
+    fontSize: 14,
+    lineHeight: 20,
   },
 })
