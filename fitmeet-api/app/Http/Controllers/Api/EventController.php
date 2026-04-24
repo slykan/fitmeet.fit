@@ -12,6 +12,7 @@ use App\Jobs\SendEventPushNotifications;
 use App\Jobs\SendNewEventNotifications;
 use App\Models\Event;
 use App\Models\EventReminder;
+use App\Models\FriendRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -34,8 +35,31 @@ class EventController extends Controller
     {
         $user = $request->user();
 
-        $query = Event::with('organizer')
-            ->public();
+        $query = Event::with('organizer');
+
+        if ($request->boolean('friends_only')) {
+            $friendIds = FriendRequest::where(function ($q) use ($user) {
+                $q->where('sender_id', $user->id)->orWhere('receiver_id', $user->id);
+            })->where('status', 'accepted')
+              ->get()
+              ->map(fn ($r) => $r->sender_id === $user->id ? $r->receiver_id : $r->sender_id)
+              ->values();
+
+            if ($friendIds->isEmpty()) {
+                return response()->json([
+                    'data' => [],
+                    'meta' => [
+                        'current_page' => 1,
+                        'last_page' => 1,
+                        'total' => 0,
+                    ],
+                ]);
+            }
+
+            $query->whereIn('events.user_id', $friendIds);
+        } else {
+            $query->public();
+        }
 
         $query = $this->applyTimeWindow($request, $query);
 

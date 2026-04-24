@@ -247,10 +247,13 @@ export default function HubMap() {
       params.lng = lng
       params.radius_km = 500
     }
+    if (friendsOnly) {
+      params.friends_only = 1
+    }
     api.get('/events', { params })
       .then(({ data }) => {
         const events = data.data ?? []
-        if (events.length === 0 && hasCoords) {
+        if (events.length === 0 && hasCoords && !friendsOnly) {
           // Location filter returned nothing — fall back to all events
           return api.get('/events').then(({ data: d }) => setEvents(d.data ?? []))
         }
@@ -261,7 +264,7 @@ export default function HubMap() {
 
     const t = setTimeout(() => setRadar(false), 5200)
     return () => clearTimeout(t)
-  }, [lat, lng])
+  }, [lat, lng, friendsOnly])
 
   useEffect(() => {
     api.get('/events/joined')
@@ -439,11 +442,28 @@ export default function HubMap() {
 
           <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-[minmax(150px,1fr)_auto_auto] md:items-center md:gap-2.5">
             <label style={{ minWidth: 0 }} className="order-1">
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginBottom: 4 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)' }}>Radius</span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary)' }}>
-                  {RADIUS_OPTIONS[radiusIndex]?.label}
-                </span>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 4 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)' }}>Radius</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary)' }}>
+                    {RADIUS_OPTIONS[radiusIndex]?.label}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setRecenterKey(key => key + 1)}
+                    title="Recenter"
+                    aria-label="Recenter map"
+                    className="inline-flex h-7 w-7 min-w-7 items-center justify-center rounded-full border"
+                    style={{
+                      borderColor: 'var(--border)',
+                      background: 'var(--background)',
+                      color: 'var(--primary)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <LocateFixed size={14} />
+                  </button>
+                </div>
               </div>
               <input
                 type="range"
@@ -460,7 +480,7 @@ export default function HubMap() {
               <button
                 type="button"
                 onClick={() => setGoingOnly(v => !v)}
-                className="inline-flex flex-1 items-center justify-center gap-1.5 text-[11px] px-3 py-2 rounded-full border font-semibold transition-colors md:flex-none md:text-xs"
+                className="inline-flex flex-1 items-center justify-center gap-1 text-[11px] px-2.5 py-2 rounded-full border font-semibold transition-colors md:flex-none md:text-xs md:px-3"
                 style={{
                   borderColor: goingOnly ? 'var(--primary)' : 'var(--border)',
                   color: goingOnly ? 'var(--primary)' : 'var(--text-muted)',
@@ -468,7 +488,7 @@ export default function HubMap() {
                   whiteSpace: 'nowrap',
                 }}
               >
-                <Check size={13} /> Going
+                <Check size={12} /> Going
               </button>
               <button
                 type="button"
@@ -496,47 +516,9 @@ export default function HubMap() {
               >
                 My
               </button>
-              <button
-                type="button"
-                onClick={() => setRecenterKey(key => key + 1)}
-                title="Recenter"
-                aria-label="Recenter map"
-                className="inline-flex h-9 w-9 min-w-9 items-center justify-center rounded-full border md:hidden"
-                style={{
-                  borderColor: 'var(--border)',
-                  background: 'var(--background)',
-                  color: 'var(--primary)',
-                }}
-              >
-                <LocateFixed size={16} />
-              </button>
             </div>
           </div>
         </div>
-
-        <button
-          type="button"
-          onClick={() => setRecenterKey(key => key + 1)}
-          title="Recenter"
-          aria-label="Recenter map"
-          className="hidden md:flex"
-          style={{
-            width: 44,
-            minWidth: 44,
-            border: '1px solid var(--border)',
-            borderRadius: 14,
-            background: 'var(--surface)',
-            color: 'var(--primary)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 6px 22px rgba(0,0,0,0.35)',
-            cursor: 'pointer',
-            pointerEvents: 'auto',
-          }}
-        >
-          <LocateFixed size={18} />
-        </button>
       </div>
 
       {/* Radar sweep */}

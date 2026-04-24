@@ -372,6 +372,7 @@ function EventsTab() {
     const params: Record<string, unknown> = {}
     if (pastOnly) params.past = 1
     if (category) params.category = category
+    if (friendsOnly) params.friends_only = 1
     if (radiusKm !== null && user?.location?.lat && user?.location?.lng) {
       params.lat       = user.location.lat
       params.lng       = user.location.lng
