@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
-import { ArrowLeft, MessageSquare, Plus, X, Send, Trash2 } from 'lucide-react'
+import { ArrowLeft, MessageSquare, Plus, X, Send, Trash2, Search, Check } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
 import api from '@/lib/api'
@@ -179,6 +179,8 @@ function MessagesContent() {
   const [sending,   setSending]   = useState(false)
   const [sendError, setSendError] = useState<string | null>(null)
   const [deleting,  setDeleting]  = useState<number | null>(null)
+  const [conversationSearch, setConversationSearch] = useState('')
+  const [friendSearch, setFriendSearch] = useState('')
 
   useEffect(() => setMounted(true), [])
 
@@ -206,7 +208,13 @@ function MessagesContent() {
     } finally { setDeleting(null) }
   }
 
-  function openCompose() { setCompose(true); setSelected(null); setBody(''); loadFriends() }
+  function openCompose() {
+    setCompose(true)
+    setSelected(null)
+    setBody('')
+    setFriendSearch('')
+    loadFriends()
+  }
 
   async function handleSend() {
     if (!selected || !body.trim()) return
@@ -223,6 +231,16 @@ function MessagesContent() {
   }
 
   if (!mounted || !token) return null
+
+  const filteredConvos = convos.filter((c) => {
+    const query = conversationSearch.trim().toLowerCase()
+    if (!query) return true
+    return c.partner.name.toLowerCase().includes(query) || c.last_message.body.toLowerCase().includes(query)
+  })
+
+  const filteredFriends = friends.filter((f) =>
+    f.name.toLowerCase().includes(friendSearch.trim().toLowerCase())
+  )
 
   // Thread view
   if (userId) {
@@ -243,6 +261,17 @@ function MessagesContent() {
           </button>
         </div>
 
+        <div className="relative mb-4">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
+          <input
+            value={conversationSearch}
+            onChange={(e) => setConversationSearch(e.target.value)}
+            placeholder="Search conversations..."
+            className="w-full rounded-xl border pl-9 pr-4 py-2.5 text-sm outline-none focus:border-[--primary] transition-colors"
+            style={{ background: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+          />
+        </div>
+
         {/* Compose modal */}
         {compose && (
           <div className="fixed inset-0 z-[2000] flex items-end sm:items-center justify-center p-4"
@@ -256,9 +285,39 @@ function MessagesContent() {
               </div>
               <div>
                 <p className="text-xs font-medium mb-2" style={{ color: 'var(--text-muted)' }}>To</p>
-                <div className="flex flex-wrap gap-2">
+                <div className="relative mb-3">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
+                  <input
+                    value={friendSearch}
+                    onChange={(e) => setFriendSearch(e.target.value)}
+                    placeholder="Search friends..."
+                    className="w-full rounded-xl border pl-9 pr-4 py-2.5 text-sm outline-none focus:border-[--primary] transition-colors"
+                    style={{ background: 'var(--background)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+                  />
+                </div>
+                {selected && (
+                  <div className="mb-3 flex items-center gap-2 rounded-xl border px-3 py-2"
+                    style={{ background: 'rgba(57,255,20,0.06)', borderColor: 'rgba(57,255,20,0.25)' }}>
+                    <Avatar person={selected} size={26} />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Selected</p>
+                      <p className="text-sm font-semibold truncate">{selected.name}</p>
+                    </div>
+                    <button
+                      onClick={() => setSelected(null)}
+                      className="p-1 rounded-lg transition-colors hover:bg-[--border]"
+                      style={{ color: 'var(--text-muted)' }}
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                )}
+                <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto pr-1">
                   {friends.length === 0 && <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No friends yet.</p>}
-                  {friends.map(f => (
+                  {friends.length > 0 && filteredFriends.length === 0 && (
+                    <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No friends match that search.</p>
+                  )}
+                  {filteredFriends.map(f => (
                     <button key={f.id} onClick={() => setSelected(f)}
                       className="flex items-center gap-2 text-sm px-3 py-1.5 rounded-full border transition-colors"
                       style={{
@@ -266,7 +325,9 @@ function MessagesContent() {
                         color:       selected?.id === f.id ? 'var(--primary)' : 'var(--text-primary)',
                         background:  selected?.id === f.id ? 'rgba(57,255,20,0.08)' : 'transparent',
                       }}>
-                      <Avatar person={f} size={22} />{f.name}
+                      <Avatar person={f} size={22} />
+                      <span>{f.name}</span>
+                      {selected?.id === f.id && <Check size={13} />}
                     </button>
                   ))}
                 </div>
@@ -295,9 +356,14 @@ function MessagesContent() {
             <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No messages yet.</p>
           </div>
         )}
+        {!loading && convos.length > 0 && filteredConvos.length === 0 && (
+          <div className="text-center py-12 text-sm" style={{ color: 'var(--text-muted)' }}>
+            No conversations match that search.
+          </div>
+        )}
 
         <div className="space-y-2">
-          {convos.map(c => (
+          {filteredConvos.map(c => (
             <div key={c.partner.id} className="flex items-center gap-2">
               <button onClick={() => router.push(`/messages?user=${c.partner.id}`)}
                 className="flex-1 flex items-center gap-3 p-4 rounded-2xl border transition-colors hover:bg-[--border] text-left min-w-0"
