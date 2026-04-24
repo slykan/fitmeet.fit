@@ -26,10 +26,11 @@ export function Navbar() {
 
   useEffect(() => {
     if (!user) return
+    const userId = user.id
     function fetchCounts() {
       api.get('/notifications').then(({ data }) => {
         const items = data.data ?? []
-        const lastSeenRaw = window.localStorage.getItem(notificationsSeenKey(user.id))
+        const lastSeenRaw = window.localStorage.getItem(notificationsSeenKey(userId))
         const lastSeenAt = lastSeenRaw ? new Date(lastSeenRaw).getTime() : 0
         const unseenCount = items.filter((item: { created_at?: string }) => {
           if (!item.created_at) return true
