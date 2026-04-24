@@ -287,7 +287,15 @@ export default function HomePage() {
         className="border-t py-8 text-center text-sm"
         style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}
       >
-        &copy; 2026 FitMeet · Find your people. Move together.
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <span>&copy; 2026 FitMeet</span>
+          <span>·</span>
+          <span>Find your people. Move together.</span>
+          <span>·</span>
+          <Link href="/privacy" className="font-medium hover:opacity-80" style={{ color: 'var(--text-primary)' }}>
+            Privacy Policy
+          </Link>
+        </div>
       </footer>
     </>
   )
