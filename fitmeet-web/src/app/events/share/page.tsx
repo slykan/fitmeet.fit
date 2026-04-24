@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 
 import ShareEventClientPage, { SharedEvent } from './share-client'
 
+export const dynamic = 'force-dynamic'
+
 type PageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }
