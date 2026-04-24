@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
+use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -15,118 +16,335 @@ class MessageController extends Controller
     // GET /messages/unread-count
     public function unreadCount(Request $request): JsonResponse
     {
-        $count = Message::where('receiver_id', $request->user()->id)
-            ->whereNull('read_at')
+        $me = $request->user()->id;
+
+        $count = Message::query()
+            ->join('conversation_participants as cp', function ($join) use ($me) {
+                $join->on('cp.conversation_id', '=', 'messages.conversation_id')
+                    ->where('cp.user_id', '=', $me);
+            })
+            ->where('messages.sender_id', '!=', $me)
+            ->where(function ($query) {
+                $query->whereNull('cp.last_read_at')
+                    ->orWhereColumn('messages.created_at', '>', 'cp.last_read_at');
+            })
             ->count();
 
         return response()->json(['count' => $count]);
     }
 
-    // GET /messages — list conversations (one entry per friend, latest message)
+    // GET /messages — list conversations
     public function index(Request $request): JsonResponse
     {
         $me = $request->user()->id;
 
-        $rows = DB::select("
-            SELECT
-                m.*,
-                CASE WHEN m.sender_id = ? THEN m.receiver_id ELSE m.sender_id END AS partner_id,
-                (
-                    SELECT COUNT(*) FROM messages u
-                    WHERE u.receiver_id = ? AND u.sender_id = CASE WHEN m.sender_id = ? THEN m.receiver_id ELSE m.sender_id END
-                    AND u.read_at IS NULL
-                ) AS unread_count
-            FROM messages m
-            INNER JOIN (
-                SELECT MAX(id) AS max_id
-                FROM messages
-                WHERE sender_id = ? OR receiver_id = ?
-                GROUP BY LEAST(sender_id, receiver_id), GREATEST(sender_id, receiver_id)
-            ) latest ON m.id = latest.max_id
-            ORDER BY m.created_at DESC
-        ", [$me, $me, $me, $me, $me]);
+        $conversations = Conversation::query()
+            ->whereHas('participants', fn ($query) => $query->where('users.id', $me))
+            ->with([
+                'participants:id,name,avatar',
+                'latestMessage.sender:id,name,avatar',
+            ])
+            ->withCount([
+                'messages as unread_count' => function ($query) use ($me) {
+                    $query->where('sender_id', '!=', $me)
+                        ->whereRaw(
+                            "messages.created_at > COALESCE((SELECT cp.last_read_at FROM conversation_participants cp WHERE cp.conversation_id = messages.conversation_id AND cp.user_id = ?), '1970-01-01 00:00:00')",
+                            [$me]
+                        );
+                },
+            ])
+            ->get()
+            ->filter(fn (Conversation $conversation) => $conversation->latestMessage)
+            ->sortByDesc(fn (Conversation $conversation) => $conversation->latestMessage?->created_at?->getTimestamp() ?? 0)
+            ->values();
 
-        $partnerIds = array_unique(array_column($rows, 'partner_id'));
-        $partners   = User::whereIn('id', $partnerIds)->get()->keyBy('id');
-
-        $data = collect($rows)->map(fn ($r) => [
-            'partner'      => new UserResource($partners[$r->partner_id]),
-            'last_message' => [
-                'body'       => $r->body,
-                'is_mine'    => (int) $r->sender_id === $me,
-                'created_at' => $r->created_at,
-            ],
-            'unread_count' => (int) $r->unread_count,
-        ]);
+        $data = $conversations->map(fn (Conversation $conversation) => $this->serializeConversationListItem($conversation, $me));
 
         return response()->json(['data' => $data]);
     }
 
-    // GET /messages/{user} — full thread, marks messages as read
-    public function thread(Request $request, User $user): JsonResponse
+    // GET /messages/conversations/{conversation} — full thread, marks messages as read
+    public function conversationThread(Request $request, Conversation $conversation): JsonResponse
     {
         $me = $request->user()->id;
+        $this->authorizeParticipant($conversation, $me);
 
-        // Mark incoming messages as read
-        Message::where('sender_id', $user->id)
-            ->where('receiver_id', $me)
-            ->whereNull('read_at')
-            ->update(['read_at' => now()]);
+        $conversation->participants()->updateExistingPivot($me, ['last_read_at' => now()]);
 
-        $messages = Message::where(function ($q) use ($me, $user) {
-            $q->where('sender_id', $me)->where('receiver_id', $user->id);
-        })->orWhere(function ($q) use ($me, $user) {
-            $q->where('sender_id', $user->id)->where('receiver_id', $me);
-        })
-        ->orderBy('created_at')
-        ->get()
-        ->map(fn ($m) => [
-            'id'         => $m->id,
-            'body'       => $m->body,
-            'is_mine'    => $m->sender_id === $me,
-            'created_at' => $m->created_at->toIso8601String(),
-            'read_at'    => $m->read_at?->toIso8601String(),
-        ]);
+        $messages = $conversation->messages()
+            ->with('sender:id,name,avatar')
+            ->orderBy('created_at')
+            ->get()
+            ->map(fn (Message $message) => [
+                'id'         => $message->id,
+                'body'       => $message->body,
+                'is_mine'    => $message->sender_id === $me,
+                'created_at' => $message->created_at->toIso8601String(),
+                'sender'     => [
+                    'id'     => $message->sender->id,
+                    'name'   => $message->sender->name,
+                    'avatar' => $message->sender->avatar,
+                ],
+            ]);
+
+        $conversation->load('participants:id,name,avatar');
 
         return response()->json([
-            'partner' => new UserResource($user),
-            'data'    => $messages,
+            'conversation' => $this->serializeConversationDetail($conversation, $me),
+            'data'         => $messages,
         ]);
     }
 
-    // DELETE /messages/{user} — delete entire conversation
-    public function destroy(Request $request, User $user): JsonResponse
+    // POST /messages/conversations — create a direct or group conversation and send first message
+    public function createConversation(Request $request): JsonResponse
+    {
+        $request->validate([
+            'participant_ids'   => 'required|array|min:1',
+            'participant_ids.*' => 'integer|exists:users,id|distinct',
+            'title'             => 'nullable|string|max:120',
+            'body'              => 'required|string|max:2000',
+        ]);
+
+        $me = $request->user();
+        $participantIds = collect($request->participant_ids)
+            ->map(fn ($id) => (int) $id)
+            ->filter(fn ($id) => $id !== $me->id)
+            ->unique()
+            ->values();
+
+        if ($participantIds->isEmpty()) {
+            return response()->json(['message' => 'Select at least one recipient.'], 422);
+        }
+
+        $conversation = $participantIds->count() === 1
+            ? $this->findOrCreateDirectConversation($me->id, $participantIds->first())
+            : $this->createGroupConversation($me->id, $participantIds->all(), $request->string('title')->trim()->toString());
+
+        $message = $this->createMessage($conversation, $me->id, $request->body);
+
+        return response()->json([
+            'conversation' => $this->serializeConversationDetail($conversation->fresh('participants:id,name,avatar'), $me->id),
+            'data'         => $this->serializeMessage($message, $me->id),
+        ], 201);
+    }
+
+    // POST /messages/conversations/{conversation} — send in existing conversation
+    public function sendToConversation(Request $request, Conversation $conversation): JsonResponse
+    {
+        $request->validate(['body' => 'required|string|max:2000']);
+
+        $me = $request->user()->id;
+        $this->authorizeParticipant($conversation, $me);
+
+        $message = $this->createMessage($conversation, $me, $request->body);
+
+        return response()->json([
+            'data' => $this->serializeMessage($message, $me),
+        ], 201);
+    }
+
+    // DELETE /messages/conversations/{conversation}
+    public function destroyConversation(Request $request, Conversation $conversation): JsonResponse
     {
         $me = $request->user()->id;
+        $this->authorizeParticipant($conversation, $me);
 
-        Message::where(function ($q) use ($me, $user) {
-            $q->where('sender_id', $me)->where('receiver_id', $user->id);
-        })->orWhere(function ($q) use ($me, $user) {
-            $q->where('sender_id', $user->id)->where('receiver_id', $me);
-        })->delete();
+        if ($conversation->is_group) {
+            $conversation->participants()->detach($me);
+
+            if (! $conversation->participants()->exists()) {
+                $conversation->messages()->delete();
+                $conversation->delete();
+            }
+
+            return response()->json(['message' => 'Conversation left.']);
+        }
+
+        $conversation->messages()->delete();
+        $conversation->delete();
 
         return response()->json(['message' => 'Conversation deleted.']);
     }
 
-    // POST /messages/{user} — send a message
+    // GET /messages/{user} — direct thread, marks messages as read
+    public function thread(Request $request, User $user): JsonResponse
+    {
+        $conversation = $this->findOrCreateDirectConversation($request->user()->id, $user->id);
+
+        return $this->conversationThread($request, $conversation);
+    }
+
+    // DELETE /messages/{user} — delete direct conversation
+    public function destroy(Request $request, User $user): JsonResponse
+    {
+        $conversation = $this->findDirectConversation($request->user()->id, $user->id);
+
+        if (! $conversation) {
+            return response()->json(['message' => 'Conversation deleted.']);
+        }
+
+        return $this->destroyConversation($request, $conversation);
+    }
+
+    // POST /messages/{user} — send a direct message
     public function send(Request $request, User $user): JsonResponse
     {
         $request->validate(['body' => 'required|string|max:2000']);
 
-        $message = Message::create([
-            'sender_id'   => $request->user()->id,
-            'receiver_id' => $user->id,
-            'body'        => $request->body,
-        ]);
+        $conversation = $this->findOrCreateDirectConversation($request->user()->id, $user->id);
+        $message = $this->createMessage($conversation, $request->user()->id, $request->body);
 
         return response()->json([
-            'data' => [
-                'id'         => $message->id,
-                'body'       => $message->body,
-                'is_mine'    => true,
-                'created_at' => $message->created_at->toIso8601String(),
-                'read_at'    => null,
-            ],
+            'data' => $this->serializeMessage($message, $request->user()->id),
         ], 201);
+    }
+
+    private function createGroupConversation(int $creatorId, array $participantIds, string $title = ''): Conversation
+    {
+        $conversation = Conversation::create([
+            'is_group'   => true,
+            'title'      => $title !== '' ? $title : null,
+            'created_by' => $creatorId,
+        ]);
+
+        $allParticipantIds = collect($participantIds)->push($creatorId)->unique()->values();
+        $now = now();
+        $conversation->participants()->attach(
+            $allParticipantIds->mapWithKeys(fn ($id) => [
+                $id => [
+                    'last_read_at' => $id === $creatorId ? $now : null,
+                    'created_at'   => $now,
+                    'updated_at'   => $now,
+                ],
+            ])->all()
+        );
+
+        return $conversation;
+    }
+
+    private function createMessage(Conversation $conversation, int $senderId, string $body): Message
+    {
+        $conversation->participants()->updateExistingPivot($senderId, ['last_read_at' => now()]);
+
+        $message = $conversation->messages()->create([
+            'sender_id'   => $senderId,
+            'receiver_id' => $conversation->is_group
+                ? $conversation->participants()->where('users.id', '!=', $senderId)->value('users.id')
+                : $conversation->participants()->where('users.id', '!=', $senderId)->value('users.id'),
+            'body'        => $body,
+        ]);
+
+        return $message->load('sender:id,name,avatar');
+    }
+
+    private function findOrCreateDirectConversation(int $me, int $otherUserId): Conversation
+    {
+        if ($me === $otherUserId) {
+            abort(422, 'Cannot message yourself.');
+        }
+
+        $conversation = $this->findDirectConversation($me, $otherUserId);
+
+        if ($conversation) {
+            return $conversation;
+        }
+
+        $conversation = Conversation::create([
+            'is_group'   => false,
+            'title'      => null,
+            'created_by' => $me,
+        ]);
+
+        $now = now();
+        $conversation->participants()->attach([
+            $me          => ['last_read_at' => $now,  'created_at' => $now, 'updated_at' => $now],
+            $otherUserId => ['last_read_at' => null, 'created_at' => $now, 'updated_at' => $now],
+        ]);
+
+        return $conversation;
+    }
+
+    private function findDirectConversation(int $me, int $otherUserId): ?Conversation
+    {
+        $conversationId = DB::table('conversation_participants')
+            ->select('conversation_id')
+            ->whereIn('user_id', [$me, $otherUserId])
+            ->groupBy('conversation_id')
+            ->havingRaw('COUNT(DISTINCT user_id) = 2')
+            ->pluck('conversation_id');
+
+        if ($conversationId->isEmpty()) {
+            return null;
+        }
+
+        return Conversation::query()
+            ->where('is_group', false)
+            ->whereIn('id', $conversationId)
+            ->with('participants:id,name,avatar')
+            ->first();
+    }
+
+    private function authorizeParticipant(Conversation $conversation, int $userId): void
+    {
+        abort_unless(
+            $conversation->participants()->where('users.id', $userId)->exists(),
+            403
+        );
+    }
+
+    private function serializeConversationListItem(Conversation $conversation, int $me): array
+    {
+        $partner = $conversation->participants->firstWhere('id', '!=', $me);
+
+        return [
+            'id'           => $conversation->id,
+            'is_group'     => $conversation->is_group,
+            'title'        => $conversation->is_group
+                ? ($conversation->title ?: $conversation->participants->where('id', '!=', $me)->pluck('name')->take(3)->join(', '))
+                : null,
+            'partner'      => ! $conversation->is_group && $partner ? (new UserResource($partner))->resolve() : null,
+            'participants' => UserResource::collection($conversation->participants->values())->resolve(),
+            'last_message' => [
+                'body'       => $conversation->latestMessage->body,
+                'is_mine'    => (int) $conversation->latestMessage->sender_id === $me,
+                'created_at' => $conversation->latestMessage->created_at->toIso8601String(),
+                'sender'     => [
+                    'id'     => $conversation->latestMessage->sender->id,
+                    'name'   => $conversation->latestMessage->sender->name,
+                    'avatar' => $conversation->latestMessage->sender->avatar,
+                ],
+            ],
+            'unread_count' => (int) $conversation->unread_count,
+        ];
+    }
+
+    private function serializeConversationDetail(Conversation $conversation, int $me): array
+    {
+        $partner = $conversation->participants->firstWhere('id', '!=', $me);
+
+        return [
+            'id'           => $conversation->id,
+            'is_group'     => $conversation->is_group,
+            'title'        => $conversation->is_group
+                ? ($conversation->title ?: $conversation->participants->where('id', '!=', $me)->pluck('name')->take(3)->join(', '))
+                : ($partner?->name ?? 'Conversation'),
+            'partner'      => ! $conversation->is_group && $partner ? (new UserResource($partner))->resolve() : null,
+            'participants' => UserResource::collection($conversation->participants->values())->resolve(),
+        ];
+    }
+
+    private function serializeMessage(Message $message, int $me): array
+    {
+        return [
+            'id'         => $message->id,
+            'body'       => $message->body,
+            'is_mine'    => $message->sender_id === $me,
+            'created_at' => $message->created_at->toIso8601String(),
+            'sender'     => [
+                'id'     => $message->sender->id,
+                'name'   => $message->sender->name,
+                'avatar' => $message->sender->avatar,
+            ],
+        ];
     }
 }

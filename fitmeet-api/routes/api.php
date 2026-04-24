@@ -36,6 +36,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Messages
     Route::get('messages/unread-count',  [MessageController::class, 'unreadCount']);
+    Route::post('messages/conversations', [MessageController::class, 'createConversation']);
+    Route::get('messages/conversations/{conversation}', [MessageController::class, 'conversationThread']);
+    Route::post('messages/conversations/{conversation}', [MessageController::class, 'sendToConversation']);
+    Route::delete('messages/conversations/{conversation}', [MessageController::class, 'destroyConversation']);
     Route::get('messages/{user}',        [MessageController::class, 'thread']);
     Route::post('messages/{user}',       [MessageController::class, 'send']);
     Route::delete('messages/{user}',     [MessageController::class, 'destroy']);

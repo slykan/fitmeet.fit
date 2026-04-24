@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Event;
+use App\Models\Conversation;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -84,6 +85,13 @@ class User extends Authenticatable
         return $this->belongsToMany(Event::class, 'event_participants')
             ->withPivot('status', 'joined_at')
             ->wherePivot('status', 'joined');
+    }
+
+    public function conversations(): BelongsToMany
+    {
+        return $this->belongsToMany(Conversation::class, 'conversation_participants')
+            ->withPivot('last_read_at')
+            ->withTimestamps();
     }
 
     public function isOnboardingComplete(): bool
