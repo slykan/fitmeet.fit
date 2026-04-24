@@ -6,12 +6,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
-    "plugins": [
-      "expo-router"
-    ],
-    "experiments": {
-      "typedRoutes": true
-    },
+    "plugins": [],
     "ios": {
       "supportsTablet": true
     },
@@ -19,7 +14,8 @@
       "adaptiveIcon": {
         "backgroundColor": "#050816"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.anonymous.fitmeetapp"
     },
     "web": {
       "bundler": "metro"

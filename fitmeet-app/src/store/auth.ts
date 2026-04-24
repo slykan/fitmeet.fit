@@ -33,7 +33,7 @@ type AuthState = {
   logout: () => Promise<void>
 }
 
-const STORAGE_KEY = 'fitmeet-mobile-auth'
+const STORAGE_KEY = 'fitmeet-mobile-auth-v2'
 const fallbackUrl = 'https://api.fitmeet.fit/api'
 const extra = Constants.expoConfig?.extra as { apiUrl?: string } | undefined
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? extra?.apiUrl ?? fallbackUrl
@@ -74,11 +74,15 @@ export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   hasHydrated: false,
   hydrate: async () => {
-    const raw = await AsyncStorage.getItem(STORAGE_KEY)
-    if (raw) {
-      const parsed = JSON.parse(raw) as Pick<AuthState, 'token' | 'user'>
-      set({ token: parsed.token, user: parsed.user, hasHydrated: true })
-      return
+    try {
+      const raw = await AsyncStorage.getItem(STORAGE_KEY)
+      if (raw) {
+        const parsed = JSON.parse(raw) as Pick<AuthState, 'token' | 'user'>
+        set({ token: parsed.token, user: parsed.user, hasHydrated: true })
+        return
+      }
+    } catch {
+      await AsyncStorage.removeItem(STORAGE_KEY)
     }
     set({ hasHydrated: true })
   },

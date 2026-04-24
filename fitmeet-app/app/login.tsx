@@ -1,7 +1,6 @@
 import { Link, router } from 'expo-router'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
-import { Ionicons } from '@expo/vector-icons'
 import { useMemo, useState } from 'react'
 import * as Linking from 'expo-linking'
 
@@ -22,7 +21,7 @@ export default function LoginScreen() {
       <View style={styles.container}>
         <Link href="/welcome" asChild>
           <Pressable style={styles.backButton}>
-            <Ionicons name="arrow-back" size={20} color={palette.text} />
+            <Text style={styles.backLabel}>Back</Text>
           </Pressable>
         </Link>
 
@@ -80,14 +79,12 @@ export default function LoginScreen() {
           style={[styles.primaryButton, disabled && styles.primaryButtonDisabled]}
         >
           <Text style={styles.primaryLabel}>{submitting ? 'Signing in...' : 'Sign In'}</Text>
-          <Ionicons name="arrow-forward" size={18} color="#03110a" />
         </Pressable>
 
         <Pressable
           onPress={() => Linking.openURL('https://fitmeet.fit/register')}
           style={styles.secondaryButton}
         >
-          <Ionicons name="open-outline" size={16} color={palette.text} />
           <Text style={styles.secondaryLabel}>Create account on web</Text>
         </Pressable>
       </View>
@@ -106,7 +103,7 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
   },
   backButton: {
-    width: 42,
+    minWidth: 64,
     height: 42,
     borderRadius: 14,
     borderWidth: 1,
@@ -114,6 +111,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: palette.panel,
+    paddingHorizontal: 12,
+  },
+  backLabel: {
+    color: palette.text,
+    fontSize: 14,
+    fontWeight: '700',
   },
   header: {
     gap: 10,
@@ -163,10 +166,8 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: 18,
     backgroundColor: palette.accent,
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
   },
   primaryButtonDisabled: {
     opacity: 0.45,
@@ -182,10 +183,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: palette.line,
     backgroundColor: palette.panel,
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
   },
   secondaryLabel: {
     color: palette.text,

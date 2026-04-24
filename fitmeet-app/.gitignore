@@ -6,3 +6,7 @@ expo-env.d.ts
 expo-start.log
 expo-start.err.log
 # @end expo-cli
+
+.sandbox-home/
+expo-run.log
+App.tsx
