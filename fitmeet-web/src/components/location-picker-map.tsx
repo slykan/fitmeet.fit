@@ -43,12 +43,26 @@ function FitTrack({ coords }: { coords: [number, number][] }) {
 function WindOverlay({ weather }: { weather: EventWeather | null | undefined }) {
   const particles = useMemo(
     () =>
-      Array.from({ length: 18 }, (_, i) => ({
+      Array.from({ length: 24 }, (_, i) => ({
         id: i,
-        left: (i * 37) % 100,
-        top: (i * 19) % 100,
-        delay: (i * 0.17).toFixed(2),
-        size: 2 + (i % 3),
+        left: ((i * 29) % 120) - 10,
+        top: (i * 17) % 100,
+        delay: (i * 0.21).toFixed(2),
+        size: 2 + (i % 2),
+        durationOffset: (i % 4) * 0.35,
+      })),
+    [],
+  )
+
+  const streams = useMemo(
+    () =>
+      Array.from({ length: 6 }, (_, i) => ({
+        id: i,
+        left: ((i * 23) % 110) - 8,
+        top: 10 + i * 14,
+        delay: (i * 0.45).toFixed(2),
+        width: 56 + (i % 3) * 24,
+        durationOffset: (i % 3) * 0.5,
       })),
     [],
   )
@@ -56,9 +70,10 @@ function WindOverlay({ weather }: { weather: EventWeather | null | undefined }) 
   if (!weather || weather.windSpeed <= 0) return null
 
   const flowAngle = weather.windDir + 180
-  const duration = Math.max(1.8, 8 - weather.windSpeed * 0.18)
-  const distance = Math.min(140, 48 + weather.windSpeed * 3)
-  const opacity = Math.min(0.42, 0.12 + weather.windSpeed / 80)
+  const duration = Math.max(2.2, 8.5 - weather.windSpeed * 0.18)
+  const distance = Math.min(220, 90 + weather.windSpeed * 4.2)
+  const opacity = Math.min(0.34, 0.08 + weather.windSpeed / 120)
+  const streamOpacity = Math.min(0.24, 0.05 + weather.windSpeed / 160)
 
   return (
     <>
@@ -71,6 +86,35 @@ function WindOverlay({ weather }: { weather: EventWeather | null | undefined }) 
           zIndex: 500,
         }}
       >
+        {streams.map((stream) => (
+          <span
+            key={`stream-${stream.id}`}
+            style={{
+              position: 'absolute',
+              left: `${stream.left}%`,
+              top: `${stream.top}%`,
+              transform: `rotate(${flowAngle}deg)`,
+              transformOrigin: 'left center',
+            }}
+          >
+            <span
+              style={{
+                display: 'block',
+                width: `${stream.width}px`,
+                height: '2px',
+                borderRadius: 999,
+                background: `linear-gradient(90deg, rgba(255,255,255,0), rgba(180,255,220,${streamOpacity}), rgba(255,255,255,0))`,
+                animationName: 'fitmeet-wind-stream',
+                animationDuration: `${duration + stream.durationOffset}s`,
+                animationDelay: `${stream.delay}s`,
+                animationIterationCount: 'infinite',
+                animationTimingFunction: 'linear',
+                ['--wind-distance' as string]: `${distance}px`,
+              }}
+            />
+          </span>
+        ))}
+
         {particles.map((particle) => (
           <span
             key={particle.id}
@@ -84,18 +128,18 @@ function WindOverlay({ weather }: { weather: EventWeather | null | undefined }) 
             <span
               style={{
                 display: 'block',
-              width: `${particle.size}px`,
-              height: `${particle.size}px`,
-              borderRadius: 999,
-              background: `rgba(255,255,255,${opacity})`,
-              boxShadow: `0 0 10px rgba(108,255,47,${opacity})`,
-              animationName: 'fitmeet-wind-drift',
-              animationDuration: `${duration}s`,
-              animationDelay: `${particle.delay}s`,
-              animationIterationCount: 'infinite',
-              animationTimingFunction: 'linear',
-              ['--wind-distance' as string]: `${distance}px`,
-            }}
+                width: `${particle.size}px`,
+                height: `${particle.size}px`,
+                borderRadius: 999,
+                background: `rgba(255,255,255,${opacity})`,
+                boxShadow: `0 0 10px rgba(108,255,47,${opacity})`,
+                animationName: 'fitmeet-wind-drift',
+                animationDuration: `${duration + particle.durationOffset}s`,
+                animationDelay: `${particle.delay}s`,
+                animationIterationCount: 'infinite',
+                animationTimingFunction: 'linear',
+                ['--wind-distance' as string]: `${distance}px`,
+              }}
             />
           </span>
         ))}
@@ -146,6 +190,20 @@ function WindOverlay({ weather }: { weather: EventWeather | null | undefined }) 
           100% {
             opacity: 0;
             transform: translate3d(var(--wind-distance), 0, 0) scale(1);
+          }
+        }
+
+        @keyframes fitmeet-wind-stream {
+          0% {
+            opacity: 0;
+            transform: translate3d(calc(var(--wind-distance) * -0.35), 0, 0) scaleX(0.75);
+          }
+          18% {
+            opacity: 1;
+          }
+          100% {
+            opacity: 0;
+            transform: translate3d(var(--wind-distance), 0, 0) scaleX(1.08);
           }
         }
       `}</style>
