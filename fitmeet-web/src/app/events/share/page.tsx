@@ -4,6 +4,9 @@ import { formatEventDateTime } from '@/lib/event-time'
 
 import ShareEventClientPage from './share-client'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 type SharePageProps = {
   searchParams?: Record<string, string | string[] | undefined>
 }
@@ -26,7 +29,7 @@ async function getShareEvent(id: string): Promise<PublicShareEvent | null> {
   try {
     const response = await fetch(`${apiBase}/events/public/${id}`, {
       headers: { Accept: 'application/json' },
-      next: { revalidate: 300 },
+      cache: 'no-store',
     })
 
     if (!response.ok) return null
