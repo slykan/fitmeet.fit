@@ -43,26 +43,27 @@ function FitTrack({ coords }: { coords: [number, number][] }) {
 function WindOverlay({ weather }: { weather: EventWeather | null | undefined }) {
   const particles = useMemo(
     () =>
-      Array.from({ length: 24 }, (_, i) => ({
+      Array.from({ length: 44 }, (_, i) => ({
         id: i,
-        left: ((i * 29) % 120) - 10,
-        top: (i * 17) % 100,
-        delay: (i * 0.21).toFixed(2),
-        size: 2 + (i % 2),
-        durationOffset: (i % 4) * 0.35,
+        left: ((i * 19) % 126) - 12,
+        top: (i * 11) % 100,
+        delay: (i * 0.14).toFixed(2),
+        size: 2 + (i % 3),
+        durationOffset: (i % 5) * 0.28,
       })),
     [],
   )
 
   const streams = useMemo(
     () =>
-      Array.from({ length: 6 }, (_, i) => ({
+      Array.from({ length: 12 }, (_, i) => ({
         id: i,
-        left: ((i * 23) % 110) - 8,
-        top: 10 + i * 14,
-        delay: (i * 0.45).toFixed(2),
-        width: 56 + (i % 3) * 24,
-        durationOffset: (i % 3) * 0.5,
+        left: ((i * 13) % 126) - 10,
+        top: 6 + ((i * 8) % 88),
+        delay: (i * 0.22).toFixed(2),
+        width: 72 + (i % 4) * 34,
+        durationOffset: (i % 4) * 0.4,
+        thickness: 2 + (i % 2),
       })),
     [],
   )
@@ -70,11 +71,12 @@ function WindOverlay({ weather }: { weather: EventWeather | null | undefined }) 
   if (!weather) return null
 
   const flowAngle = weather.windDir + 180
-  const effectiveWind = Math.max(4, weather.windSpeed)
-  const duration = Math.max(2.2, 8.5 - effectiveWind * 0.18)
-  const distance = Math.min(220, 90 + effectiveWind * 4.2)
-  const opacity = Math.min(0.44, 0.12 + effectiveWind / 90)
-  const streamOpacity = Math.min(0.3, 0.08 + effectiveWind / 130)
+  const effectiveWind = Math.max(8, weather.windSpeed)
+  const duration = Math.max(1.6, 6.2 - effectiveWind * 0.12)
+  const distance = Math.min(280, 120 + effectiveWind * 5.6)
+  const opacity = Math.min(0.72, 0.28 + effectiveWind / 80)
+  const streamOpacity = Math.min(0.58, 0.2 + effectiveWind / 100)
+  const glowOpacity = Math.min(0.24, 0.1 + effectiveWind / 180)
 
   return (
     <>
@@ -85,9 +87,18 @@ function WindOverlay({ weather }: { weather: EventWeather | null | undefined }) 
           pointerEvents: 'none',
           overflow: 'hidden',
           zIndex: 500,
-          background: `linear-gradient(${flowAngle}deg, rgba(108,255,47,0.02), rgba(255,255,255,0.01), rgba(108,255,47,0.05))`,
+          background: `linear-gradient(${flowAngle}deg, rgba(108,255,47,${glowOpacity}), rgba(255,255,255,0.02), rgba(108,255,47,${Math.min(glowOpacity + 0.06, 0.32)}))`,
         }}
       >
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background: `repeating-linear-gradient(${flowAngle}deg, rgba(180,255,220,0) 0px, rgba(180,255,220,0) 20px, rgba(180,255,220,${Math.min(streamOpacity * 0.35, 0.22)}) 28px, rgba(180,255,220,0) 44px)`,
+            opacity: 0.55,
+          }}
+        />
+
         {streams.map((stream) => (
           <span
             key={`stream-${stream.id}`}
@@ -103,9 +114,10 @@ function WindOverlay({ weather }: { weather: EventWeather | null | undefined }) 
               style={{
                 display: 'block',
                 width: `${stream.width}px`,
-                height: '2px',
+                height: `${stream.thickness}px`,
                 borderRadius: 999,
-                background: `linear-gradient(90deg, rgba(255,255,255,0), rgba(180,255,220,${streamOpacity}), rgba(255,255,255,0))`,
+                background: `linear-gradient(90deg, rgba(255,255,255,0), rgba(235,255,245,${streamOpacity * 0.7}), rgba(108,255,47,${streamOpacity}), rgba(255,255,255,0))`,
+                boxShadow: `0 0 12px rgba(108,255,47,${streamOpacity * 0.8})`,
                 animationName: 'fitmeet-wind-stream',
                 animationDuration: `${duration + stream.durationOffset}s`,
                 animationDelay: `${stream.delay}s`,
@@ -133,8 +145,8 @@ function WindOverlay({ weather }: { weather: EventWeather | null | undefined }) 
                 width: `${particle.size}px`,
                 height: `${particle.size}px`,
                 borderRadius: 999,
-                background: `rgba(255,255,255,${opacity})`,
-                boxShadow: `0 0 10px rgba(108,255,47,${opacity})`,
+                background: `rgba(245,255,250,${opacity})`,
+                boxShadow: `0 0 14px rgba(108,255,47,${opacity})`,
                 animationName: 'fitmeet-wind-drift',
                 animationDuration: `${duration + particle.durationOffset}s`,
                 animationDelay: `${particle.delay}s`,
