@@ -188,14 +188,6 @@ function EventContent() {
     <>
     <main className="min-h-screen py-8 px-4">
     <div style={{ maxWidth: 1024, margin: '0 auto' }}>
-      <Link
-        href="/hub"
-        className="inline-flex items-center gap-1.5 text-sm mb-6 transition-opacity hover:opacity-70"
-        style={{ color: 'var(--text-muted)' }}
-      >
-        <ChevronLeft size={16} /> Back
-      </Link>
-
       {loading && (
         <div className="text-center py-20 text-sm" style={{ color: 'var(--text-muted)' }}>Loading…</div>
       )}
