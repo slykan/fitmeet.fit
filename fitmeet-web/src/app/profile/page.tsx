@@ -117,40 +117,34 @@ export default function ProfilePage() {
           className="rounded-2xl border p-7 flex items-center gap-5 mb-5"
           style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
         >
-          {user.avatar ? (
-            <Image src={user.avatar} alt={user.name} width={72} height={72} className="rounded-full ring-2 ring-[--border]" />
-          ) : (
-            <div
-              className="w-18 h-18 rounded-full flex items-center justify-center text-black font-bold text-2xl shrink-0"
-              style={{ background: 'var(--primary)', width: 72, height: 72 }}
-            >
-              {user.name.charAt(0).toUpperCase()}
-            </div>
-          )}
-          <div className="flex-1 min-w-0">
-            <h1 className="text-xl font-bold truncate">{user.name}</h1>
-            <p className="text-sm truncate" style={{ color: 'var(--text-muted)' }}>{user.email}</p>
-            {user.phone && (
-              <p className="text-sm mt-0.5 flex items-center gap-1.5" style={{ color: 'var(--text-muted)' }}>
-                <Phone size={12} /> {user.phone}
-              </p>
+          {/* Avatar + photo buttons */}
+          <div className="flex flex-col items-center gap-2 shrink-0">
+            {user.avatar ? (
+              <Image src={user.avatar} alt={user.name} width={72} height={72} className="rounded-full ring-2 ring-[--border]" />
+            ) : (
+              <div
+                className="rounded-full flex items-center justify-center text-black font-bold text-2xl"
+                style={{ background: 'var(--primary)', width: 72, height: 72 }}
+              >
+                {user.name.charAt(0).toUpperCase()}
+              </div>
             )}
-            <div className="mt-3 flex flex-wrap gap-2">
-              <input
-                ref={avatarInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleAvatarChange}
-              />
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleAvatarChange}
+            />
+            <div className="flex gap-1.5">
               <Button
                 size="sm"
                 variant="ghost"
                 loading={avatarLoading}
                 onClick={() => avatarInputRef.current?.click()}
               >
-                <Camera size={14} className="mr-1.5" />
-                {user.avatar ? 'Change photo' : 'Upload photo'}
+                <Camera size={13} className="mr-1" />
+                {user.avatar ? 'Change' : 'Upload'}
               </Button>
               {user.avatar && (
                 <Button
@@ -159,15 +153,27 @@ export default function ProfilePage() {
                   disabled={avatarLoading}
                   onClick={removeAvatar}
                 >
-                  <Trash2 size={14} className="mr-1.5" />
+                  <Trash2 size={13} className="mr-1" />
                   Remove
                 </Button>
               )}
             </div>
             {avatarError && (
-              <p className="text-xs mt-2 text-red-400">{avatarError}</p>
+              <p className="text-xs text-red-400 text-center">{avatarError}</p>
             )}
           </div>
+
+          {/* User info */}
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl font-bold truncate">{user.name}</h1>
+            <p className="text-sm truncate" style={{ color: 'var(--text-muted)' }}>{user.email}</p>
+            {user.phone && (
+              <p className="text-sm mt-0.5 flex items-center gap-1.5" style={{ color: 'var(--text-muted)' }}>
+                <Phone size={12} /> {user.phone}
+              </p>
+            )}
+          </div>
+
           <Link href="/onboarding">
             <Button size="sm" variant="ghost">
               <Pencil size={14} className="mr-1.5" /> Edit
