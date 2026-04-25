@@ -110,11 +110,11 @@ export default function ProfilePage() {
   return (
     <>
       <Navbar />
-      <main className="max-w-3xl mx-auto px-4 py-10">
+      <main className="max-w-3xl mx-auto px-4 py-6 sm:py-10 overflow-x-hidden">
 
         {/* Header */}
         <div
-          className="rounded-2xl border p-7 flex items-center gap-5 mb-5"
+          className="rounded-2xl border p-4 sm:p-7 flex flex-col items-stretch gap-4 sm:flex-row sm:items-center sm:gap-5 mb-5"
           style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
         >
           {/* Avatar + photo buttons */}
@@ -136,7 +136,7 @@ export default function ProfilePage() {
               className="hidden"
               onChange={handleAvatarChange}
             />
-            <div className="flex gap-1.5">
+            <div className="flex flex-wrap items-center justify-center gap-1.5 w-full">
               <Button
                 size="sm"
                 variant="ghost"
@@ -164,18 +164,18 @@ export default function ProfilePage() {
           </div>
 
           {/* User info */}
-          <div className="flex-1 min-w-0">
-            <h1 className="text-xl font-bold truncate">{user.name}</h1>
-            <p className="text-sm truncate" style={{ color: 'var(--text-muted)' }}>{user.email}</p>
+          <div className="flex-1 min-w-0 text-center sm:text-left">
+            <h1 className="text-xl font-bold break-words">{user.name}</h1>
+            <p className="text-sm break-all sm:break-normal" style={{ color: 'var(--text-muted)' }}>{user.email}</p>
             {user.phone && (
-              <p className="text-sm mt-0.5 flex items-center gap-1.5" style={{ color: 'var(--text-muted)' }}>
+              <p className="text-sm mt-0.5 flex items-center justify-center sm:justify-start gap-1.5 break-all" style={{ color: 'var(--text-muted)' }}>
                 <Phone size={12} /> {user.phone}
               </p>
             )}
           </div>
 
-          <Link href="/onboarding">
-            <Button size="sm" variant="ghost">
+          <Link href="/onboarding" className="w-full sm:w-auto">
+            <Button size="sm" variant="ghost" className="w-full sm:w-auto">
               <Pencil size={14} className="mr-1.5" /> Edit
             </Button>
           </Link>
@@ -183,7 +183,7 @@ export default function ProfilePage() {
 
         {/* Email notifications */}
         <div
-          className="rounded-2xl border p-6 mb-5"
+          className="rounded-2xl border p-4 sm:p-6 mb-5"
           style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
         >
           <h2 className="font-bold text-sm uppercase tracking-wide mb-4 flex items-center gap-2">
@@ -222,7 +222,7 @@ export default function ProfilePage() {
 
         {/* Location */}
         <div
-          className="rounded-2xl border p-6 mb-5"
+          className="rounded-2xl border p-4 sm:p-6 mb-5"
           style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
         >
           <h2 className="font-bold text-sm uppercase tracking-wide mb-4 flex items-center gap-2">
@@ -230,18 +230,18 @@ export default function ProfilePage() {
           </h2>
           {user.home.city ? (
             <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm">
+              <div className="flex items-center gap-2 text-sm min-w-0">
                 <Globe size={14} style={{ color: 'var(--text-muted)' }} />
-                <span>{user.home.city}{user.home.country ? `, ${user.home.country}` : ''}</span>
+                <span className="break-words">{user.home.city}{user.home.country ? `, ${user.home.country}` : ''}</span>
               </div>
               {user.home.lat && user.home.lng && (
                 <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
                   📍 {user.home.lat?.toFixed(4)}, {user.home.lng?.toFixed(4)}
                 </div>
               )}
-              <div className="flex items-center gap-2 text-sm mt-2">
+              <div className="flex items-center gap-2 text-sm mt-2 min-w-0">
                 <Navigation size={14} style={{ color: 'var(--text-muted)' }} />
-                <span>{RADIUS_LABELS[user.radius] ?? user.radius}</span>
+                <span className="break-words">{RADIUS_LABELS[user.radius] ?? user.radius}</span>
               </div>
             </div>
           ) : (
@@ -254,7 +254,7 @@ export default function ProfilePage() {
         {/* Interests */}
         {(user.categories?.length > 0 || user.skill_level) && (
           <div
-            className="rounded-2xl border p-6 mb-5"
+            className="rounded-2xl border p-4 sm:p-6 mb-5"
             style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
           >
             <h2 className="font-bold text-sm uppercase tracking-wide mb-4 flex items-center gap-2">
@@ -312,8 +312,8 @@ function PreferenceRow({
   onToggle: () => void
 }) {
   return (
-    <div className="flex items-center gap-3 text-sm">
-      <span style={{ color: enabled ? 'var(--primary)' : 'var(--text-muted)' }}>{icon}</span>
+    <div className="flex items-start gap-3 text-sm">
+      <span className="mt-0.5 shrink-0" style={{ color: enabled ? 'var(--primary)' : 'var(--text-muted)' }}>{icon}</span>
       <div className="flex-1 min-w-0">
         <p className="font-medium">{label}</p>
         <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{description}</p>
@@ -324,7 +324,7 @@ function PreferenceRow({
         disabled={disabled}
         aria-pressed={enabled}
         aria-label={`${label} email notifications`}
-        className="relative h-7 w-12 rounded-full border transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+        className="relative h-7 w-12 min-w-12 shrink-0 rounded-full border transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
         style={{
           background: enabled ? 'var(--primary)' : 'var(--background)',
           borderColor: enabled ? 'var(--primary)' : 'var(--border)',
