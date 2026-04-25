@@ -107,8 +107,8 @@ export function WindOverlay({
     isHub ? (isMobile ? 0.3 : 0.24) : (isMobile ? 0.22 : 0.16),
     (isHub ? (isMobile ? 0.1 : 0.07) : (isMobile ? 0.07 : 0.04)) + effectiveWind / (isHub ? (isMobile ? 120 : 150) : (isMobile ? 160 : 220)),
   )
-  const cloudOpacity = isCloudy ? (isHub ? (isMobile ? 0.22 : 0.16) : (isMobile ? 0.14 : 0.1)) : 0
-  const rainOpacity = isRainy ? (isHub ? (isMobile ? 0.24 : 0.16) : (isMobile ? 0.14 : 0.1)) : 0
+  const cloudOpacity = isCloudy ? (isHub ? (isMobile ? 0.4 : 0.28) : (isMobile ? 0.14 : 0.1)) : 0
+  const rainOpacity = isRainy ? (isHub ? (isMobile ? 0.38 : 0.28) : (isMobile ? 0.14 : 0.1)) : 0
 
   return (
     <>
@@ -128,12 +128,12 @@ export function WindOverlay({
               position: 'absolute',
               inset: 0,
               background: `
-                radial-gradient(circle at 18% 22%, rgba(210,220,235,${cloudOpacity}) 0%, rgba(210,220,235,0) 24%),
-                radial-gradient(circle at 58% 18%, rgba(196,208,226,${cloudOpacity * 0.92}) 0%, rgba(196,208,226,0) 28%),
-                radial-gradient(circle at 82% 34%, rgba(214,223,238,${cloudOpacity * 0.86}) 0%, rgba(214,223,238,0) 24%),
-                radial-gradient(circle at 34% 68%, rgba(188,201,220,${cloudOpacity * 0.78}) 0%, rgba(188,201,220,0) 30%)
+                radial-gradient(circle at 18% 22%, rgba(168,183,206,${cloudOpacity}) 0%, rgba(168,183,206,0) 26%),
+                radial-gradient(circle at 58% 18%, rgba(148,165,191,${cloudOpacity * 0.96}) 0%, rgba(148,165,191,0) 30%),
+                radial-gradient(circle at 82% 34%, rgba(176,190,214,${cloudOpacity * 0.88}) 0%, rgba(176,190,214,0) 26%),
+                radial-gradient(circle at 34% 68%, rgba(134,151,177,${cloudOpacity * 0.82}) 0%, rgba(134,151,177,0) 32%)
               `,
-              mixBlendMode: 'screen',
+              mixBlendMode: 'multiply',
             }}
           />
         )}
@@ -143,8 +143,8 @@ export function WindOverlay({
             style={{
               position: 'absolute',
               inset: 0,
-              background: `repeating-linear-gradient(${flowAngle + 18}deg, rgba(120,180,235,0) 0px, rgba(120,180,235,0) 10px, rgba(120,180,235,${rainOpacity}) 12px, rgba(120,180,235,0) 16px)`,
-              opacity: isHub ? 0.5 : 0.38,
+              background: `repeating-linear-gradient(${flowAngle + 18}deg, rgba(84,152,214,0) 0px, rgba(84,152,214,0) 9px, rgba(84,152,214,${rainOpacity}) 11px, rgba(84,152,214,0) 15px)`,
+              opacity: isHub ? 0.72 : 0.38,
               animation: 'fitmeet-rain-shift 7s linear infinite',
             }}
           />
