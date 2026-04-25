@@ -408,7 +408,7 @@ export default function HubMap() {
           />
         ))}
       </MapContainer>
-      <WindOverlay weather={hubWeather} />
+      <WindOverlay weather={hubWeather} variant="hub" />
 
       {/* Filters */}
       <div

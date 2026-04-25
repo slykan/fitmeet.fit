@@ -40,7 +40,13 @@ function FitTrack({ coords }: { coords: [number, number][] }) {
   return null
 }
 
-export function WindOverlay({ weather }: { weather: EventWeather | null | undefined }) {
+export function WindOverlay({
+  weather,
+  variant = 'default',
+}: {
+  weather: EventWeather | null | undefined
+  variant?: 'default' | 'hub'
+}) {
   const [isMobile, setIsMobile] = useState(false)
 
   useEffect(() => {
@@ -52,31 +58,33 @@ export function WindOverlay({ weather }: { weather: EventWeather | null | undefi
     return () => media.removeEventListener('change', apply)
   }, [])
 
+  const isHub = variant === 'hub'
+
   const particles = useMemo(
     () =>
-      Array.from({ length: isMobile ? 108 : 84 }, (_, i) => ({
+      Array.from({ length: isHub ? (isMobile ? 184 : 156) : (isMobile ? 108 : 84) }, (_, i) => ({
         id: i,
         left: ((i * 19) % 126) - 12,
-        top: (i * (isMobile ? 4.8 : 6)) % 100,
-        delay: (i * (isMobile ? 0.07 : 0.09)).toFixed(2),
-        size: (isMobile ? 2.4 : 2) + (i % 2),
+        top: (i * (isHub ? (isMobile ? 3.2 : 4) : (isMobile ? 4.8 : 6))) % 100,
+        delay: (i * (isHub ? (isMobile ? 0.045 : 0.055) : (isMobile ? 0.07 : 0.09))).toFixed(2),
+        size: (isHub ? (isMobile ? 2.8 : 2.3) : (isMobile ? 2.4 : 2)) + (i % 2),
         durationOffset: (i % 6) * 0.22,
       })),
-    [isMobile],
+    [isHub, isMobile],
   )
 
   const streams = useMemo(
     () =>
-      Array.from({ length: isMobile ? 112 : 88 }, (_, i) => ({
+      Array.from({ length: isHub ? (isMobile ? 212 : 176) : (isMobile ? 112 : 88) }, (_, i) => ({
         id: i,
         left: ((i * 13) % 126) - 10,
-        top: 2 + ((i * (isMobile ? 1.2 : 1.6)) % 96),
-        delay: (i * (isMobile ? 0.055 : 0.07)).toFixed(2),
-        width: (isMobile ? 22 : 18) + (i % 3) * (isMobile ? 14 : 12),
+        top: 2 + ((i * (isHub ? (isMobile ? 0.72 : 0.92) : (isMobile ? 1.2 : 1.6))) % 96),
+        delay: (i * (isHub ? (isMobile ? 0.035 : 0.045) : (isMobile ? 0.055 : 0.07))).toFixed(2),
+        width: (isHub ? (isMobile ? 26 : 22) : (isMobile ? 22 : 18)) + (i % 3) * (isHub ? (isMobile ? 16 : 14) : (isMobile ? 14 : 12)),
         durationOffset: (i % 5) * 0.22,
-        thickness: 2 + (i % 2),
+        thickness: (isHub ? 3 : 2) + (i % 2),
       })),
-    [isMobile],
+    [isHub, isMobile],
   )
 
   if (!weather) return null
@@ -85,9 +93,18 @@ export function WindOverlay({ weather }: { weather: EventWeather | null | undefi
   const effectiveWind = Math.max(8, weather.windSpeed)
   const duration = Math.max(4.4, 10.6 - effectiveWind * 0.08)
   const distance = Math.min(158, 46 + effectiveWind * 2.4)
-  const opacity = Math.min(isMobile ? 0.9 : 0.82, (isMobile ? 0.52 : 0.42) + effectiveWind / (isMobile ? 88 : 95))
-  const streamOpacity = Math.min(isMobile ? 0.9 : 0.82, (isMobile ? 0.56 : 0.44) + effectiveWind / (isMobile ? 84 : 92))
-  const glowOpacity = Math.min(isMobile ? 0.22 : 0.16, (isMobile ? 0.07 : 0.04) + effectiveWind / (isMobile ? 160 : 220))
+  const opacity = Math.min(
+    isHub ? (isMobile ? 0.96 : 0.92) : (isMobile ? 0.9 : 0.82),
+    (isHub ? (isMobile ? 0.62 : 0.54) : (isMobile ? 0.52 : 0.42)) + effectiveWind / (isHub ? (isMobile ? 72 : 80) : (isMobile ? 88 : 95)),
+  )
+  const streamOpacity = Math.min(
+    isHub ? (isMobile ? 0.98 : 0.94) : (isMobile ? 0.9 : 0.82),
+    (isHub ? (isMobile ? 0.68 : 0.58) : (isMobile ? 0.56 : 0.44)) + effectiveWind / (isHub ? (isMobile ? 68 : 76) : (isMobile ? 84 : 92)),
+  )
+  const glowOpacity = Math.min(
+    isHub ? (isMobile ? 0.3 : 0.24) : (isMobile ? 0.22 : 0.16),
+    (isHub ? (isMobile ? 0.1 : 0.07) : (isMobile ? 0.07 : 0.04)) + effectiveWind / (isHub ? (isMobile ? 120 : 150) : (isMobile ? 160 : 220)),
+  )
 
   return (
     <>
@@ -98,15 +115,15 @@ export function WindOverlay({ weather }: { weather: EventWeather | null | undefi
           pointerEvents: 'none',
           overflow: 'hidden',
           zIndex: 500,
-          background: `linear-gradient(${flowAngle}deg, rgba(10,52,108,${glowOpacity}), rgba(255,255,255,0.01), rgba(11,96,176,${Math.min(glowOpacity + (isMobile ? 0.1 : 0.06), isMobile ? 0.28 : 0.18)}))`,
+          background: `linear-gradient(${flowAngle}deg, rgba(${isHub ? '8,42,94' : '10,52,108'},${glowOpacity}), rgba(255,255,255,0.01), rgba(${isHub ? '9,82,156' : '11,96,176'},${Math.min(glowOpacity + (isHub ? (isMobile ? 0.16 : 0.12) : (isMobile ? 0.1 : 0.06)), isHub ? (isMobile ? 0.42 : 0.32) : (isMobile ? 0.28 : 0.18))}))`,
         }}
       >
         <div
           style={{
             position: 'absolute',
             inset: 0,
-            background: `repeating-linear-gradient(${flowAngle}deg, rgba(33,113,181,0) 0px, rgba(33,113,181,0) 10px, rgba(18,88,162,${Math.min(streamOpacity * (isMobile ? 0.12 : 0.08), isMobile ? 0.08 : 0.05)}) 13px, rgba(33,113,181,0) 20px)`,
-            opacity: isMobile ? 0.16 : 0.1,
+            background: `repeating-linear-gradient(${flowAngle}deg, rgba(33,113,181,0) 0px, rgba(33,113,181,0) 10px, rgba(18,88,162,${Math.min(streamOpacity * (isHub ? (isMobile ? 0.18 : 0.14) : (isMobile ? 0.12 : 0.08)), isHub ? (isMobile ? 0.16 : 0.12) : (isMobile ? 0.08 : 0.05))}) 13px, rgba(33,113,181,0) 20px)`,
+            opacity: isHub ? (isMobile ? 0.24 : 0.18) : (isMobile ? 0.16 : 0.1),
           }}
         />
 
