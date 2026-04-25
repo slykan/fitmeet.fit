@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { FILTER_FEATURED } from '@/src/lib/categories'
 import { mockEvents } from '@/src/mock-data'
 import { palette, spacing } from '@/src/theme'
+import { WeatherBadge } from '@/src/components/WeatherBadge'
 
 export default function HubScreen() {
   return (
@@ -80,6 +81,12 @@ export default function HubScreen() {
               </View>
               <Ionicons name="chevron-forward" size={18} color={palette.textDim} />
             </View>
+            <WeatherBadge
+              lat={event.lat}
+              lng={event.lng}
+              isoDate={event.isoDate}
+              hour={event.hour}
+            />
           </View>
         ))}
       </ScrollView>
