@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
-import { MapContainer, TileLayer, Marker, ZoomControl, useMap } from 'react-leaflet'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { MapContainer, TileLayer, Marker, ZoomControl, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { useRouter } from 'next/navigation'
@@ -158,6 +158,38 @@ function MapViewport({ events, lat, lng, radiusKm, ready, recenterKey }: {
   return null
 }
 
+function HubWeatherSync({
+  onInteractionChange,
+  onCenterSettled,
+}: {
+  onInteractionChange: (moving: boolean) => void
+  onCenterSettled: (lat: number, lng: number) => void
+}) {
+  const map = useMap()
+
+  useEffect(() => {
+    const center = map.getCenter()
+    onCenterSettled(center.lat, center.lng)
+  }, [map, onCenterSettled])
+
+  useMapEvents({
+    movestart: () => onInteractionChange(true),
+    zoomstart: () => onInteractionChange(true),
+    moveend: () => {
+      const center = map.getCenter()
+      onCenterSettled(center.lat, center.lng)
+      onInteractionChange(false)
+    },
+    zoomend: () => {
+      const center = map.getCenter()
+      onCenterSettled(center.lat, center.lng)
+      onInteractionChange(false)
+    },
+  })
+
+  return null
+}
+
 function formatDate(iso: string, timezone?: string | null) {
   return formatEventDateTime(iso, timezone)
 }
@@ -227,6 +259,8 @@ export default function HubMap() {
   const [friendIds, setFriendIds] = useState<Set<number>>(new Set())
   const [recenterKey, setRecenterKey] = useState(0)
   const [hubWeather, setHubWeather] = useState<EventWeather | null>(null)
+  const [isMapInteracting, setIsMapInteracting] = useState(false)
+  const [weatherCenter, setWeatherCenter] = useState<{ lat: number; lng: number } | null>(null)
 
   const lat      = (user?.location?.lat  || user?.home?.lat  || null)
   const lng      = (user?.location?.lng  || user?.home?.lng  || null)
@@ -269,7 +303,7 @@ export default function HubMap() {
   }, [lat, lng, friendsOnly])
 
   useEffect(() => {
-    if (!lat || !lng) {
+    if (!weatherCenter) {
       setHubWeather(null)
       return
     }
@@ -278,10 +312,10 @@ export default function HubMap() {
     const isoDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
     const hour = now.getHours()
 
-    fetchEventWeather(lat, lng, isoDate, hour)
+    fetchEventWeather(weatherCenter.lat, weatherCenter.lng, isoDate, hour)
       .then(setHubWeather)
       .catch(() => setHubWeather(null))
-  }, [lat, lng])
+  }, [weatherCenter])
 
   useEffect(() => {
     api.get('/events/joined')
@@ -352,6 +386,24 @@ export default function HubMap() {
     })
   }
 
+  const handleWeatherInteractionChange = useCallback((moving: boolean) => {
+    setIsMapInteracting(moving)
+  }, [])
+
+  const handleWeatherCenterSettled = useCallback((nextLat: number, nextLng: number) => {
+    setWeatherCenter(current => {
+      if (
+        current &&
+        Math.abs(current.lat - nextLat) < 0.0001 &&
+        Math.abs(current.lng - nextLng) < 0.0001
+      ) {
+        return current
+      }
+
+      return { lat: nextLat, lng: nextLng }
+    })
+  }, [])
+
   return (
     <div style={{ position: 'relative', height: '100%', width: '100%' }}>
       <style>{`
@@ -397,6 +449,10 @@ export default function HubMap() {
           ready={ready}
           recenterKey={recenterKey}
         />
+        <HubWeatherSync
+          onInteractionChange={handleWeatherInteractionChange}
+          onCenterSettled={handleWeatherCenterSettled}
+        />
 
         {markerDisplays.map(({ event: ev, angle, zIndex, delayMs }) => (
           <Marker
@@ -408,42 +464,7 @@ export default function HubMap() {
           />
         ))}
       </MapContainer>
-      <WindOverlay weather={hubWeather} variant="hub" />
-      {hubWeather && (
-        <div
-          style={{
-            position: 'absolute',
-            right: 14,
-            top: 14,
-            zIndex: 650,
-            pointerEvents: 'none',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 8,
-            padding: '8px 10px',
-            borderRadius: 999,
-            border: '1px solid rgba(255,255,255,0.14)',
-            background: 'rgba(5,8,22,0.72)',
-            backdropFilter: 'blur(8px)',
-            color: '#d7dfef',
-            fontSize: 12,
-            fontWeight: 600,
-          }}
-        >
-          <span
-            style={{
-              display: 'inline-block',
-              transform: `rotate(${hubWeather.windDir + 180}deg)`,
-              color: '#58beff',
-              lineHeight: 1,
-              fontSize: 14,
-            }}
-          >
-            →
-          </span>
-          <span>{hubWeather.windSpeed} km/h</span>
-        </div>
-      )}
+      {!isMapInteracting && <WindOverlay weather={hubWeather} variant="hub" />}
 
       {/* Filters */}
       <div
