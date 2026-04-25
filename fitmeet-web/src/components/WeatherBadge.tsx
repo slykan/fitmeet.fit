@@ -7,6 +7,16 @@ import {
 } from 'lucide-react'
 import { fetchEventWeather, weatherIcon, weatherSlot, EventWeather } from '@/lib/weather'
 
+// All badges on a page wait for the same 2-second window before revealing.
+// The timer starts on the first badge mount so late-loaded pages don't wait extra.
+let pageReadyPromise: Promise<void> | null = null
+function getPageReady(): Promise<void> {
+  if (!pageReadyPromise) {
+    pageReadyPromise = new Promise(resolve => setTimeout(resolve, 2000))
+  }
+  return pageReadyPromise
+}
+
 const ICONS: Record<string, React.ComponentType<{ size?: number; className?: string; style?: React.CSSProperties }>> = {
   'sun':              Sun,
   'cloud-sun':        CloudSun,
@@ -34,19 +44,20 @@ export function WeatherBadge({ lat, lng, startAt, timezone, inline = false, mapO
     setVisible(false)
     setWeather(null)
 
-    const resolve = (w: EventWeather | null) => {
-      if (!w) return
-      setWeather(w)
-      // Tiny rAF delay so even cached results get the CSS transition
-      requestAnimationFrame(() => requestAnimationFrame(() => setVisible(true)))
-    }
+    let cancelled = false
 
-    if (providedWeather) {
-      resolve(providedWeather)
-      return
-    }
+    const ready = getPageReady()
     const { isoDate, hour } = weatherSlot(startAt, timezone)
-    fetchEventWeather(lat, lng, isoDate, hour).then(resolve)
+    const dataPromise = providedWeather
+      ? Promise.resolve(providedWeather)
+      : fetchEventWeather(lat, lng, isoDate, hour)
+
+    Promise.all([ready, dataPromise]).then(([, w]) => {
+      if (cancelled || !w) return
+      setWeather(w)
+      requestAnimationFrame(() => { if (!cancelled) setVisible(true) })
+    })
+    return () => { cancelled = true }
   }, [lat, lng, startAt, timezone, providedWeather])
 
   if (!weather) return null
