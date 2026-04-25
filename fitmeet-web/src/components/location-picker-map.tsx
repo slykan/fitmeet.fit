@@ -74,9 +74,9 @@ function WindOverlay({ weather }: { weather: EventWeather | null | undefined }) 
   const effectiveWind = Math.max(8, weather.windSpeed)
   const duration = Math.max(4.4, 10.6 - effectiveWind * 0.08)
   const distance = Math.min(158, 46 + effectiveWind * 2.4)
-  const opacity = Math.min(0.62, 0.26 + effectiveWind / 120)
-  const streamOpacity = Math.min(0.58, 0.24 + effectiveWind / 120)
-  const glowOpacity = Math.min(0.18, 0.05 + effectiveWind / 220)
+  const opacity = Math.min(0.72, 0.34 + effectiveWind / 110)
+  const streamOpacity = Math.min(0.7, 0.34 + effectiveWind / 105)
+  const glowOpacity = Math.min(0.24, 0.08 + effectiveWind / 180)
 
   return (
     <>
@@ -87,15 +87,15 @@ function WindOverlay({ weather }: { weather: EventWeather | null | undefined }) 
           pointerEvents: 'none',
           overflow: 'hidden',
           zIndex: 500,
-          background: `linear-gradient(${flowAngle}deg, rgba(88,190,255,${glowOpacity}), rgba(255,255,255,0.02), rgba(88,190,255,${Math.min(glowOpacity + 0.08, 0.28)}))`,
+          background: `linear-gradient(${flowAngle}deg, rgba(14,74,138,${glowOpacity}), rgba(255,255,255,0.01), rgba(11,96,176,${Math.min(glowOpacity + 0.12, 0.36)}))`,
         }}
       >
         <div
           style={{
             position: 'absolute',
             inset: 0,
-            background: `repeating-linear-gradient(${flowAngle}deg, rgba(170,225,255,0) 0px, rgba(170,225,255,0) 9px, rgba(170,225,255,${Math.min(streamOpacity * 0.36, 0.22)}) 13px, rgba(170,225,255,0) 20px)`,
-            opacity: 0.64,
+            background: `repeating-linear-gradient(${flowAngle}deg, rgba(33,113,181,0) 0px, rgba(33,113,181,0) 9px, rgba(18,88,162,${Math.min(streamOpacity * 0.42, 0.3)}) 13px, rgba(33,113,181,0) 20px)`,
+            opacity: 0.78,
           }}
         />
 
@@ -116,8 +116,8 @@ function WindOverlay({ weather }: { weather: EventWeather | null | undefined }) 
                 width: `${stream.width}px`,
                 height: `${stream.thickness}px`,
                 borderRadius: 999,
-                background: `linear-gradient(90deg, rgba(255,255,255,0), rgba(216,241,255,${streamOpacity * 0.6}), rgba(88,190,255,${streamOpacity}), rgba(255,255,255,0))`,
-                boxShadow: `0 0 14px rgba(88,190,255,${streamOpacity * 0.9})`,
+                background: `linear-gradient(90deg, rgba(255,255,255,0), rgba(92,158,216,${streamOpacity * 0.52}), rgba(12,88,165,${streamOpacity}), rgba(255,255,255,0))`,
+                boxShadow: `0 0 14px rgba(12,88,165,${streamOpacity})`,
                 animationName: 'fitmeet-wind-stream',
                 animationDuration: `${duration + stream.durationOffset}s`,
                 animationDelay: `${stream.delay}s`,
@@ -145,8 +145,8 @@ function WindOverlay({ weather }: { weather: EventWeather | null | undefined }) 
                 width: `${particle.size}px`,
                 height: `${particle.size}px`,
                 borderRadius: 999,
-                background: `rgba(225,244,255,${opacity})`,
-                boxShadow: `0 0 12px rgba(88,190,255,${opacity})`,
+                background: `rgba(38,110,183,${opacity})`,
+                boxShadow: `0 0 10px rgba(12,88,165,${opacity * 0.92})`,
                 animationName: 'fitmeet-wind-drift',
                 animationDuration: `${duration + particle.durationOffset}s`,
                 animationDelay: `${particle.delay}s`,
