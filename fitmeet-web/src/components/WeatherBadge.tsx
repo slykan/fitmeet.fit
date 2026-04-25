@@ -1,17 +1,20 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { usePathname } from 'next/navigation'
 import {
   Sun, CloudSun, Cloud, CloudRain, CloudSnow, CloudLightning,
   Wind,
 } from 'lucide-react'
 import { fetchEventWeather, weatherIcon, weatherSlot, EventWeather } from '@/lib/weather'
 
-// All badges on a page wait for the same 2-second window before revealing.
-// The timer starts on the first badge mount so late-loaded pages don't wait extra.
+// Per-path singleton — resets every time the route changes (SPA navigation or hard refresh).
+let trackedPath = ''
 let pageReadyPromise: Promise<void> | null = null
-function getPageReady(): Promise<void> {
-  if (!pageReadyPromise) {
+
+function getPageReady(pathname: string): Promise<void> {
+  if (pathname !== trackedPath || !pageReadyPromise) {
+    trackedPath = pathname
     pageReadyPromise = new Promise(resolve => setTimeout(resolve, 2000))
   }
   return pageReadyPromise
@@ -37,6 +40,7 @@ type Props = {
 }
 
 export function WeatherBadge({ lat, lng, startAt, timezone, inline = false, mapOverlay = false, weather: providedWeather }: Props) {
+  const pathname = usePathname()
   const [weather, setWeather] = useState<EventWeather | null>(null)
   const [visible, setVisible] = useState(false)
 
@@ -46,7 +50,7 @@ export function WeatherBadge({ lat, lng, startAt, timezone, inline = false, mapO
 
     let cancelled = false
 
-    const ready = getPageReady()
+    const ready = getPageReady(pathname)
     const { isoDate, hour } = weatherSlot(startAt, timezone)
     const dataPromise = providedWeather
       ? Promise.resolve(providedWeather)
@@ -58,7 +62,7 @@ export function WeatherBadge({ lat, lng, startAt, timezone, inline = false, mapO
       requestAnimationFrame(() => { if (!cancelled) setVisible(true) })
     })
     return () => { cancelled = true }
-  }, [lat, lng, startAt, timezone, providedWeather])
+  }, [pathname, lat, lng, startAt, timezone, providedWeather])
 
   if (!weather) return null
 
