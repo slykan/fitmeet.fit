@@ -23,6 +23,17 @@ type OpenMeteoResponse = {
 
 const cache = new Map<string, EventWeather | null>()
 
+export function weatherSlot(startAt: string) {
+  const d = new Date(startAt)
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return {
+    isoDate: `${year}-${month}-${day}`,
+    hour: d.getHours(),
+  }
+}
+
 export async function fetchEventWeather(
   lat: number,
   lng: number,
@@ -50,17 +61,35 @@ export async function fetchEventWeather(
 
     const targetTime = `${isoDate}T${String(hour).padStart(2, '0')}:00`
     const idx = data.hourly.time.indexOf(targetTime)
-    if (idx === -1) {
+
+    let resolvedIdx = idx
+
+    if (resolvedIdx === -1) {
+      const sameDay = data.hourly.time
+        .map((time, index) => ({ time, index }))
+        .filter((entry) => entry.time.startsWith(`${isoDate}T`))
+
+      if (sameDay.length > 0) {
+        resolvedIdx = sameDay.reduce((best, current) => {
+          const bestHour = Number.parseInt(sameDay[best].time.slice(11, 13), 10)
+          const currentHour = Number.parseInt(current.time.slice(11, 13), 10)
+          return Math.abs(currentHour - hour) < Math.abs(bestHour - hour) ? sameDay.indexOf(current) : best
+        }, 0)
+        resolvedIdx = sameDay[resolvedIdx]?.index ?? -1
+      }
+    }
+
+    if (resolvedIdx === -1) {
       cache.set(key, null)
       return null
     }
 
     const result: EventWeather = {
-      code: data.hourly.weathercode[idx],
+      code: data.hourly.weathercode[resolvedIdx],
       tempMin: Math.round(data.daily.temperature_2m_min[0]),
       tempMax: Math.round(data.daily.temperature_2m_max[0]),
-      windSpeed: Math.round(data.hourly.windspeed_10m[idx]),
-      windDir: Math.round(data.hourly.winddirection_10m[idx]),
+      windSpeed: Math.round(data.hourly.windspeed_10m[resolvedIdx]),
+      windDir: Math.round(data.hourly.winddirection_10m[resolvedIdx]),
     }
 
     cache.set(key, result)

@@ -5,7 +5,7 @@ import {
   Sun, CloudSun, Cloud, CloudRain, CloudSnow, CloudLightning,
   Wind,
 } from 'lucide-react'
-import { fetchEventWeather, weatherIcon, EventWeather } from '@/lib/weather'
+import { fetchEventWeather, weatherIcon, weatherSlot, EventWeather } from '@/lib/weather'
 
 const ICONS: Record<string, React.ComponentType<{ size?: number; className?: string; style?: React.CSSProperties }>> = {
   'sun':              Sun,
@@ -32,9 +32,7 @@ export function WeatherBadge({ lat, lng, startAt, inline = false, weather: provi
       setWeather(providedWeather)
       return
     }
-    const d = new Date(startAt)
-    const isoDate = startAt.slice(0, 10)
-    const hour = d.getHours()
+    const { isoDate, hour } = weatherSlot(startAt)
     fetchEventWeather(lat, lng, isoDate, hour).then(setWeather)
   }, [lat, lng, startAt, providedWeather])
 

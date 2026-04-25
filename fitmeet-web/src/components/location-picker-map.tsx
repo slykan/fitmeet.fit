@@ -67,13 +67,14 @@ function WindOverlay({ weather }: { weather: EventWeather | null | undefined }) 
     [],
   )
 
-  if (!weather || weather.windSpeed <= 0) return null
+  if (!weather) return null
 
   const flowAngle = weather.windDir + 180
-  const duration = Math.max(2.2, 8.5 - weather.windSpeed * 0.18)
-  const distance = Math.min(220, 90 + weather.windSpeed * 4.2)
-  const opacity = Math.min(0.34, 0.08 + weather.windSpeed / 120)
-  const streamOpacity = Math.min(0.24, 0.05 + weather.windSpeed / 160)
+  const effectiveWind = Math.max(4, weather.windSpeed)
+  const duration = Math.max(2.2, 8.5 - effectiveWind * 0.18)
+  const distance = Math.min(220, 90 + effectiveWind * 4.2)
+  const opacity = Math.min(0.44, 0.12 + effectiveWind / 90)
+  const streamOpacity = Math.min(0.3, 0.08 + effectiveWind / 130)
 
   return (
     <>
@@ -84,6 +85,7 @@ function WindOverlay({ weather }: { weather: EventWeather | null | undefined }) 
           pointerEvents: 'none',
           overflow: 'hidden',
           zIndex: 500,
+          background: `linear-gradient(${flowAngle}deg, rgba(108,255,47,0.02), rgba(255,255,255,0.01), rgba(108,255,47,0.05))`,
         }}
       >
         {streams.map((stream) => (

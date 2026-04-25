@@ -11,7 +11,7 @@ import { Navbar } from '@/components/navbar'
 import { WeatherBadge } from '@/components/WeatherBadge'
 import ElevationChart from '@/components/elevation-chart'
 import { shortAddress } from '@/lib/format-address'
-import { fetchEventWeather, type EventWeather } from '@/lib/weather'
+import { fetchEventWeather, weatherSlot, type EventWeather } from '@/lib/weather'
 import api from '@/lib/api'
 import { parseGpx, GpxResult } from '@/lib/parse-gpx'
 import { useAuthStore } from '@/store/auth'
@@ -97,9 +97,7 @@ function EventContent() {
 
   useEffect(() => {
     if (!event?.location || event.location.lat == null || event.location.lng == null) return
-    const d = new Date(event.schedule.start_at)
-    const isoDate = event.schedule.start_at.slice(0, 10)
-    const hour = d.getHours()
+    const { isoDate, hour } = weatherSlot(event.schedule.start_at)
     fetchEventWeather(event.location.lat, event.location.lng, isoDate, hour)
       .then(setWeather)
       .catch(() => setWeather(null))
