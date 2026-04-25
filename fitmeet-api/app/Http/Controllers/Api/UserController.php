@@ -98,6 +98,7 @@ class UserController extends Controller
         unset($data['avatar_file'], $data['avatar_remove']);
 
         $user->update($data);
+        $user->refresh();
 
         return response()->json([
             'data' => new UserResource($user),

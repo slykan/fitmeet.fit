@@ -32,9 +32,11 @@ class SendCancelledEventNotifications implements ShouldQueue
                 'type'     => 'event_cancelled',
             ]);
 
-            try {
-                Mail::to($user->email)->send(new EventCancelledMail($event, $user));
-            } catch (\Throwable) {
+            if ($user->email_event_reminders) {
+                try {
+                    Mail::to($user->email)->send(new EventCancelledMail($event, $user));
+                } catch (\Throwable) {
+                }
             }
         }
     }
