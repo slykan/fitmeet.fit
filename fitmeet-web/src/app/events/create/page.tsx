@@ -9,7 +9,7 @@ import { Calendar, MapPin, Info, Settings, Lock, Unlock, LocateFixed, Search } f
 import { Navbar } from '@/components/navbar'
 import ElevationChart from '@/components/elevation-chart'
 import api from '@/lib/api'
-import { eventDateToLocalInput, eventLocalInputToUtcIso } from '@/lib/event-time'
+import { eventDateToLocalInput, eventLocalInputToUtcIso, resolveTimeZoneFromCoords } from '@/lib/event-time'
 import { parseGpx, GpxResult } from '@/lib/parse-gpx'
 import { formatAddress } from '@/lib/format-address'
 import { useAuthStore } from '@/store/auth'
@@ -68,6 +68,9 @@ export default function CreateEventPage() {
   const [saving,   setSaving]   = useState(false)
   const [error,    setError]    = useState<string | null>(null)
   const [locating, setLocating] = useState(false)
+  const [eventTimezone, setEventTimezone] = useState(
+    () => Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Zagreb',
+  )
   const [gpxFile,   setGpxFile]   = useState<File | null>(null)
   const [gpxResult, setGpxResult] = useState<GpxResult | null>(null)
 
@@ -103,6 +106,9 @@ export default function CreateEventPage() {
   async function handleMapChange(lat: number, lng: number) {
     setValue('lat', lat)
     setValue('lng', lng)
+    resolveTimeZoneFromCoords(lat, lng, Intl.DateTimeFormat().resolvedOptions().timeZone)
+      .then(setEventTimezone)
+      .catch(() => {})
     try {
       const res  = await fetch(
         `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`,
@@ -167,9 +173,14 @@ export default function CreateEventPage() {
     setError(null)
     try {
       const fd = new globalThis.FormData()
+      const timezone = data.lat !== null && data.lng !== null
+        ? await resolveTimeZoneFromCoords(data.lat, data.lng, eventTimezone)
+        : eventTimezone
+
       fd.append('title',    data.title)
       fd.append('category', data.category)
-      fd.append('start_at', eventLocalInputToUtcIso(data.start_at))
+      fd.append('timezone', timezone)
+      fd.append('start_at', eventLocalInputToUtcIso(data.start_at, timezone))
       if (data.lat !== null)     fd.append('lat',              String(data.lat))
       if (data.lng !== null)     fd.append('lng',              String(data.lng))
       if (data.description)      fd.append('description',      data.description)

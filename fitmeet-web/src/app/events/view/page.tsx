@@ -32,7 +32,7 @@ interface Event {
   description: string | null
   category: { value: string; label: string }
   location: { lat: number; lng: number; address: string | null }
-  schedule: { start_at: string; duration_minutes: number | null }
+  schedule: { start_at: string; timezone: string; duration_minutes: number | null }
   activity: { distance_km: number | null; elevation_gain: number | null; pace: string | null; max_grade: number | null; max_downgrade: number | null; gpx_url: string | null }
   skill_level: string | null
   max_participants: number | null
@@ -91,7 +91,7 @@ function EventContent() {
 
   useEffect(() => {
     if (!event?.location || event.location.lat == null || event.location.lng == null) return
-    const { isoDate, hour } = weatherSlot(event.schedule.start_at)
+    const { isoDate, hour } = weatherSlot(event.schedule.start_at, event.schedule.timezone)
     fetchEventWeather(event.location.lat, event.location.lng, isoDate, hour)
       .then(setWeather)
       .catch(() => setWeather(null))
@@ -257,7 +257,7 @@ function EventContent() {
             <div className="space-y-2.5">
               <div className="flex items-center gap-2.5 text-sm">
                 <Calendar size={15} style={{ color: 'var(--primary)', flexShrink: 0 }} />
-                <span>{formatEventDateTime(event.schedule.start_at)}</span>
+                <span>{formatEventDateTime(event.schedule.start_at, event.schedule.timezone)}</span>
                 {event.schedule.duration_minutes && <span style={{ color: 'var(--text-muted)' }}>· {event.schedule.duration_minutes} min</span>}
               </div>
               {event.location.address && (
@@ -322,6 +322,7 @@ function EventContent() {
                   lat={event.location.lat}
                   lng={event.location.lng}
                   startAt={event.schedule.start_at}
+                  timezone={event.schedule.timezone}
                   weather={weather}
                 />
               )}

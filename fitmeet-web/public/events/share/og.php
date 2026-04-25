@@ -41,15 +41,17 @@ if (!$event) {
     serveStatic();
 }
 
-// ── Title ────────────────────────────────────────────────────────────────────
+// â”€â”€ Title â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 $title = $event['title'] . ' | FitMeet';
 
-// ── Description ──────────────────────────────────────────────────────────────
+// â”€â”€ Description â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 $startAt = $event['schedule']['start_at'] ?? '';
+$timezone = $event['schedule']['timezone'] ?? 'Europe/Zagreb';
 $dateStr = '';
 if ($startAt) {
-    $dt      = new DateTime($startAt);
-    $dateStr = $dt->format('D, j M Y · H:i');
+    $dt = new DateTime($startAt);
+    $dt->setTimezone(new DateTimeZone($timezone));
+    $dateStr = $dt->format('D, j M Y - H:i');
 }
 
 $dur  = $event['schedule']['duration_minutes'] ?? null;
@@ -62,15 +64,15 @@ $parts[] = $event['category']['label'];
 if ($dateStr)                    $parts[] = $dateStr;
 if ($dur)                        $parts[] = $dur . ' min';
 if (!empty($act['distance_km'])) $parts[] = $act['distance_km'] . ' km';
-if (!empty($act['elevation_gain'])) $parts[] = '↑' . $act['elevation_gain'] . ' m';
+if (!empty($act['elevation_gain'])) $parts[] = 'â†‘' . $act['elevation_gain'] . ' m';
 if (!empty($act['pace']))        $parts[] = $act['pace'];
 if (!empty($event['skill_level'])) $parts[] = ucfirst($event['skill_level']);
 $parts[] = $cnt . ($max ? '/' . $max : '') . ' going';
 if (!empty($event['description'])) $parts[] = $event['description'];
 
-$description = mb_substr(implode(' · ', $parts), 0, 300);
+$description = mb_substr(implode(' Â· ', $parts), 0, 300);
 
-// ── Image ────────────────────────────────────────────────────────────────────
+// â”€â”€ Image â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 $lat   = $event['location']['lat'] ?? null;
 $lng   = $event['location']['lng'] ?? null;
 $image = $siteUrl . '/logo_full.png';
@@ -82,7 +84,7 @@ if ($lat && $lng) {
     $image = "https://tile.openstreetmap.org/{$z}/{$x}/{$y}.png";
 }
 
-// ── Output ───────────────────────────────────────────────────────────────────
+// â”€â”€ Output â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 $h        = fn(string $s): string => htmlspecialchars($s, ENT_QUOTES | ENT_HTML5, 'UTF-8');
 $shareUrl = $siteUrl . '/events/share/?id=' . rawurlencode($id);
 $appUrl   = $siteUrl . '/events/view?id='   . rawurlencode($id);

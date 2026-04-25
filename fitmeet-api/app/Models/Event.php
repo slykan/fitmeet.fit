@@ -22,6 +22,7 @@ class Event extends Model
         'lat',
         'lng',
         'address',
+        'timezone',
         'start_at',
         'duration_minutes',
         'distance_km',

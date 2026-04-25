@@ -1,21 +1,27 @@
 export const EVENT_TIME_ZONE = 'Europe/Zagreb'
 
+export function resolveEventTimeZone(timezone?: string | null) {
+  return timezone || EVENT_TIME_ZONE
+}
+
 function getFormatter(
   options: Intl.DateTimeFormatOptions,
+  timezone = EVENT_TIME_ZONE,
   locale = 'en-GB',
 ) {
   return new Intl.DateTimeFormat(locale, {
-    timeZone: EVENT_TIME_ZONE,
+    timeZone: timezone,
     ...options,
   })
 }
 
-function getTimeZoneOffsetMinutes(date: Date): number {
+function getTimeZoneOffsetMinutes(date: Date, timezone = EVENT_TIME_ZONE): number {
   const value = getFormatter(
     {
       hour: '2-digit',
       timeZoneName: 'shortOffset',
     },
+    timezone,
     'en-US',
   )
     .formatToParts(date)
@@ -33,7 +39,7 @@ function getTimeZoneOffsetMinutes(date: Date): number {
   return sign * (hours * 60 + minutes)
 }
 
-function getZonedParts(date: Date) {
+function getZonedParts(date: Date, timezone = EVENT_TIME_ZONE) {
   const parts = getFormatter({
     year: 'numeric',
     month: '2-digit',
@@ -41,7 +47,7 @@ function getZonedParts(date: Date) {
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,
-  }).formatToParts(date)
+  }, timezone).formatToParts(date)
 
   const map = Object.fromEntries(
     parts
@@ -52,7 +58,8 @@ function getZonedParts(date: Date) {
   return map
 }
 
-export function formatEventDateTime(iso: string) {
+export function formatEventDateTime(iso: string, timezone?: string | null) {
+  const eventTimezone = resolveEventTimeZone(timezone)
   return getFormatter({
     weekday: 'short',
     day: 'numeric',
@@ -61,10 +68,11 @@ export function formatEventDateTime(iso: string) {
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,
-  }).format(new Date(iso))
+  }, eventTimezone).format(new Date(iso))
 }
 
-export function formatEventDateParts(iso: string) {
+export function formatEventDateParts(iso: string, timezone?: string | null) {
+  const eventTimezone = resolveEventTimeZone(timezone)
   const date = new Date(iso)
 
   return {
@@ -72,26 +80,27 @@ export function formatEventDateParts(iso: string) {
       weekday: 'short',
       day: 'numeric',
       month: 'short',
-    }).format(date),
+    }, eventTimezone).format(date),
     time: getFormatter({
       hour: '2-digit',
       minute: '2-digit',
       hour12: false,
-    }).format(date),
+    }, eventTimezone).format(date),
   }
 }
 
-export function eventUtcIsoToLocalInput(iso: string) {
-  const parts = getZonedParts(new Date(iso))
+export function eventUtcIsoToLocalInput(iso: string, timezone?: string | null) {
+  const parts = getZonedParts(new Date(iso), resolveEventTimeZone(timezone))
   return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`
 }
 
-export function eventDateToLocalInput(date: Date) {
-  const parts = getZonedParts(date)
+export function eventDateToLocalInput(date: Date, timezone?: string | null) {
+  const parts = getZonedParts(date, resolveEventTimeZone(timezone))
   return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`
 }
 
-export function eventLocalInputToUtcIso(localDatetime: string) {
+export function eventLocalInputToUtcIso(localDatetime: string, timezone?: string | null) {
+  const eventTimezone = resolveEventTimeZone(timezone)
   const match = localDatetime.match(
     /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/,
   )
@@ -109,14 +118,36 @@ export function eventLocalInputToUtcIso(localDatetime: string) {
     Number.parseInt(minute, 10),
   )
 
-  const offsetMinutes = getTimeZoneOffsetMinutes(new Date(utcGuess))
+  const offsetMinutes = getTimeZoneOffsetMinutes(new Date(utcGuess), eventTimezone)
   return new Date(utcGuess - offsetMinutes * 60_000).toISOString()
 }
 
-export function eventWeatherSlot(startAt: string) {
-  const parts = getZonedParts(new Date(startAt))
+export function eventWeatherSlot(startAt: string, timezone?: string | null) {
+  const parts = getZonedParts(new Date(startAt), resolveEventTimeZone(timezone))
   return {
     isoDate: `${parts.year}-${parts.month}-${parts.day}`,
     hour: Number.parseInt(parts.hour, 10),
+  }
+}
+
+export async function resolveTimeZoneFromCoords(
+  lat: number,
+  lng: number,
+  fallback?: string | null,
+) {
+  try {
+    const res = await fetch(
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m&forecast_days=1`,
+      { cache: 'force-cache' },
+    )
+
+    if (!res.ok) {
+      return resolveEventTimeZone(fallback)
+    }
+
+    const data = await res.json() as { timezone?: string }
+    return resolveEventTimeZone(data.timezone || fallback)
+  } catch {
+    return resolveEventTimeZone(fallback)
   }
 }

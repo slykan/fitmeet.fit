@@ -9,7 +9,7 @@ import { Calendar, MapPin, Info, Settings, Lock, Unlock, LocateFixed, Search } f
 import { Navbar } from '@/components/navbar'
 import ElevationChart from '@/components/elevation-chart'
 import api from '@/lib/api'
-import { eventLocalInputToUtcIso, eventUtcIsoToLocalInput } from '@/lib/event-time'
+import { eventLocalInputToUtcIso, eventUtcIsoToLocalInput, resolveTimeZoneFromCoords } from '@/lib/event-time'
 import { parseGpx, GpxResult } from '@/lib/parse-gpx'
 import { formatAddress } from '@/lib/format-address'
 import { useAuthStore } from '@/store/auth'
@@ -61,6 +61,9 @@ function EditContent() {
   const [loadingEvent, setLoadingEvent] = useState(true)
   const [saving,       setSaving]       = useState(false)
   const [locating,     setLocating]     = useState(false)
+  const [eventTimezone, setEventTimezone] = useState(
+    () => Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Zagreb',
+  )
   const [error,        setError]        = useState<string | null>(null)
   const [gpxFile,      setGpxFile]      = useState<File | null>(null)
   const [gpxResult,    setGpxResult]    = useState<GpxResult | null>(null)
@@ -88,7 +91,7 @@ function EditContent() {
           title:            e.title,
           category:         e.category.value,
           description:      e.description ?? '',
-          start_at:         eventUtcIsoToLocalInput(e.schedule.start_at),
+          start_at:         eventUtcIsoToLocalInput(e.schedule.start_at, e.schedule.timezone),
           duration_minutes: e.schedule.duration_minutes ? String(e.schedule.duration_minutes) : '',
           lat:              e.location.lat,
           lng:              e.location.lng,
@@ -107,6 +110,7 @@ function EditContent() {
             .then(r => setGpxResult(parseGpx(r.data)))
             .catch(() => {})
         }
+        setEventTimezone(e.schedule.timezone ?? 'Europe/Zagreb')
       })
       .catch(() => setNotFound(true))
       .finally(() => setLoadingEvent(false))
@@ -122,6 +126,9 @@ function EditContent() {
   async function handleMapChange(lat: number, lng: number) {
     setValue('lat', lat)
     setValue('lng', lng)
+    resolveTimeZoneFromCoords(lat, lng, Intl.DateTimeFormat().resolvedOptions().timeZone)
+      .then(setEventTimezone)
+      .catch(() => {})
     try {
       const res  = await fetch(
         `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`,
@@ -182,10 +189,15 @@ function EditContent() {
     setError(null)
     try {
       const fd = new globalThis.FormData()
+      const timezone = data.lat !== null && data.lng !== null
+        ? await resolveTimeZoneFromCoords(data.lat, data.lng, eventTimezone)
+        : eventTimezone
+
       if (data.title)    fd.append('title',    data.title)
       if (data.category) fd.append('category', data.category)
       fd.append('description', data.description || '')
-      if (data.start_at) fd.append('start_at', eventLocalInputToUtcIso(data.start_at))
+      fd.append('timezone', timezone)
+      if (data.start_at) fd.append('start_at', eventLocalInputToUtcIso(data.start_at, timezone))
       fd.append('duration_minutes', data.duration_minutes || '')
       if (data.lat !== null) fd.append('lat', String(data.lat))
       if (data.lng !== null) fd.append('lng', String(data.lng))

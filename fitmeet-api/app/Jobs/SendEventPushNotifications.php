@@ -51,7 +51,7 @@ class SendEventPushNotifications implements ShouldQueue
 
         $notification = Notification::create(
             title: "New {$event->category->label()} event nearby!",
-            body: "{$event->title} - {$event->start_at->copy()->timezone(config('app.event_timezone'))->format('D, M j \\a\\t g:i A')}"
+            body: "{$event->title} - {$event->start_at->copy()->timezone($event->timezone ?? config('app.event_timezone'))->format('D, M j \\a\\t g:i A')}"
         );
 
         foreach (array_chunk($tokens, 500) as $chunk) {

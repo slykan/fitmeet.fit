@@ -63,7 +63,7 @@ class EventController extends Controller
 
         $query = $this->applyTimeWindow($request, $query);
 
-        // Nearby filter — only when caller explicitly provides coordinates
+        // Nearby filter â€” only when caller explicitly provides coordinates
         $lat = $request->filled('lat') ? $request->float('lat') : null;
         $lng = $request->filled('lng') ? $request->float('lng') : null;
 
@@ -134,7 +134,7 @@ class EventController extends Controller
         return response()->json(['data' => new PublicEventShareResource($event)]);
     }
 
-    // GET /api/events/og?id=X  — OG meta HTML for social crawlers
+    // GET /api/events/og?id=X  â€” OG meta HTML for social crawlers
     public function ogPage(Request $request): \Illuminate\Http\Response
     {
         $siteUrl  = 'https://fitmeet.fit';
@@ -151,19 +151,19 @@ class EventController extends Controller
         }
 
         $title   = $event->title . ' | FitMeet';
-        $dateStr = $event->start_at ? $event->start_at->format('D, j M Y · H:i') : '';
+        $dateStr = $event->start_at ? $event->start_at->copy()->timezone($event->timezone ?? config('app.event_timezone'))->format('D, j M Y - H:i') : '';
 
         $parts   = [];
         $parts[] = $event->category?->label() ?? $event->category?->value ?? '';
         if ($dateStr)              $parts[] = $dateStr;
         if ($event->duration_minutes) $parts[] = $event->duration_minutes . ' min';
         if ($event->distance_km)   $parts[] = $event->distance_km . ' km';
-        if ($event->elevation_gain) $parts[] = '↑' . $event->elevation_gain . ' m';
+        if ($event->elevation_gain) $parts[] = 'â†‘' . $event->elevation_gain . ' m';
         if ($event->skill_level)   $parts[] = ucfirst($event->skill_level);
         $parts[] = $event->participants_count . ' going';
         if ($event->description)   $parts[] = $event->description;
 
-        $description = mb_substr(implode(' · ', array_filter($parts)), 0, 300);
+        $description = mb_substr(implode(' Â· ', array_filter($parts)), 0, 300);
 
         $image = $siteUrl . '/logo_full.png';
         if ($event->lat && $event->lng) {
@@ -368,7 +368,7 @@ HTML;
         return response()->json(['message' => 'Reminders updated.']);
     }
 
-    // GET /api/events/my-reminders — active (unsent) reminders for current user
+    // GET /api/events/my-reminders â€” active (unsent) reminders for current user
     public function myReminders(Request $request): JsonResponse
     {
         $reminders = EventReminder::where('user_id', $request->user()->id)
@@ -380,7 +380,7 @@ HTML;
         return response()->json(['data' => $reminders]);
     }
 
-    // DELETE /api/events/{event}/remind/{offset} — cancel one reminder
+    // DELETE /api/events/{event}/remind/{offset} â€” cancel one reminder
     public function deleteReminder(Request $request, Event $event, string $offset): JsonResponse
     {
         EventReminder::where('user_id', $request->user()->id)

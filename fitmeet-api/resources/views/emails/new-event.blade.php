@@ -37,7 +37,7 @@
               </table>
 
               @php
-                $start = $event->start_at->copy()->timezone(config('app.event_timezone'));
+                $start = $event->start_at->copy()->timezone($event->timezone ?? config('app.event_timezone'));
               @endphp
 
               <h1 style="margin:0 0 6px;font-size:20px;font-weight:700;color:#ffffff;text-align:center;">

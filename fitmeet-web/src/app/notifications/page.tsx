@@ -46,6 +46,7 @@ interface EventReminderNotif {
     id: number
     title: string
     start_at: string
+    timezone: string
     address: string | null
     category: string
   }
@@ -59,6 +60,7 @@ interface NewEventNotif {
     id: number
     title: string
     start_at: string
+    timezone: string
     address: string | null
     category: string
     distance_km: number | null
@@ -74,6 +76,7 @@ interface EventCancelledNotif {
     id: number
     title: string
     start_at: string
+    timezone: string
     address: string | null
     category: string
   }
@@ -191,7 +194,7 @@ export default function NotificationsPage() {
                   <div className="flex flex-col gap-0.5 mt-1">
                     <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
                       <Calendar size={10} className="inline mr-1" />
-                      {formatEventDateTime(n.event.start_at)}
+                      {formatEventDateTime(n.event.start_at, n.event.timezone)}
                     </p>
                     {n.event.address && (
                       <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
@@ -229,7 +232,7 @@ export default function NotificationsPage() {
                   <div className="flex flex-col gap-0.5 mt-1">
                     <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
                       <Calendar size={10} className="inline mr-1" />
-                      {formatEventDateTime(n.event.start_at)}
+                      {formatEventDateTime(n.event.start_at, n.event.timezone)}
                     </p>
                     {n.event.address && (
                       <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
@@ -258,7 +261,7 @@ export default function NotificationsPage() {
                   <div className="flex flex-col gap-0.5 mt-1">
                     <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
                       <Calendar size={10} className="inline mr-1" />
-                      {formatEventDateTime(n.event.start_at)}
+                      {formatEventDateTime(n.event.start_at, n.event.timezone)}
                     </p>
                     {n.event.address && (
                       <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>

@@ -19,7 +19,7 @@ export interface SharedEvent {
   description: string | null
   category: { value: string; label: string }
   location: { lat: number; lng: number; address: string | null }
-  schedule: { start_at: string; duration_minutes: number | null }
+  schedule: { start_at: string; timezone: string; duration_minutes: number | null }
   activity: { distance_km: number | null; elevation_gain: number | null; pace: string | null; max_grade: number | null; max_downgrade: number | null; gpx_url?: string | null }
   skill_level: string | null
   max_participants: number | null
@@ -81,7 +81,7 @@ function RoutePoster({ gpx, event }: { gpx: GpxResult; event: SharedEvent }) {
   const project = createProjector(gpx.track, width, height, padding)
   const startPoint = start ? project(start) : null
   const endPoint = end ? project(end) : null
-  const dateParts = formatEventDateParts(event.schedule.start_at)
+  const dateParts = formatEventDateParts(event.schedule.start_at, event.schedule.timezone)
 
   return (
     <div className="relative h-[240px] sm:h-[300px] overflow-hidden" style={{ background: 'linear-gradient(180deg, #07110d 0%, #091019 100%)' }}>
@@ -116,7 +116,7 @@ function RoutePoster({ gpx, event }: { gpx: GpxResult; event: SharedEvent }) {
 }
 
 function StaticEventCover({ event }: { event: SharedEvent }) {
-  const dateParts = formatEventDateParts(event.schedule.start_at)
+  const dateParts = formatEventDateParts(event.schedule.start_at, event.schedule.timezone)
 
   return (
     <div className="relative h-[240px] sm:h-[300px] overflow-hidden" style={{ background: 'radial-gradient(circle at 22% 18%, rgba(57,255,20,0.14), transparent 26%), linear-gradient(180deg, #07110d 0%, #091019 100%)' }}>
@@ -269,7 +269,7 @@ function ShareEventContent() {
                   <div className="grid gap-2 text-sm">
                     <div className="flex items-center gap-2.5">
                       <Calendar size={15} style={{ color: 'var(--primary)', flexShrink: 0 }} />
-                      <span>{formatEventDateTime(event.schedule.start_at)}</span>
+                      <span>{formatEventDateTime(event.schedule.start_at, event.schedule.timezone)}</span>
                       {event.schedule.duration_minutes && <span style={{ color: 'var(--text-muted)' }}>| {event.schedule.duration_minutes} min</span>}
                     </div>
                     {event.location.address && (

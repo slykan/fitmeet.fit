@@ -23,6 +23,7 @@ class UpdateEventRequest extends FormRequest
             'lat'              => ['sometimes', 'numeric', 'between:-90,90'],
             'lng'              => ['sometimes', 'numeric', 'between:-180,180'],
             'address'          => ['sometimes', 'nullable', 'string', 'max:255'],
+            'timezone'         => ['sometimes', 'string', 'timezone'],
 
             'start_at'         => ['sometimes', 'date', 'after:now'],
             'duration_minutes' => ['sometimes', 'nullable', 'integer', 'min:5', 'max:1440'],

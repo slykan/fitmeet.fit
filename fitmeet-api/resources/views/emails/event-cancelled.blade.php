@@ -24,7 +24,7 @@
           <tr>
             <td style="background:#16161f;border:1px solid #2a2a3a;border-radius:20px;padding:36px 32px;">
               @php
-                $start = $event->start_at->copy()->timezone(config('app.event_timezone'));
+                $start = $event->start_at->copy()->timezone($event->timezone ?? config('app.event_timezone'));
               @endphp
 
               <div style="font-size:46px;line-height:1;text-align:center;margin-bottom:20px;">❌</div>

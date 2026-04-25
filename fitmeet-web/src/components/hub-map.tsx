@@ -25,7 +25,7 @@ interface EventPin {
   title: string
   category: { value: string; label: string }
   location: { lat: number; lng: number; address: string | null }
-  schedule: { start_at: string }
+  schedule: { start_at: string; timezone: string }
   activity: { distance_km: number | null; elevation_gain: number | null }
   participants_count: number
   max_participants: number | null
@@ -156,8 +156,8 @@ function MapViewport({ events, lat, lng, radiusKm, ready, recenterKey }: {
   return null
 }
 
-function formatDate(iso: string) {
-  return formatEventDateTime(iso)
+function formatDate(iso: string, timezone?: string | null) {
+  return formatEventDateTime(iso, timezone)
 }
 
 interface Participant { id: number; name: string; avatar: string | null }
@@ -627,7 +627,7 @@ export default function HubMap() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-muted)' }}>
                   <Calendar size={12} />
-                  {formatDate(selected.schedule.start_at)}
+                  {formatDate(selected.schedule.start_at, selected.schedule.timezone)}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-muted)' }}>
                   <Users size={12} />
@@ -685,6 +685,7 @@ export default function HubMap() {
             lat={selected.location.lat}
             lng={selected.location.lng}
             startAt={selected.schedule.start_at}
+            timezone={selected.schedule.timezone}
           />
 
           <button

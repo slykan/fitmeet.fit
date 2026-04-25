@@ -17,15 +17,15 @@ interface Event {
   title: string
   category: { label: string }
   location: { address: string | null }
-  schedule: { start_at: string; duration_minutes: number | null }
+  schedule: { start_at: string; timezone: string; duration_minutes: number | null }
   participants_count: number
   max_participants: number | null
   status: string
   is_private: boolean
 }
 
-function formatDate(iso: string) {
-  return formatEventDateTime(iso)
+function formatDate(iso: string, timezone?: string | null) {
+  return formatEventDateTime(iso, timezone)
 }
 
 const STATUS_STYLE: Record<string, { label: string; color: string }> = {
@@ -129,7 +129,7 @@ export default function MyEventsPage() {
                 <div className="space-y-1 mb-3">
                   <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
                     <Calendar size={12} />
-                    {formatDate(event.schedule.start_at)}
+                    {formatDate(event.schedule.start_at, event.schedule.timezone)}
                     {event.schedule.duration_minutes && ` · ${event.schedule.duration_minutes} min`}
                   </div>
                   {event.location.address && (

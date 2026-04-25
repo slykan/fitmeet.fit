@@ -37,7 +37,7 @@ interface EventItem {
   title: string
   category: { value: string; label: string }
   location: { lat: number | null; lng: number | null; address: string | null }
-  schedule: { start_at: string; duration_minutes: number | null }
+  schedule: { start_at: string; timezone: string; duration_minutes: number | null }
   activity: { distance_km: number | null; elevation_gain: number | null }
   participants_count: number
   max_participants: number | null
@@ -61,10 +61,10 @@ const RADIUS_OPTIONS = [
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function formatDate(iso: string) {
+function formatDate(iso: string, timezone?: string | null) {
   return {
-    date: formatEventDateParts(iso).day,
-    time: formatEventDateParts(iso).time,
+    date: formatEventDateParts(iso, timezone).day,
+    time: formatEventDateParts(iso, timezone).time,
   }
 }
 
@@ -531,9 +531,9 @@ function EventsTab() {
               <div className="flex items-start gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
                 <Calendar size={11} style={{ marginTop: 2, flexShrink: 0 }} />
                 <div>
-                  <div>{formatDate(ev.schedule.start_at).date}</div>
+                  <div>{formatDate(ev.schedule.start_at, ev.schedule.timezone).date}</div>
                   <div>
-                    {formatDate(ev.schedule.start_at).time}
+                    {formatDate(ev.schedule.start_at, ev.schedule.timezone).time}
                     {ev.schedule.duration_minutes && <span> · {ev.schedule.duration_minutes} min</span>}
                   </div>
                 </div>
@@ -564,6 +564,7 @@ function EventsTab() {
                 lat={ev.location.lat}
                 lng={ev.location.lng}
                 startAt={ev.schedule.start_at}
+                timezone={ev.schedule.timezone}
               />
             )}
           </div>

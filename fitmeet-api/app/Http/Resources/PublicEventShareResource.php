@@ -27,6 +27,7 @@ class PublicEventShareResource extends JsonResource
 
             'schedule' => [
                 'start_at'         => $this->start_at->toIso8601String(),
+                'timezone'         => $this->timezone ?? config('app.event_timezone'),
                 'duration_minutes' => $this->duration_minutes,
             ],
 

@@ -20,11 +20,12 @@ type Props = {
   lat: number
   lng: number
   startAt: string
+  timezone?: string | null
   inline?: boolean
   weather?: EventWeather | null
 }
 
-export function WeatherBadge({ lat, lng, startAt, inline = false, weather: providedWeather }: Props) {
+export function WeatherBadge({ lat, lng, startAt, timezone, inline = false, weather: providedWeather }: Props) {
   const [weather, setWeather] = useState<EventWeather | null>(providedWeather ?? null)
 
   useEffect(() => {
@@ -32,9 +33,9 @@ export function WeatherBadge({ lat, lng, startAt, inline = false, weather: provi
       setWeather(providedWeather)
       return
     }
-    const { isoDate, hour } = weatherSlot(startAt)
+    const { isoDate, hour } = weatherSlot(startAt, timezone)
     fetchEventWeather(lat, lng, isoDate, hour).then(setWeather)
-  }, [lat, lng, startAt, providedWeather])
+  }, [lat, lng, startAt, timezone, providedWeather])
 
   if (!weather) return null
 
