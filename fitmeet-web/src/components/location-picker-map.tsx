@@ -43,39 +43,39 @@ function FitTrack({ coords }: { coords: [number, number][] }) {
 function WindOverlay({ weather }: { weather: EventWeather | null | undefined }) {
   const arrowStreams = useMemo(
     () =>
-      Array.from({ length: 8 }, (_, i) => ({
+      Array.from({ length: 22 }, (_, i) => ({
         id: i,
-        y: 8 + i * 11,
-        width: 140 + (i % 3) * 44,
-        delay: (i * 0.32).toFixed(2),
-        durationOffset: (i % 4) * 0.22,
+        y: 3 + i * 4.3,
+        width: 42 + (i % 4) * 12,
+        delay: (i * 0.18).toFixed(2),
+        durationOffset: (i % 5) * 0.3,
       })),
     [],
   )
 
   const particles = useMemo(
     () =>
-      Array.from({ length: 44 }, (_, i) => ({
+      Array.from({ length: 72 }, (_, i) => ({
         id: i,
         left: ((i * 19) % 126) - 12,
-        top: (i * 11) % 100,
-        delay: (i * 0.14).toFixed(2),
-        size: 2 + (i % 3),
-        durationOffset: (i % 5) * 0.28,
+        top: (i * 7) % 100,
+        delay: (i * 0.1).toFixed(2),
+        size: 1 + (i % 2),
+        durationOffset: (i % 6) * 0.26,
       })),
     [],
   )
 
   const streams = useMemo(
     () =>
-      Array.from({ length: 12 }, (_, i) => ({
+      Array.from({ length: 24 }, (_, i) => ({
         id: i,
         left: ((i * 13) % 126) - 10,
-        top: 6 + ((i * 8) % 88),
-        delay: (i * 0.22).toFixed(2),
-        width: 72 + (i % 4) * 34,
-        durationOffset: (i % 4) * 0.4,
-        thickness: 2 + (i % 2),
+        top: 4 + ((i * 4.2) % 92),
+        delay: (i * 0.16).toFixed(2),
+        width: 26 + (i % 4) * 10,
+        durationOffset: (i % 4) * 0.34,
+        thickness: 1,
       })),
     [],
   )
@@ -84,11 +84,11 @@ function WindOverlay({ weather }: { weather: EventWeather | null | undefined }) 
 
   const flowAngle = weather.windDir + 180
   const effectiveWind = Math.max(8, weather.windSpeed)
-  const duration = Math.max(1.6, 6.2 - effectiveWind * 0.12)
-  const distance = Math.min(280, 120 + effectiveWind * 5.6)
-  const opacity = Math.min(0.72, 0.28 + effectiveWind / 80)
-  const streamOpacity = Math.min(0.58, 0.2 + effectiveWind / 100)
-  const glowOpacity = Math.min(0.24, 0.1 + effectiveWind / 180)
+  const duration = Math.max(4.2, 10.8 - effectiveWind * 0.09)
+  const distance = Math.min(180, 52 + effectiveWind * 2.8)
+  const opacity = Math.min(0.5, 0.16 + effectiveWind / 120)
+  const streamOpacity = Math.min(0.42, 0.14 + effectiveWind / 140)
+  const glowOpacity = Math.min(0.14, 0.03 + effectiveWind / 260)
 
   return (
     <>
@@ -99,7 +99,7 @@ function WindOverlay({ weather }: { weather: EventWeather | null | undefined }) 
           pointerEvents: 'none',
           overflow: 'hidden',
           zIndex: 500,
-          background: `linear-gradient(${flowAngle}deg, rgba(108,255,47,${glowOpacity}), rgba(255,255,255,0.02), rgba(108,255,47,${Math.min(glowOpacity + 0.06, 0.32)}))`,
+          background: `linear-gradient(${flowAngle}deg, rgba(88,190,255,${glowOpacity}), rgba(255,255,255,0.01), rgba(88,190,255,${Math.min(glowOpacity + 0.04, 0.2)}))`,
         }}
       >
         <svg
@@ -116,8 +116,8 @@ function WindOverlay({ weather }: { weather: EventWeather | null | undefined }) 
           <defs>
             <linearGradient id="fitmeet-wind-line" x1="0%" y1="0%" x2="100%" y2="0%">
               <stop offset="0%" stopColor="rgba(255,255,255,0)" />
-              <stop offset="45%" stopColor={`rgba(235,255,245,${Math.min(streamOpacity * 0.65, 0.44)})`} />
-              <stop offset="100%" stopColor={`rgba(108,255,47,${Math.min(streamOpacity + 0.12, 0.72)})`} />
+              <stop offset="45%" stopColor={`rgba(216,241,255,${Math.min(streamOpacity * 0.7, 0.32)})`} />
+              <stop offset="100%" stopColor={`rgba(88,190,255,${Math.min(streamOpacity + 0.08, 0.56)})`} />
             </linearGradient>
           </defs>
 
@@ -136,10 +136,10 @@ function WindOverlay({ weather }: { weather: EventWeather | null | undefined }) 
                   x2="18"
                   y2={stream.y}
                   stroke="url(#fitmeet-wind-line)"
-                  strokeWidth="1.3"
+                  strokeWidth="0.8"
                   strokeLinecap="round"
                   style={{
-                    filter: `drop-shadow(0 0 6px rgba(108,255,47,${Math.min(streamOpacity, 0.45)}))`,
+                    filter: `drop-shadow(0 0 4px rgba(88,190,255,${Math.min(streamOpacity, 0.3)}))`,
                     animationName: 'fitmeet-wind-arrowline',
                     animationDuration: `${duration + stream.durationOffset}s`,
                     animationDelay: `${stream.delay}s`,
@@ -149,10 +149,10 @@ function WindOverlay({ weather }: { weather: EventWeather | null | undefined }) 
                   }}
                 />
                 <path
-                  d={`M 18 ${stream.y} l -3 -2.2 l 0 1.2 l -4 0 l 0 2 l 4 0 l 0 1.2 z`}
-                  fill={`rgba(108,255,47,${Math.min(streamOpacity + 0.18, 0.82)})`}
+                  d={`M 18 ${stream.y} l -1.8 -1.4 l 0 0.8 l -2.8 0 l 0 1.2 l 2.8 0 l 0 0.8 z`}
+                  fill={`rgba(88,190,255,${Math.min(streamOpacity + 0.12, 0.64)})`}
                   style={{
-                    filter: `drop-shadow(0 0 8px rgba(108,255,47,${Math.min(streamOpacity + 0.1, 0.5)}))`,
+                    filter: `drop-shadow(0 0 5px rgba(88,190,255,${Math.min(streamOpacity + 0.06, 0.34)}))`,
                     animationName: 'fitmeet-wind-arrowline',
                     animationDuration: `${duration + stream.durationOffset}s`,
                     animationDelay: `${stream.delay}s`,
@@ -170,8 +170,8 @@ function WindOverlay({ weather }: { weather: EventWeather | null | undefined }) 
           style={{
             position: 'absolute',
             inset: 0,
-            background: `repeating-linear-gradient(${flowAngle}deg, rgba(180,255,220,0) 0px, rgba(180,255,220,0) 20px, rgba(180,255,220,${Math.min(streamOpacity * 0.35, 0.22)}) 28px, rgba(180,255,220,0) 44px)`,
-            opacity: 0.55,
+            background: `repeating-linear-gradient(${flowAngle}deg, rgba(170,225,255,0) 0px, rgba(170,225,255,0) 12px, rgba(170,225,255,${Math.min(streamOpacity * 0.26, 0.12)}) 17px, rgba(170,225,255,0) 24px)`,
+            opacity: 0.42,
           }}
         />
 
@@ -192,8 +192,8 @@ function WindOverlay({ weather }: { weather: EventWeather | null | undefined }) 
                 width: `${stream.width}px`,
                 height: `${stream.thickness}px`,
                 borderRadius: 999,
-                background: `linear-gradient(90deg, rgba(255,255,255,0), rgba(235,255,245,${streamOpacity * 0.7}), rgba(108,255,47,${streamOpacity}), rgba(255,255,255,0))`,
-                boxShadow: `0 0 12px rgba(108,255,47,${streamOpacity * 0.8})`,
+                background: `linear-gradient(90deg, rgba(255,255,255,0), rgba(216,241,255,${streamOpacity * 0.55}), rgba(88,190,255,${streamOpacity}), rgba(255,255,255,0))`,
+                boxShadow: `0 0 8px rgba(88,190,255,${streamOpacity * 0.6})`,
                 animationName: 'fitmeet-wind-stream',
                 animationDuration: `${duration + stream.durationOffset}s`,
                 animationDelay: `${stream.delay}s`,
@@ -221,8 +221,8 @@ function WindOverlay({ weather }: { weather: EventWeather | null | undefined }) 
                 width: `${particle.size}px`,
                 height: `${particle.size}px`,
                 borderRadius: 999,
-                background: `rgba(245,255,250,${opacity})`,
-                boxShadow: `0 0 14px rgba(108,255,47,${opacity})`,
+                background: `rgba(225,244,255,${opacity})`,
+                boxShadow: `0 0 10px rgba(88,190,255,${opacity * 0.8})`,
                 animationName: 'fitmeet-wind-drift',
                 animationDuration: `${duration + particle.durationOffset}s`,
                 animationDelay: `${particle.delay}s`,
@@ -259,7 +259,7 @@ function WindOverlay({ weather }: { weather: EventWeather | null | undefined }) 
           style={{
             display: 'inline-block',
             transform: `rotate(${flowAngle}deg)`,
-            color: '#6cff2f',
+            color: '#58beff',
             lineHeight: 1,
           }}
         >
