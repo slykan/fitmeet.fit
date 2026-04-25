@@ -341,13 +341,21 @@ HTML;
     public function setReminders(Request $request, Event $event): JsonResponse
     {
         $request->validate([
-            'offsets'   => 'required|array',
+            'offsets'   => 'present|array',
             'offsets.*' => 'in:1h,5h,1d',
         ]);
 
         $user      = $request->user();
-        $offsets   = $request->offsets;
+        $offsets   = $request->input('offsets', []);
         $offsetMap = ['1h' => 60, '5h' => 300, '1d' => 1440];
+
+        if (count($offsets) === 0) {
+            EventReminder::where('user_id', $user->id)
+                ->where('event_id', $event->id)
+                ->delete();
+
+            return response()->json(['message' => 'Reminders cleared.']);
+        }
 
         // Delete removed offsets
         EventReminder::where('user_id', $user->id)

@@ -393,11 +393,13 @@ function EventsTab() {
     if (!reminderEvent) { setReminderEvent(null); return }
     setSettingReminders(true)
     try {
-      await api.post(`/events/${reminderEvent.id}/remind`, { offsets: Array.from(selectedOffsets) })
+      const offsets = Array.from(selectedOffsets)
+      await api.post(`/events/${reminderEvent.id}/remind`, { offsets })
       const id = reminderEvent.id
       setReminderOffsets(prev => {
         const next = new Map(prev)
-        next.set(id, Array.from(selectedOffsets))
+        if (offsets.length === 0) next.delete(id)
+        else next.set(id, offsets)
         return next
       })
     } catch {}

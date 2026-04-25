@@ -119,8 +119,9 @@ function EventContent() {
     if (!event) { setShowReminderModal(false); return }
     setSettingReminders(true)
     try {
-      await api.post(`/events/${event.id}/remind`, { offsets: Array.from(selectedOffsets) })
-      setActiveOffsets(Array.from(selectedOffsets))
+      const offsets = Array.from(selectedOffsets)
+      await api.post(`/events/${event.id}/remind`, { offsets })
+      setActiveOffsets(offsets)
     } catch {}
     finally {
       setSettingReminders(false)
