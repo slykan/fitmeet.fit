@@ -94,8 +94,8 @@ function WindOverlay({ weather }: { weather: EventWeather | null | undefined }) 
           style={{
             position: 'absolute',
             inset: 0,
-            background: `repeating-linear-gradient(${flowAngle}deg, rgba(33,113,181,0) 0px, rgba(33,113,181,0) 10px, rgba(18,88,162,${Math.min(streamOpacity * 0.16, 0.12)}) 13px, rgba(33,113,181,0) 20px)`,
-            opacity: 0.26,
+            background: `repeating-linear-gradient(${flowAngle}deg, rgba(33,113,181,0) 0px, rgba(33,113,181,0) 10px, rgba(18,88,162,${Math.min(streamOpacity * 0.08, 0.05)}) 13px, rgba(33,113,181,0) 20px)`,
+            opacity: 0.1,
           }}
         />
 
