@@ -237,17 +237,7 @@ function EventContent() {
               </button>
             </div>
 
-            <div className="flex items-start justify-between gap-3 mb-4">
-              <h1 className="text-2xl font-bold leading-snug">{event.title}</h1>
-              {event.location.lat != null && event.location.lng != null && (
-                <WeatherBadge
-                  lat={event.location.lat}
-                  lng={event.location.lng}
-                  startAt={event.schedule.start_at}
-                  inline
-                />
-              )}
-            </div>
+            <h1 className="text-2xl font-bold leading-snug mb-4">{event.title}</h1>
 
             {event.description && (
               <p className="text-sm leading-relaxed mb-5" style={{ color: 'var(--text-muted)' }}>{event.description}</p>
@@ -322,6 +312,13 @@ function EventContent() {
                     ].filter(Boolean).join(' · ')}
                   </span>
                 </div>
+              )}
+              {event.location.lat != null && event.location.lng != null && (
+                <WeatherBadge
+                  lat={event.location.lat}
+                  lng={event.location.lng}
+                  startAt={event.schedule.start_at}
+                />
               )}
               {event.activity.gpx_url && (
                 <div className="flex items-start gap-2.5 text-sm">
