@@ -351,9 +351,12 @@ export default function HubMap() {
   const categoryCount = selectedCategories.size
 
   const visibleEvents = useMemo(() => {
-    const source = myOnly && !goingOnly ? myEvents : goingOnly ? joinedEvents : events
+    const source = myOnly ? myEvents : goingOnly ? joinedEvents : events
     return source.filter(ev => {
-      if (myOnly && !ev.is_organizer) return false
+      if (myOnly) {
+        if (selectedCategories.size > 0 && !selectedCategories.has(ev.category.value)) return false
+        return true
+      }
       if (friendsOnly && (!ev.organizer?.id || !friendIds.has(ev.organizer.id))) return false
       if (selectedCategories.size > 0 && !selectedCategories.has(ev.category.value)) return false
       if (radiusKm !== null && lat && lng) {
