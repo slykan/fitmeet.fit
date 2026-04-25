@@ -185,9 +185,10 @@ function WindOverlay({ weather }: { weather: EventWeather | null | undefined }) 
             transform: `rotate(${flowAngle}deg)`,
             color: '#58beff',
             lineHeight: 1,
+            fontSize: 14,
           }}
         >
-          ↑
+          →
         </span>
         <span>{weather.windSpeed} km/h</span>
       </div>
