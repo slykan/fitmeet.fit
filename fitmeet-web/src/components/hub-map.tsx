@@ -409,6 +409,41 @@ export default function HubMap() {
         ))}
       </MapContainer>
       <WindOverlay weather={hubWeather} variant="hub" />
+      {hubWeather && (
+        <div
+          style={{
+            position: 'absolute',
+            right: 14,
+            top: 14,
+            zIndex: 650,
+            pointerEvents: 'none',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '8px 10px',
+            borderRadius: 999,
+            border: '1px solid rgba(255,255,255,0.14)',
+            background: 'rgba(5,8,22,0.72)',
+            backdropFilter: 'blur(8px)',
+            color: '#d7dfef',
+            fontSize: 12,
+            fontWeight: 600,
+          }}
+        >
+          <span
+            style={{
+              display: 'inline-block',
+              transform: `rotate(${hubWeather.windDir + 180}deg)`,
+              color: '#58beff',
+              lineHeight: 1,
+              fontSize: 14,
+            }}
+          >
+            →
+          </span>
+          <span>{hubWeather.windSpeed} km/h</span>
+        </div>
+      )}
 
       {/* Filters */}
       <div
