@@ -5,7 +5,7 @@ import { MapContainer, TileLayer, Marker, ZoomControl, useMap, useMapEvents } fr
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { useRouter } from 'next/navigation'
-import { Calendar, ArrowRight, X, Users, Zap, LocateFixed, Check } from 'lucide-react'
+import { Calendar, ArrowRight, X, Users, Zap, LocateFixed, Check, Wind, Cloud } from 'lucide-react'
 import api from '@/lib/api'
 import { formatEventDateTime } from '@/lib/event-time'
 import { useAuthStore } from '@/store/auth'
@@ -261,6 +261,8 @@ export default function HubMap() {
   const [hubWeather, setHubWeather] = useState<EventWeather | null>(null)
   const [isMapInteracting, setIsMapInteracting] = useState(false)
   const [weatherCenter, setWeatherCenter] = useState<{ lat: number; lng: number } | null>(null)
+  const [showWindOverlay, setShowWindOverlay] = useState(true)
+  const [showCloudOverlay, setShowCloudOverlay] = useState(true)
 
   const lat      = (user?.location?.lat  || user?.home?.lat  || null)
   const lng      = (user?.location?.lng  || user?.home?.lng  || null)
@@ -464,7 +466,15 @@ export default function HubMap() {
           />
         ))}
       </MapContainer>
-      {!isMapInteracting && <WindOverlay weather={hubWeather} variant="hub" />}
+      {!isMapInteracting && (
+        <WindOverlay
+          weather={hubWeather}
+          variant="hub"
+          showWind={showWindOverlay}
+          showClouds={showCloudOverlay}
+          showBadge={showWindOverlay}
+        />
+      )}
 
       {/* Filters */}
       <div
@@ -589,6 +599,32 @@ export default function HubMap() {
                 }}
               >
                 My
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowWindOverlay(v => !v)}
+                className="inline-flex flex-1 items-center justify-center gap-1.5 text-[11px] px-3 py-2 rounded-full border font-semibold transition-colors md:flex-none md:text-xs"
+                style={{
+                  borderColor: showWindOverlay ? 'var(--primary)' : 'var(--border)',
+                  color: showWindOverlay ? 'var(--primary)' : 'var(--text-muted)',
+                  background: showWindOverlay ? 'rgba(57,255,20,0.1)' : 'var(--background)',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                <Wind size={13} /> Wind
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowCloudOverlay(v => !v)}
+                className="inline-flex flex-1 items-center justify-center gap-1.5 text-[11px] px-3 py-2 rounded-full border font-semibold transition-colors md:flex-none md:text-xs"
+                style={{
+                  borderColor: showCloudOverlay ? 'var(--primary)' : 'var(--border)',
+                  color: showCloudOverlay ? 'var(--primary)' : 'var(--text-muted)',
+                  background: showCloudOverlay ? 'rgba(57,255,20,0.1)' : 'var(--background)',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                <Cloud size={13} /> Clouds
               </button>
             </div>
           </div>

@@ -43,9 +43,15 @@ function FitTrack({ coords }: { coords: [number, number][] }) {
 export function WindOverlay({
   weather,
   variant = 'default',
+  showWind = true,
+  showClouds = true,
+  showBadge = true,
 }: {
   weather: EventWeather | null | undefined
   variant?: 'default' | 'hub'
+  showWind?: boolean
+  showClouds?: boolean
+  showBadge?: boolean
 }) {
   const [isMobile, setIsMobile] = useState(false)
 
@@ -87,12 +93,12 @@ export function WindOverlay({
     [isHub, isMobile],
   )
 
-  if (!weather) return null
+  if (!weather || (!showWind && !showClouds)) return null
 
   const flowAngle = weather.windDir + 180
   const effectiveWind = Math.max(8, weather.windSpeed)
-  const isCloudy = weather.code > 0 && weather.code <= 48
-  const isRainy = (weather.code >= 51 && weather.code <= 67) || (weather.code >= 80 && weather.code <= 82)
+  const isCloudy = showClouds && weather.code > 0 && weather.code <= 48
+  const isRainy = showClouds && ((weather.code >= 51 && weather.code <= 67) || (weather.code >= 80 && weather.code <= 82))
   const duration = Math.max(4.4, 10.6 - effectiveWind * 0.08)
   const distance = Math.min(158, 46 + effectiveWind * 2.4)
   const opacity = Math.min(
@@ -119,7 +125,9 @@ export function WindOverlay({
           pointerEvents: 'none',
           overflow: 'hidden',
           zIndex: 500,
-          background: `linear-gradient(${flowAngle}deg, rgba(${isHub ? '8,42,94' : '10,52,108'},${glowOpacity}), rgba(255,255,255,0.01), rgba(${isHub ? '9,82,156' : '11,96,176'},${Math.min(glowOpacity + (isHub ? (isMobile ? 0.16 : 0.12) : (isMobile ? 0.1 : 0.06)), isHub ? (isMobile ? 0.42 : 0.32) : (isMobile ? 0.28 : 0.18))}))`,
+          background: showWind
+            ? `linear-gradient(${flowAngle}deg, rgba(${isHub ? '8,42,94' : '10,52,108'},${glowOpacity}), rgba(255,255,255,0.01), rgba(${isHub ? '9,82,156' : '11,96,176'},${Math.min(glowOpacity + (isHub ? (isMobile ? 0.16 : 0.12) : (isMobile ? 0.1 : 0.06)), isHub ? (isMobile ? 0.42 : 0.32) : (isMobile ? 0.28 : 0.18))}))`
+            : 'transparent',
         }}
       >
         {cloudOpacity > 0 && (
@@ -128,11 +136,12 @@ export function WindOverlay({
               position: 'absolute',
               inset: 0,
               background: `
-                radial-gradient(circle at 18% 22%, rgba(168,183,206,${cloudOpacity}) 0%, rgba(168,183,206,0) 26%),
-                radial-gradient(circle at 58% 18%, rgba(148,165,191,${cloudOpacity * 0.96}) 0%, rgba(148,165,191,0) 30%),
-                radial-gradient(circle at 82% 34%, rgba(176,190,214,${cloudOpacity * 0.88}) 0%, rgba(176,190,214,0) 26%),
-                radial-gradient(circle at 34% 68%, rgba(134,151,177,${cloudOpacity * 0.82}) 0%, rgba(134,151,177,0) 32%)
+                radial-gradient(circle at 18% 22%, rgba(40,55,78,${cloudOpacity * 0.96}) 0 17%, rgba(126,146,173,${cloudOpacity * 0.48}) 18% 23%, rgba(40,55,78,0) 31%),
+                radial-gradient(circle at 58% 18%, rgba(34,47,68,${cloudOpacity}) 0 18%, rgba(118,138,164,${cloudOpacity * 0.5}) 19% 24%, rgba(34,47,68,0) 33%),
+                radial-gradient(circle at 82% 34%, rgba(44,58,82,${cloudOpacity * 0.94}) 0 15%, rgba(130,150,176,${cloudOpacity * 0.46}) 16% 20%, rgba(44,58,82,0) 29%),
+                radial-gradient(circle at 34% 68%, rgba(36,50,72,${cloudOpacity * 0.92}) 0 18%, rgba(120,140,168,${cloudOpacity * 0.44}) 19% 24%, rgba(36,50,72,0) 34%)
               `,
+              opacity: isHub ? 0.98 : 0.9,
               mixBlendMode: 'multiply',
             }}
           />
@@ -150,16 +159,18 @@ export function WindOverlay({
           />
         )}
 
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            background: `repeating-linear-gradient(${flowAngle}deg, rgba(33,113,181,0) 0px, rgba(33,113,181,0) 10px, rgba(18,88,162,${Math.min(streamOpacity * (isHub ? (isMobile ? 0.18 : 0.14) : (isMobile ? 0.12 : 0.08)), isHub ? (isMobile ? 0.16 : 0.12) : (isMobile ? 0.08 : 0.05))}) 13px, rgba(33,113,181,0) 20px)`,
-            opacity: isHub ? (isMobile ? 0.24 : 0.18) : (isMobile ? 0.16 : 0.1),
-          }}
-        />
+        {showWind && (
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              background: `repeating-linear-gradient(${flowAngle}deg, rgba(33,113,181,0) 0px, rgba(33,113,181,0) 10px, rgba(18,88,162,${Math.min(streamOpacity * (isHub ? (isMobile ? 0.18 : 0.14) : (isMobile ? 0.12 : 0.08)), isHub ? (isMobile ? 0.16 : 0.12) : (isMobile ? 0.08 : 0.05))}) 13px, rgba(33,113,181,0) 20px)`,
+              opacity: isHub ? (isMobile ? 0.24 : 0.18) : (isMobile ? 0.16 : 0.1),
+            }}
+          />
+        )}
 
-        {streams.map((stream) => (
+        {showWind && streams.map((stream) => (
           <span
             key={`stream-${stream.id}`}
             style={{
@@ -191,7 +202,7 @@ export function WindOverlay({
           </span>
         ))}
 
-        {particles.map((particle) => (
+        {showWind && particles.map((particle) => (
           <span
             key={particle.id}
             style={{
@@ -223,39 +234,42 @@ export function WindOverlay({
         ))}
       </div>
 
-      <div
-        style={{
-          position: 'absolute',
-          right: 12,
-          top: 12,
-          zIndex: 600,
-          pointerEvents: 'none',
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 8,
-          padding: '8px 10px',
-          borderRadius: 999,
-          border: '1px solid rgba(255,255,255,0.14)',
-          background: 'rgba(5,8,22,0.72)',
-          backdropFilter: 'blur(8px)',
-          color: '#d7dfef',
-          fontSize: 12,
-          fontWeight: 600,
-        }}
-      >
-        <span
+      {showBadge && showWind && (
+        <div
           style={{
-            display: 'inline-block',
-            transform: `rotate(${flowAngle}deg)`,
-            color: '#58beff',
-            lineHeight: 1,
-            fontSize: 14,
+            position: 'absolute',
+            right: 12,
+            top: 12,
+            zIndex: 600,
+            pointerEvents: 'none',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '8px 10px',
+            borderRadius: 999,
+            border: '1px solid rgba(255,255,255,0.14)',
+            background: 'rgba(5,8,22,0.72)',
+            backdropFilter: 'blur(8px)',
+            color: '#d7dfef',
+            fontSize: 12,
+            fontWeight: 600,
           }}
         >
-          →
-        </span>
-        <span>{weather.windSpeed} km/h</span>
-      </div>
+          <span
+            style={{
+              display: 'inline-block',
+              transform: `rotate(${flowAngle}deg)`,
+              color: '#58beff',
+              lineHeight: 1,
+              fontSize: 14,
+            }}
+          >
+            {'\u2192'}
+          </span>
+          <span>{weather.windSpeed} km/h</span>
+        </div>
+      )}
+
 
       <style>{`
         @keyframes fitmeet-wind-drift {
