@@ -43,11 +43,11 @@ function FitTrack({ coords }: { coords: [number, number][] }) {
 function WindOverlay({ weather }: { weather: EventWeather | null | undefined }) {
   const particles = useMemo(
     () =>
-      Array.from({ length: 96 }, (_, i) => ({
+      Array.from({ length: 120 }, (_, i) => ({
         id: i,
         left: ((i * 19) % 126) - 12,
         top: (i * 5) % 100,
-        delay: (i * 0.08).toFixed(2),
+        delay: (i * 0.06).toFixed(2),
         size: 1 + (i % 2),
         durationOffset: (i % 7) * 0.2,
       })),
@@ -56,14 +56,14 @@ function WindOverlay({ weather }: { weather: EventWeather | null | undefined }) 
 
   const streams = useMemo(
     () =>
-      Array.from({ length: 42 }, (_, i) => ({
+      Array.from({ length: 64 }, (_, i) => ({
         id: i,
         left: ((i * 13) % 126) - 10,
         top: 2 + ((i * 2.35) % 96),
         delay: (i * 0.09).toFixed(2),
-        width: 10 + (i % 3) * 8,
+        width: 14 + (i % 3) * 10,
         durationOffset: (i % 5) * 0.22,
-        thickness: 1,
+        thickness: 1 + (i % 2),
       })),
     [],
   )
@@ -72,11 +72,11 @@ function WindOverlay({ weather }: { weather: EventWeather | null | undefined }) 
 
   const flowAngle = weather.windDir + 180
   const effectiveWind = Math.max(8, weather.windSpeed)
-  const duration = Math.max(5.4, 12.5 - effectiveWind * 0.08)
-  const distance = Math.min(120, 28 + effectiveWind * 1.8)
-  const opacity = Math.min(0.34, 0.12 + effectiveWind / 170)
-  const streamOpacity = Math.min(0.28, 0.1 + effectiveWind / 180)
-  const glowOpacity = Math.min(0.08, 0.02 + effectiveWind / 340)
+  const duration = Math.max(4.8, 11.4 - effectiveWind * 0.08)
+  const distance = Math.min(148, 40 + effectiveWind * 2.2)
+  const opacity = Math.min(0.48, 0.18 + effectiveWind / 150)
+  const streamOpacity = Math.min(0.42, 0.16 + effectiveWind / 150)
+  const glowOpacity = Math.min(0.12, 0.03 + effectiveWind / 260)
 
   return (
     <>
@@ -94,8 +94,8 @@ function WindOverlay({ weather }: { weather: EventWeather | null | undefined }) 
           style={{
             position: 'absolute',
             inset: 0,
-            background: `repeating-linear-gradient(${flowAngle}deg, rgba(170,225,255,0) 0px, rgba(170,225,255,0) 10px, rgba(170,225,255,${Math.min(streamOpacity * 0.22, 0.08)}) 13px, rgba(170,225,255,0) 18px)`,
-            opacity: 0.3,
+            background: `repeating-linear-gradient(${flowAngle}deg, rgba(170,225,255,0) 0px, rgba(170,225,255,0) 10px, rgba(170,225,255,${Math.min(streamOpacity * 0.32, 0.14)}) 14px, rgba(170,225,255,0) 22px)`,
+            opacity: 0.46,
           }}
         />
 
@@ -117,7 +117,7 @@ function WindOverlay({ weather }: { weather: EventWeather | null | undefined }) 
                 height: `${stream.thickness}px`,
                 borderRadius: 999,
                 background: `linear-gradient(90deg, rgba(255,255,255,0), rgba(216,241,255,${streamOpacity * 0.45}), rgba(88,190,255,${streamOpacity}), rgba(255,255,255,0))`,
-                boxShadow: `0 0 6px rgba(88,190,255,${streamOpacity * 0.45})`,
+                boxShadow: `0 0 10px rgba(88,190,255,${streamOpacity * 0.7})`,
                 animationName: 'fitmeet-wind-stream',
                 animationDuration: `${duration + stream.durationOffset}s`,
                 animationDelay: `${stream.delay}s`,
@@ -146,7 +146,7 @@ function WindOverlay({ weather }: { weather: EventWeather | null | undefined }) 
                 height: `${particle.size}px`,
                 borderRadius: 999,
                 background: `rgba(225,244,255,${opacity})`,
-                boxShadow: `0 0 7px rgba(88,190,255,${opacity * 0.7})`,
+                boxShadow: `0 0 10px rgba(88,190,255,${opacity * 0.85})`,
                 animationName: 'fitmeet-wind-drift',
                 animationDuration: `${duration + particle.durationOffset}s`,
                 animationDelay: `${particle.delay}s`,
