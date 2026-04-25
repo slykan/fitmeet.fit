@@ -11,6 +11,8 @@ import { formatEventDateTime } from '@/lib/event-time'
 import { useAuthStore } from '@/store/auth'
 import { CATEGORIES, CATEGORY_EMOJI } from '@/lib/categories'
 import { WeatherBadge } from '@/components/WeatherBadge'
+import { fetchEventWeather, type EventWeather } from '@/lib/weather'
+import { WindOverlay } from '@/components/location-picker-map'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 delete (L.Icon.Default.prototype as any)._getIconUrl
@@ -224,6 +226,7 @@ export default function HubMap() {
   const [myOnly, setMyOnly] = useState(false)
   const [friendIds, setFriendIds] = useState<Set<number>>(new Set())
   const [recenterKey, setRecenterKey] = useState(0)
+  const [hubWeather, setHubWeather] = useState<EventWeather | null>(null)
 
   const lat      = (user?.location?.lat  || user?.home?.lat  || null)
   const lng      = (user?.location?.lng  || user?.home?.lng  || null)
@@ -264,6 +267,21 @@ export default function HubMap() {
     const t = setTimeout(() => setRadar(false), 5200)
     return () => clearTimeout(t)
   }, [lat, lng, friendsOnly])
+
+  useEffect(() => {
+    if (!lat || !lng) {
+      setHubWeather(null)
+      return
+    }
+
+    const now = new Date()
+    const isoDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+    const hour = now.getHours()
+
+    fetchEventWeather(lat, lng, isoDate, hour)
+      .then(setHubWeather)
+      .catch(() => setHubWeather(null))
+  }, [lat, lng])
 
   useEffect(() => {
     api.get('/events/joined')
@@ -390,6 +408,7 @@ export default function HubMap() {
           />
         ))}
       </MapContainer>
+      <WindOverlay weather={hubWeather} />
 
       {/* Filters */}
       <div

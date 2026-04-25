@@ -40,7 +40,7 @@ function FitTrack({ coords }: { coords: [number, number][] }) {
   return null
 }
 
-function WindOverlay({ weather }: { weather: EventWeather | null | undefined }) {
+export function WindOverlay({ weather }: { weather: EventWeather | null | undefined }) {
   const particles = useMemo(
     () =>
       Array.from({ length: 84 }, (_, i) => ({
