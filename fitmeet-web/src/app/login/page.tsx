@@ -28,7 +28,7 @@ const GoogleIcon = () => (
 )
 
 function LoginContent() {
-  const { setAuth, user } = useAuthStore()
+  const { setAuth, user, hasHydrated } = useAuthStore()
   const router = useRouter()
   const searchParams = useSearchParams()
   const { theme } = useTheme()
@@ -58,8 +58,9 @@ function LoginContent() {
 
   // Redirect if already logged in
   useEffect(() => {
+    if (!hasHydrated) return
     if (user) router.replace(user.onboarding_complete ? (redirect || '/hub') : '/onboarding')
-  }, [user, router, redirect])
+  }, [hasHydrated, user, router, redirect])
 
   async function onSubmit(data: LoginForm) {
     setError(null)

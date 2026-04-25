@@ -9,14 +9,15 @@ import { useAuthStore } from '@/store/auth'
 const HubMap = dynamic(() => import('@/components/hub-map'), { ssr: false })
 
 export default function HubPage() {
-  const { token } = useAuthStore()
+  const { token, hasHydrated } = useAuthStore()
   const router    = useRouter()
 
   useEffect(() => {
+    if (!hasHydrated) return
     if (!token) router.replace('/login')
-  }, [token, router])
+  }, [hasHydrated, token, router])
 
-  if (!token) return null
+  if (!hasHydrated || !token) return null
 
   return (
     <>
