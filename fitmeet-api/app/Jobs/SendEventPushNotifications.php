@@ -22,7 +22,6 @@ class SendEventPushNotifications implements ShouldQueue
     {
         $event = $this->event;
 
-        // Find users within their chosen radius who follow this category
         $tokens = User::query()
             ->whereNotNull('fcm_token')
             ->whereNotNull('lat')
@@ -52,10 +51,9 @@ class SendEventPushNotifications implements ShouldQueue
 
         $notification = Notification::create(
             title: "New {$event->category->label()} event nearby!",
-            body: "{$event->title} — {$event->start_at->format('D, M j \a\t g:i A')}"
+            body: "{$event->title} - {$event->start_at->copy()->timezone(config('app.event_timezone'))->format('D, M j \\a\\t g:i A')}"
         );
 
-        // FCM supports max 500 tokens per multicast
         foreach (array_chunk($tokens, 500) as $chunk) {
             $message = CloudMessage::new()
                 ->withNotification($notification)

@@ -12,6 +12,7 @@ import {
 import { Navbar } from '@/components/navbar'
 import { WeatherBadge } from '@/components/WeatherBadge'
 import api from '@/lib/api'
+import { formatEventDateParts } from '@/lib/event-time'
 import { useAuthStore } from '@/store/auth'
 import { shortAddress } from '@/lib/format-address'
 import { CATEGORIES, CATEGORY_EMOJI, FILTER_FEATURED } from '@/lib/categories'
@@ -61,10 +62,9 @@ const RADIUS_OPTIONS = [
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function formatDate(iso: string) {
-  const d = new Date(iso)
   return {
-    date: d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }),
-    time: d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+    date: formatEventDateParts(iso).day,
+    time: formatEventDateParts(iso).time,
   }
 }
 

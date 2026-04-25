@@ -6,6 +6,8 @@ export type EventWeather = {
   windDir: number
 }
 
+export { eventWeatherSlot as weatherSlot } from '@/lib/event-time'
+
 type OpenMeteoResponse = {
   hourly?: {
     time: string[]
@@ -22,17 +24,6 @@ type OpenMeteoResponse = {
 }
 
 const cache = new Map<string, EventWeather | null>()
-
-export function weatherSlot(startAt: string) {
-  const d = new Date(startAt)
-  const year = d.getFullYear()
-  const month = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return {
-    isoDate: `${year}-${month}-${day}`,
-    hour: d.getHours(),
-  }
-}
 
 export async function fetchEventWeather(
   lat: number,

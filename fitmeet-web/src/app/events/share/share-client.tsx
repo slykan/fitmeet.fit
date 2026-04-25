@@ -8,6 +8,7 @@ import { Calendar, Lock, MapPin, Share2, Users, Zap } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
 import { Button } from '@/components/ui/button'
+import { formatEventDateParts, formatEventDateTime } from '@/lib/event-time'
 import { shortAddress } from '@/lib/format-address'
 import { GpxResult, parseGpx } from '@/lib/parse-gpx'
 import { useAuthStore } from '@/store/auth'
@@ -27,21 +28,6 @@ export interface SharedEvent {
   is_private: boolean
   status: string
   organizer: { id: number; name: string; avatar: string | null } | null
-}
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleString('en-GB', {
-    weekday: 'short', day: 'numeric', month: 'short',
-    year: 'numeric', hour: '2-digit', minute: '2-digit',
-  })
-}
-
-function formatDateParts(iso: string) {
-  const date = new Date(iso)
-  return {
-    day: date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }),
-    time: date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
-  }
 }
 
 function buildPath(coords: [number, number][], width: number, height: number, padding: number) {
@@ -95,7 +81,7 @@ function RoutePoster({ gpx, event }: { gpx: GpxResult; event: SharedEvent }) {
   const project = createProjector(gpx.track, width, height, padding)
   const startPoint = start ? project(start) : null
   const endPoint = end ? project(end) : null
-  const dateParts = formatDateParts(event.schedule.start_at)
+  const dateParts = formatEventDateParts(event.schedule.start_at)
 
   return (
     <div className="relative h-[240px] sm:h-[300px] overflow-hidden" style={{ background: 'linear-gradient(180deg, #07110d 0%, #091019 100%)' }}>
@@ -130,7 +116,7 @@ function RoutePoster({ gpx, event }: { gpx: GpxResult; event: SharedEvent }) {
 }
 
 function StaticEventCover({ event }: { event: SharedEvent }) {
-  const dateParts = formatDateParts(event.schedule.start_at)
+  const dateParts = formatEventDateParts(event.schedule.start_at)
 
   return (
     <div className="relative h-[240px] sm:h-[300px] overflow-hidden" style={{ background: 'radial-gradient(circle at 22% 18%, rgba(57,255,20,0.14), transparent 26%), linear-gradient(180deg, #07110d 0%, #091019 100%)' }}>
@@ -283,7 +269,7 @@ function ShareEventContent() {
                   <div className="grid gap-2 text-sm">
                     <div className="flex items-center gap-2.5">
                       <Calendar size={15} style={{ color: 'var(--primary)', flexShrink: 0 }} />
-                      <span>{formatDate(event.schedule.start_at)}</span>
+                      <span>{formatEventDateTime(event.schedule.start_at)}</span>
                       {event.schedule.duration_minutes && <span style={{ color: 'var(--text-muted)' }}>| {event.schedule.duration_minutes} min</span>}
                     </div>
                     {event.location.address && (

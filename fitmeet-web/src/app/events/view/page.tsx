@@ -11,6 +11,7 @@ import { Navbar } from '@/components/navbar'
 import { WeatherBadge } from '@/components/WeatherBadge'
 import ElevationChart from '@/components/elevation-chart'
 import { shortAddress } from '@/lib/format-address'
+import { formatEventDateTime } from '@/lib/event-time'
 import { fetchEventWeather, weatherSlot, type EventWeather } from '@/lib/weather'
 import api from '@/lib/api'
 import { parseGpx, GpxResult } from '@/lib/parse-gpx'
@@ -43,13 +44,6 @@ interface Event {
   is_organizer: boolean
   is_joined: boolean
   organizer: { id: number; name: string; avatar: string | null }
-}
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleString('en-GB', {
-    weekday: 'short', day: 'numeric', month: 'short',
-    year: 'numeric', hour: '2-digit', minute: '2-digit',
-  })
 }
 
 function EventContent() {
@@ -263,7 +257,7 @@ function EventContent() {
             <div className="space-y-2.5">
               <div className="flex items-center gap-2.5 text-sm">
                 <Calendar size={15} style={{ color: 'var(--primary)', flexShrink: 0 }} />
-                <span>{formatDate(event.schedule.start_at)}</span>
+                <span>{formatEventDateTime(event.schedule.start_at)}</span>
                 {event.schedule.duration_minutes && <span style={{ color: 'var(--text-muted)' }}>· {event.schedule.duration_minutes} min</span>}
               </div>
               {event.location.address && (

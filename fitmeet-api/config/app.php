@@ -67,6 +67,8 @@ return [
 
     'timezone' => 'UTC',
 
+    'event_timezone' => env('EVENT_TIMEZONE', 'Europe/Zagreb'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Locale Configuration

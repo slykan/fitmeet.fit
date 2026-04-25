@@ -7,6 +7,7 @@ import 'leaflet/dist/leaflet.css'
 import { useRouter } from 'next/navigation'
 import { Calendar, ArrowRight, X, Users, Zap, LocateFixed, Check } from 'lucide-react'
 import api from '@/lib/api'
+import { formatEventDateTime } from '@/lib/event-time'
 import { useAuthStore } from '@/store/auth'
 import { CATEGORIES, CATEGORY_EMOJI } from '@/lib/categories'
 import { WeatherBadge } from '@/components/WeatherBadge'
@@ -156,10 +157,7 @@ function MapViewport({ events, lat, lng, radiusKm, ready, recenterKey }: {
 }
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleString('en-GB', {
-    weekday: 'short', day: 'numeric', month: 'short',
-    hour: '2-digit', minute: '2-digit',
-  })
+  return formatEventDateTime(iso)
 }
 
 interface Participant { id: number; name: string; avatar: string | null }

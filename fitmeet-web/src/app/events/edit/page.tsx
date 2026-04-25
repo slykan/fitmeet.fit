@@ -9,6 +9,7 @@ import { Calendar, MapPin, Info, Settings, Lock, Unlock, LocateFixed, Search } f
 import { Navbar } from '@/components/navbar'
 import ElevationChart from '@/components/elevation-chart'
 import api from '@/lib/api'
+import { eventLocalInputToUtcIso, eventUtcIsoToLocalInput } from '@/lib/event-time'
 import { parseGpx, GpxResult } from '@/lib/parse-gpx'
 import { formatAddress } from '@/lib/format-address'
 import { useAuthStore } from '@/store/auth'
@@ -51,16 +52,6 @@ interface FormData {
   pace:             string
 }
 
-function toDatetimeLocal(iso: string): string {
-  const d   = new Date(iso)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
-}
-
-function toUtcIso(localDatetime: string): string {
-  return new Date(localDatetime).toISOString()
-}
-
 function EditContent() {
   const searchParams = useSearchParams()
   const { token }    = useAuthStore()
@@ -97,7 +88,7 @@ function EditContent() {
           title:            e.title,
           category:         e.category.value,
           description:      e.description ?? '',
-          start_at:         toDatetimeLocal(e.schedule.start_at),
+          start_at:         eventUtcIsoToLocalInput(e.schedule.start_at),
           duration_minutes: e.schedule.duration_minutes ? String(e.schedule.duration_minutes) : '',
           lat:              e.location.lat,
           lng:              e.location.lng,
@@ -194,7 +185,7 @@ function EditContent() {
       if (data.title)    fd.append('title',    data.title)
       if (data.category) fd.append('category', data.category)
       fd.append('description', data.description || '')
-      if (data.start_at) fd.append('start_at', toUtcIso(data.start_at))
+      if (data.start_at) fd.append('start_at', eventLocalInputToUtcIso(data.start_at))
       fd.append('duration_minutes', data.duration_minutes || '')
       if (data.lat !== null) fd.append('lat', String(data.lat))
       if (data.lng !== null) fd.append('lng', String(data.lng))

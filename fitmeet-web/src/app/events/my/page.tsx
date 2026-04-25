@@ -7,6 +7,7 @@ import { Calendar, Users, Pencil, Plus, XCircle, MapPin } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
 import api from '@/lib/api'
+import { formatEventDateTime } from '@/lib/event-time'
 import { shortAddress } from '@/lib/format-address'
 import { useAuthStore } from '@/store/auth'
 import { Button } from '@/components/ui/button'
@@ -24,10 +25,7 @@ interface Event {
 }
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleString('en-GB', {
-    weekday: 'short', day: 'numeric', month: 'short',
-    hour: '2-digit', minute: '2-digit',
-  })
+  return formatEventDateTime(iso)
 }
 
 const STATUS_STYLE: Record<string, { label: string; color: string }> = {

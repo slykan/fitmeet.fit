@@ -7,6 +7,7 @@ import { UserPlus, UserCheck, Check, X, Bell, Calendar, MapPin, Zap } from 'luci
 
 import { Navbar } from '@/components/navbar'
 import api from '@/lib/api'
+import { formatEventDateTime } from '@/lib/event-time'
 import { useAuthStore } from '@/store/auth'
 
 const notificationsSeenKey = (userId: number) => `fitmeet-notifications-last-seen:${userId}`
@@ -190,7 +191,7 @@ export default function NotificationsPage() {
                   <div className="flex flex-col gap-0.5 mt-1">
                     <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
                       <Calendar size={10} className="inline mr-1" />
-                      {new Date(n.event.start_at).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                      {formatEventDateTime(n.event.start_at)}
                     </p>
                     {n.event.address && (
                       <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
@@ -228,7 +229,7 @@ export default function NotificationsPage() {
                   <div className="flex flex-col gap-0.5 mt-1">
                     <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
                       <Calendar size={10} className="inline mr-1" />
-                      {new Date(n.event.start_at).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                      {formatEventDateTime(n.event.start_at)}
                     </p>
                     {n.event.address && (
                       <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
@@ -257,7 +258,7 @@ export default function NotificationsPage() {
                   <div className="flex flex-col gap-0.5 mt-1">
                     <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
                       <Calendar size={10} className="inline mr-1" />
-                      {new Date(n.event.start_at).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                      {formatEventDateTime(n.event.start_at)}
                     </p>
                     {n.event.address && (
                       <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>

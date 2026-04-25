@@ -9,6 +9,7 @@ import { Calendar, MapPin, Info, Settings, Lock, Unlock, LocateFixed, Search } f
 import { Navbar } from '@/components/navbar'
 import ElevationChart from '@/components/elevation-chart'
 import api from '@/lib/api'
+import { eventDateToLocalInput, eventLocalInputToUtcIso } from '@/lib/event-time'
 import { parseGpx, GpxResult } from '@/lib/parse-gpx'
 import { formatAddress } from '@/lib/format-address'
 import { useAuthStore } from '@/store/auth'
@@ -56,12 +57,7 @@ interface FormData {
 function localDatetimeMin(): string {
   const now = new Date()
   now.setMinutes(now.getMinutes() + 10)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`
-}
-
-function toUtcIso(localDatetime: string): string {
-  return new Date(localDatetime).toISOString()
+  return eventDateToLocalInput(now)
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -173,7 +169,7 @@ export default function CreateEventPage() {
       const fd = new globalThis.FormData()
       fd.append('title',    data.title)
       fd.append('category', data.category)
-      fd.append('start_at', toUtcIso(data.start_at))
+      fd.append('start_at', eventLocalInputToUtcIso(data.start_at))
       if (data.lat !== null)     fd.append('lat',              String(data.lat))
       if (data.lng !== null)     fd.append('lng',              String(data.lng))
       if (data.description)      fd.append('description',      data.description)
