@@ -5,7 +5,7 @@ import { formatEventDateTime } from '@/lib/event-time'
 import ShareEventClientPage from './share-client'
 
 type SharePageProps = {
-  searchParams?: Promise<Record<string, string | string[] | undefined>>
+  searchParams?: Record<string, string | string[] | undefined>
 }
 
 type PublicShareEvent = {
@@ -64,7 +64,7 @@ function buildDescription(event: PublicShareEvent) {
 export async function generateMetadata(
   { searchParams }: SharePageProps,
 ): Promise<Metadata> {
-  const resolvedSearchParams = (await searchParams) ?? {}
+  const resolvedSearchParams = searchParams ?? {}
   const rawId = resolvedSearchParams.id
   const id = Array.isArray(rawId) ? rawId[0] : rawId
 
