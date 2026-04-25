@@ -139,13 +139,12 @@ function StaticEventCover({ event }: { event: SharedEvent }) {
           'linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px)',
         backgroundSize: '40px 40px',
       }} />
-      <div className="absolute inset-0 flex items-center justify-center px-6 text-center">
+      <div className="absolute inset-0 flex items-center justify-center px-6 pb-20 text-center">
         <div className="space-y-3">
           <div className="inline-flex rounded-full border px-3 py-1.5 text-xs font-semibold" style={{ borderColor: 'rgba(57,255,20,0.35)', color: 'var(--primary)', background: 'rgba(7,17,13,0.72)' }}>
             {event.category.label}
           </div>
           <div className="text-lg font-semibold">FitMeet event</div>
-          {event.location.address && <p className="mx-auto max-w-md text-sm" style={{ color: 'rgba(255,255,255,0.7)' }}>{shortAddress(event.location.address)}</p>}
         </div>
       </div>
       <div className="absolute inset-x-4 bottom-4 grid grid-cols-3 gap-2 sm:max-w-lg">
@@ -161,7 +160,7 @@ function InfoBadge({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl border px-3 py-2.5" style={{ borderColor: 'rgba(255,255,255,0.1)', background: 'rgba(7,16,25,0.76)' }}>
       <div className="text-[10px] uppercase font-semibold" style={{ color: 'rgba(255,255,255,0.52)' }}>{label}</div>
-      <div className="mt-1 truncate text-sm font-semibold">{value}</div>
+      <div className="mt-1 text-sm font-semibold leading-tight">{value}</div>
     </div>
   )
 }
