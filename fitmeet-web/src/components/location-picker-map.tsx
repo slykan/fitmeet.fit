@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { MapContainer, TileLayer, Marker, Polyline, useMapEvents, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -41,31 +41,42 @@ function FitTrack({ coords }: { coords: [number, number][] }) {
 }
 
 export function WindOverlay({ weather }: { weather: EventWeather | null | undefined }) {
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 767px)')
+    const apply = () => setIsMobile(media.matches)
+
+    apply()
+    media.addEventListener('change', apply)
+    return () => media.removeEventListener('change', apply)
+  }, [])
+
   const particles = useMemo(
     () =>
-      Array.from({ length: 84 }, (_, i) => ({
+      Array.from({ length: isMobile ? 108 : 84 }, (_, i) => ({
         id: i,
         left: ((i * 19) % 126) - 12,
-        top: (i * 6) % 100,
-        delay: (i * 0.09).toFixed(2),
-        size: 2 + (i % 2),
+        top: (i * (isMobile ? 4.8 : 6)) % 100,
+        delay: (i * (isMobile ? 0.07 : 0.09)).toFixed(2),
+        size: (isMobile ? 2.4 : 2) + (i % 2),
         durationOffset: (i % 6) * 0.22,
       })),
-    [],
+    [isMobile],
   )
 
   const streams = useMemo(
     () =>
-      Array.from({ length: 88 }, (_, i) => ({
+      Array.from({ length: isMobile ? 112 : 88 }, (_, i) => ({
         id: i,
         left: ((i * 13) % 126) - 10,
-        top: 2 + ((i * 1.6) % 96),
-        delay: (i * 0.07).toFixed(2),
-        width: 18 + (i % 3) * 12,
+        top: 2 + ((i * (isMobile ? 1.2 : 1.6)) % 96),
+        delay: (i * (isMobile ? 0.055 : 0.07)).toFixed(2),
+        width: (isMobile ? 22 : 18) + (i % 3) * (isMobile ? 14 : 12),
         durationOffset: (i % 5) * 0.22,
         thickness: 2 + (i % 2),
       })),
-    [],
+    [isMobile],
   )
 
   if (!weather) return null
@@ -74,9 +85,9 @@ export function WindOverlay({ weather }: { weather: EventWeather | null | undefi
   const effectiveWind = Math.max(8, weather.windSpeed)
   const duration = Math.max(4.4, 10.6 - effectiveWind * 0.08)
   const distance = Math.min(158, 46 + effectiveWind * 2.4)
-  const opacity = Math.min(0.82, 0.42 + effectiveWind / 95)
-  const streamOpacity = Math.min(0.82, 0.44 + effectiveWind / 92)
-  const glowOpacity = Math.min(0.16, 0.04 + effectiveWind / 220)
+  const opacity = Math.min(isMobile ? 0.9 : 0.82, (isMobile ? 0.52 : 0.42) + effectiveWind / (isMobile ? 88 : 95))
+  const streamOpacity = Math.min(isMobile ? 0.9 : 0.82, (isMobile ? 0.56 : 0.44) + effectiveWind / (isMobile ? 84 : 92))
+  const glowOpacity = Math.min(isMobile ? 0.22 : 0.16, (isMobile ? 0.07 : 0.04) + effectiveWind / (isMobile ? 160 : 220))
 
   return (
     <>
@@ -87,15 +98,15 @@ export function WindOverlay({ weather }: { weather: EventWeather | null | undefi
           pointerEvents: 'none',
           overflow: 'hidden',
           zIndex: 500,
-          background: `linear-gradient(${flowAngle}deg, rgba(14,74,138,${glowOpacity}), rgba(255,255,255,0.01), rgba(11,96,176,${Math.min(glowOpacity + 0.06, 0.18)}))`,
+          background: `linear-gradient(${flowAngle}deg, rgba(10,52,108,${glowOpacity}), rgba(255,255,255,0.01), rgba(11,96,176,${Math.min(glowOpacity + (isMobile ? 0.1 : 0.06), isMobile ? 0.28 : 0.18)}))`,
         }}
       >
         <div
           style={{
             position: 'absolute',
             inset: 0,
-            background: `repeating-linear-gradient(${flowAngle}deg, rgba(33,113,181,0) 0px, rgba(33,113,181,0) 10px, rgba(18,88,162,${Math.min(streamOpacity * 0.08, 0.05)}) 13px, rgba(33,113,181,0) 20px)`,
-            opacity: 0.1,
+            background: `repeating-linear-gradient(${flowAngle}deg, rgba(33,113,181,0) 0px, rgba(33,113,181,0) 10px, rgba(18,88,162,${Math.min(streamOpacity * (isMobile ? 0.12 : 0.08), isMobile ? 0.08 : 0.05)}) 13px, rgba(33,113,181,0) 20px)`,
+            opacity: isMobile ? 0.16 : 0.1,
           }}
         />
 
