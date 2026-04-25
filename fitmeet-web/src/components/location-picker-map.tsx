@@ -91,6 +91,8 @@ export function WindOverlay({
 
   const flowAngle = weather.windDir + 180
   const effectiveWind = Math.max(8, weather.windSpeed)
+  const isCloudy = weather.code > 0 && weather.code <= 48
+  const isRainy = (weather.code >= 51 && weather.code <= 67) || (weather.code >= 80 && weather.code <= 82)
   const duration = Math.max(4.4, 10.6 - effectiveWind * 0.08)
   const distance = Math.min(158, 46 + effectiveWind * 2.4)
   const opacity = Math.min(
@@ -105,6 +107,8 @@ export function WindOverlay({
     isHub ? (isMobile ? 0.3 : 0.24) : (isMobile ? 0.22 : 0.16),
     (isHub ? (isMobile ? 0.1 : 0.07) : (isMobile ? 0.07 : 0.04)) + effectiveWind / (isHub ? (isMobile ? 120 : 150) : (isMobile ? 160 : 220)),
   )
+  const cloudOpacity = isCloudy ? (isHub ? (isMobile ? 0.22 : 0.16) : (isMobile ? 0.14 : 0.1)) : 0
+  const rainOpacity = isRainy ? (isHub ? (isMobile ? 0.24 : 0.16) : (isMobile ? 0.14 : 0.1)) : 0
 
   return (
     <>
@@ -118,6 +122,34 @@ export function WindOverlay({
           background: `linear-gradient(${flowAngle}deg, rgba(${isHub ? '8,42,94' : '10,52,108'},${glowOpacity}), rgba(255,255,255,0.01), rgba(${isHub ? '9,82,156' : '11,96,176'},${Math.min(glowOpacity + (isHub ? (isMobile ? 0.16 : 0.12) : (isMobile ? 0.1 : 0.06)), isHub ? (isMobile ? 0.42 : 0.32) : (isMobile ? 0.28 : 0.18))}))`,
         }}
       >
+        {cloudOpacity > 0 && (
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              background: `
+                radial-gradient(circle at 18% 22%, rgba(210,220,235,${cloudOpacity}) 0%, rgba(210,220,235,0) 24%),
+                radial-gradient(circle at 58% 18%, rgba(196,208,226,${cloudOpacity * 0.92}) 0%, rgba(196,208,226,0) 28%),
+                radial-gradient(circle at 82% 34%, rgba(214,223,238,${cloudOpacity * 0.86}) 0%, rgba(214,223,238,0) 24%),
+                radial-gradient(circle at 34% 68%, rgba(188,201,220,${cloudOpacity * 0.78}) 0%, rgba(188,201,220,0) 30%)
+              `,
+              mixBlendMode: 'screen',
+            }}
+          />
+        )}
+
+        {rainOpacity > 0 && (
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              background: `repeating-linear-gradient(${flowAngle + 18}deg, rgba(120,180,235,0) 0px, rgba(120,180,235,0) 10px, rgba(120,180,235,${rainOpacity}) 12px, rgba(120,180,235,0) 16px)`,
+              opacity: isHub ? 0.5 : 0.38,
+              animation: 'fitmeet-rain-shift 7s linear infinite',
+            }}
+          />
+        )}
+
         <div
           style={{
             position: 'absolute',
@@ -251,6 +283,15 @@ export function WindOverlay({
           100% {
             opacity: 0;
             transform: translate3d(var(--wind-distance), 0, 0) scaleX(1);
+          }
+        }
+
+        @keyframes fitmeet-rain-shift {
+          0% {
+            transform: translate3d(-14px, -10px, 0);
+          }
+          100% {
+            transform: translate3d(10px, 14px, 0);
           }
         }
       `}</style>
