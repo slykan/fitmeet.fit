@@ -41,6 +41,18 @@ function FitTrack({ coords }: { coords: [number, number][] }) {
 }
 
 function WindOverlay({ weather }: { weather: EventWeather | null | undefined }) {
+  const arrowStreams = useMemo(
+    () =>
+      Array.from({ length: 8 }, (_, i) => ({
+        id: i,
+        y: 8 + i * 11,
+        width: 140 + (i % 3) * 44,
+        delay: (i * 0.32).toFixed(2),
+        durationOffset: (i % 4) * 0.22,
+      })),
+    [],
+  )
+
   const particles = useMemo(
     () =>
       Array.from({ length: 44 }, (_, i) => ({
@@ -90,6 +102,70 @@ function WindOverlay({ weather }: { weather: EventWeather | null | undefined }) 
           background: `linear-gradient(${flowAngle}deg, rgba(108,255,47,${glowOpacity}), rgba(255,255,255,0.02), rgba(108,255,47,${Math.min(glowOpacity + 0.06, 0.32)}))`,
         }}
       >
+        <svg
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            overflow: 'visible',
+          }}
+        >
+          <defs>
+            <linearGradient id="fitmeet-wind-line" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="rgba(255,255,255,0)" />
+              <stop offset="45%" stopColor={`rgba(235,255,245,${Math.min(streamOpacity * 0.65, 0.44)})`} />
+              <stop offset="100%" stopColor={`rgba(108,255,47,${Math.min(streamOpacity + 0.12, 0.72)})`} />
+            </linearGradient>
+          </defs>
+
+          <g
+            style={{
+              transformBox: 'fill-box',
+              transformOrigin: '50% 50%',
+              transform: `rotate(${flowAngle}deg)`,
+            }}
+          >
+            {arrowStreams.map((stream) => (
+              <g key={`arrow-stream-${stream.id}`}>
+                <line
+                  x1="-25"
+                  y1={stream.y}
+                  x2="18"
+                  y2={stream.y}
+                  stroke="url(#fitmeet-wind-line)"
+                  strokeWidth="1.3"
+                  strokeLinecap="round"
+                  style={{
+                    filter: `drop-shadow(0 0 6px rgba(108,255,47,${Math.min(streamOpacity, 0.45)}))`,
+                    animationName: 'fitmeet-wind-arrowline',
+                    animationDuration: `${duration + stream.durationOffset}s`,
+                    animationDelay: `${stream.delay}s`,
+                    animationIterationCount: 'infinite',
+                    animationTimingFunction: 'linear',
+                    ['--wind-line-distance' as string]: `${stream.width}%`,
+                  }}
+                />
+                <path
+                  d={`M 18 ${stream.y} l -3 -2.2 l 0 1.2 l -4 0 l 0 2 l 4 0 l 0 1.2 z`}
+                  fill={`rgba(108,255,47,${Math.min(streamOpacity + 0.18, 0.82)})`}
+                  style={{
+                    filter: `drop-shadow(0 0 8px rgba(108,255,47,${Math.min(streamOpacity + 0.1, 0.5)}))`,
+                    animationName: 'fitmeet-wind-arrowline',
+                    animationDuration: `${duration + stream.durationOffset}s`,
+                    animationDelay: `${stream.delay}s`,
+                    animationIterationCount: 'infinite',
+                    animationTimingFunction: 'linear',
+                    ['--wind-line-distance' as string]: `${stream.width}%`,
+                  }}
+                />
+              </g>
+            ))}
+          </g>
+        </svg>
+
         <div
           style={{
             position: 'absolute',
@@ -218,6 +294,20 @@ function WindOverlay({ weather }: { weather: EventWeather | null | undefined }) 
           100% {
             opacity: 0;
             transform: translate3d(var(--wind-distance), 0, 0) scaleX(1.08);
+          }
+        }
+
+        @keyframes fitmeet-wind-arrowline {
+          0% {
+            opacity: 0;
+            transform: translateX(-18%);
+          }
+          12% {
+            opacity: 1;
+          }
+          100% {
+            opacity: 0;
+            transform: translateX(var(--wind-line-distance));
           }
         }
       `}</style>
