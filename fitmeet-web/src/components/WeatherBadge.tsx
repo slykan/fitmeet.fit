@@ -62,7 +62,7 @@ export function WeatherBadge({ lat, lng, startAt, inline = false }: Props) {
         <span
           style={{
             display: 'inline-block',
-            transform: `rotate(${weather.windDir}deg)`,
+            transform: `rotate(${weather.windDir + 180}deg)`,
             lineHeight: 1,
           }}
         >↑</span>
@@ -90,7 +90,7 @@ export function WeatherBadge({ lat, lng, startAt, inline = false }: Props) {
       <span
         style={{
           display: 'inline-block',
-          transform: `rotate(${weather.windDir}deg)`,
+          transform: `rotate(${weather.windDir + 180}deg)`,
           lineHeight: 1,
         }}
       >↑</span>
