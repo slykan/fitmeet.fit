@@ -131,20 +131,45 @@ export function WindOverlay({
         }}
       >
         {cloudOpacity > 0 && (
-          <div
+          <svg
+            viewBox="0 0 1000 1000"
+            preserveAspectRatio="none"
             style={{
               position: 'absolute',
               inset: 0,
-              background: `
-                radial-gradient(circle at 18% 22%, rgba(40,55,78,${cloudOpacity * 0.96}) 0 17%, rgba(126,146,173,${cloudOpacity * 0.48}) 18% 23%, rgba(40,55,78,0) 31%),
-                radial-gradient(circle at 58% 18%, rgba(34,47,68,${cloudOpacity}) 0 18%, rgba(118,138,164,${cloudOpacity * 0.5}) 19% 24%, rgba(34,47,68,0) 33%),
-                radial-gradient(circle at 82% 34%, rgba(44,58,82,${cloudOpacity * 0.94}) 0 15%, rgba(130,150,176,${cloudOpacity * 0.46}) 16% 20%, rgba(44,58,82,0) 29%),
-                radial-gradient(circle at 34% 68%, rgba(36,50,72,${cloudOpacity * 0.92}) 0 18%, rgba(120,140,168,${cloudOpacity * 0.44}) 19% 24%, rgba(36,50,72,0) 34%)
-              `,
-              opacity: isHub ? 0.98 : 0.9,
+              width: '100%',
+              height: '100%',
+              opacity: isHub ? 0.92 : 0.78,
               mixBlendMode: 'multiply',
             }}
-          />
+          >
+            <g>
+              <path
+                d="M58 170 C102 118, 184 118, 226 168 C258 146, 314 150, 346 188 C394 182, 434 212, 438 254 C442 306, 390 334, 336 330 L122 330 C78 332, 44 304, 42 264 C40 226, 48 194, 58 170 Z"
+                fill={`rgba(36,50,72,${cloudOpacity})`}
+                stroke={`rgba(128,148,176,${cloudOpacity * 0.6})`}
+                strokeWidth="4"
+              />
+              <path
+                d="M474 122 C518 76, 596 78, 638 124 C676 108, 734 118, 768 154 C824 150, 872 186, 876 238 C880 294, 824 324, 762 320 L530 320 C476 322, 434 292, 432 246 C430 202, 446 154, 474 122 Z"
+                fill={`rgba(30,42,62,${cloudOpacity * 0.96})`}
+                stroke={`rgba(122,142,170,${cloudOpacity * 0.58})`}
+                strokeWidth="4"
+              />
+              <path
+                d="M706 328 C744 288, 812 286, 852 322 C882 306, 932 314, 958 344 C986 374, 986 420, 960 448 C936 474, 900 484, 860 482 L734 482 C684 484, 644 456, 640 412 C636 376, 658 346, 706 328 Z"
+                fill={`rgba(40,55,78,${cloudOpacity * 0.9})`}
+                stroke={`rgba(132,150,176,${cloudOpacity * 0.56})`}
+                strokeWidth="4"
+              />
+              <path
+                d="M154 540 C204 488, 288 490, 334 542 C370 518, 430 522, 464 558 C514 552, 558 588, 562 638 C566 694, 512 726, 454 724 L208 724 C150 726, 104 694, 100 644 C98 604, 118 566, 154 540 Z"
+                fill={`rgba(34,48,68,${cloudOpacity * 0.92})`}
+                stroke={`rgba(122,142,168,${cloudOpacity * 0.56})`}
+                strokeWidth="4"
+              />
+            </g>
+          </svg>
         )}
 
         {rainOpacity > 0 && (

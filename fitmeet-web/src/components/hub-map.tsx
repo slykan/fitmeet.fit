@@ -472,7 +472,7 @@ export default function HubMap() {
           variant="hub"
           showWind={showWindOverlay}
           showClouds={showCloudOverlay}
-          showBadge={showWindOverlay}
+          showBadge={false}
         />
       )}
 
@@ -600,34 +600,82 @@ export default function HubMap() {
               >
                 My
               </button>
-              <button
-                type="button"
-                onClick={() => setShowWindOverlay(v => !v)}
-                className="inline-flex flex-1 items-center justify-center gap-1.5 text-[11px] px-3 py-2 rounded-full border font-semibold transition-colors md:flex-none md:text-xs"
-                style={{
-                  borderColor: showWindOverlay ? 'var(--primary)' : 'var(--border)',
-                  color: showWindOverlay ? 'var(--primary)' : 'var(--text-muted)',
-                  background: showWindOverlay ? 'rgba(57,255,20,0.1)' : 'var(--background)',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                <Wind size={13} /> Wind
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowCloudOverlay(v => !v)}
-                className="inline-flex flex-1 items-center justify-center gap-1.5 text-[11px] px-3 py-2 rounded-full border font-semibold transition-colors md:flex-none md:text-xs"
-                style={{
-                  borderColor: showCloudOverlay ? 'var(--primary)' : 'var(--border)',
-                  color: showCloudOverlay ? 'var(--primary)' : 'var(--text-muted)',
-                  background: showCloudOverlay ? 'rgba(57,255,20,0.1)' : 'var(--background)',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                <Cloud size={13} /> Clouds
-              </button>
             </div>
           </div>
+        </div>
+      </div>
+
+      <div
+        className="absolute bottom-4 right-3 z-[690] pointer-events-auto"
+        style={{
+          border: '1px solid rgba(255,255,255,0.12)',
+          background: 'rgba(7,11,24,0.84)',
+          backdropFilter: 'blur(10px)',
+          borderRadius: 14,
+          padding: 10,
+          boxShadow: '0 10px 24px rgba(0,0,0,0.32)',
+          minWidth: 132,
+        }}
+      >
+        {hubWeather && showWindOverlay && (
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              marginBottom: 8,
+              color: '#d7dfef',
+              fontSize: 12,
+              fontWeight: 700,
+            }}
+          >
+            <span
+              style={{
+                display: 'inline-block',
+                transform: `rotate(${hubWeather.windDir + 180}deg)`,
+                color: '#58beff',
+                lineHeight: 1,
+                fontSize: 14,
+              }}
+            >
+              {'\u2192'}
+            </span>
+            <span>{hubWeather.windSpeed} km/h</span>
+          </div>
+        )}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <button
+            type="button"
+            onClick={() => setShowWindOverlay(v => !v)}
+            className="inline-flex items-center justify-between gap-3 text-[11px] px-3 py-2 rounded-full border font-semibold transition-colors md:text-xs"
+            style={{
+              borderColor: showWindOverlay ? 'var(--primary)' : 'rgba(255,255,255,0.12)',
+              color: showWindOverlay ? 'var(--primary)' : 'var(--text-muted)',
+              background: showWindOverlay ? 'rgba(57,255,20,0.1)' : 'rgba(255,255,255,0.03)',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <span className="inline-flex items-center gap-1.5">
+              <Wind size={13} /> Wind
+            </span>
+            <span>{showWindOverlay ? 'On' : 'Off'}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowCloudOverlay(v => !v)}
+            className="inline-flex items-center justify-between gap-3 text-[11px] px-3 py-2 rounded-full border font-semibold transition-colors md:text-xs"
+            style={{
+              borderColor: showCloudOverlay ? 'var(--primary)' : 'rgba(255,255,255,0.12)',
+              color: showCloudOverlay ? 'var(--primary)' : 'var(--text-muted)',
+              background: showCloudOverlay ? 'rgba(57,255,20,0.1)' : 'rgba(255,255,255,0.03)',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <span className="inline-flex items-center gap-1.5">
+              <Cloud size={13} /> Clouds
+            </span>
+            <span>{showCloudOverlay ? 'On' : 'Off'}</span>
+          </button>
         </div>
       </div>
 
