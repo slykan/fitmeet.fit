@@ -22,7 +22,24 @@ export default function HubPage() {
   return (
     <>
       <Navbar />
-      <div style={{ height: 'calc(100vh - 64px)' }}>
+      <style>{`
+        .hub-page-shell {
+          height: calc(100dvh - 64px);
+        }
+
+        @supports not (height: 100dvh) {
+          .hub-page-shell {
+            height: calc(100vh - 64px);
+          }
+        }
+
+        @media (max-width: 767px) {
+          .hub-page-shell {
+            height: calc(100svh - 64px);
+          }
+        }
+      `}</style>
+      <div className="hub-page-shell">
         <HubMap />
       </div>
     </>

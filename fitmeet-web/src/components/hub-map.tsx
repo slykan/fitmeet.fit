@@ -606,13 +606,13 @@ export default function HubMap() {
       </div>
 
       <div
-        className="absolute bottom-0 left-1/2 z-[690] pointer-events-auto -translate-x-1/2 rounded-t-[18px] rounded-b-none px-2 py-1.5 md:bottom-3 md:rounded-full md:px-[10px] md:py-2"
+        className="hub-weather-footer-shell absolute bottom-0 left-1/2 z-[690] pointer-events-auto -translate-x-1/2 rounded-t-[18px] rounded-b-none px-2 py-1.5 md:bottom-3 md:rounded-full md:px-[10px] md:py-2"
         style={{
           border: '1px solid rgba(255,255,255,0.12)',
           background: 'rgba(7,11,24,0.84)',
           backdropFilter: 'blur(10px)',
           boxShadow: '0 10px 24px rgba(0,0,0,0.28)',
-          width: 'min(100vw, 760px)',
+          width: '100vw',
           maxWidth: '100%',
           paddingBottom: 'calc(6px + env(safe-area-inset-bottom, 0px))',
         }}
@@ -749,8 +749,18 @@ export default function HubMap() {
         </div>
         <style>{`
           @media (max-width: 767px) {
+            .hub-weather-footer-shell {
+              border-left: 0 !important;
+              border-right: 0 !important;
+              border-bottom: 0 !important;
+            }
             .hub-weather-footer {
               gap: 8px !important;
+            }
+          }
+          @media (min-width: 768px) {
+            .hub-weather-footer-shell {
+              width: min(calc(100vw - 24px), 760px) !important;
             }
           }
         `}</style>
