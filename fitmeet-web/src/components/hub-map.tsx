@@ -11,7 +11,7 @@ import { formatEventDateTime } from '@/lib/event-time'
 import { useAuthStore } from '@/store/auth'
 import { CATEGORIES, CATEGORY_EMOJI } from '@/lib/categories'
 import { WeatherBadge } from '@/components/WeatherBadge'
-import { fetchEventWeather, type EventWeather } from '@/lib/weather'
+import { fetchCurrentWeather, type EventWeather } from '@/lib/weather'
 import { WindOverlay } from '@/components/location-picker-map'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -310,11 +310,7 @@ export default function HubMap() {
       return
     }
 
-    const now = new Date()
-    const isoDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-    const hour = now.getHours()
-
-    fetchEventWeather(weatherCenter.lat, weatherCenter.lng, isoDate, hour)
+    fetchCurrentWeather(weatherCenter.lat, weatherCenter.lng)
       .then(setHubWeather)
       .catch(() => setHubWeather(null))
   }, [weatherCenter])
@@ -632,7 +628,7 @@ export default function HubMap() {
               fontWeight: 700,
             }}
           >
-            <span>{hubWeather.tempMin}°/{hubWeather.tempMax}°</span>
+            <span>{hubWeather.tempCurrent ?? hubWeather.tempMax}°</span>
             <span
               style={{
                 width: 1,

@@ -4,11 +4,18 @@ export type EventWeather = {
   tempMax: number
   windSpeed: number
   windDir: number
+  tempCurrent?: number
 }
 
 export { eventWeatherSlot as weatherSlot } from '@/lib/event-time'
 
 type OpenMeteoResponse = {
+  current?: {
+    temperature_2m: number
+    weathercode: number
+    windspeed_10m: number
+    winddirection_10m: number
+  }
   hourly?: {
     time: string[]
     temperature_2m: number[]
@@ -81,6 +88,49 @@ export async function fetchEventWeather(
       tempMax: Math.round(data.daily.temperature_2m_max[0]),
       windSpeed: Math.round(data.hourly.windspeed_10m[resolvedIdx]),
       windDir: Math.round(data.hourly.winddirection_10m[resolvedIdx]),
+      tempCurrent: Math.round(data.hourly.temperature_2m[resolvedIdx]),
+    }
+
+    cache.set(key, result)
+    return result
+  } catch {
+    cache.set(key, null)
+    return null
+  }
+}
+
+export async function fetchCurrentWeather(
+  lat: number,
+  lng: number,
+): Promise<EventWeather | null> {
+  const now = new Date()
+  const bucket = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}T${String(now.getHours()).padStart(2, '0')}:${String(Math.floor(now.getMinutes() / 10) * 10).padStart(2, '0')}`
+  const key = `current:${lat},${lng},${bucket}`
+  if (cache.has(key)) return cache.get(key)!
+
+  try {
+    const url =
+      `https://api.open-meteo.com/v1/forecast` +
+      `?latitude=${lat}&longitude=${lng}` +
+      `&current=temperature_2m,weathercode,windspeed_10m,winddirection_10m` +
+      `&daily=temperature_2m_max,temperature_2m_min` +
+      `&timezone=auto`
+
+    const res = await fetch(url, { next: { revalidate: 600 } })
+    const data: OpenMeteoResponse = await res.json()
+
+    if (data.error || !data.current || !data.daily) {
+      cache.set(key, null)
+      return null
+    }
+
+    const result: EventWeather = {
+      code: Math.round(data.current.weathercode),
+      tempMin: Math.round(data.daily.temperature_2m_min[0]),
+      tempMax: Math.round(data.daily.temperature_2m_max[0]),
+      windSpeed: Math.round(data.current.windspeed_10m),
+      windDir: Math.round(data.current.winddirection_10m),
+      tempCurrent: Math.round(data.current.temperature_2m),
     }
 
     cache.set(key, result)
