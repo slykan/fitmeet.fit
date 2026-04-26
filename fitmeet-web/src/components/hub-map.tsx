@@ -625,6 +625,39 @@ export default function HubMap() {
             gap: 10,
           }}
         >
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+            <button
+              type="button"
+              onClick={() => setShowWindOverlay(v => !v)}
+              className="inline-flex items-center gap-1.5 text-[11px] px-3 py-1.5 rounded-full border font-semibold transition-colors md:text-xs"
+              style={{
+                borderColor: showWindOverlay ? 'var(--primary)' : 'rgba(255,255,255,0.12)',
+                color: showWindOverlay ? 'var(--primary)' : 'var(--text-muted)',
+                background: showWindOverlay ? 'rgba(57,255,20,0.1)' : 'rgba(255,255,255,0.03)',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <Wind size={13} />
+              <span>Wind</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowCloudOverlay(v => !v)}
+              className="inline-flex items-center gap-1.5 text-[11px] px-3 py-1.5 rounded-full border font-semibold transition-colors md:text-xs"
+              style={{
+                borderColor: showCloudOverlay ? 'var(--primary)' : 'rgba(255,255,255,0.12)',
+                color: showCloudOverlay ? 'var(--primary)' : 'var(--text-muted)',
+                background: showCloudOverlay ? 'rgba(57,255,20,0.1)' : 'rgba(255,255,255,0.03)',
+                whiteSpace: 'nowrap',
+                opacity: hubHasCloudLayer ? 1 : 0.62,
+              }}
+              title={hubHasCloudLayer ? 'Toggle current cloud and rain overlay' : 'Current weather is clear, so cloud overlay is minimal right now'}
+            >
+              <Cloud size={13} />
+              <span>{hubHasCloudLayer ? 'Clouds' : 'Clear'}</span>
+            </button>
+          </div>
+
           <div
             style={{
               display: 'inline-flex',
@@ -711,39 +744,6 @@ export default function HubMap() {
                 </span>
               </>
             )}
-          </div>
-
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-            <button
-              type="button"
-              onClick={() => setShowWindOverlay(v => !v)}
-              className="inline-flex items-center gap-1.5 text-[11px] px-3 py-1.5 rounded-full border font-semibold transition-colors md:text-xs"
-              style={{
-                borderColor: showWindOverlay ? 'var(--primary)' : 'rgba(255,255,255,0.12)',
-                color: showWindOverlay ? 'var(--primary)' : 'var(--text-muted)',
-                background: showWindOverlay ? 'rgba(57,255,20,0.1)' : 'rgba(255,255,255,0.03)',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              <Wind size={13} />
-              <span>Wind</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowCloudOverlay(v => !v)}
-              className="inline-flex items-center gap-1.5 text-[11px] px-3 py-1.5 rounded-full border font-semibold transition-colors md:text-xs"
-              style={{
-                borderColor: showCloudOverlay ? 'var(--primary)' : 'rgba(255,255,255,0.12)',
-                color: showCloudOverlay ? 'var(--primary)' : 'var(--text-muted)',
-                background: showCloudOverlay ? 'rgba(57,255,20,0.1)' : 'rgba(255,255,255,0.03)',
-                whiteSpace: 'nowrap',
-                opacity: hubHasCloudLayer ? 1 : 0.62,
-              }}
-              title={hubHasCloudLayer ? 'Toggle current cloud and rain overlay' : 'Current weather is clear, so cloud overlay is minimal right now'}
-            >
-              <Cloud size={13} />
-              <span>{hubHasCloudLayer ? 'Clouds' : 'Clear'}</span>
-            </button>
           </div>
         </div>
       </div>
