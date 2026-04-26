@@ -150,7 +150,7 @@ export async function resolveTimeZoneFromCoords(
 ) {
   try {
     const res = await fetch(
-      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m&forecast_days=1`,
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m&forecast_days=1&timezone=auto`,
       { cache: 'force-cache' },
     )
 
@@ -159,7 +159,11 @@ export async function resolveTimeZoneFromCoords(
     }
 
     const data = await res.json() as { timezone?: string }
-    return resolveEventTimeZone(data.timezone || fallback)
+    const timezone = data.timezone && data.timezone !== 'GMT'
+      ? data.timezone
+      : fallback
+
+    return resolveEventTimeZone(timezone)
   } catch {
     return resolveEventTimeZone(fallback)
   }
