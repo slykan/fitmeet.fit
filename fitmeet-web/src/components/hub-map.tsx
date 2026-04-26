@@ -632,6 +632,15 @@ export default function HubMap() {
               fontWeight: 700,
             }}
           >
+            <span>{hubWeather.tempMin}°/{hubWeather.tempMax}°</span>
+            <span
+              style={{
+                width: 1,
+                height: 12,
+                background: 'rgba(255,255,255,0.16)',
+                display: 'inline-block',
+              }}
+            />
             <span
               style={{
                 display: 'inline-block',
