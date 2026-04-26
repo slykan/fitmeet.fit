@@ -501,7 +501,7 @@ export default function HubMap() {
           style={{
             flex: 1,
             border: '1px solid var(--border)',
-            background: 'color-mix(in srgb, var(--surface) 84%, transparent)',
+            background: 'color-mix(in srgb, var(--surface) 74%, transparent)',
             borderRadius: 14,
             padding: '8px 10px',
             boxShadow: '0 6px 22px rgba(0,0,0,0.35)',
@@ -625,7 +625,7 @@ export default function HubMap() {
         className="hub-weather-footer-shell absolute bottom-0 left-1/2 z-[690] pointer-events-auto -translate-x-1/2 rounded-t-[18px] rounded-b-none px-2 py-1.5 md:bottom-3 md:rounded-full md:px-[10px] md:py-2"
         style={{
           border: '1px solid rgba(255,255,255,0.12)',
-          background: 'rgba(7,11,24,0.76)',
+          background: 'rgba(7,11,24,0.62)',
           backdropFilter: 'blur(10px)',
           boxShadow: '0 10px 24px rgba(0,0,0,0.28)',
           width: '100vw',
