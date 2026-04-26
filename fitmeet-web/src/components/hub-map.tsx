@@ -494,7 +494,7 @@ export default function HubMap() {
 
       {/* Filters */}
       <div
-        className="absolute top-3 left-0 right-0 z-[700] pointer-events-none flex flex-col gap-2 px-0 md:left-3 md:right-3 md:px-0 md:flex-row md:items-stretch md:gap-3"
+        className="absolute top-0 left-0 right-0 z-[700] pointer-events-none flex flex-col gap-2 px-0 md:top-3 md:left-3 md:right-3 md:px-0 md:flex-row md:items-stretch md:gap-3"
       >
         <div
           className="min-w-0 pointer-events-auto mx-0 md:mx-0"
