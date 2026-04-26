@@ -280,7 +280,7 @@ export function WindOverlay({
           <span
             style={{
               display: 'inline-block',
-              transform: `rotate(${flowAngle}deg)`,
+              transform: `rotate(${weather.windDir}deg)`,
               color: '#58beff',
               lineHeight: 1,
               fontSize: 14,

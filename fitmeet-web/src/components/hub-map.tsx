@@ -635,7 +635,7 @@ export default function HubMap() {
             <span
               style={{
                 display: 'inline-block',
-                transform: `rotate(${hubWeather.windDir + 180}deg)`,
+                transform: `rotate(${hubWeather.windDir}deg)`,
                 color: '#58beff',
                 lineHeight: 1,
                 fontSize: 14,
