@@ -497,11 +497,11 @@ export default function HubMap() {
         className="absolute top-0 left-0 right-0 z-[700] pointer-events-none flex flex-col gap-2 px-0 md:top-3 md:left-3 md:right-3 md:px-0 md:flex-row md:items-stretch md:gap-3"
       >
         <div
-          className="min-w-0 pointer-events-auto mx-0 md:mx-0"
+          className="hub-top-filter-shell min-w-0 pointer-events-auto mx-0 md:mx-0"
           style={{
             flex: 1,
             border: '1px solid var(--border)',
-            background: 'color-mix(in srgb, var(--surface) 92%, transparent)',
+            background: 'color-mix(in srgb, var(--surface) 84%, transparent)',
             borderRadius: 14,
             padding: '8px 10px',
             boxShadow: '0 6px 22px rgba(0,0,0,0.35)',
@@ -625,7 +625,7 @@ export default function HubMap() {
         className="hub-weather-footer-shell absolute bottom-0 left-1/2 z-[690] pointer-events-auto -translate-x-1/2 rounded-t-[18px] rounded-b-none px-2 py-1.5 md:bottom-3 md:rounded-full md:px-[10px] md:py-2"
         style={{
           border: '1px solid rgba(255,255,255,0.12)',
-          background: 'rgba(7,11,24,0.84)',
+          background: 'rgba(7,11,24,0.76)',
           backdropFilter: 'blur(10px)',
           boxShadow: '0 10px 24px rgba(0,0,0,0.28)',
           width: '100vw',
@@ -765,10 +765,19 @@ export default function HubMap() {
         </div>
         <style>{`
           @media (max-width: 767px) {
+            .hub-weather-footer-shell,
+            .hub-top-filter-shell {
+              border-radius: 0 !important;
+            }
             .hub-weather-footer-shell {
               border-left: 0 !important;
               border-right: 0 !important;
               border-bottom: 0 !important;
+            }
+            .hub-top-filter-shell {
+              border-left: 0 !important;
+              border-right: 0 !important;
+              border-top: 0 !important;
             }
             .hub-weather-footer {
               gap: 8px !important;
