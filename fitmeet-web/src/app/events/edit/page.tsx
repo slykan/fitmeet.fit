@@ -9,7 +9,7 @@ import { Calendar, MapPin, Info, Settings, Lock, Unlock, LocateFixed, Search } f
 import { Navbar } from '@/components/navbar'
 import ElevationChart from '@/components/elevation-chart'
 import api from '@/lib/api'
-import { eventLocalInputToUtcIso, eventUtcIsoToLocalInput, resolveTimeZoneFromCoords } from '@/lib/event-time'
+import { eventLocalInputToUtcIso, eventUtcIsoToLocalInput, resolveEventTimeZone, resolveTimeZoneFromCoords } from '@/lib/event-time'
 import { parseGpx, GpxResult } from '@/lib/parse-gpx'
 import { formatAddress } from '@/lib/format-address'
 import { useAuthStore } from '@/store/auth'
@@ -191,7 +191,7 @@ function EditContent() {
       const fd = new globalThis.FormData()
       const timezone = data.lat !== null && data.lng !== null
         ? await resolveTimeZoneFromCoords(data.lat, data.lng, eventTimezone)
-        : eventTimezone
+        : resolveEventTimeZone(eventTimezone)
 
       if (data.title)    fd.append('title',    data.title)
       if (data.category) fd.append('category', data.category)

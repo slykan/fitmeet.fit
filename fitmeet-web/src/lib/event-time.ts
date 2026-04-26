@@ -1,7 +1,20 @@
 export const EVENT_TIME_ZONE = 'Europe/Zagreb'
 
+function isValidTimeZone(timezone: string) {
+  try {
+    Intl.DateTimeFormat('en-GB', { timeZone: timezone }).format(new Date())
+    return true
+  } catch {
+    return false
+  }
+}
+
 export function resolveEventTimeZone(timezone?: string | null) {
-  return timezone || EVENT_TIME_ZONE
+  if (timezone && isValidTimeZone(timezone)) {
+    return timezone
+  }
+
+  return EVENT_TIME_ZONE
 }
 
 function getFormatter(

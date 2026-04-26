@@ -9,7 +9,7 @@ import { Calendar, MapPin, Info, Settings, Lock, Unlock, LocateFixed, Search } f
 import { Navbar } from '@/components/navbar'
 import ElevationChart from '@/components/elevation-chart'
 import api from '@/lib/api'
-import { eventDateToLocalInput, eventLocalInputToUtcIso, resolveTimeZoneFromCoords } from '@/lib/event-time'
+import { eventDateToLocalInput, eventLocalInputToUtcIso, resolveEventTimeZone, resolveTimeZoneFromCoords } from '@/lib/event-time'
 import { parseGpx, GpxResult } from '@/lib/parse-gpx'
 import { formatAddress } from '@/lib/format-address'
 import { useAuthStore } from '@/store/auth'
@@ -69,7 +69,7 @@ export default function CreateEventPage() {
   const [error,    setError]    = useState<string | null>(null)
   const [locating, setLocating] = useState(false)
   const [eventTimezone, setEventTimezone] = useState(
-    () => Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Zagreb',
+    () => resolveEventTimeZone(Intl.DateTimeFormat().resolvedOptions().timeZone),
   )
   const [gpxFile,   setGpxFile]   = useState<File | null>(null)
   const [gpxResult, setGpxResult] = useState<GpxResult | null>(null)
@@ -175,7 +175,7 @@ export default function CreateEventPage() {
       const fd = new globalThis.FormData()
       const timezone = data.lat !== null && data.lng !== null
         ? await resolveTimeZoneFromCoords(data.lat, data.lng, eventTimezone)
-        : eventTimezone
+        : resolveEventTimeZone(eventTimezone)
 
       fd.append('title',    data.title)
       fd.append('category', data.category)
