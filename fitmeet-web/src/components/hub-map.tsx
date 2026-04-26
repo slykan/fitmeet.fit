@@ -5,7 +5,7 @@ import { MapContainer, TileLayer, Marker, ZoomControl, useMap, useMapEvents } fr
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { useRouter } from 'next/navigation'
-import { Calendar, ArrowRight, X, Users, Zap, LocateFixed, Check, Wind, Cloud } from 'lucide-react'
+import { Calendar, ArrowRight, X, Users, Zap, LocateFixed, Check, Wind, Cloud, SunMedium } from 'lucide-react'
 import api from '@/lib/api'
 import { formatEventDateTime } from '@/lib/event-time'
 import { useAuthStore } from '@/store/auth'
@@ -606,87 +606,145 @@ export default function HubMap() {
       </div>
 
       <div
-        className="absolute bottom-4 right-3 z-[690] pointer-events-auto"
+        className="absolute bottom-3 left-1/2 z-[690] pointer-events-auto -translate-x-1/2"
         style={{
           border: '1px solid rgba(255,255,255,0.12)',
           background: 'rgba(7,11,24,0.84)',
           backdropFilter: 'blur(10px)',
-          borderRadius: 14,
-          padding: 10,
-          boxShadow: '0 10px 24px rgba(0,0,0,0.32)',
-          minWidth: 132,
+          borderRadius: 999,
+          padding: '8px 10px',
+          boxShadow: '0 10px 24px rgba(0,0,0,0.28)',
+          width: 'min(calc(100vw - 24px), 760px)',
         }}
       >
-        {hubWeather && showWindOverlay && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 10,
+          }}
+        >
           <div
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: 8,
-              marginBottom: 8,
+              gap: 10,
               color: '#d7dfef',
               fontSize: 12,
               fontWeight: 700,
+              whiteSpace: 'nowrap',
+              overflowX: 'auto',
+              scrollbarWidth: 'none',
             }}
           >
-            <span>{hubWeather.tempCurrent ?? hubWeather.tempMax}°</span>
-            <span
+            {hubWeather && (
+              <>
+                <span>{hubWeather.tempCurrent ?? hubWeather.tempMax}°</span>
+                <span
+                  style={{
+                    width: 1,
+                    height: 12,
+                    background: 'rgba(255,255,255,0.16)',
+                    display: 'inline-block',
+                    flexShrink: 0,
+                  }}
+                />
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 5,
+                    flexShrink: 0,
+                  }}
+                >
+                  <span
+                    style={{
+                      display: 'inline-block',
+                      transform: `rotate(${hubWeather.windDir + 90}deg)`,
+                      color: '#58beff',
+                      lineHeight: 1,
+                      fontSize: 14,
+                    }}
+                  >
+                    {'\u2192'}
+                  </span>
+                  <span>{hubWeather.windSpeed} km/h</span>
+                </span>
+                <span
+                  style={{
+                    width: 1,
+                    height: 12,
+                    background: 'rgba(255,255,255,0.16)',
+                    display: 'inline-block',
+                    flexShrink: 0,
+                  }}
+                />
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 5,
+                    flexShrink: 0,
+                    color: '#f4d35e',
+                  }}
+                >
+                  <SunMedium size={13} />
+                  <span>UV {hubWeather.uvIndex ?? '—'}</span>
+                </span>
+                <span
+                  style={{
+                    width: 1,
+                    height: 12,
+                    background: 'rgba(255,255,255,0.16)',
+                    display: 'inline-block',
+                    flexShrink: 0,
+                  }}
+                />
+                <span
+                  style={{
+                    color: hubHasCloudLayer ? '#d7dfef' : 'var(--text-muted)',
+                    flexShrink: 0,
+                  }}
+                >
+                  {hubHasCloudLayer ? 'Clouds active' : 'Clear sky'}
+                </span>
+              </>
+            )}
+          </div>
+
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+            <button
+              type="button"
+              onClick={() => setShowWindOverlay(v => !v)}
+              className="inline-flex items-center gap-1.5 text-[11px] px-3 py-1.5 rounded-full border font-semibold transition-colors md:text-xs"
               style={{
-                width: 1,
-                height: 12,
-                background: 'rgba(255,255,255,0.16)',
-                display: 'inline-block',
-              }}
-            />
-            <span
-              style={{
-                display: 'inline-block',
-                transform: `rotate(${hubWeather.windDir + 90}deg)`,
-                color: '#58beff',
-                lineHeight: 1,
-                fontSize: 14,
+                borderColor: showWindOverlay ? 'var(--primary)' : 'rgba(255,255,255,0.12)',
+                color: showWindOverlay ? 'var(--primary)' : 'var(--text-muted)',
+                background: showWindOverlay ? 'rgba(57,255,20,0.1)' : 'rgba(255,255,255,0.03)',
+                whiteSpace: 'nowrap',
               }}
             >
-              {'\u2192'}
-            </span>
-            <span>{hubWeather.windSpeed} km/h</span>
+              <Wind size={13} />
+              <span>Wind</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowCloudOverlay(v => !v)}
+              className="inline-flex items-center gap-1.5 text-[11px] px-3 py-1.5 rounded-full border font-semibold transition-colors md:text-xs"
+              style={{
+                borderColor: showCloudOverlay ? 'var(--primary)' : 'rgba(255,255,255,0.12)',
+                color: showCloudOverlay ? 'var(--primary)' : 'var(--text-muted)',
+                background: showCloudOverlay ? 'rgba(57,255,20,0.1)' : 'rgba(255,255,255,0.03)',
+                whiteSpace: 'nowrap',
+                opacity: hubHasCloudLayer ? 1 : 0.62,
+              }}
+              title={hubHasCloudLayer ? 'Toggle current cloud and rain overlay' : 'Current weather is clear, so cloud overlay is minimal right now'}
+            >
+              <Cloud size={13} />
+              <span>{hubHasCloudLayer ? 'Clouds' : 'Clear'}</span>
+            </button>
           </div>
-        )}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <button
-            type="button"
-            onClick={() => setShowWindOverlay(v => !v)}
-            className="inline-flex items-center justify-between gap-3 text-[11px] px-3 py-2 rounded-full border font-semibold transition-colors md:text-xs"
-            style={{
-              borderColor: showWindOverlay ? 'var(--primary)' : 'rgba(255,255,255,0.12)',
-              color: showWindOverlay ? 'var(--primary)' : 'var(--text-muted)',
-              background: showWindOverlay ? 'rgba(57,255,20,0.1)' : 'rgba(255,255,255,0.03)',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            <span className="inline-flex items-center gap-1.5">
-              <Wind size={13} /> Wind
-            </span>
-            <span>{showWindOverlay ? 'On' : 'Off'}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowCloudOverlay(v => !v)}
-            className="inline-flex items-center justify-between gap-3 text-[11px] px-3 py-2 rounded-full border font-semibold transition-colors md:text-xs"
-            style={{
-              borderColor: showCloudOverlay ? 'var(--primary)' : 'rgba(255,255,255,0.12)',
-              color: showCloudOverlay ? 'var(--primary)' : 'var(--text-muted)',
-              background: showCloudOverlay ? 'rgba(57,255,20,0.1)' : 'rgba(255,255,255,0.03)',
-              whiteSpace: 'nowrap',
-              opacity: hubHasCloudLayer ? 1 : 0.62,
-            }}
-            title={hubHasCloudLayer ? 'Toggle current cloud and rain overlay' : 'Current weather is clear, so cloud overlay is minimal right now'}
-          >
-            <span className="inline-flex items-center gap-1.5">
-              <Cloud size={13} /> Clouds
-            </span>
-            <span>{hubHasCloudLayer ? (showCloudOverlay ? 'On' : 'Off') : 'Clear'}</span>
-          </button>
         </div>
       </div>
 

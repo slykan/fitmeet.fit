@@ -5,6 +5,7 @@ export type EventWeather = {
   windSpeed: number
   windDir: number
   tempCurrent?: number
+  uvIndex?: number
 }
 
 export { eventWeatherSlot as weatherSlot } from '@/lib/event-time'
@@ -15,6 +16,7 @@ type OpenMeteoResponse = {
     weathercode: number
     windspeed_10m: number
     winddirection_10m: number
+    uv_index?: number
   }
   hourly?: {
     time: string[]
@@ -112,7 +114,7 @@ export async function fetchCurrentWeather(
     const url =
       `https://api.open-meteo.com/v1/forecast` +
       `?latitude=${lat}&longitude=${lng}` +
-      `&current=temperature_2m,weathercode,windspeed_10m,winddirection_10m` +
+      `&current=temperature_2m,weathercode,windspeed_10m,winddirection_10m,uv_index` +
       `&daily=temperature_2m_max,temperature_2m_min` +
       `&timezone=auto`
 
@@ -131,6 +133,7 @@ export async function fetchCurrentWeather(
       windSpeed: Math.round(data.current.windspeed_10m),
       windDir: Math.round(data.current.winddirection_10m),
       tempCurrent: Math.round(data.current.temperature_2m),
+      uvIndex: data.current.uv_index != null ? Math.round(data.current.uv_index * 10) / 10 : undefined,
     }
 
     cache.set(key, result)
