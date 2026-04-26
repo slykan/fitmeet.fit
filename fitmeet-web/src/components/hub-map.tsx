@@ -429,9 +429,25 @@ export default function HubMap() {
             transform: translateY(0) scale(1);
           }
         }
+
+        .fitmeet-hub-map .leaflet-bottom.leaflet-left .leaflet-control-zoom {
+          margin-bottom: 96px;
+          z-index: 650;
+        }
+
+        .fitmeet-hub-map .leaflet-control-attribution {
+          display: none;
+        }
+
+        @media (max-width: 767px) {
+          .fitmeet-hub-map .leaflet-bottom.leaflet-left .leaflet-control-zoom {
+            margin-bottom: 168px;
+          }
+        }
       `}</style>
 
       <MapContainer
+        className="fitmeet-hub-map"
         center={mapCenter}
         zoom={11}
         style={{ height: '100%', width: '100%' }}
