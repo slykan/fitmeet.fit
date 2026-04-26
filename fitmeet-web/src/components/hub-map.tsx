@@ -345,6 +345,7 @@ export default function HubMap() {
 
   const mapCenter: [number, number] = (lat && lng) ? [lat, lng] : [44.5, 16.5]
   const categoryCount = selectedCategories.size
+  const hubHasCloudLayer = Boolean(hubWeather && hubWeather.code > 0)
 
   const visibleEvents = useMemo(() => {
     const source = myOnly ? myEvents : goingOnly ? joinedEvents : events
@@ -677,12 +678,14 @@ export default function HubMap() {
               color: showCloudOverlay ? 'var(--primary)' : 'var(--text-muted)',
               background: showCloudOverlay ? 'rgba(57,255,20,0.1)' : 'rgba(255,255,255,0.03)',
               whiteSpace: 'nowrap',
+              opacity: hubHasCloudLayer ? 1 : 0.62,
             }}
+            title={hubHasCloudLayer ? 'Toggle current cloud and rain overlay' : 'Current weather is clear, so cloud overlay is minimal right now'}
           >
             <span className="inline-flex items-center gap-1.5">
               <Cloud size={13} /> Clouds
             </span>
-            <span>{showCloudOverlay ? 'On' : 'Off'}</span>
+            <span>{hubHasCloudLayer ? (showCloudOverlay ? 'On' : 'Off') : 'Clear'}</span>
           </button>
         </div>
       </div>

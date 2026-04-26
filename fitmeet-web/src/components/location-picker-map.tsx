@@ -116,7 +116,7 @@ export function WindOverlay({
     isHub ? (isMobile ? 0.3 : 0.24) : (isMobile ? 0.22 : 0.16),
     (isHub ? (isMobile ? 0.1 : 0.07) : (isMobile ? 0.07 : 0.04)) + effectiveWind / (isHub ? (isMobile ? 120 : 150) : (isMobile ? 160 : 220)),
   )
-  const cloudOpacity = isCloudy ? (isHub ? (isMobile ? 0.4 : 0.28) : (isMobile ? 0.14 : 0.1)) : 0
+  const cloudOpacity = isCloudy ? (isHub ? (isMobile ? 0.46 : 0.34) : (isMobile ? 0.18 : 0.12)) : 0
   const rainOpacity = isRainy ? (isHub ? (isMobile ? 0.38 : 0.28) : (isMobile ? 0.14 : 0.1)) : 0
 
   return (
@@ -129,7 +129,7 @@ export function WindOverlay({
           overflow: 'hidden',
           zIndex: 500,
           background: showWind
-            ? `linear-gradient(${flowAngle}deg, rgba(${isHub ? '8,42,94' : '10,52,108'},${glowOpacity}), rgba(255,255,255,0.01), rgba(${isHub ? '9,82,156' : '11,96,176'},${Math.min(glowOpacity + (isHub ? (isMobile ? 0.16 : 0.12) : (isMobile ? 0.1 : 0.06)), isHub ? (isMobile ? 0.42 : 0.32) : (isMobile ? 0.28 : 0.18))}))`
+            ? `linear-gradient(${flowAngle}deg, rgba(${isHub ? '8,42,94' : '10,52,108'},${glowOpacity * 0.72}), rgba(255,255,255,0.01), rgba(${isHub ? '9,82,156' : '11,96,176'},${Math.min((glowOpacity + (isHub ? (isMobile ? 0.16 : 0.12) : (isMobile ? 0.1 : 0.06))) * 0.72, isHub ? (isMobile ? 0.32 : 0.24) : (isMobile ? 0.22 : 0.14))}))`
             : 'transparent',
         }}
       >
@@ -189,8 +189,8 @@ export function WindOverlay({
             style={{
               position: 'absolute',
               inset: 0,
-              background: `repeating-linear-gradient(${flowAngle}deg, rgba(33,113,181,0) 0px, rgba(33,113,181,0) 10px, rgba(18,88,162,${Math.min(streamOpacity * (isHub ? (isMobile ? 0.18 : 0.14) : (isMobile ? 0.12 : 0.08)), isHub ? (isMobile ? 0.16 : 0.12) : (isMobile ? 0.08 : 0.05))}) 13px, rgba(33,113,181,0) 20px)`,
-              opacity: isHub ? (isMobile ? 0.24 : 0.18) : (isMobile ? 0.16 : 0.1),
+              background: `repeating-linear-gradient(${flowAngle}deg, rgba(33,113,181,0) 0px, rgba(33,113,181,0) 11px, rgba(18,88,162,${Math.min(streamOpacity * (isHub ? (isMobile ? 0.08 : 0.06) : (isMobile ? 0.06 : 0.04)), isHub ? (isMobile ? 0.08 : 0.06) : (isMobile ? 0.05 : 0.03))}) 13px, rgba(33,113,181,0) 20px)`,
+              opacity: isHub ? (isMobile ? 0.1 : 0.08) : (isMobile ? 0.08 : 0.05),
             }}
           />
         )}
