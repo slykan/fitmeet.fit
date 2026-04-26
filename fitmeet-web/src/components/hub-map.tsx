@@ -606,18 +606,19 @@ export default function HubMap() {
       </div>
 
       <div
-        className="absolute bottom-3 left-1/2 z-[690] pointer-events-auto -translate-x-1/2"
+        className="absolute bottom-0 left-1/2 z-[690] pointer-events-auto -translate-x-1/2 rounded-t-[18px] rounded-b-none px-2 py-1.5 md:bottom-3 md:rounded-full md:px-[10px] md:py-2"
         style={{
           border: '1px solid rgba(255,255,255,0.12)',
           background: 'rgba(7,11,24,0.84)',
           backdropFilter: 'blur(10px)',
-          borderRadius: 999,
-          padding: '8px 10px',
           boxShadow: '0 10px 24px rgba(0,0,0,0.28)',
-          width: 'min(calc(100vw - 24px), 760px)',
+          width: 'min(100vw, 760px)',
+          maxWidth: '100%',
+          paddingBottom: 'calc(6px + env(safe-area-inset-bottom, 0px))',
         }}
       >
         <div
+          className="hub-weather-footer"
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -629,7 +630,7 @@ export default function HubMap() {
             <button
               type="button"
               onClick={() => setShowWindOverlay(v => !v)}
-              className="inline-flex items-center gap-1.5 text-[11px] px-3 py-1.5 rounded-full border font-semibold transition-colors md:text-xs"
+              className="inline-flex items-center gap-1.5 text-[10px] px-2.5 py-1.5 rounded-full border font-semibold transition-colors md:text-xs md:px-3"
               style={{
                 borderColor: showWindOverlay ? 'var(--primary)' : 'rgba(255,255,255,0.12)',
                 color: showWindOverlay ? 'var(--primary)' : 'var(--text-muted)',
@@ -643,7 +644,7 @@ export default function HubMap() {
             <button
               type="button"
               onClick={() => setShowCloudOverlay(v => !v)}
-              className="inline-flex items-center gap-1.5 text-[11px] px-3 py-1.5 rounded-full border font-semibold transition-colors md:text-xs"
+              className="inline-flex items-center gap-1.5 text-[10px] px-2.5 py-1.5 rounded-full border font-semibold transition-colors md:text-xs md:px-3"
               style={{
                 borderColor: showCloudOverlay ? 'var(--primary)' : 'rgba(255,255,255,0.12)',
                 color: showCloudOverlay ? 'var(--primary)' : 'var(--text-muted)',
@@ -746,6 +747,13 @@ export default function HubMap() {
             )}
           </div>
         </div>
+        <style>{`
+          @media (max-width: 767px) {
+            .hub-weather-footer {
+              gap: 8px !important;
+            }
+          }
+        `}</style>
       </div>
 
       {/* Radar sweep */}
