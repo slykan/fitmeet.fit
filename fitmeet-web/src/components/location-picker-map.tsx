@@ -96,6 +96,9 @@ export function WindOverlay({
   if (!weather || (!showWind && !showClouds)) return null
 
   const sourceAngle = weather.windDir
+  const flowAngle = (weather.windDir + 180) % 360
+  const flowTransformAngle = flowAngle - 90
+  const badgeAngle = sourceAngle - 90
   const effectiveWind = Math.max(8, weather.windSpeed)
   const isCloudy = showClouds && weather.code > 0 && weather.code <= 48
   const isRainy = showClouds && ((weather.code >= 51 && weather.code <= 67) || (weather.code >= 80 && weather.code <= 82))
@@ -126,7 +129,7 @@ export function WindOverlay({
           overflow: 'hidden',
           zIndex: 500,
           background: showWind
-            ? `linear-gradient(${sourceAngle}deg, rgba(${isHub ? '8,42,94' : '10,52,108'},${glowOpacity}), rgba(255,255,255,0.01), rgba(${isHub ? '9,82,156' : '11,96,176'},${Math.min(glowOpacity + (isHub ? (isMobile ? 0.16 : 0.12) : (isMobile ? 0.1 : 0.06)), isHub ? (isMobile ? 0.42 : 0.32) : (isMobile ? 0.28 : 0.18))}))`
+            ? `linear-gradient(${flowAngle}deg, rgba(${isHub ? '8,42,94' : '10,52,108'},${glowOpacity}), rgba(255,255,255,0.01), rgba(${isHub ? '9,82,156' : '11,96,176'},${Math.min(glowOpacity + (isHub ? (isMobile ? 0.16 : 0.12) : (isMobile ? 0.1 : 0.06)), isHub ? (isMobile ? 0.42 : 0.32) : (isMobile ? 0.28 : 0.18))}))`
             : 'transparent',
         }}
       >
@@ -174,7 +177,7 @@ export function WindOverlay({
             style={{
               position: 'absolute',
               inset: 0,
-              background: `repeating-linear-gradient(${sourceAngle + 18}deg, rgba(84,152,214,0) 0px, rgba(84,152,214,0) 9px, rgba(84,152,214,${rainOpacity}) 11px, rgba(84,152,214,0) 15px)`,
+              background: `repeating-linear-gradient(${flowAngle + 18}deg, rgba(84,152,214,0) 0px, rgba(84,152,214,0) 9px, rgba(84,152,214,${rainOpacity}) 11px, rgba(84,152,214,0) 15px)`,
               opacity: isHub ? 0.72 : 0.38,
               animation: 'fitmeet-rain-shift 7s linear infinite',
             }}
@@ -186,7 +189,7 @@ export function WindOverlay({
             style={{
               position: 'absolute',
               inset: 0,
-              background: `repeating-linear-gradient(${sourceAngle}deg, rgba(33,113,181,0) 0px, rgba(33,113,181,0) 10px, rgba(18,88,162,${Math.min(streamOpacity * (isHub ? (isMobile ? 0.18 : 0.14) : (isMobile ? 0.12 : 0.08)), isHub ? (isMobile ? 0.16 : 0.12) : (isMobile ? 0.08 : 0.05))}) 13px, rgba(33,113,181,0) 20px)`,
+              background: `repeating-linear-gradient(${flowAngle}deg, rgba(33,113,181,0) 0px, rgba(33,113,181,0) 10px, rgba(18,88,162,${Math.min(streamOpacity * (isHub ? (isMobile ? 0.18 : 0.14) : (isMobile ? 0.12 : 0.08)), isHub ? (isMobile ? 0.16 : 0.12) : (isMobile ? 0.08 : 0.05))}) 13px, rgba(33,113,181,0) 20px)`,
               opacity: isHub ? (isMobile ? 0.24 : 0.18) : (isMobile ? 0.16 : 0.1),
             }}
           />
@@ -199,7 +202,7 @@ export function WindOverlay({
               position: 'absolute',
               left: `${stream.left}%`,
               top: `${stream.top}%`,
-              transform: `rotate(${sourceAngle}deg)`,
+              transform: `rotate(${flowTransformAngle}deg)`,
               transformOrigin: 'left center',
             }}
           >
@@ -231,7 +234,7 @@ export function WindOverlay({
               position: 'absolute',
               left: `${particle.left}%`,
               top: `${particle.top}%`,
-              transform: `rotate(${sourceAngle}deg)`,
+              transform: `rotate(${flowTransformAngle}deg)`,
             }}
           >
             <span
@@ -289,7 +292,7 @@ export function WindOverlay({
           <span
             style={{
               display: 'inline-block',
-              transform: `rotate(${sourceAngle}deg)`,
+              transform: `rotate(${badgeAngle}deg)`,
               color: '#58beff',
               lineHeight: 1,
               fontSize: 14,
