@@ -1,27 +1,39 @@
 import { Link, router } from 'expo-router'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
-import { useMemo, useState } from 'react'
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
+import { useState } from 'react'
 
 import { useAuthStore } from '@/src/store/auth'
 import { palette, spacing } from '@/src/theme'
 
-export default function LoginScreen() {
-  const login = useAuthStore((state) => state.login)
+export default function RegisterScreen() {
+  const register = useAuthStore((state) => state.register)
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirm, setConfirm] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const disabled = useMemo(() => !email.trim() || !password.trim() || submitting, [email, password, submitting])
 
-  async function handleLogin() {
+  const disabled =
+    submitting ||
+    !name.trim() ||
+    !email.trim() ||
+    password.length < 8 ||
+    password !== confirm
+
+  async function handleRegister() {
+    if (password !== confirm) {
+      setError('Passwords do not match.')
+      return
+    }
     setSubmitting(true)
     setError(null)
     try {
-      await login({ email: email.trim(), password })
+      await register({ name: name.trim(), email: email.trim(), password })
       router.replace('/(tabs)/hub')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed.')
+      setError(err instanceof Error ? err.message : 'Registration failed.')
     } finally {
       setSubmitting(false)
     }
@@ -29,35 +41,57 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
           <Text style={styles.brand}>FITMEET</Text>
-          <Text style={styles.title}>Sign in</Text>
-          <Text style={styles.subtitle}>Find your people. Move together.</Text>
+          <Text style={styles.title}>Create account</Text>
+          <Text style={styles.subtitle}>Join FitMeet today</Text>
         </View>
 
         <View style={styles.form}>
           <View style={styles.field}>
+            <Text style={styles.label}>Full name</Text>
+            <TextInput
+              style={styles.input}
+              value={name}
+              onChangeText={setName}
+              placeholder="Your name"
+              placeholderTextColor={palette.textDim}
+              autoCapitalize="words"
+            />
+          </View>
+          <View style={styles.field}>
             <Text style={styles.label}>Email</Text>
             <TextInput
               style={styles.input}
-              autoCapitalize="none"
-              keyboardType="email-address"
               value={email}
               onChangeText={setEmail}
               placeholder="name@example.com"
               placeholderTextColor={palette.textDim}
+              autoCapitalize="none"
+              keyboardType="email-address"
             />
           </View>
           <View style={styles.field}>
             <Text style={styles.label}>Password</Text>
             <TextInput
               style={styles.input}
-              secureTextEntry
               value={password}
               onChangeText={setPassword}
-              placeholder="Your password"
+              placeholder="Min 8 characters"
               placeholderTextColor={palette.textDim}
+              secureTextEntry
+            />
+          </View>
+          <View style={styles.field}>
+            <Text style={styles.label}>Confirm password</Text>
+            <TextInput
+              style={[styles.input, confirm.length > 0 && confirm !== password && styles.inputError]}
+              value={confirm}
+              onChangeText={setConfirm}
+              placeholder="Repeat password"
+              placeholderTextColor={palette.textDim}
+              secureTextEntry
             />
           </View>
         </View>
@@ -66,25 +100,25 @@ export default function LoginScreen() {
 
         <Pressable
           disabled={disabled}
-          onPress={handleLogin}
+          onPress={handleRegister}
           style={[styles.primaryButton, disabled && styles.primaryButtonDisabled]}
         >
-          <Text style={styles.primaryLabel}>{submitting ? 'Signing in…' : 'Sign in'}</Text>
+          <Text style={styles.primaryLabel}>{submitting ? 'Creating account…' : 'Create account'}</Text>
         </Pressable>
 
-        <Link href="/register" asChild>
+        <Link href="/login" asChild>
           <Pressable style={styles.secondaryButton}>
-            <Text style={styles.secondaryLabel}>Don't have an account? Register</Text>
+            <Text style={styles.secondaryLabel}>Already have an account? Sign in</Text>
           </Pressable>
         </Link>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   )
 }
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: palette.bg },
-  container: { flex: 1, padding: spacing.lg, gap: spacing.lg },
+  container: { padding: spacing.lg, gap: spacing.lg, flexGrow: 1 },
   header: { gap: 6, marginTop: spacing.xl },
   brand: {
     color: palette.accent,
@@ -95,7 +129,7 @@ const styles = StyleSheet.create({
   },
   title: { color: palette.text, fontSize: 30, lineHeight: 36, fontWeight: '800' },
   subtitle: { color: palette.textMuted, fontSize: 15 },
-  form: { gap: spacing.md, marginTop: spacing.sm },
+  form: { gap: spacing.md },
   field: { gap: 8 },
   label: { color: palette.text, fontSize: 14, fontWeight: '600' },
   input: {
@@ -108,14 +142,15 @@ const styles = StyleSheet.create({
     color: palette.text,
     fontSize: 16,
   },
+  inputError: { borderColor: '#ff6b6b' },
   errorText: { color: '#ff8b8b', fontSize: 14, lineHeight: 20 },
   primaryButton: {
-    marginTop: 'auto',
     height: 56,
     borderRadius: 18,
     backgroundColor: palette.accent,
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 'auto',
   },
   primaryButtonDisabled: { opacity: 0.45 },
   primaryLabel: { color: '#041109', fontSize: 16, fontWeight: '800' },

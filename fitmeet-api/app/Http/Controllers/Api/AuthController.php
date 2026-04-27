@@ -47,6 +47,30 @@ class AuthController extends Controller
         ], 201);
     }
 
+    // POST /api/auth/register-mobile  — native app registration (no Turnstile)
+    public function registerMobile(Request $request): JsonResponse
+    {
+        $secret = env('MOBILE_APP_SECRET', '');
+        if ($secret === '' || $request->header('X-Mobile-Secret') !== $secret) {
+            return response()->json(['message' => 'Unauthorized.'], 401);
+        }
+
+        $request->validate([
+            'name'     => ['required', 'string', 'max:100'],
+            'email'    => ['required', 'email', 'unique:users,email'],
+            'password' => ['required', 'string', 'min:8'],
+        ]);
+
+        $user  = User::create([
+            'name'     => $request->name,
+            'email'    => $request->email,
+            'password' => $request->password,
+        ]);
+        $token = $user->createToken('fitmeet-mobile')->plainTextToken;
+
+        return response()->json(['token' => $token, 'data' => new UserResource($user)], 201);
+    }
+
     private function turnstileSecret(): string
     {
         $secret = (string) (config('services.turnstile.secret') ?: env('TURNSTILE_SECRET', ''));
