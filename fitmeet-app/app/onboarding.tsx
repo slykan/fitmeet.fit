@@ -35,10 +35,14 @@ export default function OnboardingScreen() {
   const [country,    setCountry]    = useState(user?.home?.country ?? '')
   const [radius,     setRadius]     = useState<Radius>(user?.radius ?? 'nearby')
   const [categories, setCategories] = useState<string[]>(user?.categories ?? [])
-  const [skill,      setSkill]      = useState<Skill | null>(user?.skill_level ?? null)
-  const [locating,   setLocating]   = useState(false)
-  const [saving,     setSaving]     = useState(false)
-  const [error,      setError]      = useState<string | null>(null)
+  const [skill,           setSkill]           = useState<Skill | null>(user?.skill_level ?? null)
+  const [emailFriendReq,  setEmailFriendReq]  = useState(user?.email_preferences?.friend_requests ?? true)
+  const [emailNewEvents,  setEmailNewEvents]  = useState(user?.email_preferences?.new_events ?? true)
+  const [emailReminders,  setEmailReminders]  = useState(user?.email_preferences?.event_reminders ?? true)
+  const [emailFriendEvt,  setEmailFriendEvt]  = useState(user?.email_preferences?.friend_events ?? true)
+  const [locating,        setLocating]        = useState(false)
+  const [saving,          setSaving]          = useState(false)
+  const [error,           setError]           = useState<string | null>(null)
 
   const API_URL = 'https://api.fitmeet.fit/api'
 
@@ -90,6 +94,10 @@ export default function OnboardingScreen() {
       }
       if (categories.length > 0) payload.categories = categories
       if (skill)                  payload.skill_level = skill
+      payload.email_friend_requests = emailFriendReq
+      payload.email_new_events      = emailNewEvents
+      payload.email_event_reminders = emailReminders
+      payload.email_friend_events   = emailFriendEvt
 
       await fetch(`${API_URL}/me`, {
         method: 'PATCH',
@@ -230,6 +238,26 @@ export default function OnboardingScreen() {
               </Pressable>
             ))}
           </View>
+        </Section>
+
+        {/* Email preferences */}
+        <Section label="Email notifications">
+          {[
+            { label: 'Friend requests',         value: emailFriendReq,  set: setEmailFriendReq },
+            { label: 'New events near you',      value: emailNewEvents,  set: setEmailNewEvents },
+            { label: "Friends' new events",      value: emailFriendEvt,  set: setEmailFriendEvt },
+            { label: 'Event reminders',          value: emailReminders,  set: setEmailReminders },
+          ].map(row => (
+            <View key={row.label} style={styles.toggleRow}>
+              <Text style={styles.toggleLabel}>{row.label}</Text>
+              <Switch
+                value={row.value}
+                onValueChange={row.set}
+                trackColor={{ false: palette.line, true: palette.accent }}
+                thumbColor="#fff"
+              />
+            </View>
+          ))}
         </Section>
 
         {error ? <Text style={styles.errorText}>{error}</Text> : null}

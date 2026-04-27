@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useEffect, useState, useCallback } from 'react'
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { api } from '@/src/lib/api'
@@ -22,6 +22,7 @@ interface EventItem {
   status: string
   is_full: boolean
   is_joined: boolean
+  image_url: string | null
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -206,6 +207,9 @@ export default function HubScreen() {
                 past && styles.eventCardPast,
               ]}
             >
+              {ev.image_url ? (
+                <Image source={{ uri: ev.image_url }} style={styles.eventImage} resizeMode="cover" />
+              ) : null}
               <View style={styles.eventTop}>
                 <View style={[styles.eventBadge, cancelled && styles.eventBadgeCancelled]}>
                   <Text style={styles.eventEmoji}>{emoji}</Text>
@@ -352,6 +356,10 @@ const styles = StyleSheet.create({
   eventCard: {
     backgroundColor: palette.panel, borderRadius: 22,
     borderWidth: 1, borderColor: palette.line, padding: spacing.md, gap: 12,
+    overflow: 'hidden',
+  },
+  eventImage: {
+    width: '100%', height: 160, borderRadius: 14, marginBottom: 4,
   },
   eventCardCancelled: { borderColor: 'rgba(248,113,113,0.35)', opacity: 0.7 },
   eventCardPast:      { opacity: 0.6 },

@@ -13,6 +13,7 @@ export interface MobileUser {
     friend_requests: boolean
     new_events: boolean
     event_reminders: boolean
+    friend_events: boolean
   }
   location: { lat: number | null; lng: number | null }
   home: { lat: number | null; lng: number | null; city: string | null; country: string | null }

@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useCallback, useEffect, useState } from 'react'
 import {
-  ActivityIndicator, Pressable, ScrollView,
+  ActivityIndicator, Image, Pressable, ScrollView,
   StyleSheet, Text, TextInput, View,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -27,6 +27,7 @@ interface EventItem {
   is_joined: boolean
   is_organizer: boolean
   skill_level: string | null
+  image_url: string | null
 }
 
 interface UserItem {
@@ -177,6 +178,9 @@ function EventsTab() {
               (past || cancelled) && styles.eventCardMuted,
             ]}
           >
+            {ev.image_url ? (
+              <Image source={{ uri: ev.image_url }} style={styles.eventImage} resizeMode="cover" />
+            ) : null}
             {/* Top row */}
             <View style={styles.eventTop}>
               <View style={styles.eventBadge}>
@@ -453,7 +457,9 @@ const styles = StyleSheet.create({
   eventCard: {
     backgroundColor: palette.panel, borderRadius: 22,
     borderWidth: 1, borderColor: palette.line, padding: spacing.md, gap: 10,
+    overflow: 'hidden',
   },
+  eventImage: { width: '100%', height: 160, borderRadius: 14, marginBottom: 4 },
   eventCardCancelled: { borderColor: 'rgba(248,113,113,0.35)' },
   eventCardMuted:     { opacity: 0.65 },
   eventTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
