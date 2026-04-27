@@ -58,7 +58,7 @@ export const mockNotifications = [
     id: 'n2',
     icon: 'alarm-outline',
     title: 'Reminder sent',
-    body: 'Your event reminder will go out before tonight's ride.',
+    body: "Your event reminder will go out before tonight's ride.",
     time: '12 min ago',
   },
   {
@@ -75,7 +75,7 @@ export const mockChats = [
     id: 'c1',
     initials: 'MR',
     name: 'Morning Riders',
-    preview: 'Let's keep the 10:30 start and meet by the east entrance.',
+    preview: "Let's keep the 10:30 start and meet by the east entrance.",
     time: '09:12',
   },
   {

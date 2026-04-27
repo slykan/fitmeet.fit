@@ -1,186 +1,513 @@
 import { Ionicons } from '@expo/vector-icons'
-import { ScrollView, StyleSheet, Text, View } from 'react-native'
+import { useCallback, useEffect, useState } from 'react'
+import {
+  ActivityIndicator, Pressable, ScrollView,
+  StyleSheet, Text, TextInput, View,
+} from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
-import { mockEvents } from '@/src/mock-data'
+import { api } from '@/src/lib/api'
+import { CATEGORIES } from '@/src/lib/categories'
+import { WeatherBadge } from '@/src/components/WeatherBadge'
 import { palette, spacing } from '@/src/theme'
 
-const chips = ['Going', 'Friends', 'My', 'Past']
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface EventItem {
+  id: number
+  title: string
+  category: { value: string; label: string }
+  location: { lat: number | null; lng: number | null; address: string | null }
+  schedule: { start_at: string; timezone: string; duration_minutes: number | null }
+  activity: { distance_km: number | null; elevation_gain: number | null }
+  participants_count: number
+  max_participants: number | null
+  status: string
+  is_full: boolean
+  is_joined: boolean
+  is_organizer: boolean
+  skill_level: string | null
+}
+
+interface UserItem {
+  id: number
+  name: string
+  email: string
+  avatar: string | null
+  skill_level: string | null
+  categories: string[]
+  home: { city: string | null; country: string | null }
+  friendship_status: 'friends' | 'pending_sent' | 'pending_received' | null
+  events_count: number
+}
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const RADIUS_OPTIONS = [
+  { label: 'All',    km: null },
+  { label: '50 km',  km: 50 },
+  { label: '200 km', km: 200 },
+  { label: '500 km', km: 500 },
+] as const
+
+const CATEGORY_EMOJI: Record<string, string> = Object.fromEntries(
+  CATEGORIES.map(c => [c.value, c.emoji])
+)
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function formatDate(iso: string) {
+  const d = new Date(iso)
+  return {
+    date: d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }),
+    time: d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+  }
+}
+
+function isPast(iso: string) {
+  return new Date(iso).getTime() <= Date.now()
+}
+
+// ─── Events Tab ───────────────────────────────────────────────────────────────
+
+function EventsTab() {
+  const [events,     setEvents]     = useState<EventItem[]>([])
+  const [loading,    setLoading]    = useState(true)
+  const [category,   setCategory]   = useState('')
+  const [radiusKm,   setRadiusKm]   = useState<number | null>(null)
+  const [goingOnly,  setGoingOnly]  = useState(false)
+  const [myOnly,     setMyOnly]     = useState(false)
+  const [pastOnly,   setPastOnly]   = useState(false)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try {
+      let url = '/events'
+      const params: Record<string, unknown> = {}
+      if (pastOnly) params.past = 1
+      if (goingOnly) {
+        url = '/events/joined'
+      } else if (myOnly) {
+        url = '/events/my'
+      } else {
+        if (category) params.category = category
+        if (radiusKm)  params.radius_km = radiusKm
+      }
+      const { data } = await api.get(url, { params })
+      setEvents(data.data ?? [])
+    } catch {}
+    finally { setLoading(false) }
+  }, [category, radiusKm, goingOnly, myOnly, pastOnly])
+
+  useEffect(() => { load() }, [load])
+
+  return (
+    <View style={{ gap: spacing.md }}>
+      {/* Category filter */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+        <Pressable
+          style={[styles.filterChip, !category && styles.filterChipActive]}
+          onPress={() => setCategory('')}
+        >
+          <Text style={[styles.filterLabel, !category && styles.filterLabelActive]}>All</Text>
+        </Pressable>
+        {CATEGORIES.map(cat => (
+          <Pressable
+            key={cat.value}
+            style={[styles.filterChip, category === cat.value && styles.filterChipActive]}
+            onPress={() => setCategory(v => v === cat.value ? '' : cat.value)}
+          >
+            <Text style={[styles.filterLabel, category === cat.value && styles.filterLabelActive]}>
+              {cat.emoji} {cat.label}
+            </Text>
+          </Pressable>
+        ))}
+      </ScrollView>
+
+      {/* Radius */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+        {RADIUS_OPTIONS.map(r => (
+          <Pressable
+            key={String(r.km)}
+            style={[styles.filterChip, radiusKm === r.km && styles.radiusChipActive]}
+            onPress={() => setRadiusKm(r.km)}
+          >
+            <Text style={[styles.filterLabel, radiusKm === r.km && styles.radiusLabelActive]}>
+              {r.label}
+            </Text>
+          </Pressable>
+        ))}
+      </ScrollView>
+
+      {/* Toggle filters */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+        {[
+          { label: '✓ Going',  active: goingOnly, toggle: () => { setGoingOnly(v => !v); setMyOnly(false) } },
+          { label: '👥 Friends', active: false,   toggle: () => {} },
+          { label: 'My',        active: myOnly,   toggle: () => { setMyOnly(v => !v); setGoingOnly(false) } },
+          { label: 'Past',      active: pastOnly, toggle: () => setPastOnly(v => !v) },
+        ].map(f => (
+          <Pressable
+            key={f.label}
+            style={[styles.filterChip, f.active && styles.filterChipActive]}
+            onPress={f.toggle}
+          >
+            <Text style={[styles.filterLabel, f.active && styles.filterLabelActive]}>{f.label}</Text>
+          </Pressable>
+        ))}
+      </ScrollView>
+
+      {loading && <ActivityIndicator color={palette.accent} style={{ paddingVertical: spacing.xl }} />}
+      {!loading && events.length === 0 && (
+        <Text style={styles.emptyText}>No events found.</Text>
+      )}
+
+      {!loading && events.map(ev => {
+        const past      = isPast(ev.schedule.start_at)
+        const cancelled = ev.status === 'cancelled'
+        const { date, time } = formatDate(ev.schedule.start_at)
+        const emoji = CATEGORY_EMOJI[ev.category.value] ?? '📍'
+
+        return (
+          <View
+            key={ev.id}
+            style={[
+              styles.eventCard,
+              cancelled && styles.eventCardCancelled,
+              (past || cancelled) && styles.eventCardMuted,
+            ]}
+          >
+            {/* Top row */}
+            <View style={styles.eventTop}>
+              <View style={styles.eventBadge}>
+                <Text style={{ fontSize: 22 }}>{emoji}</Text>
+              </View>
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text style={styles.eventTitle} numberOfLines={1}>{ev.title}</Text>
+                <View style={styles.tagRow}>
+                  <View style={styles.catTag}>
+                    <Text style={styles.catTagText}>{ev.category.label}</Text>
+                  </View>
+                  {ev.skill_level && (
+                    <Text style={styles.skillText}>{ev.skill_level}</Text>
+                  )}
+                  {cancelled && <Text style={styles.cancelText}>Cancelled</Text>}
+                  {ev.is_full && !cancelled && <Text style={styles.fullText}>Full</Text>}
+                  {past && !cancelled && <Text style={styles.pastText}>Past</Text>}
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={palette.textDim} />
+            </View>
+
+            {/* Details */}
+            <View style={styles.details}>
+              <View style={styles.detailRow}>
+                <Ionicons name="calendar-outline" size={12} color={palette.textDim} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.detailText}>{date}</Text>
+                  <Text style={styles.detailText}>
+                    {time}{ev.schedule.duration_minutes ? ` · ${ev.schedule.duration_minutes} min` : ''}
+                  </Text>
+                </View>
+              </View>
+              {ev.location.address ? (
+                <View style={styles.detailRow}>
+                  <Ionicons name="location-outline" size={12} color={palette.textDim} />
+                  <Text style={[styles.detailText, { flex: 1 }]} numberOfLines={1}>
+                    {ev.location.address}
+                  </Text>
+                </View>
+              ) : null}
+              <View style={styles.detailRow}>
+                <Ionicons name="people-outline" size={12} color={palette.textDim} />
+                <Text style={styles.detailText}>
+                  {ev.participants_count} joined
+                  {ev.max_participants ? ` · max ${ev.max_participants}` : ''}
+                  {ev.is_joined ? ' · ✓ Going' : ''}
+                </Text>
+              </View>
+              {(ev.activity.distance_km || ev.activity.elevation_gain) ? (
+                <View style={styles.detailRow}>
+                  <Ionicons name="flash-outline" size={12} color={palette.accent} />
+                  <Text style={styles.detailText}>
+                    {[
+                      ev.activity.distance_km    && `${ev.activity.distance_km} km`,
+                      ev.activity.elevation_gain && `↑${ev.activity.elevation_gain} m`,
+                    ].filter(Boolean).join(' · ')}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+
+            {ev.location.lat != null && ev.location.lng != null && (
+              <WeatherBadge
+                lat={ev.location.lat}
+                lng={ev.location.lng}
+                isoDate={ev.schedule.start_at.slice(0, 10)}
+                hour={new Date(ev.schedule.start_at).getHours()}
+              />
+            )}
+          </View>
+        )
+      })}
+    </View>
+  )
+}
+
+// ─── People Tab ───────────────────────────────────────────────────────────────
+
+function PeopleTab() {
+  const [users,   setUsers]   = useState<UserItem[]>([])
+  const [search,  setSearch]  = useState('')
+  const [loading, setLoading] = useState(true)
+  const [acting,  setActing]  = useState<number | null>(null)
+
+  const load = useCallback((q: string) => {
+    setLoading(true)
+    const params: Record<string, string> = {}
+    if (q) params.search = q
+    api.get('/users', { params })
+      .then(({ data }) => setUsers(data.data ?? []))
+      .finally(() => setLoading(false))
+  }, [])
+
+  useEffect(() => { load('') }, [load])
+  useEffect(() => {
+    const t = setTimeout(() => load(search), 400)
+    return () => clearTimeout(t)
+  }, [search, load])
+
+  async function handleAdd(userId: number) {
+    setActing(userId)
+    try {
+      await api.post(`/friends/request/${userId}`)
+      setUsers(u => u.map(x => x.id === userId ? { ...x, friendship_status: 'pending_sent' } : x))
+    } catch {}
+    finally { setActing(null) }
+  }
+
+  async function handleCancel(userId: number) {
+    setActing(userId)
+    try {
+      await api.delete(`/friends/cancel/${userId}`)
+      setUsers(u => u.map(x => x.id === userId ? { ...x, friendship_status: null } : x))
+    } catch {}
+    finally { setActing(null) }
+  }
+
+  async function handleRemove(userId: number) {
+    setActing(userId)
+    try {
+      await api.delete(`/friends/${userId}`)
+      setUsers(u => u.map(x => x.id === userId ? { ...x, friendship_status: null } : x))
+    } catch {}
+    finally { setActing(null) }
+  }
+
+  return (
+    <View style={{ gap: spacing.md }}>
+      <View style={styles.searchBar}>
+        <Ionicons name="search-outline" size={16} color={palette.textDim} />
+        <TextInput
+          style={styles.searchInput}
+          value={search}
+          onChangeText={setSearch}
+          placeholder="Search by name…"
+          placeholderTextColor={palette.textDim}
+          autoCapitalize="none"
+        />
+      </View>
+
+      {loading && <ActivityIndicator color={palette.accent} style={{ paddingVertical: spacing.xl }} />}
+      {!loading && users.length === 0 && (
+        <Text style={styles.emptyText}>No people found.</Text>
+      )}
+
+      {!loading && users.map(u => (
+        <View key={u.id} style={styles.userCard}>
+          <View style={styles.userAvatar}>
+            <Text style={styles.userAvatarText}>{u.name.charAt(0).toUpperCase()}</Text>
+          </View>
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text style={styles.userName}>{u.name}</Text>
+            {(u.home.city || u.home.country) && (
+              <Text style={styles.userLocation}>
+                {[u.home.city, u.home.country].filter(Boolean).join(', ')}
+              </Text>
+            )}
+            {u.events_count > 0 && (
+              <Text style={styles.userEvents}>
+                <Text style={{ color: palette.accent }}>{u.events_count}</Text> events
+              </Text>
+            )}
+            {u.categories.length > 0 && (
+              <Text style={styles.userCategories} numberOfLines={1}>
+                {u.categories.slice(0, 4).map(c => CATEGORY_EMOJI[c] ?? '').join(' ')}
+              </Text>
+            )}
+          </View>
+
+          {u.friendship_status === 'friends' ? (
+            <Pressable
+              style={[styles.friendBtn, styles.friendBtnActive]}
+              disabled={acting === u.id}
+              onPress={() => handleRemove(u.id)}
+            >
+              <Text style={styles.friendBtnActiveText}>{acting === u.id ? '…' : '✓ Friends'}</Text>
+            </Pressable>
+          ) : u.friendship_status === 'pending_sent' ? (
+            <Pressable
+              style={styles.friendBtn}
+              disabled={acting === u.id}
+              onPress={() => handleCancel(u.id)}
+            >
+              <Text style={styles.friendBtnText}>{acting === u.id ? '…' : 'Sent'}</Text>
+            </Pressable>
+          ) : u.friendship_status === 'pending_received' ? (
+            <View style={styles.friendBtn}>
+              <Text style={styles.friendBtnText}>Received</Text>
+            </View>
+          ) : (
+            <Pressable
+              style={styles.friendBtn}
+              disabled={acting === u.id}
+              onPress={() => handleAdd(u.id)}
+            >
+              <Text style={styles.friendBtnText}>{acting === u.id ? '…' : '+ Add'}</Text>
+            </Pressable>
+          )}
+        </View>
+      ))}
+    </View>
+  )
+}
+
+// ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function MeetScreen() {
+  const [tab, setTab] = useState<'events' | 'people'>('events')
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+
         <View style={styles.header}>
           <Text style={styles.title}>Meet</Text>
-          <View style={styles.searchStub}>
-            <Ionicons name="search" size={16} color={palette.textDim} />
-            <Text style={styles.searchLabel}>Search events</Text>
-          </View>
         </View>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
-          {chips.map((chip, index) => (
-            <View key={chip} style={index === 0 ? styles.activeChip : styles.chip}>
-              <Text style={index === 0 ? styles.activeChipLabel : styles.chipLabel}>{chip}</Text>
-            </View>
+        {/* Tab switcher */}
+        <View style={styles.tabBar}>
+          {(['events', 'people'] as const).map(t => (
+            <Pressable
+              key={t}
+              style={[styles.tabBtn, tab === t && styles.tabBtnActive]}
+              onPress={() => setTab(t)}
+            >
+              <Text style={[styles.tabLabel, tab === t && styles.tabLabelActive]}>
+                {t === 'events' ? '📅 Events' : '👥 People'}
+              </Text>
+            </Pressable>
           ))}
-        </ScrollView>
+        </View>
 
-        {mockEvents.map((event, index) => (
-          <View key={event.id} style={[styles.card, index === 2 && styles.cardMuted]}>
-            <View style={styles.cardTop}>
-              <View style={styles.cardTitleWrap}>
-                <Text style={styles.cardTitle}>{event.title}</Text>
-                <Text style={styles.cardMeta}>
-                  {event.date} | {event.time} | {event.category}
-                </Text>
-              </View>
-              <View style={event.cancelled ? styles.cancelBadge : styles.liveBadge}>
-                <Text style={event.cancelled ? styles.cancelBadgeText : styles.liveBadgeText}>
-                  {event.cancelled ? 'Cancelled' : 'Live'}
-                </Text>
-              </View>
-            </View>
-            <View style={styles.cardFooter}>
-              <View style={styles.metaItem}>
-                <Ionicons name="location-outline" size={15} color={palette.textDim} />
-                <Text style={styles.metaText}>{event.location}</Text>
-              </View>
-              <View style={styles.metaItem}>
-                <Ionicons name="people-outline" size={15} color={palette.textDim} />
-                <Text style={styles.metaText}>{event.attendees} going</Text>
-              </View>
-            </View>
-          </View>
-        ))}
+        {tab === 'events' ? <EventsTab /> : <PeopleTab />}
+
       </ScrollView>
     </SafeAreaView>
   )
 }
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: palette.bg,
+  safeArea: { flex: 1, backgroundColor: palette.bg },
+  content:  { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xl * 2 },
+
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  title:  { color: palette.text, fontSize: 30, fontWeight: '800' },
+
+  tabBar: {
+    flexDirection: 'row', gap: 4, padding: 4,
+    backgroundColor: palette.panel, borderRadius: 16,
+    borderWidth: 1, borderColor: palette.line,
   },
-  content: {
-    padding: spacing.lg,
-    gap: spacing.md,
+  tabBtn:       { flex: 1, paddingVertical: 10, borderRadius: 12, alignItems: 'center' },
+  tabBtnActive: { backgroundColor: palette.accent },
+  tabLabel:     { color: palette.textMuted, fontSize: 14, fontWeight: '700' },
+  tabLabelActive: { color: '#031109' },
+
+  filterRow: { gap: 8 },
+  filterChip: {
+    borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7,
+    backgroundColor: palette.panel, borderWidth: 1, borderColor: palette.line,
   },
-  header: {
-    gap: spacing.md,
+  filterChipActive: { backgroundColor: palette.accent, borderColor: palette.accent },
+  radiusChipActive: { borderColor: 'rgba(0,168,255,0.6)', backgroundColor: 'rgba(0,168,255,0.08)' },
+  filterLabel: { color: palette.text, fontSize: 12, fontWeight: '700' },
+  filterLabelActive: { color: '#031109' },
+  radiusLabelActive: { color: '#58beff' },
+
+  emptyText: { color: palette.textMuted, fontSize: 14, textAlign: 'center', paddingVertical: spacing.xl },
+
+  // Event card
+  eventCard: {
+    backgroundColor: palette.panel, borderRadius: 22,
+    borderWidth: 1, borderColor: palette.line, padding: spacing.md, gap: 10,
   },
-  title: {
-    color: palette.text,
-    fontSize: 30,
-    fontWeight: '800',
+  eventCardCancelled: { borderColor: 'rgba(248,113,113,0.35)' },
+  eventCardMuted:     { opacity: 0.65 },
+  eventTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  eventBadge: {
+    width: 46, height: 46, borderRadius: 14,
+    backgroundColor: palette.panelRaised, alignItems: 'center', justifyContent: 'center',
   },
-  searchStub: {
-    height: 48,
-    borderRadius: 16,
-    backgroundColor: palette.panel,
-    borderWidth: 1,
-    borderColor: palette.line,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: spacing.md,
+  eventTitle: { color: palette.text, fontSize: 15, fontWeight: '800' },
+  tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 5, alignItems: 'center' },
+  catTag: {
+    backgroundColor: 'rgba(108,255,47,0.1)', borderRadius: 999,
+    paddingHorizontal: 8, paddingVertical: 2,
+    borderWidth: 1, borderColor: 'rgba(108,255,47,0.3)',
   },
-  searchLabel: {
-    color: palette.textDim,
-    fontSize: 14,
+  catTagText:  { color: palette.accent, fontSize: 11, fontWeight: '700' },
+  skillText:   { color: palette.textDim, fontSize: 11 },
+  cancelText:  { color: '#f87171', fontSize: 11, fontWeight: '700' },
+  fullText:    { color: '#f87171', fontSize: 11, fontWeight: '700' },
+  pastText:    { color: '#58beff', fontSize: 11, fontWeight: '700' },
+
+  details: { gap: 5 },
+  detailRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6 },
+  detailText: { color: palette.textDim, fontSize: 12 },
+
+  // Search
+  searchBar: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: palette.panel, borderRadius: 16,
+    borderWidth: 1, borderColor: palette.line,
+    paddingHorizontal: spacing.md, height: 48,
   },
-  chipRow: {
-    gap: 10,
-    paddingVertical: 2,
+  searchInput: { flex: 1, color: palette.text, fontSize: 15 },
+
+  // User card
+  userCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: palette.panel, borderRadius: 20,
+    borderWidth: 1, borderColor: palette.line, padding: spacing.md,
   },
-  chip: {
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    backgroundColor: palette.panel,
-    borderWidth: 1,
-    borderColor: palette.line,
+  userAvatar: {
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: palette.accent, alignItems: 'center', justifyContent: 'center',
   },
-  activeChip: {
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    backgroundColor: palette.accent,
+  userAvatarText: { color: '#031109', fontSize: 18, fontWeight: '800' },
+  userName:       { color: palette.text, fontSize: 15, fontWeight: '700' },
+  userLocation:   { color: palette.textMuted, fontSize: 12 },
+  userEvents:     { color: palette.textMuted, fontSize: 12 },
+  userCategories: { fontSize: 14, marginTop: 2 },
+
+  friendBtn: {
+    borderRadius: 12, paddingHorizontal: 12, paddingVertical: 7,
+    borderWidth: 1, borderColor: palette.line, backgroundColor: palette.panelRaised,
   },
-  chipLabel: {
-    color: palette.text,
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  activeChipLabel: {
-    color: '#041109',
-    fontSize: 13,
-    fontWeight: '800',
-  },
-  card: {
-    backgroundColor: palette.panel,
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: palette.line,
-    padding: spacing.md,
-    gap: spacing.md,
-  },
-  cardMuted: {
-    opacity: 0.8,
-  },
-  cardTop: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.md,
-  },
-  cardTitleWrap: {
-    flex: 1,
-    gap: 6,
-  },
-  cardTitle: {
-    color: palette.text,
-    fontSize: 17,
-    fontWeight: '800',
-  },
-  cardMeta: {
-    color: palette.textMuted,
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  liveBadge: {
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    backgroundColor: 'rgba(94, 255, 73, 0.14)',
-  },
-  liveBadgeText: {
-    color: palette.accent,
-    fontWeight: '800',
-    fontSize: 12,
-  },
-  cancelBadge: {
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    backgroundColor: 'rgba(255, 107, 107, 0.15)',
-  },
-  cancelBadgeText: {
-    color: '#ff8b8b',
-    fontWeight: '800',
-    fontSize: 12,
-  },
-  cardFooter: {
-    gap: 8,
-  },
-  metaItem: {
-    flexDirection: 'row',
-    gap: 8,
-    alignItems: 'center',
-  },
-  metaText: {
-    color: palette.textMuted,
-    fontSize: 14,
-  },
+  friendBtnActive:     { borderColor: palette.accent, backgroundColor: 'rgba(108,255,47,0.1)' },
+  friendBtnText:       { color: palette.textMuted, fontSize: 12, fontWeight: '700' },
+  friendBtnActiveText: { color: palette.accent, fontSize: 12, fontWeight: '700' },
 })
