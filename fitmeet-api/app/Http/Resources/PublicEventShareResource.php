@@ -13,6 +13,7 @@ class PublicEventShareResource extends JsonResource
             'id'          => $this->id,
             'title'       => $this->title,
             'description' => $this->description,
+            'image_url'   => $this->image_path ? url('/storage/' . $this->image_path) : null,
             'category'    => $this->category ? [
                 'value' => $this->category->value,
                 'label' => $this->category->label(),

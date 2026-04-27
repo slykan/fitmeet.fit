@@ -31,6 +31,7 @@ class Event extends Model
         'max_grade',
         'max_downgrade',
         'gpx_path',
+        'image_path',
         'skill_level',
         'max_participants',
         'is_private',

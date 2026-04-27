@@ -73,6 +73,8 @@ export default function CreateEventPage() {
   )
   const [gpxFile,   setGpxFile]   = useState<File | null>(null)
   const [gpxResult, setGpxResult] = useState<GpxResult | null>(null)
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
 
   const {
     register,
@@ -168,6 +170,21 @@ export default function CreateEventPage() {
     if (result.maxDowngrade < 0)     setValue('max_downgrade',  String(result.maxDowngrade))
   }
 
+  function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null
+    setImageFile(file)
+    if (imagePreview) {
+      URL.revokeObjectURL(imagePreview)
+    }
+    setImagePreview(file ? URL.createObjectURL(file) : null)
+  }
+
+  useEffect(() => {
+    return () => {
+      if (imagePreview) URL.revokeObjectURL(imagePreview)
+    }
+  }, [imagePreview])
+
   async function onSubmit(data: FormData) {
     setSaving(true)
     setError(null)
@@ -195,6 +212,7 @@ export default function CreateEventPage() {
       if (data.max_downgrade)  fd.append('max_downgrade',  data.max_downgrade)
       if (data.pace)           fd.append('pace',           data.pace)
       if (gpxFile)             fd.append('gpx_file',       gpxFile)
+      if (imageFile)           fd.append('image_file',     imageFile)
 
       const { data: res } = await api.post('/events', fd)
       router.replace(`/events/view?id=${res.data.id}`)
@@ -256,6 +274,52 @@ export default function CreateEventPage() {
                   rows={3}
                   className={cn(inputCls(false), 'resize-none')}
                 />
+              </Field>
+
+              <Field label="Event image" className="mt-4">
+                <div className="space-y-3">
+                  <label
+                    className="flex items-center justify-between gap-3 px-3 py-3 rounded-xl border cursor-pointer transition-all"
+                    style={imageFile || imagePreview
+                      ? { borderColor: 'var(--primary)', background: 'rgba(57,255,20,0.06)', color: 'var(--primary)' }
+                      : { borderColor: 'var(--border)', color: 'var(--text-muted)' }
+                    }
+                  >
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleImageChange}
+                    />
+                    <span className="text-sm">
+                      {imageFile ? `Image selected: ${imageFile.name}` : 'Add event image (optional)'}
+                    </span>
+                    <span className="text-xs font-semibold">Upload</span>
+                  </label>
+
+                  {imagePreview ? (
+                    <div className="overflow-hidden rounded-xl border" style={{ borderColor: 'var(--border)' }}>
+                      <img
+                        src={imagePreview}
+                        alt="Event preview"
+                        className="block w-full object-cover"
+                        style={{ aspectRatio: '16 / 9' }}
+                      />
+                    </div>
+                  ) : (
+                    <div
+                      className="flex items-center justify-center rounded-xl border text-sm"
+                      style={{
+                        borderColor: 'var(--border)',
+                        color: 'var(--text-muted)',
+                        aspectRatio: '16 / 9',
+                        background: 'rgba(255,255,255,0.02)',
+                      }}
+                    >
+                      No image
+                    </div>
+                  )}
+                </div>
               </Field>
             </Section>
 

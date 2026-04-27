@@ -30,6 +30,7 @@ interface Event {
   id: number
   title: string
   description: string | null
+  image_url: string | null
   category: { value: string; label: string }
   location: { lat: number; lng: number; address: string | null }
   schedule: { start_at: string; timezone: string; duration_minutes: number | null }
@@ -65,6 +66,7 @@ function EventContent() {
   const [copied, setCopied] = useState(false)
   const [cancelling, setCancelling] = useState(false)
   const [weather, setWeather] = useState<EventWeather | null>(null)
+  const [showImageModal, setShowImageModal] = useState(false)
 
   useEffect(() => {
     if (!token) { router.replace('/login'); return }
@@ -236,6 +238,22 @@ function EventContent() {
             </div>
 
             <h1 className="text-2xl font-bold leading-snug mb-4">{event.title}</h1>
+
+            {event.image_url && (
+              <button
+                type="button"
+                onClick={() => setShowImageModal(true)}
+                className="mb-5 block w-full overflow-hidden rounded-2xl border text-left transition-opacity hover:opacity-95"
+                style={{ borderColor: 'var(--border)' }}
+              >
+                <img
+                  src={event.image_url}
+                  alt={event.title}
+                  className="block w-full object-cover"
+                  style={{ aspectRatio: '16 / 9' }}
+                />
+              </button>
+            )}
 
             {event.description && (
               <p className="text-sm leading-relaxed mb-5" style={{ color: 'var(--text-muted)' }}>{event.description}</p>
@@ -411,6 +429,29 @@ function EventContent() {
       )}
     </div>
     </main>
+
+    {showImageModal && event?.image_url && (
+      <div
+        className="fixed inset-0 z-[1900] flex items-center justify-center p-4"
+        style={{ background: 'rgba(5,8,22,0.88)' }}
+        onClick={() => setShowImageModal(false)}
+      >
+        <button
+          type="button"
+          onClick={() => setShowImageModal(false)}
+          className="absolute right-4 top-4 inline-flex h-10 w-10 items-center justify-center rounded-full border"
+          style={{ borderColor: 'rgba(255,255,255,0.18)', color: '#fff', background: 'rgba(255,255,255,0.06)' }}
+        >
+          <X size={18} />
+        </button>
+        <img
+          src={event.image_url}
+          alt={event.title}
+          className="max-h-[90vh] max-w-[92vw] rounded-2xl object-contain"
+          onClick={(e) => e.stopPropagation()}
+        />
+      </div>
+    )}
 
     {/* Reminder modal */}
     {showReminderModal && event && (

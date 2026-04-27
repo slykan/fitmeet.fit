@@ -15,6 +15,7 @@ use App\Models\EventReminder;
 use App\Models\FriendRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class EventController extends Controller
 {
@@ -103,7 +104,11 @@ class EventController extends Controller
             $data['gpx_path'] = $request->file('gpx_file')->store('gpx', 'public');
         }
 
-        unset($data['gpx_file']);
+        if ($request->hasFile('image_file')) {
+            $data['image_path'] = $request->file('image_file')->store('event-images', 'public');
+        }
+
+        unset($data['gpx_file'], $data['image_file']);
 
         $event = $request->user()->events()->create($data);
         $event->load('organizer');
@@ -166,7 +171,9 @@ class EventController extends Controller
         $description = mb_substr(implode(' Â· ', array_filter($parts)), 0, 300);
 
         $image = $siteUrl . '/logo_full.png';
-        if ($event->lat && $event->lng) {
+        if ($event->image_path) {
+            $image = url('/storage/' . $event->image_path);
+        } elseif ($event->lat && $event->lng) {
             $z = 14;
             $x = (int) floor(($event->lng + 180) / 360 * (1 << $z));
             $y = (int) floor((1 - log(tan(deg2rad($event->lat)) + 1 / cos(deg2rad($event->lat))) / M_PI) / 2 * (1 << $z));
@@ -217,7 +224,14 @@ HTML;
             $data['gpx_path'] = $request->file('gpx_file')->store('gpx', 'public');
         }
 
-        unset($data['gpx_file']);
+        if ($request->hasFile('image_file')) {
+            if ($event->image_path) {
+                Storage::disk('public')->delete($event->image_path);
+            }
+            $data['image_path'] = $request->file('image_file')->store('event-images', 'public');
+        }
+
+        unset($data['gpx_file'], $data['image_file']);
 
         $event->update($data);
         $event->load('organizer');
