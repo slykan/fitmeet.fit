@@ -11,7 +11,7 @@ import { formatEventDateTime } from '@/lib/event-time'
 import { useAuthStore } from '@/store/auth'
 import { CATEGORIES, CATEGORY_EMOJI } from '@/lib/categories'
 import { WeatherBadge } from '@/components/WeatherBadge'
-import { fetchCurrentWeather, type EventWeather } from '@/lib/weather'
+import { fetchCurrentWeather, weatherConditionLabel, type EventWeather } from '@/lib/weather'
 import { WindOverlay } from '@/components/location-picker-map'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -757,7 +757,7 @@ export default function HubMap() {
                     flexShrink: 0,
                   }}
                 >
-                  {hubHasCloudLayer ? 'Clouds active' : 'Clear sky'}
+                  {hubWeather ? weatherConditionLabel(hubWeather.code, hubWeather.precipitation) : 'Clear sky'}
                 </span>
               </>
             )}

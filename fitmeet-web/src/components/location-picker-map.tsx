@@ -5,7 +5,7 @@ import { MapContainer, TileLayer, Marker, Polyline, useMapEvents, useMap } from 
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import type { TrackSegment } from '@/lib/parse-gpx'
-import type { EventWeather } from '@/lib/weather'
+import { weatherCloudStrength, weatherRainStrength, type EventWeather } from '@/lib/weather'
 
 // Fix Leaflet default marker icons (broken in bundlers)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -116,8 +116,14 @@ export function WindOverlay({
     isHub ? (isMobile ? 0.3 : 0.24) : (isMobile ? 0.22 : 0.16),
     (isHub ? (isMobile ? 0.1 : 0.07) : (isMobile ? 0.07 : 0.04)) + effectiveWind / (isHub ? (isMobile ? 120 : 150) : (isMobile ? 160 : 220)),
   )
-  const cloudOpacity = isCloudy ? (isHub ? (isMobile ? 0.46 : 0.34) : (isMobile ? 0.18 : 0.12)) : 0
-  const rainOpacity = isRainy ? (isHub ? (isMobile ? 0.38 : 0.28) : (isMobile ? 0.14 : 0.1)) : 0
+  const cloudStrength = weatherCloudStrength(weather.code)
+  const rainStrength = weatherRainStrength(weather.code, weather.precipitation)
+  const cloudOpacity = isCloudy
+    ? (isHub ? (isMobile ? 0.88 : 0.74) : (isMobile ? 0.26 : 0.18)) * cloudStrength
+    : 0
+  const rainOpacity = isRainy
+    ? (isHub ? (isMobile ? 0.82 : 0.66) : (isMobile ? 0.26 : 0.18)) * rainStrength
+    : 0
 
   return (
     <>
@@ -142,7 +148,7 @@ export function WindOverlay({
               inset: 0,
               width: '100%',
               height: '100%',
-              opacity: isHub ? 0.92 : 0.78,
+              opacity: isHub ? 0.98 : 0.78,
               mixBlendMode: 'multiply',
             }}
           >
@@ -154,20 +160,20 @@ export function WindOverlay({
             <g filter="url(#fitmeet-cloud-blur)">
               <path
                 d="M22 148 C92 92, 198 86, 304 122 C408 156, 476 144, 560 116 C686 74, 808 88, 930 156 L930 344 C836 316, 738 306, 630 328 C488 356, 360 348, 240 314 C148 288, 78 286, 22 300 Z"
-                fill={`rgba(46,60,84,${cloudOpacity * 0.78})`}
+                fill={`rgba(28,36,56,${cloudOpacity * 0.96})`}
               />
               <path
                 d="M96 446 C194 396, 302 392, 404 428 C490 458, 576 466, 662 444 C772 416, 866 422, 968 470 L968 654 C862 626, 754 620, 632 644 C508 668, 392 666, 278 636 C188 612, 112 612, 34 632 L34 496 C56 482, 74 462, 96 446 Z"
-                fill={`rgba(34,48,70,${cloudOpacity * 0.72})`}
+                fill={`rgba(20,28,46,${cloudOpacity * 0.92})`}
               />
               <path
                 d="M146 702 C246 668, 344 670, 450 698 C552 724, 646 726, 742 700 C826 678, 906 680, 980 710 L980 864 C900 850, 822 848, 730 860 C618 876, 504 878, 394 860 C294 844, 198 838, 98 850 L98 728 C114 720, 128 708, 146 702 Z"
-                fill={`rgba(42,56,78,${cloudOpacity * 0.68})`}
+                fill={`rgba(24,32,50,${cloudOpacity * 0.9})`}
               />
-              <ellipse cx="232" cy="248" rx="120" ry="54" fill={`rgba(132,148,172,${cloudOpacity * 0.18})`} />
-              <ellipse cx="712" cy="214" rx="146" ry="62" fill={`rgba(138,154,178,${cloudOpacity * 0.16})`} />
-              <ellipse cx="554" cy="560" rx="162" ry="70" fill={`rgba(128,144,170,${cloudOpacity * 0.14})`} />
-              <ellipse cx="302" cy="780" rx="152" ry="62" fill={`rgba(126,142,168,${cloudOpacity * 0.12})`} />
+              <ellipse cx="232" cy="248" rx="120" ry="54" fill={`rgba(118,134,160,${cloudOpacity * 0.18})`} />
+              <ellipse cx="712" cy="214" rx="146" ry="62" fill={`rgba(124,140,166,${cloudOpacity * 0.16})`} />
+              <ellipse cx="554" cy="560" rx="162" ry="70" fill={`rgba(116,132,158,${cloudOpacity * 0.14})`} />
+              <ellipse cx="302" cy="780" rx="152" ry="62" fill={`rgba(112,128,154,${cloudOpacity * 0.12})`} />
             </g>
           </svg>
         )}
@@ -177,8 +183,8 @@ export function WindOverlay({
             style={{
               position: 'absolute',
               inset: 0,
-              background: `repeating-linear-gradient(${flowAngle + 18}deg, rgba(84,152,214,0) 0px, rgba(84,152,214,0) 9px, rgba(84,152,214,${rainOpacity}) 11px, rgba(84,152,214,0) 15px)`,
-              opacity: isHub ? 0.72 : 0.38,
+              background: `repeating-linear-gradient(${flowAngle + 18}deg, rgba(84,152,214,0) 0px, rgba(84,152,214,0) 8px, rgba(84,152,214,${Math.min(rainOpacity * 0.96, 0.96)}) 10px, rgba(84,152,214,0) 14px)`,
+              opacity: isHub ? 0.92 : 0.42,
               animation: 'fitmeet-rain-shift 7s linear infinite',
             }}
           />

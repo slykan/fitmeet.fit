@@ -6,6 +6,7 @@ export type EventWeather = {
   windDir: number
   tempCurrent?: number
   uvIndex?: number
+  precipitation?: number
 }
 
 export { eventWeatherSlot as weatherSlot } from '@/lib/event-time'
@@ -17,6 +18,7 @@ type OpenMeteoResponse = {
     windspeed_10m: number
     winddirection_10m: number
     uv_index?: number
+    precipitation?: number
   }
   hourly?: {
     time: string[]
@@ -114,7 +116,7 @@ export async function fetchCurrentWeather(
     const url =
       `https://api.open-meteo.com/v1/forecast` +
       `?latitude=${lat}&longitude=${lng}` +
-      `&current=temperature_2m,weathercode,windspeed_10m,winddirection_10m,uv_index` +
+      `&current=temperature_2m,weathercode,windspeed_10m,winddirection_10m,uv_index,precipitation` +
       `&daily=temperature_2m_max,temperature_2m_min` +
       `&timezone=auto`
 
@@ -134,6 +136,7 @@ export async function fetchCurrentWeather(
       windDir: Math.round(data.current.winddirection_10m),
       tempCurrent: Math.round(data.current.temperature_2m),
       uvIndex: data.current.uv_index != null ? Math.round(data.current.uv_index * 10) / 10 : undefined,
+      precipitation: data.current.precipitation != null ? Math.round(data.current.precipitation * 10) / 10 : undefined,
     }
 
     cache.set(key, result)
@@ -152,4 +155,43 @@ export function weatherIcon(code: number): string {
   if (code <= 77) return 'cloud-snow'
   if (code <= 82) return 'cloud-rain'
   return 'cloud-lightning'
+}
+
+export function weatherCloudStrength(code: number): number {
+  if (code === 0) return 0
+  if (code === 1) return 0.32
+  if (code === 2) return 0.6
+  if (code === 3) return 1
+  if (code <= 48) return 0.92
+  if (code <= 67) return 0.96
+  if (code <= 77) return 0.98
+  if (code <= 82) return 1
+  return 1
+}
+
+export function weatherRainStrength(code: number, precipitation?: number): number {
+  const amountBoost = precipitation ? Math.min(1, precipitation / 2.5) * 0.18 : 0
+  if (code >= 51 && code <= 55) return Math.min(1, 0.34 + ((code - 51) / 4) * 0.3 + amountBoost)
+  if (code >= 56 && code <= 57) return Math.min(1, 0.58 + amountBoost)
+  if (code >= 61 && code <= 65) return Math.min(1, 0.42 + ((code - 61) / 4) * 0.4 + amountBoost)
+  if (code >= 66 && code <= 67) return Math.min(1, 0.72 + amountBoost)
+  if (code >= 80 && code <= 82) return Math.min(1, 0.56 + ((code - 80) / 2) * 0.34 + amountBoost)
+  if (code >= 95) return Math.min(1, 0.82 + amountBoost)
+  return 0
+}
+
+export function weatherConditionLabel(code: number, precipitation?: number): string {
+  if (code === 0) return 'Clear sky'
+  if (code === 1) return 'Mostly clear'
+  if (code === 2) return 'Partly cloudy'
+  if (code === 3) return 'Overcast'
+  if (code === 45 || code === 48) return 'Fog'
+  if (code >= 51 && code <= 55) return 'Drizzle'
+  if (code >= 56 && code <= 57) return 'Freezing drizzle'
+  if (code >= 61 && code <= 65) return precipitation && precipitation >= 1 ? 'Heavy rain' : 'Rain'
+  if (code >= 66 && code <= 67) return 'Freezing rain'
+  if (code >= 71 && code <= 77) return 'Snow'
+  if (code >= 80 && code <= 82) return code === 82 ? 'Heavy showers' : 'Showers'
+  if (code >= 95) return 'Thunderstorm'
+  return 'Clouds active'
 }
