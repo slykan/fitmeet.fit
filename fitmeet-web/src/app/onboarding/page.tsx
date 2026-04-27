@@ -47,6 +47,7 @@ interface FormData {
   email_friend_requests: boolean
   email_new_events: boolean
   email_event_reminders: boolean
+  email_friend_events: boolean
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -82,6 +83,7 @@ export default function OnboardingPage() {
       email_friend_requests: user?.email_preferences?.friend_requests ?? true,
       email_new_events:      user?.email_preferences?.new_events ?? true,
       email_event_reminders: user?.email_preferences?.event_reminders ?? true,
+      email_friend_events:   user?.email_preferences?.friend_events ?? true,
     },
   })
 
@@ -96,9 +98,10 @@ export default function OnboardingPage() {
   const watchedCategories = watch('categories')
   const watchedSkill      = watch('skill_level')
   const watchedHidePhone  = watch('hide_phone')
-  const watchedFriendEmails   = watch('email_friend_requests')
-  const watchedNewEventEmails = watch('email_new_events')
-  const watchedReminderEmails = watch('email_event_reminders')
+  const watchedFriendEmails       = watch('email_friend_requests')
+  const watchedNewEventEmails     = watch('email_new_events')
+  const watchedReminderEmails     = watch('email_event_reminders')
+  const watchedFriendEventEmails  = watch('email_friend_events')
 
   function toggleCategory(value: string) {
     const current = watchedCategories
@@ -173,6 +176,7 @@ export default function OnboardingPage() {
       payload.email_friend_requests = data.email_friend_requests
       payload.email_new_events = data.email_new_events
       payload.email_event_reminders = data.email_event_reminders
+      payload.email_friend_events = data.email_friend_events
 
       const { data: res } = await api.patch('/me', payload)
       setUser(res.data)
@@ -449,6 +453,13 @@ export default function OnboardingPage() {
                 description="Friend requests and accepted requests."
                 checked={watchedFriendEmails}
                 onToggle={() => setValue('email_friend_requests', !watchedFriendEmails)}
+              />
+              <ToggleRow
+                icon={<UserPlus size={15} />}
+                title="Friends' events"
+                description="New events created by your friends, regardless of category or distance."
+                checked={watchedFriendEventEmails}
+                onToggle={() => setValue('email_friend_events', !watchedFriendEventEmails)}
               />
               <ToggleRow
                 icon={<Calendar size={15} />}
