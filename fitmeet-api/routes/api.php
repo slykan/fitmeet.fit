@@ -23,8 +23,9 @@ Route::get('events/og',            [EventController::class, 'ogPage']);
 
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
-    Route::get('me', [AuthController::class, 'me']);
-    Route::patch('me', [UserController::class, 'update']);
+    Route::get('me',          [AuthController::class, 'me']);
+    Route::patch('me',        [UserController::class, 'update']);
+    Route::post('me/avatar',  [UserController::class, 'updateAvatar']);
     Route::get('users', [UserController::class, 'index']);
 
     // Friends & notifications

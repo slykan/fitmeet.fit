@@ -105,6 +105,29 @@ class UserController extends Controller
         ]);
     }
 
+    // POST /api/me/avatar — dedicated avatar upload (avoids _method spoofing issues)
+    public function updateAvatar(Request $request): JsonResponse
+    {
+        $request->validate([
+            'avatar_file'   => ['sometimes', 'nullable', 'image', 'max:5120'],
+            'avatar_remove' => ['sometimes', 'boolean'],
+        ]);
+
+        $user = $request->user();
+
+        if ($request->boolean('avatar_remove')) {
+            $this->deleteStoredAvatar($user->avatar);
+            $user->update(['avatar' => null]);
+        } elseif ($request->hasFile('avatar_file')) {
+            $this->deleteStoredAvatar($user->avatar);
+            $path = $request->file('avatar_file')->store('avatars', 'public');
+            $user->update(['avatar' => Storage::disk('public')->url($path)]);
+        }
+
+        $user->refresh();
+        return response()->json(['data' => new UserResource($user)]);
+    }
+
     private function deleteStoredAvatar(?string $avatarUrl): void
     {
         if (! $avatarUrl) {

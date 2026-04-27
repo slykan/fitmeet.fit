@@ -59,13 +59,12 @@ export default function ProfilePage() {
 
   async function uploadAvatar(file: File) {
     const formData = new FormData()
-    formData.append('_method', 'PATCH')
     formData.append('avatar_file', file)
 
     setAvatarLoading(true)
     setAvatarError(null)
     try {
-      const { data: res } = await api.post('/me', formData)
+      const { data: res } = await api.post('/me/avatar', formData)
       setUser(res.data)
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } }
@@ -86,7 +85,7 @@ export default function ProfilePage() {
     setAvatarLoading(true)
     setAvatarError(null)
     try {
-      const { data: res } = await api.patch('/me', { avatar_remove: true })
+      const { data: res } = await api.post('/me/avatar', { avatar_remove: true })
       setUser(res.data)
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } }
