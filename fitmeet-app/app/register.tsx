@@ -31,7 +31,7 @@ export default function RegisterScreen() {
     setError(null)
     try {
       await register({ name: name.trim(), email: email.trim(), password })
-      router.replace('/(tabs)/hub')
+      router.replace('/onboarding')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed.')
     } finally {
