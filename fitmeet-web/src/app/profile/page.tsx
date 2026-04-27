@@ -17,7 +17,7 @@ const RADIUS_LABELS: Record<string, string> = {
   unlimited: 'Unlimited',
 }
 
-type EmailPreferenceField = 'email_friend_requests' | 'email_new_events' | 'email_event_reminders'
+type EmailPreferenceField = 'email_friend_requests' | 'email_new_events' | 'email_event_reminders' | 'email_friend_events'
 
 export default function ProfilePage() {
   const { token, user, setUser } = useAuthStore()
@@ -52,9 +52,10 @@ export default function ProfilePage() {
     }
   }
 
-  const friendEmails = user.email_preferences?.friend_requests ?? true
-  const newEventEmails = user.email_preferences?.new_events ?? true
-  const reminderEmails = user.email_preferences?.event_reminders ?? true
+  const friendEmails      = user.email_preferences?.friend_requests ?? true
+  const newEventEmails    = user.email_preferences?.new_events ?? true
+  const reminderEmails    = user.email_preferences?.event_reminders ?? true
+  const friendEventEmails = (user.email_preferences as { friend_events?: boolean })?.friend_events ?? true
 
   async function uploadAvatar(file: File) {
     const formData = new FormData()
@@ -64,9 +65,7 @@ export default function ProfilePage() {
     setAvatarLoading(true)
     setAvatarError(null)
     try {
-      const { data: res } = await api.post('/me', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      })
+      const { data: res } = await api.post('/me', formData)
       setUser(res.data)
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } }
@@ -213,6 +212,14 @@ export default function ProfilePage() {
               enabled={reminderEmails}
               disabled={savingPreference !== null}
               onToggle={() => toggleEmailPreference('email_event_reminders', reminderEmails)}
+            />
+            <PreferenceRow
+              icon={<UserPlus size={14} />}
+              label="Friends' new events"
+              description="When a friend creates a new event."
+              enabled={friendEventEmails}
+              disabled={savingPreference !== null}
+              onToggle={() => toggleEmailPreference('email_friend_events' as EmailPreferenceField, friendEventEmails)}
             />
           </div>
           {preferenceError && (
