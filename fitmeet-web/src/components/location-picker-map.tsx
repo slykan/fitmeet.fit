@@ -73,7 +73,7 @@ export function WindOverlay({
         left: ((i * 19) % 126) - 12,
         top: (i * (isHub ? (isMobile ? 3.2 : 4) : (isMobile ? 4.8 : 6))) % 100,
         delay: (i * (isHub ? (isMobile ? 0.045 : 0.055) : (isMobile ? 0.07 : 0.09))).toFixed(2),
-        size: (isHub ? (isMobile ? 2.8 : 2.3) : (isMobile ? 2.4 : 2)) + (i % 2),
+        size: (isHub ? (isMobile ? 2.2 : 1.9) : (isMobile ? 2 : 1.8)) + (i % 2) * 0.6,
         durationOffset: (i % 6) * 0.22,
       })),
     [isHub, isMobile],
@@ -86,9 +86,9 @@ export function WindOverlay({
         left: ((i * 13) % 126) - 10,
         top: 2 + ((i * (isHub ? (isMobile ? 0.72 : 0.92) : (isMobile ? 1.2 : 1.6))) % 96),
         delay: (i * (isHub ? (isMobile ? 0.035 : 0.045) : (isMobile ? 0.055 : 0.07))).toFixed(2),
-        width: (isHub ? (isMobile ? 26 : 22) : (isMobile ? 22 : 18)) + (i % 3) * (isHub ? (isMobile ? 16 : 14) : (isMobile ? 14 : 12)),
+        width: (isHub ? (isMobile ? 18 : 16) : (isMobile ? 16 : 14)) + (i % 3) * (isHub ? (isMobile ? 10 : 9) : (isMobile ? 9 : 8)),
         durationOffset: (i % 5) * 0.22,
-        thickness: (isHub ? 3 : 2) + (i % 2),
+        thickness: (isHub ? 2 : 1.6) + (i % 2) * 0.5,
       })),
     [isHub, isMobile],
   )
@@ -135,7 +135,7 @@ export function WindOverlay({
           overflow: 'hidden',
           zIndex: 500,
           background: showWind
-            ? `linear-gradient(${flowAngle}deg, rgba(${isHub ? '8,42,94' : '10,52,108'},${glowOpacity * 0.72}), rgba(255,255,255,0.01), rgba(${isHub ? '9,82,156' : '11,96,176'},${Math.min((glowOpacity + (isHub ? (isMobile ? 0.16 : 0.12) : (isMobile ? 0.1 : 0.06))) * 0.72, isHub ? (isMobile ? 0.32 : 0.24) : (isMobile ? 0.22 : 0.14))}))`
+            ? `linear-gradient(${flowAngle}deg, rgba(${isHub ? '28,66,38' : '32,72,42'},${glowOpacity * 0.48}), rgba(255,255,255,0.01), rgba(${isHub ? '110,182,134' : '122,194,144'},${Math.min((glowOpacity + (isHub ? (isMobile ? 0.16 : 0.12) : (isMobile ? 0.1 : 0.06))) * 0.42, isHub ? (isMobile ? 0.22 : 0.16) : (isMobile ? 0.16 : 0.1))}))`
             : 'transparent',
         }}
       >
@@ -195,8 +195,8 @@ export function WindOverlay({
             style={{
               position: 'absolute',
               inset: 0,
-              background: `repeating-linear-gradient(${flowAngle}deg, rgba(33,113,181,0) 0px, rgba(33,113,181,0) 11px, rgba(18,88,162,${Math.min(streamOpacity * (isHub ? (isMobile ? 0.08 : 0.06) : (isMobile ? 0.06 : 0.04)), isHub ? (isMobile ? 0.08 : 0.06) : (isMobile ? 0.05 : 0.03))}) 13px, rgba(33,113,181,0) 20px)`,
-              opacity: isHub ? (isMobile ? 0.1 : 0.08) : (isMobile ? 0.08 : 0.05),
+              background: `repeating-linear-gradient(${flowAngle}deg, rgba(82,166,108,0) 0px, rgba(82,166,108,0) 12px, rgba(122,214,154,${Math.min(streamOpacity * (isHub ? (isMobile ? 0.06 : 0.045) : (isMobile ? 0.05 : 0.035)), isHub ? (isMobile ? 0.06 : 0.045) : (isMobile ? 0.04 : 0.028))}) 13px, rgba(82,166,108,0) 18px)`,
+              opacity: isHub ? (isMobile ? 0.08 : 0.06) : (isMobile ? 0.06 : 0.04),
             }}
           />
         )}
@@ -219,8 +219,8 @@ export function WindOverlay({
                 height: `${stream.thickness}px`,
                 borderRadius: 999,
                 opacity: 0,
-                background: `linear-gradient(90deg, rgba(255,255,255,0), rgba(170,220,255,${streamOpacity * 0.72}), rgba(28,122,214,${streamOpacity}), rgba(255,255,255,0))`,
-                boxShadow: `0 0 16px rgba(28,122,214,${streamOpacity})`,
+                background: `linear-gradient(90deg, rgba(255,255,255,0), rgba(216,246,224,${streamOpacity * 0.68}), rgba(118,212,142,${streamOpacity}), rgba(255,255,255,0))`,
+                boxShadow: `0 0 14px rgba(118,212,142,${streamOpacity * 0.72})`,
                 transform: `translate3d(calc(${distance}px * -0.18), 0, 0) scaleX(0.85)`,
                 animationName: 'fitmeet-wind-stream',
                 animationDuration: `${duration + stream.durationOffset}s`,
@@ -250,8 +250,8 @@ export function WindOverlay({
                 height: `${particle.size}px`,
                 borderRadius: 999,
                 opacity: 0,
-                background: `rgba(126,198,255,${opacity})`,
-                boxShadow: `0 0 14px rgba(28,122,214,${opacity})`,
+                background: `rgba(210,248,220,${opacity})`,
+                boxShadow: `0 0 12px rgba(118,212,142,${opacity * 0.7})`,
                 transform: 'translate3d(0, 0, 0) scale(0.7)',
                 animationName: 'fitmeet-wind-drift',
                 animationDuration: `${duration + particle.durationOffset}s`,
