@@ -342,6 +342,7 @@ function EventContent() {
               lng={event.location.lng}
               coloredSegments={gpxResult?.coloredSegments}
               weather={weather}
+              weatherVariant="hub"
               readOnly
               height={400}
             />
