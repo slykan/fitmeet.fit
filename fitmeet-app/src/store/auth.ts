@@ -24,15 +24,14 @@ export interface MobileUser {
   onboarding_complete: boolean
 }
 
-const MOBILE_SECRET = '65fc80f2a982389ac8d73e64eb7b214650f2fa1eec8288c2'
-
 type AuthState = {
   token: string | null
   user: MobileUser | null
   hasHydrated: boolean
   hydrate: () => Promise<void>
-  login: (input: { email: string; password: string }) => Promise<void>
-  register: (input: { name: string; email: string; password: string }) => Promise<void>
+  login: (input: { email: string; password: string; turnstileToken: string }) => Promise<void>
+  register: (input: { name: string; email: string; password: string; turnstileToken: string }) => Promise<void>
+  loginWithGoogle: (accessToken: string) => Promise<void>
   refreshMe: () => Promise<void>
   logout: () => Promise<void>
 }
@@ -90,19 +89,26 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
     set({ hasHydrated: true })
   },
-  login: async ({ email, password }) => {
-    const payload = await requestJson<AuthResponse>('/auth/login', {
+  login: async ({ email, password, turnstileToken }) => {
+    const payload = await requestJson<AuthResponse>('/auth/login-mobile', {
       method: 'POST',
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password, cf_turnstile_response: turnstileToken }),
     })
     await storeSession({ token: payload.token, user: payload.data })
     set({ token: payload.token, user: payload.data })
   },
-  register: async ({ name, email, password }) => {
+  register: async ({ name, email, password, turnstileToken }) => {
     const payload = await requestJson<AuthResponse>('/auth/register-mobile', {
       method: 'POST',
-      body: JSON.stringify({ name, email, password }),
-      headers: { 'X-Mobile-Secret': MOBILE_SECRET },
+      body: JSON.stringify({ name, email, password, cf_turnstile_response: turnstileToken }),
+    })
+    await storeSession({ token: payload.token, user: payload.data })
+    set({ token: payload.token, user: payload.data })
+  },
+  loginWithGoogle: async (accessToken: string) => {
+    const payload = await requestJson<AuthResponse>('/auth/google-mobile', {
+      method: 'POST',
+      body: JSON.stringify({ access_token: accessToken }),
     })
     await storeSession({ token: payload.token, user: payload.data })
     set({ token: payload.token, user: payload.data })

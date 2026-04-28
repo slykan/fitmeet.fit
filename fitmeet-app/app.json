@@ -6,7 +6,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
-    "plugins": [],
+    "plugins": ["expo-web-browser"],
     "ios": {
       "supportsTablet": true
     },
