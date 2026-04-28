@@ -109,7 +109,7 @@ class UserController extends Controller
     public function updateAvatar(Request $request): JsonResponse
     {
         $request->validate([
-            'avatar_file'   => ['sometimes', 'nullable', 'image', 'max:5120'],
+            'avatar_file'   => ['sometimes', 'nullable', 'file', 'max:5120', 'mimetypes:image/jpeg,image/jpg,image/png,image/gif,image/bmp,image/svg+xml,image/webp,image/heic,image/heif,image/avif'],
             'avatar_remove' => ['sometimes', 'boolean'],
         ]);
 
