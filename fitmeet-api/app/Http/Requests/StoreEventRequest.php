@@ -34,8 +34,8 @@ class StoreEventRequest extends FormRequest
             'max_grade'        => ['nullable', 'numeric', 'min:0', 'max:100'],
             'max_downgrade'    => ['nullable', 'numeric', 'min:-100', 'max:0'],
 
-            'gpx_file'         => ['nullable', 'file', 'max:5120'], // 5MB
-            'image_file'       => ['nullable', 'image', 'max:5120'],
+            'gpx_file'         => ['nullable', 'file', 'max:8192'],
+            'image_file'       => ['nullable', 'file', 'max:8192'],
 
             'skill_level'      => ['nullable', Rule::in(['beginner', 'advanced', 'pro'])],
             'max_participants' => ['nullable', 'integer', 'min:2', 'max:9999'],

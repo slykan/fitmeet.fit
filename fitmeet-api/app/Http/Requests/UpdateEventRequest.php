@@ -34,8 +34,8 @@ class UpdateEventRequest extends FormRequest
             'max_grade'        => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:100'],
             'max_downgrade'    => ['sometimes', 'nullable', 'numeric', 'min:-100', 'max:0'],
 
-            'gpx_file'         => ['sometimes', 'nullable', 'file', 'max:5120'],
-            'image_file'       => ['sometimes', 'nullable', 'image', 'max:5120'],
+            'gpx_file'         => ['sometimes', 'nullable', 'file', 'max:8192'],
+            'image_file'       => ['sometimes', 'nullable', 'file', 'max:8192'],
 
             'skill_level'      => ['sometimes', 'nullable', Rule::in(['beginner', 'advanced', 'pro'])],
             'max_participants' => ['sometimes', 'nullable', 'integer', 'min:2'],
