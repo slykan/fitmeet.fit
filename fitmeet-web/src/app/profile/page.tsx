@@ -67,12 +67,14 @@ export default function ProfilePage() {
       const { data: res } = await api.post('/me/avatar', formData)
       setUser(res.data)
     } catch (err: unknown) {
-      const e = err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } }
+      const e = err as { response?: { status?: number; data?: { message?: string; errors?: Record<string, string[]> } }; message?: string }
       const msg =
         e?.response?.data?.message ??
         Object.values(e?.response?.data?.errors ?? {})[0]?.[0] ??
+        e?.message ??
         'Could not update profile photo.'
-      setAvatarError(msg)
+      const status = e?.response?.status
+      setAvatarError(status ? `${msg} (HTTP ${status})` : msg)
     } finally {
       setAvatarLoading(false)
       if (avatarInputRef.current) {
@@ -88,12 +90,14 @@ export default function ProfilePage() {
       const { data: res } = await api.post('/me/avatar', { avatar_remove: true })
       setUser(res.data)
     } catch (err: unknown) {
-      const e = err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } }
+      const e = err as { response?: { status?: number; data?: { message?: string; errors?: Record<string, string[]> } }; message?: string }
       const msg =
         e?.response?.data?.message ??
         Object.values(e?.response?.data?.errors ?? {})[0]?.[0] ??
+        e?.message ??
         'Could not remove profile photo.'
-      setAvatarError(msg)
+      const status = e?.response?.status
+      setAvatarError(status ? `${msg} (HTTP ${status})` : msg)
     } finally {
       setAvatarLoading(false)
     }
