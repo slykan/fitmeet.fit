@@ -108,21 +108,8 @@ class UserController extends Controller
     // POST /api/me/avatar — dedicated avatar upload (avoids _method spoofing issues)
     public function updateAvatar(Request $request): JsonResponse
     {
-        // Temporary debug — remove after diagnosis
-        if ($request->hasFile('avatar_file')) {
-            $f = $request->file('avatar_file');
-            \Log::info('avatar_upload_debug', [
-                'isValid'      => $f->isValid(),
-                'error'        => $f->getError(),
-                'originalName' => $f->getClientOriginalName(),
-                'clientMime'   => $f->getClientMimeType(),
-                'realMime'     => $f->getMimeType(),
-                'size'         => $f->getSize(),
-            ]);
-        }
-
         $request->validate([
-            'avatar_file'   => ['sometimes', 'nullable', 'file', 'max:5120'],
+            'avatar_file'   => ['sometimes', 'nullable', 'file', 'max:8192'],
             'avatar_remove' => ['sometimes', 'boolean'],
         ]);
 

@@ -42,7 +42,7 @@ class UpdateProfileRequest extends FormRequest
             'email_event_reminders' => ['sometimes', 'boolean'],
             'email_friend_events'   => ['sometimes', 'boolean'],
             'fcm_token'    => ['sometimes', 'nullable', 'string'],
-            'avatar_file'  => ['sometimes', 'nullable', 'file', 'max:5120'],
+            'avatar_file'  => ['sometimes', 'nullable', 'file', 'max:8192'],
             'avatar_remove' => ['sometimes', 'boolean'],
         ];
     }
