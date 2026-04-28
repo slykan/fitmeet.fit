@@ -348,13 +348,11 @@ export default function HubMap() {
   const hubHasCloudLayer = Boolean(hubWeather && hubWeather.code > 0)
 
   const visibleEvents = useMemo(() => {
+    const specialMode = goingOnly || friendsOnly || myOnly
     const source = myOnly ? myEvents : goingOnly ? joinedEvents : events
     return source.filter(ev => {
-      if (myOnly) {
-        if (selectedCategories.size > 0 && !selectedCategories.has(ev.category.value)) return false
-        return true
-      }
       if (friendsOnly && (!ev.organizer?.id || !friendIds.has(ev.organizer.id))) return false
+      if (specialMode) return true
       if (selectedCategories.size > 0 && !selectedCategories.has(ev.category.value)) return false
       if (radiusKm !== null && lat && lng) {
         return getDistanceKm(lat, lng, ev.location.lat, ev.location.lng) <= radiusKm
