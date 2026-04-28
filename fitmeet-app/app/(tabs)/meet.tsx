@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons'
+import { router } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import {
   ActivityIndicator, Image, Pressable, ScrollView,
@@ -170,8 +171,9 @@ function EventsTab() {
         const emoji = CATEGORY_EMOJI[ev.category.value] ?? '📍'
 
         return (
-          <View
+          <Pressable
             key={ev.id}
+            onPress={() => router.push(`/event/${ev.id}` as never)}
             style={[
               styles.eventCard,
               cancelled && styles.eventCardCancelled,
@@ -251,7 +253,7 @@ function EventsTab() {
                 hour={new Date(ev.schedule.start_at).getHours()}
               />
             )}
-          </View>
+          </Pressable>
         )
       })}
     </View>

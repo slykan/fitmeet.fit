@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
 import { useState } from 'react'
+import { Linking } from 'react-native'
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
@@ -125,6 +126,21 @@ export default function ProfileScreen() {
           </View>
         ) : null}
 
+        {/* Events shortcuts */}
+        <View style={styles.card}>
+          <Text style={styles.sectionLabel}>Events</Text>
+          <Pressable style={styles.linkRow} onPress={() => router.push('/event/my' as never)}>
+            <Ionicons name="calendar-outline" size={18} color={palette.accent} />
+            <Text style={styles.linkText}>My Events</Text>
+            <Ionicons name="chevron-forward" size={16} color={palette.textDim} />
+          </Pressable>
+          <Pressable style={styles.linkRow} onPress={() => router.push('/event/create' as never)}>
+            <Ionicons name="add-circle-outline" size={18} color={palette.accent} />
+            <Text style={styles.linkText}>Create New Event</Text>
+            <Ionicons name="chevron-forward" size={16} color={palette.textDim} />
+          </Pressable>
+        </View>
+
         {/* Email preferences */}
         <View style={styles.card}>
           <Text style={styles.sectionLabel}>Email settings</Text>
@@ -223,6 +239,9 @@ const styles = StyleSheet.create({
   tagText:    { color: palette.accent, fontSize: 12, fontWeight: '700' },
   skillText:  { color: palette.textMuted, fontSize: 13 },
   skillValue: { color: palette.text, fontWeight: '700' },
+
+  linkRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  linkText: { flex: 1, color: palette.text, fontSize: 15, fontWeight: '600' },
 
   prefList: { gap: 14 },
   prefRow:  { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },

@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons'
+import { router } from 'expo-router'
 import { useEffect, useState, useCallback } from 'react'
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -199,8 +200,9 @@ export default function HubScreen() {
           const emoji    = CATEGORY_EMOJI[ev.category.value] ?? '📍'
 
           return (
-            <View
+            <Pressable
               key={ev.id}
+              onPress={() => router.push(`/event/${ev.id}` as never)}
               style={[
                 styles.eventCard,
                 cancelled && styles.eventCardCancelled,
@@ -263,7 +265,7 @@ export default function HubScreen() {
                 isoDate={ev.schedule.start_at.slice(0, 10)}
                 hour={new Date(ev.schedule.start_at).getHours()}
               />
-            </View>
+            </Pressable>
           )
         })}
 
