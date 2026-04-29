@@ -74,10 +74,12 @@ const styles = StyleSheet.create({
   title:    { color: palette.text, fontSize: 18, fontWeight: '800', textAlign: 'center' },
   subtitle: { color: palette.textMuted, fontSize: 14, textAlign: 'center', marginTop: -8 },
   webviewWrap: {
-    height: 80,
+    height: 116,
     borderRadius: 12,
     overflow: 'hidden',
     backgroundColor: palette.bg,
+    borderWidth: 1,
+    borderColor: palette.line,
   },
   webview: { flex: 1, backgroundColor: 'transparent' },
   cancelBtn: {

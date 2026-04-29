@@ -7,6 +7,11 @@
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./33da5aa4-9a5b-4e39-8267-dd4c2e67f06e.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#050816"
+    },
     "plugins": ["expo-web-browser"],
     "ios": {
       "supportsTablet": true,
@@ -24,7 +29,9 @@
       "bundler": "metro"
     },
     "extra": {
-      "apiUrl": "https://api.fitmeet.fit/api"
+      "apiUrl": "https://api.fitmeet.fit/api",
+      "googleAndroidClientId": "206851995035-f0vleunetrb0nqog6dm24e1j1aq6tgqa.apps.googleusercontent.com",
+      "googleWebClientId": "206851995035-0cn2pik52tpaprm9hsshss7uhehab2h0.apps.googleusercontent.com"
     }
   }
 }

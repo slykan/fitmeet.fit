@@ -4,9 +4,12 @@ import { useEffect, useState, useCallback } from 'react'
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
+import { HubMapCard } from '@/src/components/HubMapCard'
 import { api } from '@/src/lib/api'
 import { CATEGORIES } from '@/src/lib/categories'
 import { WeatherBadge } from '@/src/components/WeatherBadge'
+import { cloudLabel, CurrentWeather, fetchCurrentWeather } from '@/src/lib/weather'
+import { useAuthStore } from '@/src/store/auth'
 import { palette, spacing } from '@/src/theme'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -55,11 +58,33 @@ function isPast(iso: string) {
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function HubScreen() {
+  const user = useAuthStore((s) => s.user)
   const [events,     setEvents]     = useState<EventItem[]>([])
   const [loading,    setLoading]    = useState(true)
   const [radiusIdx,  setRadiusIdx]  = useState(0)
   const [categories, setCategories] = useState<Set<string>>(new Set())
   const [goingOnly,  setGoingOnly]  = useState(false)
+  const [weather,    setWeather]    = useState<CurrentWeather | null>(null)
+
+  const mapCenter = (() => {
+    const homeLat = user?.home?.lat
+    const homeLng = user?.home?.lng
+    if (typeof homeLat === 'number' && typeof homeLng === 'number') {
+      return { lat: homeLat, lng: homeLng }
+    }
+    const first = events[0]
+    if (first) return { lat: first.location.lat, lng: first.location.lng }
+    return { lat: 45.5511, lng: 18.6939 }
+  })()
+
+  const mapEvents = events.map((ev) => ({
+    id: ev.id,
+    title: ev.title,
+    lat: ev.location.lat,
+    lng: ev.location.lng,
+    emoji: CATEGORY_EMOJI[ev.category.value] ?? '📍',
+    cancelled: ev.status === 'cancelled',
+  }))
 
   const fetchEvents = useCallback(async () => {
     setLoading(true)
@@ -82,6 +107,10 @@ export default function HubScreen() {
   }, [radiusIdx, goingOnly, categories])
 
   useEffect(() => { fetchEvents() }, [fetchEvents])
+
+  useEffect(() => {
+    fetchCurrentWeather(mapCenter.lat, mapCenter.lng).then(setWeather)
+  }, [mapCenter.lat, mapCenter.lng])
 
   function toggleCategory(value: string) {
     setCategories(prev => {
@@ -107,11 +136,14 @@ export default function HubScreen() {
           </Pressable>
         </View>
 
-        {/* Radar placeholder */}
+        {/* Map */}
         <View style={styles.radarCard}>
-          <View style={styles.radarCircle} />
-          <View style={styles.radarCircleMid} />
-          <View style={styles.radarDot} />
+          <HubMapCard
+            center={mapCenter}
+            events={mapEvents}
+            weather={weather}
+            onEventPress={(eventId) => router.push(`/event/${eventId}` as never)}
+          />
           <View style={styles.radarOverlay}>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
               {/* All */}
@@ -166,6 +198,35 @@ export default function HubScreen() {
                 <Text style={[styles.goingLabel, goingOnly && styles.goingLabelActive]}>Going</Text>
               </Pressable>
             </View>
+
+            {weather && (
+              <View style={styles.weatherFooter}>
+                <View style={styles.weatherMetric}>
+                  <Ionicons name="thermometer-outline" size={14} color={palette.textMuted} />
+                  <Text style={styles.weatherText}>{weather.temperature}°</Text>
+                </View>
+                <View style={styles.weatherMetric}>
+                  <View style={{ transform: [{ rotate: `${weather.windDir + 180}deg` }] }}>
+                    <Ionicons name="arrow-up-outline" size={14} color={palette.textMuted} />
+                  </View>
+                  <Text style={styles.weatherText}>{weather.windSpeed} km/h</Text>
+                </View>
+                <View style={styles.weatherMetric}>
+                  <Ionicons name="sunny-outline" size={14} color={palette.textMuted} />
+                  <Text style={styles.weatherText}>UV {weather.uvIndex}</Text>
+                </View>
+                <View style={styles.weatherMetric}>
+                  <Ionicons name="cloudy-outline" size={14} color={palette.textMuted} />
+                  <Text style={styles.weatherText}>{weather.cloudCover}% clouds</Text>
+                </View>
+                <View style={styles.weatherMetric}>
+                  <Ionicons name="rainy-outline" size={14} color={palette.textMuted} />
+                  <Text style={styles.weatherText}>
+                    {weather.precipitation > 0 ? `${weather.precipitation} mm` : cloudLabel(weather.cloudCover)}
+                  </Text>
+                </View>
+              </View>
+            )}
           </View>
         </View>
 
@@ -292,29 +353,16 @@ const styles = StyleSheet.create({
 
   // Radar placeholder
   radarCard: {
-    height: 280, borderRadius: 28, backgroundColor: '#060c1a',
+    height: 430, borderRadius: 28, backgroundColor: '#060c1a',
     overflow: 'hidden', borderWidth: 1, borderColor: palette.line,
   },
-  radarCircle: {
-    position: 'absolute', width: 220, height: 220, borderRadius: 999,
-    alignSelf: 'center', top: 10,
-    borderWidth: 1, borderColor: 'rgba(108,255,47,0.12)',
-    backgroundColor: 'rgba(108,255,47,0.04)',
-  },
-  radarCircleMid: {
-    position: 'absolute', width: 140, height: 140, borderRadius: 999,
-    alignSelf: 'center', top: 50,
-    borderWidth: 1, borderColor: 'rgba(108,255,47,0.08)',
-  },
-  radarDot: {
-    position: 'absolute', width: 8, height: 8, borderRadius: 999,
-    alignSelf: 'center', top: 156,
-    backgroundColor: palette.accent,
-    shadowColor: palette.accent, shadowRadius: 8, shadowOpacity: 0.8, elevation: 6,
-  },
   radarOverlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
     marginTop: 'auto', padding: spacing.md, gap: 10,
-    backgroundColor: 'rgba(5,8,22,0.88)',
+    backgroundColor: 'rgba(5,8,22,0.78)',
   },
   filterRow: { gap: 8 },
   filterChip: {
@@ -342,6 +390,28 @@ const styles = StyleSheet.create({
   goingChipActive: { backgroundColor: palette.accent, borderColor: palette.accent },
   goingLabel: { color: palette.textMuted, fontSize: 11, fontWeight: '700' },
   goingLabelActive: { color: '#031109' },
+  weatherFooter: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    paddingTop: 2,
+  },
+  weatherMetric: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 9,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  weatherText: {
+    color: palette.text,
+    fontSize: 11,
+    fontWeight: '700',
+  },
 
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   sectionTitle:  { color: palette.text, fontSize: 18, fontWeight: '800' },

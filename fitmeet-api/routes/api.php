@@ -23,10 +23,37 @@ Route::get('turnstile', function () {
 <head>
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
-  <style>*{margin:0;padding:0;box-sizing:border-box}body{background:#050816;min-height:100vh;display:flex;align-items:center;justify-content:center}</style>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    html,body{width:100%;height:100%;overflow:hidden}
+    body{
+      background:#050816;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:12px;
+      font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    }
+    .wrap{
+      width:100%;
+      max-width:320px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .cf-turnstile{
+      width:100%;
+      min-height:65px;
+    }
+    iframe{
+      max-width:100%;
+    }
+  </style>
 </head>
 <body>
-  <div class="cf-turnstile" data-sitekey="' . $siteKey . '" data-callback="onSuccess" data-theme="dark"></div>
+  <div class="wrap">
+    <div class="cf-turnstile" data-sitekey="' . $siteKey . '" data-callback="onSuccess" data-theme="dark" data-size="flexible"></div>
+  </div>
   <script>function onSuccess(t){window.ReactNativeWebView&&window.ReactNativeWebView.postMessage(JSON.stringify({type:"token",token:t}))}</script>
 </body>
 </html>', 200, ['Content-Type' => 'text/html', 'X-Frame-Options' => 'ALLOWALL']);

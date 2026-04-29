@@ -6,6 +6,16 @@ export type EventWeather = {
   windDir: number
 }
 
+export type CurrentWeather = {
+  code: number
+  temperature: number
+  windSpeed: number
+  windDir: number
+  uvIndex: number
+  cloudCover: number
+  precipitation: number
+}
+
 type OpenMeteoResponse = {
   hourly: {
     time: string[]
@@ -20,7 +30,20 @@ type OpenMeteoResponse = {
   }
 }
 
+type OpenMeteoCurrentResponse = {
+  current?: {
+    temperature_2m?: number
+    weather_code?: number
+    wind_speed_10m?: number
+    wind_direction_10m?: number
+    uv_index?: number
+    cloud_cover?: number
+    precipitation?: number
+  }
+}
+
 const cache = new Map<string, EventWeather>()
+const currentCache = new Map<string, CurrentWeather>()
 
 export async function fetchEventWeather(
   lat: number,
@@ -61,6 +84,42 @@ export async function fetchEventWeather(
   }
 }
 
+export async function fetchCurrentWeather(
+  lat: number,
+  lng: number,
+): Promise<CurrentWeather | null> {
+  const key = `${lat.toFixed(3)},${lng.toFixed(3)}`
+  if (currentCache.has(key)) return currentCache.get(key)!
+
+  try {
+    const url =
+      `https://api.open-meteo.com/v1/forecast` +
+      `?latitude=${lat}&longitude=${lng}` +
+      `&current=temperature_2m,weather_code,wind_speed_10m,wind_direction_10m,uv_index,cloud_cover,precipitation` +
+      `&timezone=auto&forecast_days=1`
+
+    const res = await fetch(url)
+    const data: OpenMeteoCurrentResponse = await res.json()
+    const current = data.current
+    if (!current) return null
+
+    const result: CurrentWeather = {
+      code: Math.round(current.weather_code ?? 0),
+      temperature: Math.round(current.temperature_2m ?? 0),
+      windSpeed: Math.round(current.wind_speed_10m ?? 0),
+      windDir: Math.round(current.wind_direction_10m ?? 0),
+      uvIndex: Math.round((current.uv_index ?? 0) * 10) / 10,
+      cloudCover: Math.round(current.cloud_cover ?? 0),
+      precipitation: Math.round((current.precipitation ?? 0) * 10) / 10,
+    }
+
+    currentCache.set(key, result)
+    return result
+  } catch {
+    return null
+  }
+}
+
 export function weatherIconName(code: number): string {
   if (code === 0) return 'sunny-outline'
   if (code <= 3) return 'partly-sunny-outline'
@@ -69,4 +128,12 @@ export function weatherIconName(code: number): string {
   if (code <= 77) return 'snow-outline'
   if (code <= 82) return 'rainy-outline'
   return 'thunderstorm-outline'
+}
+
+export function cloudLabel(cloudCover: number): string {
+  if (cloudCover >= 90) return 'Overcast'
+  if (cloudCover >= 65) return 'Cloudy'
+  if (cloudCover >= 35) return 'Partly cloudy'
+  if (cloudCover >= 10) return 'Light clouds'
+  return 'Clear'
 }

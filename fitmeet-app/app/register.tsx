@@ -7,11 +7,9 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, 
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { TurnstileModal } from '@/src/components/TurnstileModal'
+import { googleOAuthConfig } from '@/src/lib/oauth-config'
 import { useAuthStore } from '@/src/store/auth'
 import { palette, spacing } from '@/src/theme'
-
-const ANDROID_CLIENT_ID = '206851995035-f0vleunetrb0nqog6dm24e1j1aq6tgqa.apps.googleusercontent.com'
-const WEB_CLIENT_ID     = '206851995035-0cn2pik52tpaprm9hsshss7uhehab2h0.apps.googleusercontent.com'
 
 WebBrowser.maybeCompleteAuthSession()
 
@@ -34,8 +32,8 @@ export default function RegisterScreen() {
     password.length < 8 || password !== confirm
 
   const [request, response, promptAsync] = Google.useAuthRequest({
-    androidClientId: ANDROID_CLIENT_ID,
-    webClientId:     WEB_CLIENT_ID,
+    androidClientId: googleOAuthConfig.androidClientId,
+    webClientId:     googleOAuthConfig.webClientId,
   })
 
   useEffect(() => {

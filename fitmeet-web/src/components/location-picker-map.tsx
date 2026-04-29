@@ -110,8 +110,8 @@ export function WindOverlay({
     (isHub ? (isMobile ? 0.62 : 0.54) : (isMobile ? 0.52 : 0.42)) + effectiveWind / (isHub ? (isMobile ? 72 : 80) : (isMobile ? 88 : 95)),
   )
   const streamOpacity = Math.min(
-    isHub ? (isMobile ? 0.98 : 0.94) : (isMobile ? 0.9 : 0.82),
-    (isHub ? (isMobile ? 0.68 : 0.58) : (isMobile ? 0.56 : 0.44)) + effectiveWind / (isHub ? (isMobile ? 68 : 76) : (isMobile ? 84 : 92)),
+    isHub ? (isMobile ? 0.98 : 0.98) : (isMobile ? 0.9 : 0.9),
+    (isHub ? (isMobile ? 0.68 : 0.66) : (isMobile ? 0.56 : 0.5)) + effectiveWind / (isHub ? (isMobile ? 68 : 70) : (isMobile ? 84 : 86)),
   )
   const glowOpacity = Math.min(
     isHub ? (isMobile ? 0.3 : 0.24) : (isMobile ? 0.22 : 0.16),
@@ -125,6 +125,17 @@ export function WindOverlay({
   const rainOpacity = isRainy
     ? (isHub ? (isMobile ? 0.82 : 0.66) : (isMobile ? 0.26 : 0.18)) * rainStrength
     : 0
+  const hasAtmosphere = isCloudy || isRainy
+  const windFieldOpacity = showWind
+    ? hasAtmosphere
+      ? (isHub ? (isMobile ? 0.16 : 0.13) : (isMobile ? 0.1 : 0.06))
+      : (isHub ? (isMobile ? 0.08 : 0.045) : (isMobile ? 0.055 : 0.025))
+    : 0
+  const glowBaseOpacity = showWind
+    ? hasAtmosphere
+      ? glowOpacity
+      : glowOpacity * (isHub ? 0.52 : 0.4)
+    : 0
 
   return (
     <>
@@ -136,7 +147,7 @@ export function WindOverlay({
           overflow: 'hidden',
           zIndex: 500,
           background: showWind
-            ? `linear-gradient(${flowAngle}deg, rgba(${isHub ? '28,66,38' : '32,72,42'},${glowOpacity * 0.78}), rgba(255,255,255,0.01), rgba(${isHub ? '110,182,134' : '122,194,144'},${Math.min((glowOpacity + (isHub ? (isMobile ? 0.16 : 0.12) : (isMobile ? 0.1 : 0.06))) * 0.74, isHub ? (isMobile ? 0.34 : 0.28) : (isMobile ? 0.24 : 0.16))}))`
+            ? `linear-gradient(${flowAngle}deg, rgba(${isHub ? '28,66,38' : '32,72,42'},${glowBaseOpacity * 0.78}), rgba(255,255,255,0.01), rgba(${isHub ? '110,182,134' : '122,194,144'},${Math.min((glowBaseOpacity + (isHub ? (isMobile ? 0.16 : 0.12) : (isMobile ? 0.1 : 0.06))) * 0.74, isHub ? (isMobile ? 0.34 : 0.28) : (isMobile ? 0.24 : 0.16))}))`
             : 'transparent',
         }}
       >
@@ -197,7 +208,7 @@ export function WindOverlay({
               position: 'absolute',
               inset: 0,
               background: `repeating-linear-gradient(${flowAngle}deg, rgba(82,166,108,0) 0px, rgba(82,166,108,0) 12px, rgba(122,214,154,${Math.min(streamOpacity * (isHub ? (isMobile ? 0.11 : 0.085) : (isMobile ? 0.075 : 0.055)), isHub ? (isMobile ? 0.11 : 0.085) : (isMobile ? 0.06 : 0.04))}) 13px, rgba(82,166,108,0) 18px)`,
-              opacity: isHub ? (isMobile ? 0.16 : 0.13) : (isMobile ? 0.1 : 0.06),
+              opacity: windFieldOpacity,
             }}
           />
         )}

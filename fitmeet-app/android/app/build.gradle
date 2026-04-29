@@ -180,3 +180,10 @@ dependencies {
         implementation jscFlavor
     }
 }
+
+// Fix Gradle 8.14 unreadable sources bug on RN bundle task
+afterEvaluate {
+    tasks.matching { it.name.contains("BundleRelease") || it.name.contains("bundleRelease") }.configureEach {
+        doNotTrackState("RN bundle task has temp sources from Metro")
+    }
+}
