@@ -15,6 +15,23 @@ Route::prefix('auth')->group(function () {
     Route::get('google/callback', [AuthController::class, 'handleGoogleCallback']);
 });
 
+// Turnstile page for mobile WebView
+Route::get('turnstile', function () {
+    $siteKey = env('TURNSTILE_SITE_KEY', '0x4AAAAAAA272FNBOuqwbiqe');
+    return response('<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+  <style>*{margin:0;padding:0;box-sizing:border-box}body{background:#050816;min-height:100vh;display:flex;align-items:center;justify-content:center}</style>
+</head>
+<body>
+  <div class="cf-turnstile" data-sitekey="' . $siteKey . '" data-callback="onSuccess" data-theme="dark"></div>
+  <script>function onSuccess(t){window.ReactNativeWebView&&window.ReactNativeWebView.postMessage(JSON.stringify({type:"token",token:t}))}</script>
+</body>
+</html>', 200, ['Content-Type' => 'text/html', 'X-Frame-Options' => 'ALLOWALL']);
+});
+
 // Public
 Route::get('categories', [CategoryController::class, 'index']);
 Route::get('events/public/{event}',   [EventController::class, 'publicShow']);

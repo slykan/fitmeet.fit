@@ -2,39 +2,7 @@ import { Modal, Pressable, StyleSheet, Text, View } from 'react-native'
 import { WebView } from 'react-native-webview'
 import { palette, spacing } from '@/src/theme'
 
-const SITE_KEY = '0x4AAAAAAA272FNBOuqwbiqe'
-
-const HTML = `<!DOCTYPE html>
-<html>
-<head>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      background: #050816;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-  </style>
-</head>
-<body>
-  <div
-    class="cf-turnstile"
-    data-sitekey="${SITE_KEY}"
-    data-callback="onSuccess"
-    data-theme="dark"
-    data-size="normal"
-  ></div>
-  <script>
-    function onSuccess(token) {
-      window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'token', token }));
-    }
-  </script>
-</body>
-</html>`
+const TURNSTILE_URL = 'https://api.fitmeet.fit/api/turnstile'
 
 export function TurnstileModal({
   visible,
@@ -59,7 +27,7 @@ export function TurnstileModal({
           <Text style={styles.subtitle}>Verify you're not a robot</Text>
           <View style={styles.webviewWrap}>
             <WebView
-              source={{ html: HTML }}
+              source={{ uri: TURNSTILE_URL }}
               style={styles.webview}
               javaScriptEnabled
               originWhitelist={['*']}
