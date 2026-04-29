@@ -126,15 +126,13 @@ export function WindOverlay({
     ? (isHub ? (isMobile ? 0.82 : 0.66) : (isMobile ? 0.26 : 0.18)) * rainStrength
     : 0
   const hasAtmosphere = isCloudy || isRainy
-  const windFieldOpacity = showWind
-    ? hasAtmosphere
-      ? (isHub ? (isMobile ? 0.09 : 0.055) : (isMobile ? 0.08 : 0.05))
-      : (isHub ? (isMobile ? 0.08 : 0.045) : (isMobile ? 0.055 : 0.025))
+  // only show wind animation when clouds are actually visible (code>=2, partly cloudy+)
+  const showAtmosphere = (cloudOpacity >= 0.45) || (rainOpacity > 0)
+  const windFieldOpacity = showWind && showAtmosphere
+    ? (isHub ? (isMobile ? 0.09 : 0.055) : (isMobile ? 0.08 : 0.05))
     : 0
-  const glowBaseOpacity = showWind
-    ? hasAtmosphere
-      ? glowOpacity * (isHub ? 0.72 : 0.82)
-      : glowOpacity * (isHub ? 0.52 : 0.4)
+  const glowBaseOpacity = showWind && showAtmosphere
+    ? glowOpacity * (isHub ? 0.72 : 0.82)
     : 0
 
   return (
@@ -160,7 +158,7 @@ export function WindOverlay({
               inset: 0,
               width: '100%',
               height: '100%',
-              opacity: isHub ? 0.72 : 0.78,
+              opacity: isHub ? 0.92 : 0.78,
             }}
           >
             <defs>
@@ -171,20 +169,20 @@ export function WindOverlay({
             <g filter="url(#fitmeet-cloud-blur)">
               <path
                 d="M22 148 C92 92, 198 86, 304 122 C408 156, 476 144, 560 116 C686 74, 808 88, 930 156 L930 344 C836 316, 738 306, 630 328 C488 356, 360 348, 240 314 C148 288, 78 286, 22 300 Z"
-                fill={`rgba(160,172,196,${cloudOpacity * 0.9})`}
+                fill={`rgba(100,118,150,${cloudOpacity})`}
               />
               <path
                 d="M96 446 C194 396, 302 392, 404 428 C490 458, 576 466, 662 444 C772 416, 866 422, 968 470 L968 654 C862 626, 754 620, 632 644 C508 668, 392 666, 278 636 C188 612, 112 612, 34 632 L34 496 C56 482, 74 462, 96 446 Z"
-                fill={`rgba(140,155,182,${cloudOpacity * 0.85})`}
+                fill={`rgba(88,106,138,${cloudOpacity * 0.95})`}
               />
               <path
                 d="M146 702 C246 668, 344 670, 450 698 C552 724, 646 726, 742 700 C826 678, 906 680, 980 710 L980 864 C900 850, 822 848, 730 860 C618 876, 504 878, 394 860 C294 844, 198 838, 98 850 L98 728 C114 720, 128 708, 146 702 Z"
-                fill={`rgba(150,164,190,${cloudOpacity * 0.82})`}
+                fill={`rgba(94,112,144,${cloudOpacity * 0.92})`}
               />
-              <ellipse cx="232" cy="248" rx="120" ry="54" fill={`rgba(180,192,214,${cloudOpacity * 0.4})`} />
-              <ellipse cx="712" cy="214" rx="146" ry="62" fill={`rgba(176,188,210,${cloudOpacity * 0.36})`} />
-              <ellipse cx="554" cy="560" rx="162" ry="70" fill={`rgba(182,194,216,${cloudOpacity * 0.32})`} />
-              <ellipse cx="302" cy="780" rx="152" ry="62" fill={`rgba(170,184,208,${cloudOpacity * 0.3})`} />
+              <ellipse cx="232" cy="248" rx="120" ry="54" fill={`rgba(130,148,178,${cloudOpacity * 0.55})`} />
+              <ellipse cx="712" cy="214" rx="146" ry="62" fill={`rgba(126,144,174,${cloudOpacity * 0.5})`} />
+              <ellipse cx="554" cy="560" rx="162" ry="70" fill={`rgba(132,150,180,${cloudOpacity * 0.45})`} />
+              <ellipse cx="302" cy="780" rx="152" ry="62" fill={`rgba(120,138,168,${cloudOpacity * 0.42})`} />
             </g>
           </svg>
         )}
@@ -201,7 +199,7 @@ export function WindOverlay({
           />
         )}
 
-        {showWind && (
+        {showWind && showAtmosphere && (
           <div
             style={{
               position: 'absolute',
@@ -212,7 +210,7 @@ export function WindOverlay({
           />
         )}
 
-        {showWind && hasAtmosphere && streams.map((stream) => (
+        {showWind && showAtmosphere && streams.map((stream) => (
           <span
             key={`stream-${stream.id}`}
             style={{
@@ -244,7 +242,7 @@ export function WindOverlay({
           </span>
         ))}
 
-        {showWind && hasAtmosphere && particles.map((particle) => (
+        {showWind && showAtmosphere && particles.map((particle) => (
           <span
             key={particle.id}
             style={{
