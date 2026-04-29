@@ -14,6 +14,8 @@ import { WeatherBadge } from '@/components/WeatherBadge'
 import { fetchCurrentWeather, weatherConditionLabel, type EventWeather } from '@/lib/weather'
 import { WindOverlay } from '@/components/location-picker-map'
 
+const openWeatherTileKey = process.env.NEXT_PUBLIC_OPENWEATHER_TILE_KEY ?? ''
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 delete (L.Icon.Default.prototype as any)._getIconUrl
 L.Icon.Default.mergeOptions({
@@ -466,6 +468,20 @@ export default function HubMap() {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         />
+        {showCloudOverlay && openWeatherTileKey && (
+          <>
+            <TileLayer
+              url={`https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=${openWeatherTileKey}`}
+              opacity={0.5}
+              zIndex={220}
+            />
+            <TileLayer
+              url={`https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${openWeatherTileKey}`}
+              opacity={0.45}
+              zIndex={221}
+            />
+          </>
+        )}
         <ZoomControl position="bottomleft" />
         <MapViewport
           events={visibleEvents}
@@ -493,7 +509,7 @@ export default function HubMap() {
         weather={hubWeather}
         variant="hub"
         showWind={showWindOverlay}
-        showClouds={showCloudOverlay}
+        showClouds={false}
         showBadge={false}
       />
 
