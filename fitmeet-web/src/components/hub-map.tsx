@@ -159,31 +159,18 @@ function MapViewport({ events, lat, lng, radiusKm, ready, recenterKey }: {
 }
 
 function HubWeatherSync({
-  onInteractionChange,
-  onCenterSettled,
+  onCenterChange,
 }: {
-  onInteractionChange: (moving: boolean) => void
-  onCenterSettled: (lat: number, lng: number) => void
+  onCenterChange: (center: { lat: number; lng: number }) => void
 }) {
-  const map = useMap()
-
-  useEffect(() => {
-    const center = map.getCenter()
-    onCenterSettled(center.lat, center.lng)
-  }, [map, onCenterSettled])
-
   useMapEvents({
-    movestart: () => onInteractionChange(true),
-    zoomstart: () => onInteractionChange(true),
-    moveend: () => {
-      const center = map.getCenter()
-      onCenterSettled(center.lat, center.lng)
-      onInteractionChange(false)
+    moveend: (event) => {
+      const center = event.target.getCenter()
+      onCenterChange({ lat: center.lat, lng: center.lng })
     },
-    zoomend: () => {
-      const center = map.getCenter()
-      onCenterSettled(center.lat, center.lng)
-      onInteractionChange(false)
+    zoomend: (event) => {
+      const center = event.target.getCenter()
+      onCenterChange({ lat: center.lat, lng: center.lng })
     },
   })
 
@@ -259,14 +246,15 @@ export default function HubMap() {
   const [friendIds, setFriendIds] = useState<Set<number>>(new Set())
   const [recenterKey, setRecenterKey] = useState(0)
   const [hubWeather, setHubWeather] = useState<EventWeather | null>(null)
-  const [isMapInteracting, setIsMapInteracting] = useState(false)
-  const [weatherCenter, setWeatherCenter] = useState<{ lat: number; lng: number } | null>(null)
   const [showWindOverlay, setShowWindOverlay] = useState(true)
   const [showCloudOverlay, setShowCloudOverlay] = useState(true)
   const weatherRequestId = useRef(0)
 
   const lat      = (user?.location?.lat  || user?.home?.lat  || null)
   const lng      = (user?.location?.lng  || user?.home?.lng  || null)
+  const [weatherCenter, setWeatherCenter] = useState<{ lat: number; lng: number } | null>(
+    (lat && lng) ? { lat, lng } : null
+  )
   const baseRadiusKm = user?.radius_km ?? 50
   const radiusKm = RADIUS_OPTIONS[radiusIndex]?.km ?? null
 
@@ -277,6 +265,12 @@ export default function HubMap() {
       : RADIUS_OPTIONS.findIndex(r => r.km === baseRadiusKm)
     setRadiusIndex(initialIndex >= 0 ? initialIndex : 0)
   }, [user?.categories, baseRadiusKm])
+
+  useEffect(() => {
+    if (lat && lng) {
+      setWeatherCenter({ lat, lng })
+    }
+  }, [lat, lng])
 
   useEffect(() => {
     const params: Record<string, unknown> = {}
@@ -400,21 +394,12 @@ export default function HubMap() {
     })
   }
 
-  const handleWeatherInteractionChange = useCallback((moving: boolean) => {
-    setIsMapInteracting(moving)
-  }, [])
-
-  const handleWeatherCenterSettled = useCallback((nextLat: number, nextLng: number) => {
-    setWeatherCenter(current => {
-      if (
-        current &&
-        Math.abs(current.lat - nextLat) < 0.0001 &&
-        Math.abs(current.lng - nextLng) < 0.0001
-      ) {
+  const handleWeatherCenterChange = useCallback((center: { lat: number; lng: number }) => {
+    setWeatherCenter((current) => {
+      if (current && Math.abs(current.lat - center.lat) < 0.0001 && Math.abs(current.lng - center.lng) < 0.0001) {
         return current
       }
-
-      return { lat: nextLat, lng: nextLng }
+      return center
     })
   }, [])
 
@@ -480,8 +465,7 @@ export default function HubMap() {
           recenterKey={recenterKey}
         />
         <HubWeatherSync
-          onInteractionChange={handleWeatherInteractionChange}
-          onCenterSettled={handleWeatherCenterSettled}
+          onCenterChange={handleWeatherCenterChange}
         />
 
         {markerDisplays.map(({ event: ev, angle, zIndex, delayMs }) => (
@@ -497,7 +481,7 @@ export default function HubMap() {
       <WindOverlay
         weather={hubWeather}
         variant="hub"
-        showWind={showWindOverlay && !isMapInteracting}
+        showWind={showWindOverlay}
         showClouds={showCloudOverlay}
         showBadge={false}
       />
