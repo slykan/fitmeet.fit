@@ -10,7 +10,7 @@ import { TurnstileModal } from '@/src/components/TurnstileModal'
 import { useAuthStore } from '@/src/store/auth'
 import { palette, spacing } from '@/src/theme'
 
-const ANDROID_CLIENT_ID = '206851995035-0cn2pik52tpaprm9hsshss7uhehab2h0.apps.googleusercontent.com'
+const ANDROID_CLIENT_ID = '206851995035-f0vleunetrb0nqog6dm24e1j1aq6tgqa.apps.googleusercontent.com'
 const WEB_CLIENT_ID     = '206851995035-0cn2pik52tpaprm9hsshss7uhehab2h0.apps.googleusercontent.com'
 
 WebBrowser.maybeCompleteAuthSession()

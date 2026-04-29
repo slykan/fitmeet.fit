@@ -16,7 +16,8 @@ import { palette, spacing } from '@/src/theme'
 //   SHA-1:  run in terminal:
 //     keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android
 // Then paste the Android Client ID below:
-const ANDROID_CLIENT_ID = '206851995035-0cn2pik52tpaprm9hsshss7uhehab2h0.apps.googleusercontent.com'
+// Desktop/installed OAuth client — works for dev builds via PKCE flow
+const ANDROID_CLIENT_ID = '206851995035-f0vleunetrb0nqog6dm24e1j1aq6tgqa.apps.googleusercontent.com'
 const WEB_CLIENT_ID     = '206851995035-0cn2pik52tpaprm9hsshss7uhehab2h0.apps.googleusercontent.com'
 
 WebBrowser.maybeCompleteAuthSession()
