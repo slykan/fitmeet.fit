@@ -237,7 +237,6 @@ export default function HubMap() {
   const [selected, setSelected]     = useState<EventPin | null>(null)
   const [participants, setParticipants] = useState<Participant[]>([])
   const [ready,    setReady]        = useState(false)
-  const [radar,    setRadar]        = useState(true)
   const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set())
   const [radiusIndex, setRadiusIndex] = useState(0)
   const [goingOnly, setGoingOnly] = useState(false)
@@ -294,9 +293,6 @@ export default function HubMap() {
       })
       .catch(() => {})
       .finally(() => setReady(true))
-
-    const t = setTimeout(() => setRadar(false), 5200)
-    return () => clearTimeout(t)
   }, [lat, lng, friendsOnly])
 
   useEffect(() => {
@@ -784,66 +780,6 @@ export default function HubMap() {
           }
         `}</style>
       </div>
-
-      {/* Radar sweep */}
-      {radar && (
-        <>
-          <style>{`
-            @keyframes fm-radar-fade { 0% { opacity:1; } 100% { opacity:0; } }
-          `}</style>
-          <svg viewBox="0 0 220 220" xmlns="http://www.w3.org/2000/svg"
-            style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              width: '100vmin',
-              height: '100vmin',
-              transform: 'translate(-50%, -50%)',
-              display: 'block',
-              pointerEvents: 'none',
-              zIndex: 500,
-              overflow: 'visible',
-              animation: 'fm-radar-fade 5s linear forwards',
-            }}>
-            <defs>
-              <clipPath id="fm-clip">
-                <circle cx="110" cy="110" r="100"/>
-              </clipPath>
-            </defs>
-
-            <g clipPath="url(#fm-clip)">
-              <circle cx="110" cy="110" r="100" fill="none" stroke="#00aaff" strokeOpacity="0.25" strokeWidth="2"/>
-              <circle cx="110" cy="110" r="75"  fill="none" stroke="#00aaff" strokeOpacity="0.18"/>
-              <circle cx="110" cy="110" r="50"  fill="none" stroke="#00aaff" strokeOpacity="0.18"/>
-              <circle cx="110" cy="110" r="25"  fill="none" stroke="#00aaff" strokeOpacity="0.18"/>
-              <line x1="10"  y1="110" x2="210" y2="110" stroke="#00aaff" strokeOpacity="0.15"/>
-              <line x1="110" y1="10"  x2="110" y2="210" stroke="#00aaff" strokeOpacity="0.15"/>
-
-              <g transform="translate(110 110)">
-                <line x1="0" y1="0" x2="0" y2="-100"
-                  stroke="#00aaff" strokeOpacity="0.65" strokeWidth="2" strokeLinecap="round">
-                  <animateTransform attributeName="transform" type="rotate"
-                    from="0" to="360" dur="3s" repeatCount="indefinite"/>
-                </line>
-              </g>
-
-              <circle cx="110" cy="110" r="8" fill="none" stroke="#00aaff" strokeWidth="2">
-                <animate attributeName="r"       from="8" to="95" dur="2.4s" repeatCount="indefinite"/>
-                <animate attributeName="opacity" from="0.8" to="0" dur="2.4s" repeatCount="indefinite"/>
-              </circle>
-              <circle cx="110" cy="110" r="8" fill="none" stroke="#00aaff" strokeWidth="2">
-                <animate attributeName="r"       from="8" to="95" dur="2.4s" begin="1.2s" repeatCount="indefinite"/>
-                <animate attributeName="opacity" from="0.8" to="0" dur="2.4s" begin="1.2s" repeatCount="indefinite"/>
-              </circle>
-
-              <circle cx="110" cy="110" r="5" fill="#00aaff">
-                <animate attributeName="opacity" values="1;0.5;1" dur="1.2s" repeatCount="indefinite"/>
-              </circle>
-            </g>
-          </svg>
-        </>
-      )}
-
       {/* Empty state */}
       {ready && visibleEvents.length === 0 && !selected && (
         <div style={{
