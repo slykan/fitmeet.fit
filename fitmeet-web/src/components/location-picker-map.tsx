@@ -171,20 +171,20 @@ export function WindOverlay({
             <g filter="url(#fitmeet-cloud-blur)">
               <path
                 d="M22 148 C92 92, 198 86, 304 122 C408 156, 476 144, 560 116 C686 74, 808 88, 930 156 L930 344 C836 316, 738 306, 630 328 C488 356, 360 348, 240 314 C148 288, 78 286, 22 300 Z"
-                fill={`rgba(214,220,230,${cloudOpacity * 0.78})`}
+                fill={`rgba(160,172,196,${cloudOpacity * 0.9})`}
               />
               <path
                 d="M96 446 C194 396, 302 392, 404 428 C490 458, 576 466, 662 444 C772 416, 866 422, 968 470 L968 654 C862 626, 754 620, 632 644 C508 668, 392 666, 278 636 C188 612, 112 612, 34 632 L34 496 C56 482, 74 462, 96 446 Z"
-                fill={`rgba(198,206,218,${cloudOpacity * 0.72})`}
+                fill={`rgba(140,155,182,${cloudOpacity * 0.85})`}
               />
               <path
                 d="M146 702 C246 668, 344 670, 450 698 C552 724, 646 726, 742 700 C826 678, 906 680, 980 710 L980 864 C900 850, 822 848, 730 860 C618 876, 504 878, 394 860 C294 844, 198 838, 98 850 L98 728 C114 720, 128 708, 146 702 Z"
-                fill={`rgba(206,214,226,${cloudOpacity * 0.7})`}
+                fill={`rgba(150,164,190,${cloudOpacity * 0.82})`}
               />
-              <ellipse cx="232" cy="248" rx="120" ry="54" fill={`rgba(248,250,252,${cloudOpacity * 0.22})`} />
-              <ellipse cx="712" cy="214" rx="146" ry="62" fill={`rgba(244,247,251,${cloudOpacity * 0.2})`} />
-              <ellipse cx="554" cy="560" rx="162" ry="70" fill={`rgba(250,252,255,${cloudOpacity * 0.16})`} />
-              <ellipse cx="302" cy="780" rx="152" ry="62" fill={`rgba(240,244,249,${cloudOpacity * 0.14})`} />
+              <ellipse cx="232" cy="248" rx="120" ry="54" fill={`rgba(180,192,214,${cloudOpacity * 0.4})`} />
+              <ellipse cx="712" cy="214" rx="146" ry="62" fill={`rgba(176,188,210,${cloudOpacity * 0.36})`} />
+              <ellipse cx="554" cy="560" rx="162" ry="70" fill={`rgba(182,194,216,${cloudOpacity * 0.32})`} />
+              <ellipse cx="302" cy="780" rx="152" ry="62" fill={`rgba(170,184,208,${cloudOpacity * 0.3})`} />
             </g>
           </svg>
         )}
@@ -212,7 +212,7 @@ export function WindOverlay({
           />
         )}
 
-        {showWind && streams.map((stream) => (
+        {showWind && hasAtmosphere && streams.map((stream) => (
           <span
             key={`stream-${stream.id}`}
             style={{
@@ -244,7 +244,7 @@ export function WindOverlay({
           </span>
         ))}
 
-        {showWind && particles.map((particle) => (
+        {showWind && hasAtmosphere && particles.map((particle) => (
           <span
             key={particle.id}
             style={{
