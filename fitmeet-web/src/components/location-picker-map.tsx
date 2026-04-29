@@ -127,10 +127,10 @@ export function WindOverlay({
     : 0
   const hasAtmosphere = isCloudy || isRainy
   const windFieldOpacity = showWind && hasAtmosphere
-    ? (isHub ? (isMobile ? 0.09 : 0.055) : (isMobile ? 0.08 : 0.05))
+    ? (isHub ? (isMobile ? 0.04 : 0.026) : (isMobile ? 0.08 : 0.05))
     : 0
   const glowBaseOpacity = showWind && hasAtmosphere
-    ? glowOpacity * (isHub ? 0.72 : 0.82)
+    ? glowOpacity * (isHub ? 0.56 : 0.82)
     : 0
 
   return (
@@ -227,8 +227,8 @@ export function WindOverlay({
                 height: `${stream.thickness}px`,
                 borderRadius: 999,
                 opacity: 0,
-                background: `linear-gradient(90deg, rgba(255,255,255,0), rgba(232,255,238,${streamOpacity * 0.92}), rgba(118,212,142,${Math.min(streamOpacity * 1.14, 1)}), rgba(255,255,255,0))`,
-                boxShadow: `0 0 18px rgba(118,212,142,${Math.min(streamOpacity, 0.96)})`,
+                background: `linear-gradient(90deg, rgba(255,255,255,0), rgba(232,255,238,${streamOpacity * (isHub ? 1 : 0.92)}), rgba(118,212,142,${Math.min(streamOpacity * (isHub ? 1.2 : 1.14), 1)}), rgba(255,255,255,0))`,
+                boxShadow: `0 0 18px rgba(118,212,142,${Math.min(streamOpacity * (isHub ? 1.06 : 1), 0.98)})`,
                 transform: `translate3d(calc(${distance}px * -0.18), 0, 0) scaleX(0.85)`,
                 animationName: 'fitmeet-wind-stream',
                 animationDuration: `${duration + stream.durationOffset}s`,
@@ -258,8 +258,8 @@ export function WindOverlay({
                 height: `${particle.size}px`,
                 borderRadius: 999,
                 opacity: 0,
-                background: `rgba(230,255,236,${Math.min(opacity * 1.14, 1)})`,
-                boxShadow: `0 0 16px rgba(118,212,142,${Math.min(opacity, 0.96)})`,
+                background: `rgba(230,255,236,${Math.min(opacity * (isHub ? 1.2 : 1.14), 1)})`,
+                boxShadow: `0 0 16px rgba(118,212,142,${Math.min(opacity * (isHub ? 1.08 : 1), 0.98)})`,
                 transform: 'translate3d(0, 0, 0) scale(0.7)',
                 animationName: 'fitmeet-wind-drift',
                 animationDuration: `${duration + particle.durationOffset}s`,
