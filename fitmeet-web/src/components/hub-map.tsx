@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { MapContainer, TileLayer, Marker, ZoomControl, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -263,6 +263,7 @@ export default function HubMap() {
   const [weatherCenter, setWeatherCenter] = useState<{ lat: number; lng: number } | null>(null)
   const [showWindOverlay, setShowWindOverlay] = useState(true)
   const [showCloudOverlay, setShowCloudOverlay] = useState(true)
+  const weatherRequestId = useRef(0)
 
   const lat      = (user?.location?.lat  || user?.home?.lat  || null)
   const lng      = (user?.location?.lng  || user?.home?.lng  || null)
@@ -310,9 +311,22 @@ export default function HubMap() {
       return
     }
 
+    weatherRequestId.current += 1
+    const requestId = weatherRequestId.current
+    let cancelled = false
+
     fetchCurrentWeather(weatherCenter.lat, weatherCenter.lng)
-      .then(setHubWeather)
-      .catch(() => setHubWeather(null))
+      .then((weather) => {
+        if (cancelled || requestId !== weatherRequestId.current) return
+        setHubWeather(weather)
+      })
+      .catch(() => {
+        if (!cancelled && requestId === weatherRequestId.current) setHubWeather(null)
+      })
+
+    return () => {
+      cancelled = true
+    }
   }, [weatherCenter])
 
   useEffect(() => {

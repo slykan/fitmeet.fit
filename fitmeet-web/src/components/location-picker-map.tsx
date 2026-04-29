@@ -106,12 +106,12 @@ export function WindOverlay({
   const duration = Math.max(4.4, 10.6 - effectiveWind * 0.08)
   const distance = Math.min(158, 46 + effectiveWind * 2.4)
   const opacity = Math.min(
-    isHub ? (isMobile ? 0.96 : 0.92) : (isMobile ? 0.9 : 0.82),
-    (isHub ? (isMobile ? 0.62 : 0.54) : (isMobile ? 0.52 : 0.42)) + effectiveWind / (isHub ? (isMobile ? 72 : 80) : (isMobile ? 88 : 95)),
+    isHub ? (isMobile ? 0.98 : 0.96) : (isMobile ? 0.9 : 0.82),
+    (isHub ? (isMobile ? 0.68 : 0.62) : (isMobile ? 0.52 : 0.42)) + effectiveWind / (isHub ? (isMobile ? 68 : 74) : (isMobile ? 88 : 95)),
   )
   const streamOpacity = Math.min(
-    isHub ? (isMobile ? 0.98 : 0.98) : (isMobile ? 0.9 : 0.9),
-    (isHub ? (isMobile ? 0.68 : 0.66) : (isMobile ? 0.56 : 0.5)) + effectiveWind / (isHub ? (isMobile ? 68 : 70) : (isMobile ? 84 : 86)),
+    isHub ? (isMobile ? 1 : 1) : (isMobile ? 0.9 : 0.9),
+    (isHub ? (isMobile ? 0.76 : 0.74) : (isMobile ? 0.56 : 0.5)) + effectiveWind / (isHub ? (isMobile ? 64 : 64) : (isMobile ? 84 : 86)),
   )
   const glowOpacity = Math.min(
     isHub ? (isMobile ? 0.3 : 0.24) : (isMobile ? 0.22 : 0.16),
@@ -128,12 +128,12 @@ export function WindOverlay({
   const hasAtmosphere = isCloudy || isRainy
   const windFieldOpacity = showWind
     ? hasAtmosphere
-      ? (isHub ? (isMobile ? 0.16 : 0.13) : (isMobile ? 0.1 : 0.06))
+      ? (isHub ? (isMobile ? 0.09 : 0.055) : (isMobile ? 0.08 : 0.05))
       : (isHub ? (isMobile ? 0.08 : 0.045) : (isMobile ? 0.055 : 0.025))
     : 0
   const glowBaseOpacity = showWind
     ? hasAtmosphere
-      ? glowOpacity
+      ? glowOpacity * (isHub ? 0.72 : 0.82)
       : glowOpacity * (isHub ? 0.52 : 0.4)
     : 0
 
@@ -147,7 +147,7 @@ export function WindOverlay({
           overflow: 'hidden',
           zIndex: 500,
           background: showWind
-            ? `linear-gradient(${flowAngle}deg, rgba(${isHub ? '28,66,38' : '32,72,42'},${glowBaseOpacity * 0.78}), rgba(255,255,255,0.01), rgba(${isHub ? '110,182,134' : '122,194,144'},${Math.min((glowBaseOpacity + (isHub ? (isMobile ? 0.16 : 0.12) : (isMobile ? 0.1 : 0.06))) * 0.74, isHub ? (isMobile ? 0.34 : 0.28) : (isMobile ? 0.24 : 0.16))}))`
+            ? `linear-gradient(${flowAngle}deg, rgba(${isHub ? '28,66,38' : '32,72,42'},${glowBaseOpacity * 0.64}), rgba(255,255,255,0.01), rgba(${isHub ? '110,182,134' : '122,194,144'},${Math.min((glowBaseOpacity + (isHub ? (isMobile ? 0.14 : 0.1) : (isMobile ? 0.1 : 0.06))) * 0.66, isHub ? (isMobile ? 0.28 : 0.2) : (isMobile ? 0.24 : 0.16))}))`
             : 'transparent',
         }}
       >
