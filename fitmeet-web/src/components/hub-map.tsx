@@ -574,11 +574,11 @@ export default function HubMap() {
               />
             </label>
 
-            <div className="order-2 flex items-center gap-2 md:contents">
+            <div className="order-2 flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => setGoingOnly(v => !v)}
-                className="inline-flex flex-1 items-center justify-center gap-1 text-[11px] px-2.5 py-2 rounded-full border font-semibold transition-colors md:flex-none md:text-xs md:px-3"
+                className="inline-flex flex-none items-center justify-center gap-1 text-[11px] px-2.5 py-2 rounded-full border font-semibold transition-colors md:text-xs md:px-3"
                 style={{
                   borderColor: goingOnly ? 'var(--primary)' : 'var(--border)',
                   color: goingOnly ? 'var(--primary)' : 'var(--text-muted)',
@@ -591,7 +591,7 @@ export default function HubMap() {
               <button
                 type="button"
                 onClick={() => setFriendsOnly(v => !v)}
-                className="inline-flex flex-1 items-center justify-center gap-1.5 text-[11px] px-3 py-2 rounded-full border font-semibold transition-colors md:flex-none md:text-xs"
+                className="inline-flex flex-none items-center justify-center gap-1.5 text-[11px] px-3 py-2 rounded-full border font-semibold transition-colors md:text-xs"
                 style={{
                   borderColor: friendsOnly ? 'var(--primary)' : 'var(--border)',
                   color: friendsOnly ? 'var(--primary)' : 'var(--text-muted)',
@@ -604,7 +604,7 @@ export default function HubMap() {
               <button
                 type="button"
                 onClick={() => setMyOnly(v => !v)}
-                className="inline-flex flex-1 items-center justify-center gap-1.5 text-[11px] px-3 py-2 rounded-full border font-semibold transition-colors md:flex-none md:text-xs"
+                className="inline-flex flex-none items-center justify-center gap-1.5 text-[11px] px-3 py-2 rounded-full border font-semibold transition-colors md:text-xs"
                 style={{
                   borderColor: myOnly ? 'var(--primary)' : 'var(--border)',
                   color: myOnly ? 'var(--primary)' : 'var(--text-muted)',
