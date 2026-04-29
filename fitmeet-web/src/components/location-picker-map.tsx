@@ -161,8 +161,8 @@ export function WindOverlay({
             }}
           >
             <defs>
-              <filter id="fitmeet-cloud-blur">
-                <feGaussianBlur stdDeviation="24" />
+              <filter id="fitmeet-cloud-blur" x="-15%" y="-15%" width="130%" height="130%">
+                <feGaussianBlur stdDeviation="38" />
               </filter>
             </defs>
             <g filter="url(#fitmeet-cloud-blur)">
@@ -198,7 +198,7 @@ export function WindOverlay({
           />
         )}
 
-        {showWind && hasAtmosphere && (
+        {showWind && (
           <div
             style={{
               position: 'absolute',
@@ -209,7 +209,7 @@ export function WindOverlay({
           />
         )}
 
-        {showWind && hasAtmosphere && streams.map((stream) => (
+        {showWind && streams.map((stream) => (
           <span
             key={`stream-${stream.id}`}
             style={{
@@ -241,7 +241,7 @@ export function WindOverlay({
           </span>
         ))}
 
-        {showWind && hasAtmosphere && particles.map((particle) => (
+        {showWind && particles.map((particle) => (
           <span
             key={particle.id}
             style={{
