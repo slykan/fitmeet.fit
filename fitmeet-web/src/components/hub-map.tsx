@@ -163,13 +163,36 @@ function HubWeatherSync({
 }: {
   onCenterChange: (center: { lat: number; lng: number }) => void
 }) {
+  const map = useMap()
+  const userMovedRef = useRef(false)
+
+  useEffect(() => {
+    const container = map.getContainer()
+
+    const markUserInteraction = () => {
+      userMovedRef.current = true
+    }
+
+    container.addEventListener('pointerdown', markUserInteraction, { passive: true })
+    container.addEventListener('wheel', markUserInteraction, { passive: true })
+
+    return () => {
+      container.removeEventListener('pointerdown', markUserInteraction)
+      container.removeEventListener('wheel', markUserInteraction)
+    }
+  }, [map])
+
   useMapEvents({
     moveend: (event) => {
+      if (!userMovedRef.current) return
       const center = event.target.getCenter()
+      userMovedRef.current = false
       onCenterChange({ lat: center.lat, lng: center.lng })
     },
     zoomend: (event) => {
+      if (!userMovedRef.current) return
       const center = event.target.getCenter()
+      userMovedRef.current = false
       onCenterChange({ lat: center.lat, lng: center.lng })
     },
   })
@@ -188,6 +211,7 @@ interface MarkerDisplay {
   angle: number
   zIndex: number
   delayMs: number
+  icon: L.DivIcon
 }
 
 function getBouquetAngle(index: number, total: number): number {
@@ -372,6 +396,13 @@ export default function HubMap() {
         angle: getBouquetAngle(index, group.length),
         zIndex: 1000 + index,
         delayMs: index * 55,
+        icon: createEmojiIcon(
+          CATEGORY_EMOJI[event.category.value] ?? '📍',
+          getBouquetAngle(index, group.length),
+          1000 + index,
+          index * 55,
+          event.status === 'cancelled',
+        ),
       }))
     )
   }, [visibleEvents])
@@ -464,11 +495,11 @@ export default function HubMap() {
           onCenterChange={handleWeatherCenterChange}
         />
 
-        {markerDisplays.map(({ event: ev, angle, zIndex, delayMs }) => (
+        {markerDisplays.map(({ event: ev, zIndex, icon }) => (
           <Marker
             key={ev.id}
             position={[ev.location.lat, ev.location.lng]}
-            icon={createEmojiIcon(CATEGORY_EMOJI[ev.category.value] ?? '📍', angle, zIndex, delayMs, ev.status === 'cancelled')}
+            icon={icon}
             zIndexOffset={zIndex}
             eventHandlers={{ click: () => setSelected(ev) }}
           />
