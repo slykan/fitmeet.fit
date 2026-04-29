@@ -143,7 +143,7 @@ export function WindOverlay({
         {cloudOpacity > 0 && (
           <svg
             viewBox="0 0 1000 1000"
-            preserveAspectRatio="none"
+            preserveAspectRatio="xMidYMid slice"
             style={{
               position: 'absolute',
               inset: 0,
