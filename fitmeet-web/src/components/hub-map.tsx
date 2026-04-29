@@ -39,41 +39,26 @@ interface EventPin {
 }
 
 function createEmojiIcon(emoji: string, angle = 0, zIndex = 1, delayMs = 0, cancelled = false) {
-  const offsetPx = Math.round(Math.sin(angle * Math.PI / 180) * 30)
-  const stemHeight = 40 + Math.round(Math.abs(angle) * 0.22)
+  const offsetPx = Math.round(Math.sin(angle * Math.PI / 180) * 18)
   const accent = cancelled ? '#f87171' : '#39FF14'
-  const secondary = cancelled ? '#7f1d1d' : '#0ea5e9'
 
   return L.divIcon({
     html: `<div style="
       position:relative;
-      width:78px;
-      height:82px;
+      width:64px;
+      height:64px;
       z-index:${zIndex};
       cursor:pointer;
     ">
       <div style="
         position:absolute;
         inset:0;
-        transform-origin:50% calc(100% - 3px);
         animation:fm-marker-bloom 620ms cubic-bezier(.2,.85,.2,1) ${delayMs}ms both;
       ">
       <div style="
         position:absolute;
-        left:50%;
-        bottom:8px;
-        width:3px;
-        height:${stemHeight}px;
-        transform:translateX(-50%) rotate(${angle}deg);
-        transform-origin:bottom center;
-        border-radius:999px;
-        background:linear-gradient(180deg,${accent},${secondary});
-        box-shadow:0 0 10px ${cancelled ? 'rgba(248,113,113,0.35)' : 'rgba(57,255,20,0.35)'};
-      "></div>
-      <div style="
-        position:absolute;
         left:calc(50% - 19px + ${offsetPx}px);
-        top:${Math.max(2, 10 - Math.abs(angle) * 0.12)}px;
+        top:10px;
         width:38px;
         height:38px;
         background:#16161F;
@@ -83,25 +68,24 @@ function createEmojiIcon(emoji: string, angle = 0, zIndex = 1, delayMs = 0, canc
         align-items:center;
         justify-content:center;
         font-size:18px;
-        transform:rotate(${angle * 0.18}deg);
         box-shadow:0 4px 14px rgba(0,0,0,0.65),0 0 16px ${cancelled ? 'rgba(248,113,113,0.22)' : 'rgba(57,255,20,0.22)'};
       ">${emoji}</div>
       <div style="
         position:absolute;
-        left:50%;
-        bottom:3px;
-        width:8px;
-        height:8px;
-        transform:translateX(-50%);
+        left:calc(50% - 3px + ${Math.round(offsetPx * 0.28)}px);
+        bottom:10px;
+        width:6px;
+        height:6px;
         border-radius:50%;
         background:${accent};
-        box-shadow:0 0 10px ${cancelled ? 'rgba(248,113,113,0.55)' : 'rgba(57,255,20,0.55)'};
+        opacity:0.9;
+        box-shadow:0 0 8px ${cancelled ? 'rgba(248,113,113,0.42)' : 'rgba(57,255,20,0.42)'};
       "></div>
       </div>
     </div>`,
     className: '',
-    iconSize: [78, 82],
-    iconAnchor: [39, 79],
+    iconSize: [64, 64],
+    iconAnchor: [32, 54],
   })
 }
 
