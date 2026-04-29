@@ -206,9 +206,11 @@ export function WindOverlay({
             style={{
               position: 'absolute',
               inset: 0,
-              background: `repeating-linear-gradient(${flowAngle + 18}deg, rgba(84,152,214,0) 0px, rgba(84,152,214,0) 8px, rgba(84,152,214,${Math.min(rainOpacity * 0.96, 0.96)}) 10px, rgba(84,152,214,0) 14px)`,
-              opacity: isHub ? 0.92 : 0.42,
-              animation: 'fitmeet-rain-shift 7s linear infinite',
+              background: isHub
+                ? `linear-gradient(180deg, rgba(120,170,220,${Math.min(rainOpacity * 0.34, 0.34)}), rgba(120,170,220,${Math.min(rainOpacity * 0.14, 0.16)}))`
+                : `repeating-linear-gradient(${flowAngle + 18}deg, rgba(84,152,214,0) 0px, rgba(84,152,214,0) 8px, rgba(84,152,214,${Math.min(rainOpacity * 0.96, 0.96)}) 10px, rgba(84,152,214,0) 14px)`,
+              opacity: isHub ? 0.9 : 0.42,
+              animation: isHub ? 'none' : 'fitmeet-rain-shift 7s linear infinite',
             }}
           />
         )}
