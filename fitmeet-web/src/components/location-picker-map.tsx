@@ -120,7 +120,7 @@ export function WindOverlay({
   const cloudStrength = weatherCloudStrength(weather.code)
   const rainStrength = weatherRainStrength(weather.code, weather.precipitation)
   const cloudOpacity = isCloudy
-    ? (isHub ? (isMobile ? 0.88 : 0.74) : (isMobile ? 0.26 : 0.18)) * cloudStrength
+    ? (isHub ? (isMobile ? 1 : 0.92) : (isMobile ? 0.26 : 0.18)) * cloudStrength
     : 0
   const rainOpacity = isRainy
     ? (isHub ? (isMobile ? 0.82 : 0.66) : (isMobile ? 0.26 : 0.18)) * rainStrength
@@ -188,13 +188,13 @@ export function WindOverlay({
               <ellipse cx="302" cy="780" rx="152" ry="62" fill={`rgba(200,212,232,${cloudOpacity * 0.32})`} />
               {isHub && (
                 <>
-                  <ellipse cx="144" cy="150" rx="154" ry="74" fill={`rgba(228,236,246,${cloudOpacity * 0.4})`} />
-                  <ellipse cx="374" cy="244" rx="196" ry="88" fill={`rgba(206,218,236,${cloudOpacity * 0.38})`} />
-                  <ellipse cx="798" cy="188" rx="188" ry="82" fill={`rgba(224,232,244,${cloudOpacity * 0.36})`} />
-                  <ellipse cx="664" cy="454" rx="226" ry="96" fill={`rgba(206,218,236,${cloudOpacity * 0.34})`} />
-                  <ellipse cx="212" cy="594" rx="202" ry="92" fill={`rgba(226,234,246,${cloudOpacity * 0.34})`} />
-                  <ellipse cx="842" cy="714" rx="214" ry="98" fill={`rgba(214,226,242,${cloudOpacity * 0.32})`} />
-                  <ellipse cx="480" cy="820" rx="242" ry="104" fill={`rgba(228,236,246,${cloudOpacity * 0.3})`} />
+                  <ellipse cx="144" cy="150" rx="154" ry="74" fill={`rgba(236,242,248,${cloudOpacity * 0.56})`} />
+                  <ellipse cx="374" cy="244" rx="196" ry="88" fill={`rgba(214,224,240,${cloudOpacity * 0.52})`} />
+                  <ellipse cx="798" cy="188" rx="188" ry="82" fill={`rgba(232,238,246,${cloudOpacity * 0.5})`} />
+                  <ellipse cx="664" cy="454" rx="226" ry="96" fill={`rgba(214,224,240,${cloudOpacity * 0.48})`} />
+                  <ellipse cx="212" cy="594" rx="202" ry="92" fill={`rgba(236,242,248,${cloudOpacity * 0.48})`} />
+                  <ellipse cx="842" cy="714" rx="214" ry="98" fill={`rgba(220,230,244,${cloudOpacity * 0.46})`} />
+                  <ellipse cx="480" cy="820" rx="242" ry="104" fill={`rgba(236,242,248,${cloudOpacity * 0.42})`} />
                 </>
               )}
             </g>
@@ -207,7 +207,7 @@ export function WindOverlay({
               position: 'absolute',
               inset: 0,
               background: isHub
-                ? `linear-gradient(180deg, rgba(120,170,220,${Math.min(rainOpacity * 0.34, 0.34)}), rgba(120,170,220,${Math.min(rainOpacity * 0.14, 0.16)}))`
+                ? `linear-gradient(180deg, rgba(186,206,228,${Math.min(rainOpacity * 0.44, 0.44)}), rgba(186,206,228,${Math.min(rainOpacity * 0.24, 0.24)}))`
                 : `repeating-linear-gradient(${flowAngle + 18}deg, rgba(84,152,214,0) 0px, rgba(84,152,214,0) 8px, rgba(84,152,214,${Math.min(rainOpacity * 0.96, 0.96)}) 10px, rgba(84,152,214,0) 14px)`,
               opacity: isHub ? 0.9 : 0.42,
               animation: isHub ? 'none' : 'fitmeet-rain-shift 7s linear infinite',
