@@ -494,15 +494,13 @@ export default function HubMap() {
           />
         ))}
       </MapContainer>
-      {!isMapInteracting && (
-        <WindOverlay
-          weather={hubWeather}
-          variant="hub"
-          showWind={showWindOverlay}
-          showClouds={showCloudOverlay}
-          showBadge={false}
-        />
-      )}
+      <WindOverlay
+        weather={hubWeather}
+        variant="hub"
+        showWind={showWindOverlay && !isMapInteracting}
+        showClouds={showCloudOverlay}
+        showBadge={false}
+      />
 
       {/* Filters */}
       <div

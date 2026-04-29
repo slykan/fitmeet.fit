@@ -160,8 +160,7 @@ export function WindOverlay({
               inset: 0,
               width: '100%',
               height: '100%',
-              opacity: isHub ? 0.98 : 0.78,
-              mixBlendMode: 'multiply',
+              opacity: isHub ? 0.72 : 0.78,
             }}
           >
             <defs>
