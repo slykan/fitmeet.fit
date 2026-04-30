@@ -57,6 +57,10 @@ function buildMapHtml(
     .fm-pin.cancelled { border-color:#ff7c7c; box-shadow:0 0 0 3px rgba(255,124,124,0.14); }
     .weather-overlay {
       position:absolute; inset:0; pointer-events:none; overflow:hidden; z-index:450;
+      opacity:0; transition:opacity .45s ease;
+    }
+    .weather-overlay.ready {
+      opacity:1;
     }
     .wind-stream {
       position:absolute; border-radius:999px;
@@ -158,8 +162,8 @@ function buildMapHtml(
       const rad = flowBearing * Math.PI / 180;
       const spd = Math.max(6, weather.windSpeed || 10);
       const dist = Math.min(90, 28 + spd * 2.2);
-      const dx = Math.sin(rad) * dist;
-      const dy = -Math.cos(rad) * dist;
+      const dx = -Math.sin(rad) * dist;
+      const dy = Math.cos(rad) * dist;
       const dur = Math.max(2.4, 8 - spd * 0.06);
       const cssRot = flowBearing - 90;
 
@@ -178,7 +182,7 @@ function buildMapHtml(
           el.style.setProperty('--dx', dx + 'px');
           el.style.setProperty('--dy', dy + 'px');
           el.style.animationDuration  = (dur + Math.random() * 1.8) + 's';
-          el.style.animationDelay     = (-Math.random() * 5) + 's';
+          el.style.animationDelay     = (0.2 + Math.random() * 4.8) + 's';
           overlay.appendChild(el);
         }
       }
@@ -214,6 +218,8 @@ function buildMapHtml(
           overlay.appendChild(line);
         }
       }
+
+      setTimeout(() => overlay.classList.add('ready'), 220);
     }
   </script>
 </body>

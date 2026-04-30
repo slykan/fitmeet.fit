@@ -15,6 +15,8 @@ type Props = {
 
 const WIND_CSS = `
   .wo { position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:450; }
+  .wo{opacity:0;transition:opacity .45s ease;}
+  .wo.ready{opacity:1;}
   .ws {
     position:absolute; border-radius:999px;
     background:linear-gradient(90deg,rgba(255,255,255,0),rgba(168,255,214,0.88),rgba(118,212,142,1),rgba(255,255,255,0));
@@ -79,8 +81,8 @@ function buildHtml(lat: number, lng: number, emoji: string, weather: CurrentWeat
       const rad = flowBearing*Math.PI/180;
       const spd = Math.max(6,weather.windSpeed||10);
       const dist = Math.min(80,26+spd*2);
-      const dx = Math.sin(rad)*dist;
-      const dy = -Math.cos(rad)*dist;
+      const dx = -Math.sin(rad)*dist;
+      const dy = Math.cos(rad)*dist;
       const dur = Math.max(2.2,7.5-spd*0.05);
       const cssRot = flowBearing-90;
       const wo = document.getElementById('wo');
@@ -94,9 +96,10 @@ function buildHtml(lat: number, lng: number, emoji: string, weather: CurrentWeat
         el.style.setProperty('--dx',dx+'px');
         el.style.setProperty('--dy',dy+'px');
         el.style.animationDuration=(dur+Math.random()*1.6)+'s';
-        el.style.animationDelay=(-Math.random()*4.5)+'s';
+        el.style.animationDelay=(0.2+Math.random()*4.3)+'s';
         wo.appendChild(el);
       }
+      setTimeout(() => wo.classList.add('ready'), 220);
     }
   </script>
 </body>
