@@ -26,6 +26,7 @@ type OpenMeteoResponse = {
     weathercode: number[]
     windspeed_10m: number[]
     winddirection_10m: number[]
+    precipitation?: number[]
   }
   daily?: {
     temperature_2m_max: number[]
@@ -49,7 +50,7 @@ export async function fetchEventWeather(
     const url =
       `https://api.open-meteo.com/v1/forecast` +
       `?latitude=${lat}&longitude=${lng}` +
-      `&hourly=temperature_2m,weathercode,windspeed_10m,winddirection_10m` +
+      `&hourly=temperature_2m,weathercode,windspeed_10m,winddirection_10m,precipitation` +
       `&daily=temperature_2m_max,temperature_2m_min` +
       `&timezone=auto&start_date=${isoDate}&end_date=${isoDate}`
 
@@ -93,6 +94,10 @@ export async function fetchEventWeather(
       windSpeed: Math.round(data.hourly.windspeed_10m[resolvedIdx]),
       windDir: Math.round(data.hourly.winddirection_10m[resolvedIdx]),
       tempCurrent: Math.round(data.hourly.temperature_2m[resolvedIdx]),
+      precipitation:
+        data.hourly.precipitation?.[resolvedIdx] != null
+          ? Math.round(data.hourly.precipitation[resolvedIdx] * 10) / 10
+          : undefined,
     }
 
     cache.set(key, result)
