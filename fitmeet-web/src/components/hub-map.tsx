@@ -148,8 +148,10 @@ function MapViewport({ events, lat, lng, radiusKm, ready, recenterKey }: {
 
 function HubWeatherSync({
   onCenterChange,
+  onInteractionChange,
 }: {
   onCenterChange: (center: { lat: number; lng: number }) => void
+  onInteractionChange: (moving: boolean) => void
 }) {
   const map = useMap()
   const userMovedRef = useRef(false)
@@ -159,6 +161,7 @@ function HubWeatherSync({
 
     const markUserInteraction = () => {
       userMovedRef.current = true
+      onInteractionChange(true)
     }
 
     container.addEventListener('pointerdown', markUserInteraction, { passive: true })
@@ -171,13 +174,21 @@ function HubWeatherSync({
   }, [map])
 
   useMapEvents({
+    movestart: () => {
+      if (userMovedRef.current) onInteractionChange(true)
+    },
+    zoomstart: () => {
+      if (userMovedRef.current) onInteractionChange(true)
+    },
     moveend: (event) => {
+      onInteractionChange(false)
       if (!userMovedRef.current) return
       const center = event.target.getCenter()
       userMovedRef.current = false
       onCenterChange({ lat: center.lat, lng: center.lng })
     },
     zoomend: (event) => {
+      onInteractionChange(false)
       if (!userMovedRef.current) return
       const center = event.target.getCenter()
       userMovedRef.current = false
@@ -259,6 +270,7 @@ export default function HubMap() {
   const [hubWeather, setHubWeather] = useState<EventWeather | null>(null)
   const [showWindOverlay, setShowWindOverlay] = useState(true)
   const [showCloudOverlay, setShowCloudOverlay] = useState(true)
+  const [isMapInteracting, setIsMapInteracting] = useState(false)
   const weatherRequestId = useRef(0)
 
   const lat      = (user?.location?.lat  || user?.home?.lat  || null)
@@ -363,6 +375,7 @@ export default function HubMap() {
   const categoryCount = selectedCategories.size
   const hubHasCloudLayer = Boolean(hubWeather && hubWeather.code > 0)
   const hasWeatherTiles = Boolean(openWeatherTileKey)
+  const showWeatherLayers = !isMapInteracting
 
   const visibleEvents = useMemo(() => {
     const specialMode = goingOnly || friendsOnly || myOnly
@@ -471,14 +484,14 @@ export default function HubMap() {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         />
-        {showWindOverlay && hasWeatherTiles && (
+        {showWeatherLayers && showWindOverlay && hasWeatherTiles && (
           <TileLayer
             url={`https://tile.openweathermap.org/map/wind_new/{z}/{x}/{y}.png?appid=${openWeatherTileKey}`}
             opacity={1}
             zIndex={219}
           />
         )}
-        {showCloudOverlay && openWeatherTileKey && (
+        {showWeatherLayers && showCloudOverlay && openWeatherTileKey && (
           <>
             <TileLayer
               url={`https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=${openWeatherTileKey}`}
@@ -503,6 +516,7 @@ export default function HubMap() {
         />
         <HubWeatherSync
           onCenterChange={handleWeatherCenterChange}
+          onInteractionChange={setIsMapInteracting}
         />
 
         <Pane name="fitmeet-event-markers" style={{ zIndex: 900 }}>
@@ -518,13 +532,15 @@ export default function HubMap() {
           ))}
         </Pane>
       </MapContainer>
-      <WindOverlay
-        weather={hubWeather}
-        variant="hub"
-        showWind={showWindOverlay}
-        showClouds={false}
-        showBadge={false}
-      />
+      {showWeatherLayers && (
+        <WindOverlay
+          weather={hubWeather}
+          variant="hub"
+          showWind={showWindOverlay}
+          showClouds={false}
+          showBadge={false}
+        />
+      )}
 
       {/* Filters */}
       <div
