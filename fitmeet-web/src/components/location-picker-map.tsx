@@ -69,7 +69,7 @@ export function WindOverlay({
 
   const particles = useMemo(
     () =>
-      Array.from({ length: isHub ? (isMobile ? 184 : 156) : (isMobile ? 108 : 84) }, (_, i) => ({
+      Array.from({ length: isHub ? (isMobile ? 280 : 236) : (isMobile ? 108 : 84) }, (_, i) => ({
         id: i,
         left: ((i * 19) % 126) - 12,
         top: (i * (isHub ? (isMobile ? 3.2 : 4) : (isMobile ? 4.8 : 6))) % 100,
@@ -82,7 +82,7 @@ export function WindOverlay({
 
   const streams = useMemo(
     () =>
-      Array.from({ length: isHub ? (isMobile ? 212 : 176) : (isMobile ? 112 : 88) }, (_, i) => ({
+      Array.from({ length: isHub ? (isMobile ? 320 : 264) : (isMobile ? 112 : 88) }, (_, i) => ({
         id: i,
         left: ((i * 13) % 126) - 10,
         top: 2 + ((i * (isHub ? (isMobile ? 0.72 : 0.92) : (isMobile ? 1.2 : 1.6))) % 96),
@@ -132,6 +132,8 @@ export function WindOverlay({
   const glowBaseOpacity = showWind && hasAtmosphere
     ? glowOpacity * (isHub ? 0.56 : 0.82)
     : 0
+  const hubStreamBoost = isHub ? (isMobile ? 1.22 : 1.18) : 1
+  const hubParticleBoost = isHub ? (isMobile ? 1.2 : 1.16) : 1
 
   return (
     <>
@@ -244,8 +246,8 @@ export function WindOverlay({
                 height: `${stream.thickness}px`,
                 borderRadius: 999,
                 opacity: 0,
-                background: `linear-gradient(90deg, rgba(255,255,255,0), rgba(232,255,238,${streamOpacity * (isHub ? 1 : 0.92)}), rgba(118,212,142,${Math.min(streamOpacity * (isHub ? 1.2 : 1.14), 1)}), rgba(255,255,255,0))`,
-                boxShadow: `0 0 18px rgba(118,212,142,${Math.min(streamOpacity * (isHub ? 1.06 : 1), 0.98)})`,
+                background: `linear-gradient(90deg, rgba(255,255,255,0), rgba(232,255,238,${Math.min(streamOpacity * (isHub ? 1.16 : 0.92), 1)}), rgba(118,212,142,${Math.min(streamOpacity * (isHub ? 1.34 : 1.14), 1)}), rgba(255,255,255,0))`,
+                boxShadow: `0 0 18px rgba(118,212,142,${Math.min(streamOpacity * hubStreamBoost, 1)})`,
                 transform: `translate3d(calc(${distance}px * -0.18), 0, 0) scaleX(0.85)`,
                 animationName: 'fitmeet-wind-stream',
                 animationDuration: `${duration + stream.durationOffset}s`,
@@ -275,8 +277,8 @@ export function WindOverlay({
                 height: `${particle.size}px`,
                 borderRadius: 999,
                 opacity: 0,
-                background: `rgba(230,255,236,${Math.min(opacity * (isHub ? 1.2 : 1.14), 1)})`,
-                boxShadow: `0 0 16px rgba(118,212,142,${Math.min(opacity * (isHub ? 1.08 : 1), 0.98)})`,
+                background: `rgba(230,255,236,${Math.min(opacity * (isHub ? 1.3 : 1.14), 1)})`,
+                boxShadow: `0 0 16px rgba(118,212,142,${Math.min(opacity * hubParticleBoost, 1)})`,
                 transform: 'translate3d(0, 0, 0) scale(0.7)',
                 animationName: 'fitmeet-wind-drift',
                 animationDuration: `${duration + particle.durationOffset}s`,
