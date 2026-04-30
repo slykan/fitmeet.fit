@@ -22,6 +22,7 @@ class UserResource extends JsonResource
                 'event_reminders' => (bool) $this->email_event_reminders,
                 'friend_events'   => $this->email_friend_events === null ? true : (bool) $this->email_friend_events,
             ],
+            'push_notifications' => (bool) $this->push_notifications,
 
             'location' => [
                 'lat' => $this->lat,

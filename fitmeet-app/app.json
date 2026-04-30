@@ -12,7 +12,7 @@
       "resizeMode": "contain",
       "backgroundColor": "#050816"
     },
-    "plugins": ["expo-web-browser"],
+    "plugins": ["expo-web-browser", "expo-notifications"],
     "ios": {
       "supportsTablet": true,
       "icon": "./assets/icon.png"

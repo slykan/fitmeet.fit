@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
+use App\Jobs\SendPushNotification;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\User;
@@ -234,7 +235,32 @@ class MessageController extends Controller
             'body'        => $body,
         ]);
 
-        return $message->load('sender:id,name,avatar');
+        $message->load('sender:id,name,avatar');
+
+        $recipientIds = $conversation->participants()
+            ->where('users.id', '!=', $senderId)
+            ->pluck('users.id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        if (! empty($recipientIds)) {
+            $title = $conversation->is_group
+                ? ($conversation->title ?: $message->sender->name)
+                : $message->sender->name;
+
+            SendPushNotification::dispatch(
+                $recipientIds,
+                $title,
+                mb_strimwidth($body, 0, 120, '…'),
+                [
+                    'type' => 'new_message',
+                    'conversation_id' => $conversation->id,
+                    'user_id' => $senderId,
+                ],
+            );
+        }
+
+        return $message;
     }
 
     private function findOrCreateDirectConversation(int $me, int $otherUserId): Conversation

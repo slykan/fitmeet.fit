@@ -1,5 +1,6 @@
 <?php
 
+use App\Jobs\SendPushNotification;
 use App\Mail\EventReminderMail;
 use App\Models\EventReminder;
 use Illuminate\Foundation\Inspiring;
@@ -23,17 +24,26 @@ Artisan::command('reminders:send', function () {
             continue;
         }
 
-        if (! $reminder->user->email_event_reminders) {
-            $reminder->update(['sent_at' => now()]);
-            continue;
+        if ($reminder->user->email_event_reminders) {
+            try {
+                Mail::to($reminder->user->email)->send(new EventReminderMail($reminder));
+            } catch (\Throwable $e) {
+                $this->error("Failed reminder #{$reminder->id}: {$e->getMessage()}");
+            }
         }
 
-        try {
-            Mail::to($reminder->user->email)->send(new EventReminderMail($reminder));
-            $reminder->update(['sent_at' => now()]);
-        } catch (\Throwable $e) {
-            $this->error("Failed reminder #{$reminder->id}: {$e->getMessage()}");
-        }
+        SendPushNotification::dispatch(
+            [$reminder->user_id],
+            'Event reminder',
+            $reminder->event->title,
+            [
+                'type' => 'event_reminder',
+                'event_id' => $reminder->event_id,
+                'remind_offset' => $reminder->remind_offset,
+            ],
+        );
+
+        $reminder->update(['sent_at' => now()]);
     }
 
     $this->info("Sent {$reminders->count()} reminder(s).");

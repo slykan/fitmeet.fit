@@ -20,11 +20,14 @@ class SendCancelledEventNotifications implements ShouldQueue
     public function handle(): void
     {
         $event = $this->event->loadMissing('organizer', 'participants');
+        $pushRecipientIds = [];
 
         foreach ($event->participants as $user) {
             if ($user->id === $event->user_id) {
                 continue;
             }
+
+            $pushRecipientIds[] = $user->id;
 
             EventNotification::firstOrCreate([
                 'user_id'  => $user->id,
@@ -38,6 +41,18 @@ class SendCancelledEventNotifications implements ShouldQueue
                 } catch (\Throwable) {
                 }
             }
+        }
+
+        if (! empty($pushRecipientIds)) {
+            SendPushNotification::dispatch(
+                array_values(array_unique($pushRecipientIds)),
+                'Event cancelled',
+                $event->title,
+                [
+                    'type' => 'event_cancelled',
+                    'event_id' => $event->id,
+                ],
+            );
         }
     }
 }

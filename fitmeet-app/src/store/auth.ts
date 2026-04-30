@@ -15,6 +15,7 @@ export interface MobileUser {
     event_reminders: boolean
     friend_events: boolean
   }
+  push_notifications: boolean
   location: { lat: number | null; lng: number | null }
   home: { lat: number | null; lng: number | null; city: string | null; country: string | null }
   radius: 'nearby' | 'city' | 'region' | 'unlimited'
@@ -37,6 +38,7 @@ type AuthState = {
 }
 
 const STORAGE_KEY = 'fitmeet-mobile-auth-v2'
+const PUSH_TOKEN_STORAGE_KEY = 'fitmeet-mobile-push-token-v1'
 const fallbackUrl = 'https://api.fitmeet.fit/api'
 const extra = Constants.expoConfig?.extra as { apiUrl?: string } | undefined
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? extra?.apiUrl ?? fallbackUrl
@@ -124,9 +126,20 @@ export const useAuthStore = create<AuthState>((set) => ({
     const token = useAuthStore.getState().token
     if (token) {
       try {
+        const pushToken = await AsyncStorage.getItem(PUSH_TOKEN_STORAGE_KEY)
+        if (pushToken) {
+          await requestJson('/me/push-token', {
+            method: 'DELETE',
+            body: JSON.stringify({ token: pushToken }),
+          }, token)
+        }
+      } catch {}
+
+      try {
         await requestJson('/logout', { method: 'POST' }, token)
       } catch {}
     }
+    await AsyncStorage.removeItem(PUSH_TOKEN_STORAGE_KEY)
     await AsyncStorage.removeItem(STORAGE_KEY)
     set({ token: null, user: null })
   },

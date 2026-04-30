@@ -6,6 +6,7 @@ import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { api } from '@/src/lib/api'
+import { syncPushToken, unregisterPushToken } from '@/src/lib/push-notifications'
 import { useAuthStore } from '@/src/store/auth'
 import { palette, spacing } from '@/src/theme'
 
@@ -38,6 +39,7 @@ export default function ProfileScreen() {
   const refreshMe  = useAuthStore((s) => s.refreshMe)
   const [saving, setSaving]     = useState<PrefField | null>(null)
   const [prefError, setPrefError] = useState<string | null>(null)
+  const [pushSaving, setPushSaving] = useState(false)
 
   async function togglePref(field: PrefField) {
     if (!user || saving !== null) return
@@ -52,6 +54,29 @@ export default function ProfileScreen() {
       setPrefError('Could not save. Try again.')
     } finally {
       setSaving(null)
+    }
+  }
+
+  async function togglePush() {
+    if (!user || pushSaving) return
+
+    setPushSaving(true)
+    setPrefError(null)
+
+    try {
+      const next = !user.push_notifications
+      await api.patch('/me', { push_notifications: next })
+      await refreshMe()
+
+      if (next) {
+        await syncPushToken(true)
+      } else {
+        await unregisterPushToken()
+      }
+    } catch {
+      setPrefError('Could not save push setting. Try again.')
+    } finally {
+      setPushSaving(false)
     }
   }
 
@@ -141,6 +166,13 @@ export default function ProfileScreen() {
           </Pressable>
         </View>
 
+        {/* Edit profile link */}
+        <Pressable style={styles.settingsLink} onPress={() => router.push('/settings' as never)}>
+          <Ionicons name="settings-outline" size={18} color={palette.accent} />
+          <Text style={styles.settingsLinkText}>Edit profile & settings</Text>
+          <Ionicons name="chevron-forward" size={16} color={palette.textDim} />
+        </Pressable>
+
         {/* Email preferences */}
         <View style={styles.card}>
           <Text style={styles.sectionLabel}>Email settings</Text>
@@ -176,6 +208,52 @@ export default function ProfileScreen() {
             })}
           </View>
           {prefError ? <Text style={styles.errorText}>{prefError}</Text> : null}
+        </View>
+
+        {/* Push notifications */}
+        <View style={styles.card}>
+          <View style={styles.pushHeader}>
+            <Text style={styles.sectionLabel}>Push notifications</Text>
+          </View>
+          <View style={styles.prefList}>
+            <View style={styles.prefRow}>
+              <Ionicons
+                name="phone-portrait-outline"
+                size={17}
+                color={user.push_notifications ? palette.accent : palette.textDim}
+                style={styles.prefIcon}
+              />
+              <View style={styles.prefText}>
+                <Text style={styles.prefLabel}>Enable push notifications</Text>
+                <Text style={styles.prefDesc}>Friend requests, accepted requests, messages, reminders and new events.</Text>
+              </View>
+              {pushSaving ? (
+                <ActivityIndicator size="small" color={palette.accent} />
+              ) : (
+                <Pressable onPress={togglePush} style={[styles.toggle, user.push_notifications && styles.toggleOn]}>
+                  <View style={[styles.knob, user.push_notifications && styles.knobOn]} />
+                </Pressable>
+              )}
+            </View>
+            {[
+              { icon: 'person-add-outline',    label: 'Friend requests',      desc: 'When someone sends you a friend request.' },
+              { icon: 'people-outline',        label: 'Friend accepted',      desc: 'When someone accepts your request.' },
+              { icon: 'calendar-outline',       label: 'New events near you',  desc: 'Events matching your interests.' },
+              { icon: 'notifications-outline',  label: 'Event reminders',      desc: 'Before events you\'ve joined.' },
+              { icon: 'chatbubble-outline',     label: 'New messages',         desc: 'When you receive a new message.' },
+            ].map(({ icon, label, desc }) => (
+              <View key={label} style={styles.prefRow}>
+                <Ionicons name={icon as never} size={17} color={palette.textDim} style={styles.prefIcon} />
+                <View style={styles.prefText}>
+                  <Text style={[styles.prefLabel, { color: palette.textDim }]}>{label}</Text>
+                  <Text style={styles.prefDesc}>{desc}</Text>
+                </View>
+                <View style={[styles.toggle, user.push_notifications && styles.toggleOn]}>
+                  <View style={[styles.knob, user.push_notifications && styles.knobOn]} />
+                </View>
+              </View>
+            ))}
+          </View>
         </View>
 
         {/* Logout */}
@@ -242,6 +320,17 @@ const styles = StyleSheet.create({
 
   linkRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   linkText: { flex: 1, color: palette.text, fontSize: 15, fontWeight: '600' },
+
+  settingsLink: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: palette.panel, borderRadius: 22,
+    borderWidth: 1, borderColor: palette.line, padding: spacing.md,
+  },
+  settingsLinkText: { flex: 1, color: palette.text, fontSize: 15, fontWeight: '700' },
+
+  pushHeader:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
+  comingBadge: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, borderColor: palette.line },
+  comingText:  { color: palette.textDim, fontSize: 11, fontWeight: '600' },
 
   prefList: { gap: 14 },
   prefRow:  { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },

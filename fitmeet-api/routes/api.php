@@ -72,6 +72,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('me',          [AuthController::class, 'me']);
     Route::patch('me',        [UserController::class, 'update']);
     Route::post('me/avatar',  [UserController::class, 'updateAvatar']);
+    Route::post('me/push-token', [UserController::class, 'upsertPushToken']);
+    Route::delete('me/push-token', [UserController::class, 'destroyPushToken']);
     Route::get('users', [UserController::class, 'index']);
 
     // Friends & notifications

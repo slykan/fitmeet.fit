@@ -63,10 +63,13 @@ class SendNewEventNotifications implements ShouldQueue
             ? User::whereIn('id', $friendIds)->where('id', '!=', $event->user_id)->get()
             : collect();
 
+        $pushRecipientIds = collect();
+
         // ── Store in-app notifications + send emails ────────────────────────────
         $emailedIds = [];
 
         foreach ($interestUsers as $user) {
+            $pushRecipientIds->push($user->id);
             EventNotification::firstOrCreate([
                 'user_id'  => $user->id,
                 'event_id' => $event->id,
@@ -82,6 +85,7 @@ class SendNewEventNotifications implements ShouldQueue
         }
 
         foreach ($friendUsers as $user) {
+            $pushRecipientIds->push($user->id);
             EventNotification::firstOrCreate([
                 'user_id'  => $user->id,
                 'event_id' => $event->id,
@@ -99,6 +103,24 @@ class SendNewEventNotifications implements ShouldQueue
                     Mail::to($user->email)->send(new NewEventMail($event, $user));
                 } catch (\Throwable) {}
             }
+        }
+
+        $recipientIds = $pushRecipientIds->unique()->values()->all();
+        if (! empty($recipientIds)) {
+            $start = $event->start_at
+                ? $event->start_at->copy()->timezone($event->timezone ?? config('app.event_timezone'))->format('D, M j \\a\\t g:i A')
+                : null;
+
+            SendPushNotification::dispatch(
+                $recipientIds,
+                "New {$event->category->label()} event",
+                $start ? "{$event->title} - {$start}" : $event->title,
+                [
+                    'type' => 'new_event',
+                    'event_id' => $event->id,
+                    'category' => $event->category->value,
+                ],
+            );
         }
     }
 }

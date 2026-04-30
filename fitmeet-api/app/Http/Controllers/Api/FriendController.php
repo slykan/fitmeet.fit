@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
+use App\Jobs\SendPushNotification;
 use App\Mail\FriendAcceptedMail;
 use App\Mail\FriendRequestMail;
 use App\Models\EventNotification;
@@ -47,6 +48,16 @@ class FriendController extends Controller
             } catch (\Throwable) {}
         }
 
+        SendPushNotification::dispatch(
+            [$user->id],
+            'New friend request',
+            "{$me->name} sent you a friend request.",
+            [
+                'type' => 'friend_request',
+                'user_id' => $me->id,
+            ],
+        );
+
         return response()->json(['message' => 'Friend request sent.']);
     }
 
@@ -76,6 +87,16 @@ class FriendController extends Controller
                     ->send(new FriendAcceptedMail($request->user(), $friendRequest->sender));
             } catch (\Throwable) {}
         }
+
+        SendPushNotification::dispatch(
+            [$friendRequest->sender_id],
+            'Friend request accepted',
+            "{$request->user()->name} accepted your friend request.",
+            [
+                'type' => 'friend_accepted',
+                'user_id' => $request->user()->id,
+            ],
+        );
 
         return response()->json(['message' => 'Friend request accepted.']);
     }

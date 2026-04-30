@@ -8,7 +8,6 @@ use App\Jobs\SendCancelledEventNotifications;
 use App\Http\Requests\StoreEventRequest;
 use App\Http\Requests\UpdateEventRequest;
 use App\Http\Resources\EventResource;
-use App\Jobs\SendEventPushNotifications;
 use App\Jobs\SendNewEventNotifications;
 use App\Models\Event;
 use App\Models\EventReminder;
@@ -113,7 +112,6 @@ class EventController extends Controller
         $event = $request->user()->events()->create($data);
         $event->load('organizer');
 
-        SendEventPushNotifications::dispatch($event);
         SendNewEventNotifications::dispatch($event);
 
         return response()->json(['data' => new EventResource($event)], 201);

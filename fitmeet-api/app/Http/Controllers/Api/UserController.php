@@ -7,6 +7,7 @@ use App\Http\Requests\UpdateProfileRequest;
 use App\Http\Resources\UserResource;
 use App\Models\FriendRequest;
 use App\Models\User;
+use App\Models\UserPushToken;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -126,6 +127,41 @@ class UserController extends Controller
 
         $user->refresh();
         return response()->json(['data' => new UserResource($user)]);
+    }
+
+    public function upsertPushToken(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'token' => ['required', 'string', 'max:4096'],
+            'platform' => ['sometimes', 'nullable', 'string', 'max:24'],
+            'device_name' => ['sometimes', 'nullable', 'string', 'max:120'],
+        ]);
+
+        UserPushToken::updateOrCreate(
+            ['token' => $data['token']],
+            [
+                'user_id' => $request->user()->id,
+                'platform' => $data['platform'] ?? null,
+                'device_name' => $data['device_name'] ?? null,
+                'last_seen_at' => now(),
+            ],
+        );
+
+        return response()->json(['message' => 'Push token saved.']);
+    }
+
+    public function destroyPushToken(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'token' => ['required', 'string', 'max:4096'],
+        ]);
+
+        UserPushToken::query()
+            ->where('user_id', $request->user()->id)
+            ->where('token', $data['token'])
+            ->delete();
+
+        return response()->json(['message' => 'Push token removed.']);
     }
 
     private function deleteStoredAvatar(?string $avatarUrl): void

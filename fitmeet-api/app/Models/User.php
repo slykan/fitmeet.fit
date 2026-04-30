@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Event;
 use App\Models\Conversation;
+use App\Models\UserPushToken;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -27,6 +28,7 @@ class User extends Authenticatable
         'email_new_events',
         'email_event_reminders',
         'email_friend_events',
+        'push_notifications',
         'country',
         'city',
         'lat',
@@ -57,6 +59,7 @@ class User extends Authenticatable
             'email_new_events'      => 'boolean',
             'email_event_reminders' => 'boolean',
             'email_friend_events'   => 'boolean',
+            'push_notifications'    => 'boolean',
             'lat'               => 'float',
             'lng'               => 'float',
             'home_lat'          => 'float',
@@ -94,6 +97,11 @@ class User extends Authenticatable
         return $this->belongsToMany(Conversation::class, 'conversation_participants')
             ->withPivot('last_read_at')
             ->withTimestamps();
+    }
+
+    public function pushTokens(): HasMany
+    {
+        return $this->hasMany(UserPushToken::class);
     }
 
     public function isOnboardingComplete(): bool
