@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { MapContainer, TileLayer, Marker, ZoomControl, useMap, useMapEvents } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Pane, ZoomControl, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { useRouter } from 'next/navigation'
@@ -505,15 +505,18 @@ export default function HubMap() {
           onCenterChange={handleWeatherCenterChange}
         />
 
-        {markerDisplays.map(({ event: ev, zIndex, icon }) => (
-          <Marker
-            key={ev.id}
-            position={[ev.location.lat, ev.location.lng]}
-            icon={icon}
-            zIndexOffset={zIndex}
-            eventHandlers={{ click: () => setSelected(ev) }}
-          />
-        ))}
+        <Pane name="fitmeet-event-markers" style={{ zIndex: 900 }}>
+          {markerDisplays.map(({ event: ev, zIndex, icon }) => (
+            <Marker
+              key={ev.id}
+              pane="fitmeet-event-markers"
+              position={[ev.location.lat, ev.location.lng]}
+              icon={icon}
+              zIndexOffset={zIndex}
+              eventHandlers={{ click: () => setSelected(ev) }}
+            />
+          ))}
+        </Pane>
       </MapContainer>
       <WindOverlay
         weather={hubWeather}
