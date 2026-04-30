@@ -69,9 +69,13 @@ export default function ProfileScreen() {
       await refreshMe()
 
       if (next) {
-        await syncPushToken(true)
+        try {
+          await syncPushToken(true)
+        } catch {}
       } else {
-        await unregisterPushToken()
+        try {
+          await unregisterPushToken()
+        } catch {}
       }
     } catch {
       setPrefError('Could not save push setting. Try again.')

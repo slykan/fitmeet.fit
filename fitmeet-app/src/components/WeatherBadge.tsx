@@ -30,7 +30,7 @@ export function WeatherBadge({ lat, lng, isoDate, hour }: Props) {
       <View style={styles.divider} />
       <Ionicons name="speedometer-outline" size={13} color={palette.textDim} />
       <Text style={styles.wind}>{weather.windSpeed} km/h</Text>
-      <View style={{ transform: [{ rotate: `${weather.windDir + 180}deg` }] }}>
+      <View style={{ transform: [{ rotate: `${weather.windDir}deg` }] }}>
         <Ionicons name="arrow-up-outline" size={13} color={palette.textDim} />
       </View>
     </View>
