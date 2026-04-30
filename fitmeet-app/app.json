@@ -23,6 +23,7 @@
         "backgroundColor": "#050816"
       },
       "edgeToEdgeEnabled": true,
+      "googleServicesFile": "./google-services.json",
       "package": "com.anonymous.fitmeetapp"
     },
     "web": {
