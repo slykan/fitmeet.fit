@@ -5,7 +5,7 @@ import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Calendar, MapPin, Users, Zap, ChevronLeft, Lock, Pencil, ChevronDown, ChevronUp, Bell, Check, X, Share2, XCircle, Download } from 'lucide-react'
+import { Calendar, MapPin, Users, Zap, ChevronLeft, Lock, Pencil, ChevronDown, ChevronUp, Bell, Check, X, Share2, XCircle, Download, Wind, Cloud } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
 import { WeatherBadge } from '@/components/WeatherBadge'
@@ -67,6 +67,8 @@ function EventContent() {
   const [cancelling, setCancelling] = useState(false)
   const [weather, setWeather] = useState<EventWeather | null>(null)
   const [showImageModal, setShowImageModal] = useState(false)
+  const [showWindOverlay, setShowWindOverlay] = useState(true)
+  const [showCloudOverlay, setShowCloudOverlay] = useState(true)
 
   useEffect(() => {
     if (!token) { router.replace('/login'); return }
@@ -355,15 +357,77 @@ function EventContent() {
           </div>
 
           {(event.location.lat != null && event.location.lng != null) && (
-            <LocationPickerMap
-              lat={event.location.lat}
-              lng={event.location.lng}
-              coloredSegments={gpxResult?.coloredSegments}
-              weather={weather}
-              weatherVariant="hub"
-              readOnly
-              height={400}
-            />
+            <div className="relative">
+              <LocationPickerMap
+                lat={event.location.lat}
+                lng={event.location.lng}
+                coloredSegments={gpxResult?.coloredSegments}
+                weather={weather}
+                weatherVariant="hub"
+                showWindOverlay={showWindOverlay}
+                showCloudOverlay={showCloudOverlay}
+                readOnly
+                height={400}
+              />
+              <div
+                className="absolute inset-x-0 bottom-0 z-[700] flex items-center justify-between gap-3 border-t px-3 py-2 sm:px-4"
+                style={{
+                  background: 'rgba(7,11,24,0.7)',
+                  borderColor: 'rgba(255,255,255,0.1)',
+                  backdropFilter: 'blur(10px)',
+                }}
+              >
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowWindOverlay(v => !v)}
+                    className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-colors sm:text-xs"
+                    style={{
+                      borderColor: showWindOverlay ? 'var(--primary)' : 'rgba(255,255,255,0.12)',
+                      color: showWindOverlay ? 'var(--primary)' : 'var(--text-muted)',
+                      background: showWindOverlay ? 'rgba(57,255,20,0.1)' : 'rgba(255,255,255,0.03)',
+                    }}
+                  >
+                    <Wind size={13} />
+                    <span>Wind</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowCloudOverlay(v => !v)}
+                    className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-colors sm:text-xs"
+                    style={{
+                      borderColor: showCloudOverlay ? 'var(--primary)' : 'rgba(255,255,255,0.12)',
+                      color: showCloudOverlay ? 'var(--primary)' : 'var(--text-muted)',
+                      background: showCloudOverlay ? 'rgba(57,255,20,0.1)' : 'rgba(255,255,255,0.03)',
+                    }}
+                  >
+                    <Cloud size={13} />
+                    <span>Clouds</span>
+                  </button>
+                </div>
+                {weather && (
+                  <div
+                    className="hidden items-center gap-2 text-xs font-semibold sm:inline-flex"
+                    style={{ color: '#d7dfef' }}
+                  >
+                    <span>{weather.tempCurrent ?? weather.tempMax}°</span>
+                    <span style={{ width: 1, height: 12, background: 'rgba(255,255,255,0.16)', display: 'inline-block' }} />
+                    <span
+                      style={{
+                        display: 'inline-block',
+                        transform: `rotate(${weather.windDir + 90}deg)`,
+                        color: '#58beff',
+                        lineHeight: 1,
+                        fontSize: 14,
+                      }}
+                    >
+                      {'\u2192'}
+                    </span>
+                    <span>{weather.windSpeed} km/h</span>
+                  </div>
+                )}
+              </div>
+            </div>
           )}
 
           {gpxResult && gpxResult.elevationProfile.length >= 2 && (

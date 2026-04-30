@@ -26,6 +26,8 @@ interface Props {
   height?:          number
   weather?:         EventWeather | null
   weatherVariant?:  'default' | 'hub'
+  showWindOverlay?: boolean
+  showCloudOverlay?: boolean
 }
 
 function ClickHandler({ onChange }: { onChange: (lat: number, lng: number) => void }) {
@@ -381,7 +383,17 @@ export function WindOverlay({
 }
 
 export default function LocationPickerMap({
-  lat, lng, onChange, track, coloredSegments, readOnly = false, height = 220, weather = null, weatherVariant = 'default',
+  lat,
+  lng,
+  onChange,
+  track,
+  coloredSegments,
+  readOnly = false,
+  height = 220,
+  weather = null,
+  weatherVariant = 'default',
+  showWindOverlay = true,
+  showCloudOverlay = true,
 }: Props) {
   const hasPin      = lat != null && lng != null
   const allCoords   = coloredSegments?.flatMap(s => s.coords) ?? track ?? []
@@ -430,7 +442,14 @@ export default function LocationPickerMap({
           </>
         )}
       </MapContainer>
-      {readOnly && <WindOverlay weather={weather} variant={weatherVariant} />}
+      {readOnly && (
+        <WindOverlay
+          weather={weather}
+          variant={weatherVariant}
+          showWind={showWindOverlay}
+          showClouds={showCloudOverlay}
+        />
+      )}
     </div>
   )
 }
