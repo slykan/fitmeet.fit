@@ -144,6 +144,88 @@ class MessageController extends Controller
         ], 201);
     }
 
+    // POST /messages/conversations/{conversation}/participants
+    public function addParticipants(Request $request, Conversation $conversation): JsonResponse
+    {
+        $request->validate([
+            'participant_ids' => 'required|array|min:1',
+            'participant_ids.*' => 'integer|exists:users,id|distinct',
+        ]);
+
+        $me = $request->user()->id;
+        $this->authorizeParticipant($conversation, $me);
+        $this->ensureGroupConversation($conversation);
+        $this->authorizeManager($conversation, $me);
+
+        $existingIds = $conversation->participants()->pluck('users.id')->map(fn ($id) => (int) $id);
+        $newIds = collect($request->participant_ids)
+            ->map(fn ($id) => (int) $id)
+            ->reject(fn ($id) => $id === $me)
+            ->diff($existingIds)
+            ->values();
+
+        if ($newIds->isNotEmpty()) {
+            $now = now();
+            $conversation->participants()->attach(
+                $newIds->mapWithKeys(fn ($id) => [
+                    $id => [
+                        'last_read_at' => null,
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ],
+                ])->all()
+            );
+        }
+
+        $conversation->load('participants:id,name,avatar');
+
+        return response()->json([
+            'conversation' => $this->serializeConversationDetail($conversation, $me),
+        ]);
+    }
+
+    // DELETE /messages/conversations/{conversation}/participants/{user}
+    public function removeParticipant(Request $request, Conversation $conversation, User $user): JsonResponse
+    {
+        $me = $request->user()->id;
+        $this->authorizeParticipant($conversation, $me);
+        $this->ensureGroupConversation($conversation);
+
+        $targetId = $user->id;
+        $isSelfRemoval = $targetId === $me;
+
+        if (! $isSelfRemoval) {
+            $this->authorizeManager($conversation, $me);
+        }
+
+        if (! $conversation->participants()->where('users.id', $targetId)->exists()) {
+            return response()->json(['message' => 'Participant not found.'], 404);
+        }
+
+        if ($conversation->created_by === $targetId && ! $isSelfRemoval) {
+            return response()->json(['message' => 'Group owner cannot be removed.'], 422);
+        }
+
+        $conversation->participants()->detach($targetId);
+
+        if (! $conversation->participants()->exists()) {
+            $conversation->messages()->delete();
+            $conversation->delete();
+
+            return response()->json([
+                'message' => $isSelfRemoval ? 'Conversation left.' : 'Participant removed.',
+                'conversation' => null,
+            ]);
+        }
+
+        $conversation->load('participants:id,name,avatar');
+
+        return response()->json([
+            'message' => $isSelfRemoval ? 'Conversation left.' : 'Participant removed.',
+            'conversation' => $this->serializeConversationDetail($conversation, $me),
+        ]);
+    }
+
     // DELETE /messages/conversations/{conversation}
     public function destroyConversation(Request $request, Conversation $conversation): JsonResponse
     {
@@ -318,6 +400,20 @@ class MessageController extends Controller
         );
     }
 
+    private function ensureGroupConversation(Conversation $conversation): void
+    {
+        abort_unless($conversation->is_group, 422, 'This action is only available for group conversations.');
+    }
+
+    private function authorizeManager(Conversation $conversation, int $userId): void
+    {
+        abort_unless(
+            (int) $conversation->created_by === $userId,
+            403,
+            'Only the group creator can manage members.'
+        );
+    }
+
     private function serializeConversationListItem(Conversation $conversation, int $me): array
     {
         $partner = $conversation->participants->firstWhere('id', '!=', $me);
@@ -325,6 +421,8 @@ class MessageController extends Controller
         return [
             'id'           => $conversation->id,
             'is_group'     => $conversation->is_group,
+            'created_by'   => (int) $conversation->created_by,
+            'can_manage_members' => $conversation->is_group && (int) $conversation->created_by === $me,
             'title'        => $conversation->is_group
                 ? ($conversation->title ?: $conversation->participants->where('id', '!=', $me)->pluck('name')->take(3)->join(', '))
                 : null,
@@ -351,6 +449,8 @@ class MessageController extends Controller
         return [
             'id'           => $conversation->id,
             'is_group'     => $conversation->is_group,
+            'created_by'   => (int) $conversation->created_by,
+            'can_manage_members' => $conversation->is_group && (int) $conversation->created_by === $me,
             'title'        => $conversation->is_group
                 ? ($conversation->title ?: $conversation->participants->where('id', '!=', $me)->pluck('name')->take(3)->join(', '))
                 : ($partner?->name ?? 'Conversation'),

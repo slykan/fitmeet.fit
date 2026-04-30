@@ -90,6 +90,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('messages/conversations', [MessageController::class, 'createConversation']);
     Route::get('messages/conversations/{conversation}', [MessageController::class, 'conversationThread']);
     Route::post('messages/conversations/{conversation}', [MessageController::class, 'sendToConversation']);
+    Route::post('messages/conversations/{conversation}/participants', [MessageController::class, 'addParticipants']);
+    Route::delete('messages/conversations/{conversation}/participants/{user}', [MessageController::class, 'removeParticipant']);
     Route::delete('messages/conversations/{conversation}', [MessageController::class, 'destroyConversation']);
     Route::get('messages/{user}',        [MessageController::class, 'thread']);
     Route::post('messages/{user}',       [MessageController::class, 'send']);
