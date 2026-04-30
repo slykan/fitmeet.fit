@@ -121,10 +121,12 @@ class AuthController extends Controller
         $user = User::where('google_id', $g['sub'] ?? '')->orWhere('email', $g['email'])->first();
 
         if ($user) {
-            $user->update([
-                'google_id' => $g['sub'] ?? $user->google_id,
-                'avatar'    => $user->avatar ?? $g['picture'] ?? null,
-            ]);
+            $update = ['google_id' => $g['sub'] ?? $user->google_id];
+            // Only set Google avatar if user has no custom avatar yet
+            if (empty($user->avatar) && ! empty($g['picture'])) {
+                $update['avatar'] = $g['picture'];
+            }
+            $user->update($update);
         } else {
             $user = User::create([
                 'name'      => $g['name'] ?? $g['email'],
@@ -202,10 +204,11 @@ class AuthController extends Controller
             ->first();
 
         if ($user) {
-            $user->update([
-                'google_id' => $googleUser->getId(),
-                'avatar'    => $googleUser->getAvatar(),
-            ]);
+            $update = ['google_id' => $googleUser->getId()];
+            if (empty($user->avatar) && $googleUser->getAvatar()) {
+                $update['avatar'] = $googleUser->getAvatar();
+            }
+            $user->update($update);
         } else {
             $user = User::create([
                 'name'      => $googleUser->getName(),
