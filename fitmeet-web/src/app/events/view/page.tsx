@@ -69,6 +69,8 @@ function EventContent() {
   const [showImageModal, setShowImageModal] = useState(false)
   const [showWindOverlay, setShowWindOverlay] = useState(true)
   const [showCloudOverlay, setShowCloudOverlay] = useState(true)
+  const [isMapInteracting, setIsMapInteracting] = useState(false)
+  const [weatherCenter, setWeatherCenter] = useState<{ lat: number; lng: number } | null>(null)
 
   useEffect(() => {
     if (!token) { router.replace('/login'); return }
@@ -95,11 +97,17 @@ function EventContent() {
 
   useEffect(() => {
     if (!event?.location || event.location.lat == null || event.location.lng == null) return
+    setWeatherCenter({ lat: event.location.lat, lng: event.location.lng })
+  }, [event?.id, event?.location?.lat, event?.location?.lng])
+
+  useEffect(() => {
+    if (!event?.location || event.location.lat == null || event.location.lng == null) return
+    if (!weatherCenter) return
     const { isoDate, hour } = weatherSlot(event.schedule.start_at, event.schedule.timezone)
-    fetchEventWeather(event.location.lat, event.location.lng, isoDate, hour)
+    fetchEventWeather(weatherCenter.lat, weatherCenter.lng, isoDate, hour)
       .then(setWeather)
       .catch(() => setWeather(null))
-  }, [event?.id, event?.location?.lat, event?.location?.lng, event?.schedule?.start_at])
+  }, [event?.id, event?.schedule?.start_at, event?.schedule?.timezone, weatherCenter])
 
   async function handleJoin() {
     if (!event) return
@@ -361,11 +369,13 @@ function EventContent() {
               <LocationPickerMap
                 lat={event.location.lat}
                 lng={event.location.lng}
+                onViewChange={(lat, lng) => setWeatherCenter({ lat, lng })}
+                onInteractionChange={setIsMapInteracting}
                 coloredSegments={gpxResult?.coloredSegments}
                 weather={weather}
                 weatherVariant="hub"
-                showWindOverlay={showWindOverlay}
-                showCloudOverlay={showCloudOverlay}
+                showWindOverlay={showWindOverlay && !isMapInteracting}
+                showCloudOverlay={showCloudOverlay && !isMapInteracting}
                 readOnly
                 height={400}
               />

@@ -20,6 +20,8 @@ interface Props {
   lat?:             number | null
   lng?:             number | null
   onChange?:        (lat: number, lng: number) => void
+  onViewChange?:    (lat: number, lng: number) => void
+  onInteractionChange?: (moving: boolean) => void
   track?:           [number, number][]
   coloredSegments?: TrackSegment[]
   readOnly?:        boolean
@@ -32,6 +34,31 @@ interface Props {
 
 function ClickHandler({ onChange }: { onChange: (lat: number, lng: number) => void }) {
   useMapEvents({ click: e => onChange(e.latlng.lat, e.latlng.lng) })
+  return null
+}
+
+function ReadOnlyViewSync({
+  onViewChange,
+  onInteractionChange,
+}: {
+  onViewChange?: (lat: number, lng: number) => void
+  onInteractionChange?: (moving: boolean) => void
+}) {
+  useMapEvents({
+    movestart: () => onInteractionChange?.(true),
+    zoomstart: () => onInteractionChange?.(true),
+    moveend: (event) => {
+      onInteractionChange?.(false)
+      const center = event.target.getCenter()
+      onViewChange?.(center.lat, center.lng)
+    },
+    zoomend: (event) => {
+      onInteractionChange?.(false)
+      const center = event.target.getCenter()
+      onViewChange?.(center.lat, center.lng)
+    },
+  })
+
   return null
 }
 
@@ -386,6 +413,8 @@ export default function LocationPickerMap({
   lat,
   lng,
   onChange,
+  onViewChange,
+  onInteractionChange,
   track,
   coloredSegments,
   readOnly = false,
@@ -419,6 +448,7 @@ export default function LocationPickerMap({
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         />
         {!readOnly && onChange && <ClickHandler onChange={onChange} />}
+        {readOnly && <ReadOnlyViewSync onViewChange={onViewChange} onInteractionChange={onInteractionChange} />}
         {hasPin && <Marker position={[lat!, lng!]} />}
 
         {coloredSegments && coloredSegments.length > 0 ? (
