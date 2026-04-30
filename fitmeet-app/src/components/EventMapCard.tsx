@@ -19,18 +19,20 @@ const WIND_CSS = `
     position:absolute; border-radius:999px;
     background:linear-gradient(90deg,rgba(255,255,255,0),rgba(168,255,214,0.88),rgba(118,212,142,1),rgba(255,255,255,0));
     box-shadow:0 0 7px rgba(118,212,142,0.28);
+    transform-origin:center;
     animation:wm linear infinite; opacity:0;
   }
   .wp {
     position:absolute;width:3px;height:3px;border-radius:999px;
     background:rgba(200,255,230,0.86);box-shadow:0 0 7px rgba(168,255,214,0.22);
+    transform-origin:center;
     animation:wm linear infinite;opacity:0;
   }
   @keyframes wm {
-    0%   { opacity:0; transform:translate3d(0,0,0) scale(0.9); }
+    0%   { opacity:0; transform:rotate(var(--rot)) translate3d(0,0,0) scale(0.9); }
     10%  { opacity:1; }
     85%  { opacity:1; }
-    100% { opacity:0; transform:translate3d(var(--dx),var(--dy),0) scale(1.04); }
+    100% { opacity:0; transform:rotate(var(--rot)) translate3d(var(--dx),var(--dy),0) scale(1.04); }
   }
 `
 
@@ -88,7 +90,7 @@ function buildHtml(lat: number, lng: number, emoji: string, weather: CurrentWeat
         if(el.className==='ws'){el.style.width=(10+(i%3)*7)+'px';el.style.height='1.6px';}
         el.style.left=(Math.random()*110-5)+'%';
         el.style.top=(Math.random()*110-5)+'%';
-        el.style.transform='rotate('+cssRot+'deg)';
+        el.style.setProperty('--rot', cssRot+'deg');
         el.style.setProperty('--dx',dx+'px');
         el.style.setProperty('--dy',dy+'px');
         el.style.animationDuration=(dur+Math.random()*1.6)+'s';

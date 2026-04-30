@@ -62,18 +62,20 @@ function buildMapHtml(
       position:absolute; border-radius:999px;
       background:linear-gradient(90deg,rgba(255,255,255,0),rgba(168,255,214,0.92),rgba(118,212,142,1),rgba(255,255,255,0));
       box-shadow:0 0 8px rgba(118,212,142,0.3);
+      transform-origin:center;
       animation:windMove linear infinite; opacity:0;
     }
     .wind-particle {
       position:absolute; width:3px; height:3px; border-radius:999px;
       background:rgba(200,255,230,0.86); box-shadow:0 0 8px rgba(168,255,214,0.24);
+      transform-origin:center;
       animation:windMove linear infinite; opacity:0;
     }
     @keyframes windMove {
-      0%   { opacity:0; transform:translate3d(0,0,0) scale(0.9); }
+      0%   { opacity:0; transform:rotate(var(--rot)) translate3d(0,0,0) scale(0.9); }
       10%  { opacity:1; }
       85%  { opacity:1; }
-      100% { opacity:0; transform:translate3d(var(--dx),var(--dy),0) scale(1.04); }
+      100% { opacity:0; transform:rotate(var(--rot)) translate3d(var(--dx),var(--dy),0) scale(1.04); }
     }
     .cloud-blob {
       position:absolute; border-radius:999px;
@@ -172,7 +174,7 @@ function buildMapHtml(
           }
           el.style.left = (Math.random() * 110 - 5) + '%';
           el.style.top  = (Math.random() * 110 - 5) + '%';
-          el.style.transform = 'rotate(' + cssRot + 'deg)';
+          el.style.setProperty('--rot', cssRot + 'deg');
           el.style.setProperty('--dx', dx + 'px');
           el.style.setProperty('--dy', dy + 'px');
           el.style.animationDuration  = (dur + Math.random() * 1.8) + 's';
