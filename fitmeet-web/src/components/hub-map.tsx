@@ -474,7 +474,7 @@ export default function HubMap() {
         {showWindOverlay && hasWeatherTiles && (
           <TileLayer
             url={`https://tile.openweathermap.org/map/wind_new/{z}/{x}/{y}.png?appid=${openWeatherTileKey}`}
-            opacity={0.72}
+            opacity={1}
             zIndex={219}
           />
         )}
@@ -482,12 +482,12 @@ export default function HubMap() {
           <>
             <TileLayer
               url={`https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=${openWeatherTileKey}`}
-              opacity={0.8}
+              opacity={1}
               zIndex={220}
             />
             <TileLayer
               url={`https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${openWeatherTileKey}`}
-              opacity={0.62}
+              opacity={1}
               zIndex={221}
             />
           </>
