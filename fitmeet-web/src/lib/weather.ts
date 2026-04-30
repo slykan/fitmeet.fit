@@ -191,12 +191,24 @@ export function weatherConditionLabel(code: number, precipitation?: number): str
   if (code === 2) return 'Partly cloudy'
   if (code === 3) return 'Overcast'
   if (code === 45 || code === 48) return 'Fog'
-  if (code >= 51 && code <= 55) return 'Drizzle'
+  if (code >= 51 && code <= 55) {
+    if (precipitation != null && precipitation >= 0.8) return 'Heavy drizzle'
+    if (precipitation != null && precipitation >= 0.2) return 'Light drizzle'
+    return 'Drizzle'
+  }
   if (code >= 56 && code <= 57) return 'Freezing drizzle'
-  if (code >= 61 && code <= 65) return precipitation && precipitation >= 1 ? 'Heavy rain' : 'Rain'
+  if (code >= 61 && code <= 65) {
+    if (precipitation != null && precipitation >= 2.5) return 'Heavy rain'
+    if (precipitation != null && precipitation >= 0.3) return 'Light rain'
+    return 'Rain'
+  }
   if (code >= 66 && code <= 67) return 'Freezing rain'
   if (code >= 71 && code <= 77) return 'Snow'
-  if (code >= 80 && code <= 82) return code === 82 ? 'Heavy showers' : 'Showers'
+  if (code >= 80 && code <= 82) {
+    if (code === 82 || (precipitation != null && precipitation >= 2.5)) return 'Heavy showers'
+    if (precipitation != null && precipitation >= 0.3) return 'Light showers'
+    return 'Showers'
+  }
   if (code >= 95) return 'Thunderstorm'
   return 'Clouds active'
 }
