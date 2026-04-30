@@ -14,7 +14,9 @@ import { WeatherBadge } from '@/components/WeatherBadge'
 import { fetchCurrentWeather, weatherConditionLabel, type EventWeather } from '@/lib/weather'
 import { WindOverlay } from '@/components/location-picker-map'
 
-const openWeatherTileKey = process.env.NEXT_PUBLIC_OPENWEATHER_TILE_KEY ?? ''
+const openWeatherTileKey =
+  process.env.NEXT_PUBLIC_OPENWEATHER_TILE_KEY ??
+  '62d9f65c21e8b140487241223fae5a2e'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 delete (L.Icon.Default.prototype as any)._getIconUrl
@@ -360,6 +362,7 @@ export default function HubMap() {
   const mapCenter: [number, number] = (lat && lng) ? [lat, lng] : [44.5, 16.5]
   const categoryCount = selectedCategories.size
   const hubHasCloudLayer = Boolean(hubWeather && hubWeather.code > 0)
+  const hasWeatherTiles = Boolean(openWeatherTileKey)
 
   const visibleEvents = useMemo(() => {
     const specialMode = goingOnly || friendsOnly || myOnly
@@ -468,6 +471,13 @@ export default function HubMap() {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         />
+        {showWindOverlay && hasWeatherTiles && (
+          <TileLayer
+            url={`https://tile.openweathermap.org/map/wind_new/{z}/{x}/{y}.png?appid=${openWeatherTileKey}`}
+            opacity={0.48}
+            zIndex={219}
+          />
+        )}
         {showCloudOverlay && openWeatherTileKey && (
           <>
             <TileLayer
@@ -508,7 +518,7 @@ export default function HubMap() {
       <WindOverlay
         weather={hubWeather}
         variant="hub"
-        showWind={showWindOverlay}
+        showWind={showWindOverlay && !hasWeatherTiles}
         showClouds={false}
         showBadge={false}
       />
