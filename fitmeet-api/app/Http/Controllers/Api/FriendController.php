@@ -109,6 +109,22 @@ class FriendController extends Controller
         return response()->json(['message' => 'Friend request declined.']);
     }
 
+    // GET /notifications/count
+    public function notificationsCount(Request $request): JsonResponse
+    {
+        $me = $request->user();
+
+        $pending = FriendRequest::where('receiver_id', $me->id)->where('status', 'pending')->count();
+        $accepted = FriendRequest::where('sender_id', $me->id)->where('status', 'accepted')->whereNull('accepted_read_at')->count();
+        $reminders = EventReminder::where('user_id', $me->id)->whereNotNull('sent_at')->where('sent_at', '>=', now()->subHours(24))->count();
+        $newEvents = EventNotification::where('user_id', $me->id)->where('type', 'new_event')->where('created_at', '>=', now()->subDays(7))
+            ->whereHas('event', fn ($q) => $q->where('events.start_at', '>', now())->where('events.status', 'active'))->count();
+        $cancelled = EventNotification::where('user_id', $me->id)->where('type', 'event_cancelled')->where('created_at', '>=', now()->subDays(30))
+            ->whereHas('event', fn ($q) => $q->where('events.status', 'cancelled'))->count();
+
+        return response()->json(['count' => $pending + $accepted + $reminders + $newEvents + $cancelled]);
+    }
+
     // GET /notifications
     public function notifications(Request $request): JsonResponse
     {
