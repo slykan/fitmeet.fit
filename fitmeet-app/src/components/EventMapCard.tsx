@@ -144,7 +144,7 @@ function buildHtml(
       if (!nextWeather) return;
 
       const windDir = nextWeather.windDir||270;
-      const flowBearing = windDir % 360;
+      const flowBearing = (windDir + 180) % 360;
       const rad = flowBearing*Math.PI/180;
       const spd = Math.max(6,nextWeather.windSpeed||10);
       const dist = Math.min(80,26+spd*2);
