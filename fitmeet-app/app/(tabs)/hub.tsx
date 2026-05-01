@@ -288,7 +288,7 @@ export default function HubScreen() {
                 <Text style={styles.weatherChipText}>{weather.temperature}°</Text>
               </View>
               <View style={styles.weatherChip}>
-                <View style={{ transform: [{ rotate: `${weather.windDir % 360}deg` }] }}>
+                <View style={{ transform: [{ rotate: `${(weather.windDir + 180) % 360}deg` }] }}>
                   <Ionicons name="arrow-up-outline" size={13} color={palette.textMuted} />
                 </View>
                 <Text style={styles.weatherChipText}>{weather.windSpeed} km/h</Text>
