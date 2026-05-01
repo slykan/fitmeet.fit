@@ -274,6 +274,8 @@ export default function ProfileScreen() {
           <Text style={styles.logoutLabel}>Log out</Text>
         </Pressable>
 
+        <Text style={styles.versionLabel}>FitMeet v1.0.3</Text>
+
       </ScrollView>
     </SafeAreaView>
   )
@@ -367,4 +369,5 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
   },
   logoutLabel: { color: '#ff9b9b', fontSize: 15, fontWeight: '700' },
+  versionLabel: { textAlign: 'center', color: palette.textDim, fontSize: 11, marginTop: 16, opacity: 0.5 },
 })
