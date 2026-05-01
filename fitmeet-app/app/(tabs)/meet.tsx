@@ -2,10 +2,11 @@ import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import {
-  ActivityIndicator, Image, Pressable, ScrollView,
+  ActivityIndicator, Image, Pressable, ScrollView, Share,
   StyleSheet, Text, TextInput, View,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs'
 
 import { api } from '@/src/lib/api'
 import { CATEGORIES } from '@/src/lib/categories'
@@ -77,9 +78,11 @@ function EventsTab() {
   const [loading,    setLoading]    = useState(true)
   const [category,   setCategory]   = useState('')
   const [radiusKm,   setRadiusKm]   = useState<number | null>(null)
-  const [goingOnly,  setGoingOnly]  = useState(false)
-  const [myOnly,     setMyOnly]     = useState(false)
-  const [pastOnly,   setPastOnly]   = useState(false)
+  const [goingOnly,   setGoingOnly]   = useState(false)
+  const [friendsOnly, setFriendsOnly] = useState(false)
+  const [myOnly,      setMyOnly]      = useState(false)
+  const [pastOnly,    setPastOnly]    = useState(false)
+  const [reminderIds, setReminderIds] = useState<Set<number>>(new Set())
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -94,14 +97,38 @@ function EventsTab() {
       } else {
         if (category) params.category = category
         if (radiusKm)  params.radius_km = radiusKm
+        if (friendsOnly) params.friends_only = 1
       }
       const { data } = await api.get(url, { params })
       setEvents(data.data ?? [])
     } catch {}
     finally { setLoading(false) }
-  }, [category, radiusKm, goingOnly, myOnly, pastOnly])
+  }, [category, radiusKm, goingOnly, friendsOnly, myOnly, pastOnly])
 
   useEffect(() => { load() }, [load])
+  useEffect(() => {
+    api.get('/events/my-reminders').then(({ data }) => {
+      const ids = new Set<number>(Object.keys(data.data ?? {}).map(Number).filter(Boolean))
+      setReminderIds(ids)
+    }).catch(() => {})
+  }, [])
+
+  function shareEvent(ev: EventItem) {
+    const d = new Date(ev.schedule.start_at)
+    const date = d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'long' })
+    const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+    Share.share({
+      title: ev.title,
+      message: [
+        ev.title,
+        `📅 ${date} · ${time}`,
+        ev.location.address ? `📍 ${ev.location.address}` : null,
+        `👥 ${ev.participants_count} joined`,
+        '',
+        `Join on FitMeet 👉 https://fitmeet.fit/events/share?id=${ev.id}`,
+      ].filter(Boolean).join('\n'),
+    })
+  }
 
   return (
     <View style={{ gap: spacing.md }}>
@@ -165,8 +192,9 @@ function EventsTab() {
       )}
 
       {!loading && events.map(ev => {
-        const past      = isPast(ev.schedule.start_at)
-        const cancelled = ev.status === 'cancelled'
+        const past        = isPast(ev.schedule.start_at)
+        const cancelled   = ev.status === 'cancelled'
+        const hasReminder = reminderIds.has(ev.id)
         const { date, time } = formatDate(ev.schedule.start_at)
         const emoji = CATEGORY_EMOJI[ev.category.value] ?? '📍'
 
@@ -200,9 +228,12 @@ function EventsTab() {
                   {cancelled && <Text style={styles.cancelText}>Cancelled</Text>}
                   {ev.is_full && !cancelled && <Text style={styles.fullText}>Full</Text>}
                   {past && !cancelled && <Text style={styles.pastText}>Past</Text>}
+                  {hasReminder && <Ionicons name="alarm-outline" size={14} color="#58beff" />}
                 </View>
               </View>
-              <Ionicons name="chevron-forward" size={16} color={palette.textDim} />
+              <Pressable onPress={(e) => { e.stopPropagation(); shareEvent(ev) }} hitSlop={8}>
+                <Ionicons name="share-outline" size={18} color={palette.textDim} />
+              </Pressable>
             </View>
 
             {/* Details */}
@@ -216,6 +247,14 @@ function EventsTab() {
                   </Text>
                 </View>
               </View>
+              {ev.location.lat != null && ev.location.lng != null && (
+                <WeatherBadge
+                  lat={ev.location.lat}
+                  lng={ev.location.lng}
+                  isoDate={ev.schedule.start_at.slice(0, 10)}
+                  hour={new Date(ev.schedule.start_at).getHours()}
+                />
+              )}
               {ev.location.address ? (
                 <View style={styles.detailRow}>
                   <Ionicons name="location-outline" size={12} color={palette.textDim} />
@@ -244,15 +283,6 @@ function EventsTab() {
                 </View>
               ) : null}
             </View>
-
-            {ev.location.lat != null && ev.location.lng != null && (
-              <WeatherBadge
-                lat={ev.location.lat}
-                lng={ev.location.lng}
-                isoDate={ev.schedule.start_at.slice(0, 10)}
-                hour={new Date(ev.schedule.start_at).getHours()}
-              />
-            )}
           </Pressable>
         )
       })}
@@ -391,14 +421,18 @@ function PeopleTab() {
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function MeetScreen() {
+  const tabBarHeight = useBottomTabBarHeight()
   const [tab, setTab] = useState<'events' | 'people'>('events')
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: tabBarHeight + 8 }]} showsVerticalScrollIndicator={false}>
 
         <View style={styles.header}>
           <Text style={styles.title}>Meet</Text>
+          <Pressable style={styles.createBtn} onPress={() => router.push('/event/create' as never)}>
+            <Ionicons name="add" size={22} color="#041109" />
+          </Pressable>
         </View>
 
         {/* Tab switcher */}
@@ -427,10 +461,15 @@ export default function MeetScreen() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: palette.bg },
-  content:  { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xl * 2 },
+  content:  { padding: spacing.lg, gap: spacing.md },
 
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   title:  { color: palette.text, fontSize: 30, fontWeight: '800' },
+  createBtn: {
+    width: 42, height: 42, borderRadius: 14,
+    backgroundColor: palette.accent,
+    alignItems: 'center', justifyContent: 'center',
+  },
 
   tabBar: {
     flexDirection: 'row', gap: 4, padding: 4,

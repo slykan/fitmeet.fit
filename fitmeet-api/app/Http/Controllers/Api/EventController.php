@@ -227,9 +227,14 @@ HTML;
                 Storage::disk('public')->delete($event->image_path);
             }
             $data['image_path'] = $request->file('image_file')->store('event-images', 'public');
+        } elseif ($request->boolean('image_remove')) {
+            if ($event->image_path) {
+                Storage::disk('public')->delete($event->image_path);
+            }
+            $data['image_path'] = null;
         }
 
-        unset($data['gpx_file'], $data['image_file']);
+        unset($data['gpx_file'], $data['image_file'], $data['image_remove']);
 
         $event->update($data);
         $event->load('organizer');
@@ -291,8 +296,12 @@ HTML;
         }
 
         $event->increment('participants_count');
+        $event->load('organizer', 'participants');
 
-        return response()->json(['message' => 'Joined successfully.']);
+        return response()->json([
+            'message' => 'Joined successfully.',
+            'data' => new EventResource($event),
+        ]);
     }
 
     // POST /api/events/{event}/leave
@@ -308,8 +317,16 @@ HTML;
 
         $event->participants()->updateExistingPivot($user->id, ['status' => 'cancelled']);
         $event->decrement('participants_count');
+        EventReminder::where('user_id', $user->id)
+            ->where('event_id', $event->id)
+            ->delete();
 
-        return response()->json(['message' => 'Left successfully.']);
+        $event->load('organizer', 'participants');
+
+        return response()->json([
+            'message' => 'Left successfully.',
+            'data' => new EventResource($event),
+        ]);
     }
 
     // GET /api/events/my

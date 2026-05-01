@@ -309,21 +309,21 @@ class MessageController extends Controller
     {
         $conversation->participants()->updateExistingPivot($senderId, ['last_read_at' => now()]);
 
-        $message = $conversation->messages()->create([
-            'sender_id'   => $senderId,
-            'receiver_id' => $conversation->is_group
-                ? $conversation->participants()->where('users.id', '!=', $senderId)->value('users.id')
-                : $conversation->participants()->where('users.id', '!=', $senderId)->value('users.id'),
-            'body'        => $body,
-        ]);
-
-        $message->load('sender:id,name,avatar');
-
         $recipientIds = $conversation->participants()
             ->where('users.id', '!=', $senderId)
             ->pluck('users.id')
             ->map(fn ($id) => (int) $id)
             ->all();
+
+        abort_if(empty($recipientIds), 422, 'There is nobody else in this conversation.');
+
+        $message = $conversation->messages()->create([
+            'sender_id'   => $senderId,
+            'receiver_id' => $recipientIds[0],
+            'body'        => $body,
+        ]);
+
+        $message->load('sender:id,name,avatar');
 
         if (! empty($recipientIds)) {
             $title = $conversation->is_group
@@ -374,20 +374,21 @@ class MessageController extends Controller
 
     private function findDirectConversation(int $me, int $otherUserId): ?Conversation
     {
-        $conversationId = DB::table('conversation_participants')
-            ->select('conversation_id')
-            ->whereIn('user_id', [$me, $otherUserId])
-            ->groupBy('conversation_id')
-            ->havingRaw('COUNT(DISTINCT user_id) = 2')
-            ->pluck('conversation_id');
+        $conversationId = DB::table('conversations')
+            ->join('conversation_participants', 'conversation_participants.conversation_id', '=', 'conversations.id')
+            ->select('conversations.id')
+            ->where('conversations.is_group', false)
+            ->groupBy('conversations.id')
+            ->havingRaw('COUNT(*) = 2')
+            ->havingRaw('SUM(CASE WHEN conversation_participants.user_id IN (?, ?) THEN 1 ELSE 0 END) = 2', [$me, $otherUserId])
+            ->value('conversations.id');
 
-        if ($conversationId->isEmpty()) {
+        if (! $conversationId) {
             return null;
         }
 
         return Conversation::query()
-            ->where('is_group', false)
-            ->whereIn('id', $conversationId)
+            ->whereKey($conversationId)
             ->with('participants:id,name,avatar')
             ->first();
     }

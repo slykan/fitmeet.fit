@@ -1,13 +1,12 @@
 import { Ionicons } from '@expo/vector-icons'
-import * as Google from 'expo-auth-session/providers/google'
 import { Link, router } from 'expo-router'
 import * as WebBrowser from 'expo-web-browser'
 import { useEffect, useMemo, useState } from 'react'
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
+import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { TurnstileModal } from '@/src/components/TurnstileModal'
-import { googleOAuthConfig } from '@/src/lib/oauth-config'
+import { signInWithGoogleNative, useGoogleBrowserAuth } from '@/src/lib/google-signin'
 import { useAuthStore } from '@/src/store/auth'
 import { palette, spacing } from '@/src/theme'
 
@@ -37,10 +36,7 @@ export default function LoginScreen() {
   )
 
   // ─── Google auth session ──────────────────────────────────────────────────
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    androidClientId: googleOAuthConfig.androidClientId,
-    webClientId:     googleOAuthConfig.webClientId,
-  })
+  const [request, response, promptAsync] = useGoogleBrowserAuth()
 
   useEffect(() => {
     if (response?.type !== 'success') return
@@ -54,6 +50,28 @@ export default function LoginScreen() {
       .catch(err => setError(err instanceof Error ? err.message : 'Google login failed.'))
       .finally(() => setGoogleLoading(false))
   }, [response, loginWithGoogle])
+
+  async function handleGooglePress() {
+    setGoogleLoading(true)
+    setError(null)
+
+    try {
+      if (Platform.OS === 'android') {
+        const accessToken = await signInWithGoogleNative()
+        if (!accessToken) return
+
+        await loginWithGoogle(accessToken)
+        router.replace('/(tabs)/hub')
+        return
+      }
+
+      await promptAsync()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Google login failed.')
+    } finally {
+      setGoogleLoading(false)
+    }
+  }
 
   // ─── Email login (called after Turnstile resolves) ────────────────────────
   async function handleLoginWithToken(turnstileToken: string) {
@@ -82,9 +100,9 @@ export default function LoginScreen() {
 
         {/* Google button */}
         <Pressable
-          style={[styles.googleBtn, (googleLoading || !request) && styles.disabledBtn]}
-          onPress={() => promptAsync()}
-          disabled={googleLoading || !request}
+          style={[styles.googleBtn, (googleLoading || (Platform.OS !== 'android' && !request)) && styles.disabledBtn]}
+          onPress={handleGooglePress}
+          disabled={googleLoading || (Platform.OS !== 'android' && !request)}
         >
           {googleLoading ? (
             <ActivityIndicator size="small" color={palette.text} />

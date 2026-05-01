@@ -12,6 +12,7 @@ import { WebView } from 'react-native-webview'
 
 import { CATEGORIES } from '@/src/lib/categories'
 import { api } from '@/src/lib/api'
+import { parseGpxText } from '@/src/lib/gpx'
 import { palette, spacing } from '@/src/theme'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -92,8 +93,11 @@ function buildPickerMapHtml(lat: number | null, lng: number | null, track: [numb
     ${hasPin ? `placePin(${lat},${lng});` : ''}
 
     if (track.length > 1) {
-      const poly = L.polyline(track,{color:'#39FF14',weight:3,opacity:0.85}).addTo(map);
-      map.fitBounds(poly.getBounds(),{padding:[20,20]});
+      const poly = L.polyline(track,{color:'#39FF14',weight:3,opacity:0.85,lineJoin:'round'}).addTo(map);
+      setTimeout(function() {
+        map.invalidateSize();
+        map.fitBounds(poly.getBounds(),{padding:[32,32]});
+      }, 200);
     }
 
     map.on('click',e => placePin(e.latlng.lat, e.latlng.lng));
@@ -113,31 +117,6 @@ function buildPickerMapHtml(lat: number | null, lng: number | null, track: [numb
 </html>`
 }
 
-// ─── GPX Parser ───────────────────────────────────────────────────────────────
-
-function parseGpxText(xml: string): { track: [number,number][]; distanceKm: number; elevGain: number } {
-  const trkpts = [...xml.matchAll(/<trkpt[^>]*lat="([^"]+)"[^>]*lon="([^"]+)"[^>]*>/g)]
-  const track: [number,number][] = trkpts.map(m => [parseFloat(m[1]), parseFloat(m[2])])
-
-  let distanceKm = 0
-  let elevGain   = 0
-  const elevs    = [...xml.matchAll(/<ele>([\d.]+)<\/ele>/g)].map(m => parseFloat(m[1]))
-
-  for (let i = 1; i < track.length; i++) {
-    const [lat1, lon1] = track[i - 1]
-    const [lat2, lon2] = track[i]
-    const R = 6371
-    const dLat = (lat2 - lat1) * Math.PI / 180
-    const dLon = (lon2 - lon1) * Math.PI / 180
-    const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2
-    distanceKm += R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
-  }
-  for (let i = 1; i < elevs.length; i++) {
-    if (elevs[i] > elevs[i-1]) elevGain += elevs[i] - elevs[i-1]
-  }
-
-  return { track, distanceKm: Math.round(distanceKm * 10) / 10, elevGain: Math.round(elevGain) }
-}
 
 // ─── Nominatim ────────────────────────────────────────────────────────────────
 
@@ -208,6 +187,7 @@ export default function CreateEventScreen() {
   const [imageUri,    setImageUri]    = useState<string | null>(null)
   const [imageName,   setImageName]   = useState<string | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [imageRemoved, setImageRemoved] = useState(false)
 
   // GPX
   const [gpxName,     setGpxName]     = useState<string | null>(null)
@@ -252,6 +232,9 @@ export default function CreateEventScreen() {
         setMaxDowngrade(ev.activity?.max_downgrade ? String(ev.activity.max_downgrade) : '')
         setPace(ev.activity?.pace ?? '')
         setImagePreview(ev.image_url ?? null)
+        setImageUri(null)
+        setImageName(null)
+        setImageRemoved(false)
       })
       .catch(() => {
         Alert.alert('Error', 'Could not load event for editing.')
@@ -296,15 +279,22 @@ export default function CreateEventScreen() {
   async function pickImage() {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
-      quality: 0.85,
-      allowsEditing: true,
-      aspect: [16, 9],
+      quality: 0.9,
+      allowsEditing: false,
     })
     if (!result.canceled && result.assets[0]) {
       setImageUri(result.assets[0].uri)
       setImageName(result.assets[0].fileName ?? 'image.jpg')
       setImagePreview(result.assets[0].uri)
+      setImageRemoved(false)
     }
+  }
+
+  function removeImage() {
+    setImageUri(null)
+    setImageName(null)
+    setImagePreview(null)
+    setImageRemoved(true)
   }
 
   async function pickGpx() {
@@ -324,8 +314,10 @@ export default function CreateEventScreen() {
         setLat(parsed.track[0][0])
         setLng(parsed.track[0][1])
       }
-      if (parsed.distanceKm > 0) setDistanceKm(String(parsed.distanceKm))
-      if (parsed.elevGain > 0)   setElevGain(String(parsed.elevGain))
+      if (parsed.distanceKm > 0)   setDistanceKm(String(parsed.distanceKm))
+      if (parsed.elevGain > 0)     setElevGain(String(parsed.elevGain))
+      if (parsed.maxGrade !== 0)   setMaxGrade(String(parsed.maxGrade))
+      if (parsed.maxDowngrade !== 0) setMaxDowngrade(String(parsed.maxDowngrade))
     } catch {
       Alert.alert('Error', 'Could not parse GPX file.')
     }
@@ -369,6 +361,8 @@ export default function CreateEventScreen() {
 
       if (imageUri) {
         fd.append('image_file', { uri: imageUri, name: imageName ?? 'image.jpg', type: 'image/jpeg' } as never)
+      } else if (editId && imageRemoved) {
+        fd.append('image_remove', '1')
       }
       if (gpxContent && gpxName) {
         fd.append('gpx_file', { uri: `data:application/gpx+xml;base64,${btoa(gpxContent)}`, name: gpxName, type: 'application/gpx+xml' } as never)
@@ -447,14 +441,20 @@ export default function CreateEventScreen() {
         </Field>
 
         <Field label="Event image">
-          <Pressable style={[styles.uploadBtn, imageUri && styles.uploadBtnActive]} onPress={pickImage}>
-            <Ionicons name="image-outline" size={16} color={imageUri ? palette.accent : palette.textMuted} />
-            <Text style={[styles.uploadLabel, imageUri && styles.uploadLabelActive]}>
-              {imageName ?? 'Add event image (optional)'}
+          <Pressable style={[styles.uploadBtn, imagePreview && styles.uploadBtnActive]} onPress={pickImage}>
+            <Ionicons name="image-outline" size={16} color={imagePreview ? palette.accent : palette.textMuted} />
+            <Text style={[styles.uploadLabel, imagePreview && styles.uploadLabelActive]}>
+              {imageName ?? (imagePreview ? 'Change event image' : 'Add event image (optional)')}
             </Text>
           </Pressable>
           {imagePreview && (
-            <Image source={{ uri: imagePreview }} style={styles.imagePreview} resizeMode="cover" />
+            <View style={styles.imagePreviewWrap}>
+              <Image source={{ uri: imagePreview }} style={styles.imagePreview} resizeMode="cover" />
+              <Pressable style={styles.removeImageBtn} onPress={removeImage}>
+                <Ionicons name="trash-outline" size={15} color="#f87171" />
+                <Text style={styles.removeImageText}>Remove image</Text>
+              </Pressable>
+            </View>
           )}
         </Field>
 
@@ -719,7 +719,21 @@ const styles = StyleSheet.create({
   uploadLabel:       { color: palette.textMuted, fontSize: 14, flex: 1 },
   uploadLabelActive: { color: palette.accent },
 
-  imagePreview: { width: '100%', height: 180, borderRadius: 14, marginTop: 8 },
+  imagePreviewWrap: { gap: 10, marginTop: 8 },
+  imagePreview: { width: '100%', height: 180, borderRadius: 14 },
+  removeImageBtn: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(248,113,113,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(248,113,113,0.25)',
+  },
+  removeImageText: { color: '#f87171', fontSize: 12, fontWeight: '700' },
 
   mapWrap: {
     height: 260, borderRadius: 18, overflow: 'hidden',

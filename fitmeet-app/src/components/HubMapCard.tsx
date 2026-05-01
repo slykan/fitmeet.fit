@@ -1,6 +1,7 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { WebView } from 'react-native-webview'
+import type { WebView as WebViewType } from 'react-native-webview'
 
 import { CurrentWeather } from '@/src/lib/weather'
 import { palette } from '@/src/theme'
@@ -26,6 +27,8 @@ type Props = {
   onEventPress: (eventId: number) => void
   onMapTouchStart?: () => void
   onMapTouchEnd?: () => void
+  onMapCenterChange?: (center: { lat: number; lng: number }) => void
+  fitToEvents?: boolean
 }
 
 function buildMapHtml(
@@ -34,6 +37,7 @@ function buildMapHtml(
   weather: CurrentWeather | null,
   showWind: boolean,
   showClouds: boolean,
+  fitToEvents: boolean,
 ) {
   const markersJson = JSON.stringify(events)
   const centerJson  = JSON.stringify(center)
@@ -62,6 +66,12 @@ function buildMapHtml(
     .weather-overlay.ready {
       opacity:1;
     }
+    .weather-overlay.interacting {
+      opacity:0;
+    }
+    .weather-overlay.interacting * {
+      animation-play-state:paused !important;
+    }
     .wind-stream {
       position:absolute; border-radius:999px;
       background:linear-gradient(90deg,rgba(255,255,255,0),rgba(168,255,214,0.92),rgba(118,212,142,1),rgba(255,255,255,0));
@@ -76,10 +86,10 @@ function buildMapHtml(
       animation:windMove linear infinite; opacity:0;
     }
     @keyframes windMove {
-      0%   { opacity:0; transform:rotate(var(--rot)) translate3d(0,0,0) scale(0.9); }
+      0%   { opacity:0; transform:translate3d(0,0,0) rotate(var(--rot)) scale(0.9); }
       10%  { opacity:1; }
       85%  { opacity:1; }
-      100% { opacity:0; transform:rotate(var(--rot)) translate3d(var(--dx),var(--dy),0) scale(1.04); }
+      100% { opacity:0; transform:translate3d(var(--dx),var(--dy),0) rotate(var(--rot)) scale(1.04); }
     }
     .cloud-blob {
       position:absolute; border-radius:999px;
@@ -151,23 +161,55 @@ function buildMapHtml(
       });
       bounds.push([ev.lat, ev.lng]);
     });
-    if (bounds.length > 1) map.fitBounds(bounds, { padding:[28,28] });
+    if (${fitToEvents} && bounds.length > 1) map.fitBounds(bounds, { padding:[28,28] });
 
     // ── CSS weather animation ──────────────────────────────
     const overlay = document.getElementById('weather-overlay');
+    let moveTimer = null;
+    let userInteracting = false;
+    function send(type, payload) {
+      window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({ type, ...(payload || {}) }));
+    }
+    function markUserInteracting() {
+      userInteracting = true;
+    }
+    function movementStarted() {
+      if (!userInteracting) return;
+      overlay.classList.add('interacting');
+      send('mapMoveStart');
+    }
+    function movementEnded() {
+      if (!userInteracting) return;
+      window.clearTimeout(moveTimer);
+      moveTimer = window.setTimeout(() => {
+        const c = map.getCenter();
+        send('mapMoveEnd', { center:{ lat:c.lat, lng:c.lng } });
+        userInteracting = false;
+      }, 160);
+    }
+    const container = map.getContainer();
+    container.addEventListener('touchstart', markUserInteracting, { passive:true });
+    container.addEventListener('mousedown', markUserInteracting);
+    container.addEventListener('wheel', markUserInteracting, { passive:true });
+    map.on('movestart zoomstart dragstart', movementStarted);
+    map.on('moveend zoomend dragend', movementEnded);
 
-    if (weather) {
-      const windDir = weather.windDir || 270;
+    function renderWeather(nextWeather, nextShowWind, nextShowClouds) {
+      overlay.classList.remove('ready', 'interacting');
+      overlay.innerHTML = '';
+      if (!nextWeather) return;
+
+      const windDir = nextWeather.windDir || 270;
       const flowBearing = windDir % 360;
       const rad = flowBearing * Math.PI / 180;
-      const spd = Math.max(6, weather.windSpeed || 10);
+      const spd = Math.max(6, nextWeather.windSpeed || 10);
       const dist = Math.min(90, 28 + spd * 2.2);
-      const dx = -Math.sin(rad) * dist;
-      const dy = Math.cos(rad) * dist;
+      const dx = Math.sin(rad) * dist;
+      const dy = -Math.cos(rad) * dist;
       const dur = Math.max(2.4, 8 - spd * 0.06);
       const cssRot = flowBearing - 90;
 
-      if (showWind) {
+      if (nextShowWind) {
         for (let i = 0; i < 140; i++) {
           const el = document.createElement('div');
           el.className = i % 4 === 0 ? 'wind-particle' : 'wind-stream';
@@ -187,8 +229,8 @@ function buildMapHtml(
         }
       }
 
-      const cloudCover = weather.cloudCover || 0;
-      if (showClouds && cloudCover >= 20) {
+      const cloudCover = nextWeather.cloudCover || 0;
+      if (nextShowClouds && cloudCover >= 20) {
         const count = cloudCover >= 75 ? 6 : cloudCover >= 40 ? 4 : 2;
         for (let i = 0; i < count; i++) {
           const blob = document.createElement('div');
@@ -204,8 +246,8 @@ function buildMapHtml(
         }
       }
 
-      const precip = weather.precipitation || 0;
-      if (showClouds && precip > 0.1) {
+      const precip = nextWeather.precipitation || 0;
+      if (nextShowClouds && precip > 0.1) {
         const count = Math.min(60, 12 + Math.round(precip * 16));
         for (let i = 0; i < count; i++) {
           const line = document.createElement('div');
@@ -221,6 +263,21 @@ function buildMapHtml(
 
       setTimeout(() => overlay.classList.add('ready'), 220);
     }
+
+    document.addEventListener('message', (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'weatherUpdate') renderWeather(data.weather, data.showWind, data.showClouds);
+      } catch (e) {}
+    });
+    window.addEventListener('message', (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'weatherUpdate') renderWeather(data.weather, data.showWind, data.showClouds);
+      } catch (e) {}
+    });
+
+    renderWeather(weather, showWind, showClouds);
   </script>
 </body>
 </html>`
@@ -236,11 +293,18 @@ export function HubMapCard({
   onEventPress,
   onMapTouchStart,
   onMapTouchEnd,
+  onMapCenterChange,
+  fitToEvents = true,
 }: Props) {
+  const webViewRef = useRef<WebViewType>(null)
   const html = useMemo(
-    () => buildMapHtml(center, events, weather, showWind, showClouds),
-    [center, events, weather, showWind, showClouds],
+    () => buildMapHtml(center, events, weather, showWind, showClouds, fitToEvents),
+    [center.lat, center.lng, events],
   )
+
+  useEffect(() => {
+    webViewRef.current?.postMessage(JSON.stringify({ type: 'weatherUpdate', weather, showWind, showClouds }))
+  }, [weather, showWind, showClouds])
 
   return (
     <View
@@ -250,6 +314,7 @@ export function HubMapCard({
       onTouchCancel={onMapTouchEnd}
     >
       <WebView
+        ref={webViewRef}
         source={{ html }}
         originWhitelist={['*']}
         javaScriptEnabled
@@ -260,6 +325,16 @@ export function HubMapCard({
             const data = JSON.parse(event.nativeEvent.data)
             if (data.type === 'eventPress' && typeof data.id === 'number') {
               onEventPress(data.id)
+            } else if (data.type === 'mapMoveStart') {
+              onMapTouchStart?.()
+            } else if (
+              data.type === 'mapMoveEnd' &&
+              data.center &&
+              typeof data.center.lat === 'number' &&
+              typeof data.center.lng === 'number'
+            ) {
+              onMapCenterChange?.(data.center)
+              onMapTouchEnd?.()
             }
           } catch {}
         }}

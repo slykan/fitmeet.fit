@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Linking } from 'react-native'
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs'
 
 import { api } from '@/src/lib/api'
 import { syncPushToken, unregisterPushToken } from '@/src/lib/push-notifications'
@@ -34,6 +35,7 @@ const PREF_KEY: Record<PrefField, keyof NonNullable<ReturnType<typeof useAuthSto
 }
 
 export default function ProfileScreen() {
+  const tabBarHeight = useBottomTabBarHeight()
   const user       = useAuthStore((s) => s.user)
   const logout     = useAuthStore((s) => s.logout)
   const refreshMe  = useAuthStore((s) => s.refreshMe)
@@ -87,8 +89,8 @@ export default function ProfileScreen() {
   if (!user) return null
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: tabBarHeight + 8 }]} showsVerticalScrollIndicator={false}>
 
         {/* Header */}
         <View style={styles.header}>
@@ -116,6 +118,13 @@ export default function ProfileScreen() {
             ) : null}
           </View>
         </View>
+
+        {/* Edit profile link */}
+        <Pressable style={styles.settingsLink} onPress={() => router.push('/settings' as never)}>
+          <Ionicons name="settings-outline" size={18} color={palette.accent} />
+          <Text style={styles.settingsLinkText}>Edit profile & settings</Text>
+          <Ionicons name="chevron-forward" size={16} color={palette.textDim} />
+        </Pressable>
 
         {/* Location */}
         {user.home.city ? (
@@ -169,13 +178,6 @@ export default function ProfileScreen() {
             <Ionicons name="chevron-forward" size={16} color={palette.textDim} />
           </Pressable>
         </View>
-
-        {/* Edit profile link */}
-        <Pressable style={styles.settingsLink} onPress={() => router.push('/settings' as never)}>
-          <Ionicons name="settings-outline" size={18} color={palette.accent} />
-          <Text style={styles.settingsLinkText}>Edit profile & settings</Text>
-          <Ionicons name="chevron-forward" size={16} color={palette.textDim} />
-        </Pressable>
 
         {/* Email preferences */}
         <View style={styles.card}>
@@ -279,7 +281,7 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   safe:    { flex: 1, backgroundColor: palette.bg },
-  content: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xl },
+  content: { padding: spacing.lg, gap: spacing.md },
 
   header:  { gap: 2 },
   eyebrow: { color: palette.accent, fontSize: 13, fontWeight: '700', textTransform: 'uppercase' },

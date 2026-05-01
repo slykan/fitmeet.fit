@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
-import { useCallback, useEffect, useState } from 'react'
-import { ActivityIndicator, FlatList, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { ActivityIndicator, FlatList, Image, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs'
 
 import { HubMapCard } from '@/src/components/HubMapCard'
 import { WeatherBadge } from '@/src/components/WeatherBadge'
@@ -50,18 +51,22 @@ function isPast(iso: string) {
 }
 
 export default function HubScreen() {
+  const tabBarHeight = useBottomTabBarHeight()
   const user = useAuthStore((s) => s.user)
   const [events, setEvents] = useState<EventItem[]>([])
   const [loading, setLoading] = useState(true)
   const [radiusIdx, setRadiusIdx] = useState(0)
   const [categories, setCategories] = useState<Set<string>>(new Set())
-  const [goingOnly, setGoingOnly] = useState(false)
-  const [myOnly, setMyOnly] = useState(false)
-  const [pastOnly, setPastOnly] = useState(false)
+  const [goingOnly,   setGoingOnly]   = useState(false)
+  const [myOnly,      setMyOnly]      = useState(false)
+  const [pastOnly,    setPastOnly]    = useState(false)
+  const [reminderIds, setReminderIds] = useState<Set<number>>(new Set())
   const [showWind, setShowWind] = useState(true)
   const [showClouds, setShowClouds] = useState(true)
   const [weather, setWeather] = useState<CurrentWeather | null>(null)
   const [mapTouching, setMapTouching] = useState(false)
+  const [weatherCenter, setWeatherCenter] = useState<{ lat: number; lng: number } | null>(null)
+  const [mapWasMoved, setMapWasMoved] = useState(false)
 
   const mapCenter = (() => {
     const lat = user?.home?.lat ?? user?.location?.lat
@@ -72,14 +77,16 @@ export default function HubScreen() {
     return { lat: 45.5511, lng: 18.6939 }
   })()
 
-  const mapEvents = events.map((ev) => ({
+  const mapEvents = useMemo(() => events.map((ev) => ({
     id: ev.id,
     title: ev.title,
     lat: ev.location.lat,
     lng: ev.location.lng,
     emoji: CATEGORY_EMOJI[ev.category.value] ?? '📍',
     cancelled: ev.status === 'cancelled',
-  }))
+  })), [events])
+
+  const effectiveWeatherCenter = weatherCenter ?? mapCenter
 
   const fetchEvents = useCallback(async () => {
     setLoading(true)
@@ -109,11 +116,20 @@ export default function HubScreen() {
 
   useEffect(() => {
     fetchEvents()
+    api.get('/events/my-reminders').then(({ data }) => {
+      const ids = new Set<number>(Object.keys(data.data ?? {}).map(Number).filter(Boolean))
+      setReminderIds(ids)
+    }).catch(() => {})
   }, [fetchEvents])
 
   useEffect(() => {
-    fetchCurrentWeather(mapCenter.lat, mapCenter.lng).then(setWeather).catch(() => setWeather(null))
-  }, [mapCenter.lat, mapCenter.lng])
+    if (mapWasMoved) return
+    setWeatherCenter(null)
+  }, [mapCenter.lat, mapCenter.lng, mapWasMoved])
+
+  useEffect(() => {
+    fetchCurrentWeather(effectiveWeatherCenter.lat, effectiveWeatherCenter.lng).then(setWeather).catch(() => setWeather(null))
+  }, [effectiveWeatherCenter.lat, effectiveWeatherCenter.lng])
 
   function toggleCategory(value: string) {
     setCategories((prev) => {
@@ -130,10 +146,28 @@ export default function HubScreen() {
       : cloudLabel(weather.cloudCover)
     : null
 
+  function shareEvent(ev: EventItem) {
+    const d = new Date(ev.schedule.start_at)
+    const date = d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'long' })
+    const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+    Share.share({
+      title: ev.title,
+      message: [
+        ev.title,
+        `📅 ${date} · ${time}`,
+        ev.location.address ? `📍 ${ev.location.address}` : null,
+        `👥 ${ev.participants_count} joined`,
+        '',
+        `Join on FitMeet 👉 https://fitmeet.fit/events/share?id=${ev.id}`,
+      ].filter(Boolean).join('\n'),
+    })
+  }
+
   const renderEvent = ({ item: ev }: { item: EventItem }) => {
     const past = isPast(ev.schedule.start_at)
     const cancelled = ev.status === 'cancelled'
     const emoji = CATEGORY_EMOJI[ev.category.value] ?? '📍'
+    const hasReminder = reminderIds.has(ev.id)
 
     return (
       <Pressable
@@ -154,13 +188,22 @@ export default function HubScreen() {
               {ev.is_full && !cancelled ? ' · Full' : ''}
             </Text>
           </View>
-          <Ionicons name="chevron-forward" size={18} color={palette.textDim} />
+          {hasReminder && <Ionicons name="alarm-outline" size={14} color="#58beff" style={{ marginRight: 4 }} />}
+          <Pressable hitSlop={12} onPress={() => shareEvent(ev)}>
+            <Ionicons name="share-social-outline" size={18} color={palette.textDim} />
+          </Pressable>
         </View>
         <View style={styles.eventDetails}>
           <View style={styles.detailRow}>
             <Ionicons name="calendar-outline" size={12} color={palette.textDim} />
             <Text style={styles.detailText}>{formatDate(ev.schedule.start_at)}</Text>
           </View>
+          <WeatherBadge
+            lat={ev.location.lat}
+            lng={ev.location.lng}
+            isoDate={ev.schedule.start_at.slice(0, 10)}
+            hour={new Date(ev.schedule.start_at).getHours()}
+          />
           {ev.location.address ? (
             <View style={styles.detailRow}>
               <Ionicons name="location-outline" size={12} color={palette.textDim} />
@@ -185,12 +228,6 @@ export default function HubScreen() {
             </View>
           ) : null}
         </View>
-        <WeatherBadge
-          lat={ev.location.lat}
-          lng={ev.location.lng}
-          isoDate={ev.schedule.start_at.slice(0, 10)}
-          hour={new Date(ev.schedule.start_at).getHours()}
-        />
       </Pressable>
     )
   }
@@ -225,7 +262,7 @@ export default function HubScreen() {
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
           {RADIUS_OPTIONS.map((r, i) => (
-            <Pressable key={r.label} style={[styles.chip, radiusIdx === i && styles.chipRadius]} onPress={() => setRadiusIdx(i)}>
+            <Pressable key={r.label} style={[styles.chip, styles.radiusChip, radiusIdx === i && styles.chipRadius]} onPress={() => setRadiusIdx(i)}>
               <Text style={[styles.chipLabel, radiusIdx === i && styles.chipLabelRadius]}>{r.label}</Text>
             </Pressable>
           ))}
@@ -288,8 +325,16 @@ export default function HubScreen() {
           showClouds={showClouds}
           height={300}
           onEventPress={(id) => router.push(`/event/${id}` as never)}
-          onMapTouchStart={() => setMapTouching(true)}
+          fitToEvents={!mapWasMoved}
+          onMapTouchStart={() => {
+            setMapTouching(true)
+          }}
           onMapTouchEnd={() => setMapTouching(false)}
+          onMapCenterChange={(center) => {
+            setMapWasMoved(true)
+            setWeather(null)
+            setWeatherCenter(center)
+          }}
         />
       </View>
 
@@ -303,13 +348,13 @@ export default function HubScreen() {
   )
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
       <FlatList
         data={loading ? [] : events}
         keyExtractor={(ev) => String(ev.id)}
         renderItem={renderEvent}
         scrollEnabled={!mapTouching}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, { paddingBottom: tabBarHeight + 8 }]}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={header}
         ListEmptyComponent={
@@ -326,7 +371,7 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: palette.bg },
   topArea: { paddingHorizontal: spacing.lg, paddingTop: spacing.md, gap: 8 },
   mapWrap: { paddingHorizontal: spacing.lg, paddingVertical: 10 },
-  listContent: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xl * 2, gap: spacing.md },
+  listContent: { gap: spacing.md },
 
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
   eyebrow: { color: palette.accent, fontSize: 13, fontWeight: '700', textTransform: 'uppercase' },
@@ -357,6 +402,7 @@ const styles = StyleSheet.create({
     borderColor: palette.line,
   },
   chipActive: { backgroundColor: palette.accent, borderColor: palette.accent },
+  radiusChip: { minWidth: 78, justifyContent: 'center' },
   chipLabel: { color: palette.text, fontWeight: '700', fontSize: 12 },
   chipLabelActive: { color: '#031109' },
   chipRadius: { borderColor: 'rgba(0,168,255,0.5)', backgroundColor: 'rgba(0,168,255,0.08)' },
@@ -377,7 +423,13 @@ const styles = StyleSheet.create({
   },
   weatherChipText: { color: palette.text, fontSize: 12, fontWeight: '700' },
 
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 6,
+    paddingHorizontal: spacing.lg,
+  },
   sectionTitle: { color: palette.text, fontSize: 18, fontWeight: '800' },
   sectionCount: {
     color: palette.accent,
@@ -397,6 +449,7 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     borderWidth: 1,
     borderColor: palette.line,
+    marginHorizontal: spacing.lg,
     padding: spacing.md,
     gap: 12,
     overflow: 'hidden',

@@ -36,6 +36,7 @@ class UpdateEventRequest extends FormRequest
 
             'gpx_file'         => ['sometimes', 'nullable', 'file', 'max:8192'],
             'image_file'       => ['sometimes', 'nullable', 'file', 'max:8192'],
+            'image_remove'     => ['sometimes', 'boolean'],
 
             'skill_level'      => ['sometimes', 'nullable', Rule::in(['beginner', 'advanced', 'pro'])],
             'max_participants' => ['sometimes', 'nullable', 'integer', 'min:2'],

@@ -16,6 +16,7 @@ import {
   View,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs'
 
 import { api } from '@/src/lib/api'
 import { useAuthStore } from '@/src/store/auth'
@@ -244,8 +245,11 @@ function ThreadView({
       const { data } = await api.post(`/messages/conversations/${conv.id}`, { body: text })
       setMessages((prev) => [...prev, data.data ?? data.message])
       setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 100)
-    } catch {}
-    finally {
+    } catch (e: unknown) {
+      setInput(text)
+      const message = (e as { response?: { data?: { message?: string } } })?.response?.data?.message
+      Alert.alert('Could not send message', message ?? 'Please try again.')
+    } finally {
       setSending(false)
     }
   }
@@ -691,6 +695,7 @@ const modal = StyleSheet.create({
 })
 
 export default function MessagesScreen() {
+  const tabBarHeight = useBottomTabBarHeight()
   const user = useAuthStore((s) => s.user)
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [loading, setLoading] = useState(true)
@@ -720,7 +725,7 @@ export default function MessagesScreen() {
 
   if (activeConv) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
         <ThreadView
           conversation={activeConv}
           meId={user?.id ?? 0}
@@ -734,8 +739,8 @@ export default function MessagesScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: tabBarHeight + 8 }]} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Text style={styles.title}>Messages</Text>
           <Pressable style={styles.newBtn} onPress={() => setShowCompose(true)}>
@@ -820,7 +825,7 @@ export default function MessagesScreen() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: palette.bg },
-  content: { padding: spacing.lg, gap: spacing.md, paddingBottom: 120 },
+  content: { padding: spacing.lg, gap: spacing.md },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   title: { color: palette.text, fontSize: 28, fontWeight: '900' },
   newBtn: { width: 44, height: 44, borderRadius: 16, backgroundColor: palette.accent, alignItems: 'center', justifyContent: 'center' },

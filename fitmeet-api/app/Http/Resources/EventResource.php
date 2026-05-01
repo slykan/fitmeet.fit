@@ -60,7 +60,9 @@ class EventResource extends JsonResource
 
             // Auth-dependent fields
             'is_organizer' => $user ? $this->isOrganizer($user) : false,
-            'is_joined'    => $user ? $this->participants->contains($user->id) : false,
+            'is_joined'    => $user ? $this->participants->contains(
+                fn ($participant) => $participant->id === $user->id && $participant->pivot?->status === 'joined'
+            ) : false,
 
             // Distance from user (set by scopeNearby)
             'distance_km' => isset($this->distance_from_user)

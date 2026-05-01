@@ -1,92 +1,145 @@
 import { router } from 'expo-router'
-import { Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native'
+import { LinearGradient } from 'expo-linear-gradient'
+import { useEffect, useRef } from 'react'
+import { Animated, Easing, Image, Pressable, StyleSheet, Text, View } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 
-import { palette, spacing } from '@/src/theme'
+const LOGO = require('../assets/logo-c.png')
 
 export default function WelcomeScreen() {
+  const heroShift = useRef(new Animated.Value(0)).current
+  const ctaOpacity = useRef(new Animated.Value(0)).current
+  const ctaShift = useRef(new Animated.Value(34)).current
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      Animated.parallel([
+        Animated.timing(heroShift, {
+          toValue: 34,
+          duration: 760,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(ctaOpacity, {
+          toValue: 1,
+          duration: 560,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.timing(ctaShift, {
+          toValue: 0,
+          duration: 760,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]).start()
+    }, 3000)
+
+    return () => clearTimeout(timer)
+  }, [ctaOpacity, ctaShift, heroShift])
+
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
-        <View style={styles.hero}>
-          <Text style={styles.brand}>FitMeet mobile</Text>
-          <Text style={styles.title}>Find your people. Move together.</Text>
-          <Text style={styles.subtitle}>
-            Mobile shell is alive. Next up is real auth, Hub, Meet, messages and notifications.
-          </Text>
-        </View>
+    <SafeAreaView style={styles.root}>
+      <View style={styles.heroWrap}>
+        <Animated.Image
+          source={LOGO}
+          style={[styles.logo, { transform: [{ translateY: heroShift }] }]}
+          resizeMode="contain"
+        />
+      </View>
 
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>What is ready</Text>
-          <Text style={styles.cardBody}>Email login is wired. Tabs and app structure are in place.</Text>
-        </View>
+      <View pointerEvents="box-none" style={styles.safe}>
+        <Animated.View
+          style={[
+            styles.ctaWrap,
+            {
+              opacity: ctaOpacity,
+              transform: [{ translateY: ctaShift }],
+            },
+          ]}
+        >
+          <Text style={styles.brand}>FITMEET.FIT</Text>
+          <Text style={styles.tagline}>Find your people. Move together.</Text>
 
-        <Pressable style={styles.primaryButton} onPress={() => router.push('/login')}>
-          <Text style={styles.primaryLabel}>Open sign in</Text>
-        </Pressable>
+          <Pressable style={styles.primaryBtn} onPress={() => router.push('/register')}>
+            <LinearGradient
+              colors={['#6cff2f', '#39FF14']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.primaryBtnGrad}
+            >
+              <Text style={styles.primaryLabel}>Get started</Text>
+            </LinearGradient>
+          </Pressable>
+
+          <Pressable style={styles.secondaryBtn} onPress={() => router.push('/login')}>
+            <Text style={styles.secondaryLabel}>Sign in</Text>
+          </Pressable>
+        </Animated.View>
       </View>
     </SafeAreaView>
   )
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  root: { flex: 1, backgroundColor: '#000000' },
+  heroWrap: {
     flex: 1,
-    backgroundColor: palette.bg,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    paddingHorizontal: 48,
+    paddingTop: 72,
+    backgroundColor: '#000000',
   },
-  container: {
-    flex: 1,
-    padding: spacing.lg,
-    justifyContent: 'space-between',
+  logo: {
+    width: '42%',
+    maxWidth: 180,
+    aspectRatio: 439 / 448,
+    marginBottom: 18,
   },
-  hero: {
-    gap: spacing.md,
-    marginTop: spacing.xl,
+  safe: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'flex-end',
+    paddingBottom: 18,
   },
+  ctaWrap: {
+    gap: 12,
+    paddingHorizontal: 24,
+    paddingTop: 14,
+  },
+  logoText: {
+    color: '#ffffff',
+    fontSize: 22,
+    fontWeight: '900',
+    letterSpacing: 1.5,
+    textAlign: 'center',
+  },
+  logoTextGreen: { color: '#39FF14' },
   brand: {
-    color: palette.accent,
+    color: '#ffffff',
+    textAlign: 'center',
+    fontSize: 26,
+    fontWeight: '900',
+    letterSpacing: 0.6,
+  },
+  tagline: {
+    color: 'rgba(255,255,255,0.72)',
+    textAlign: 'center',
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '600',
+    marginTop: -6,
   },
-  title: {
-    color: palette.text,
-    fontSize: 32,
-    lineHeight: 38,
-    fontWeight: '800',
-  },
-  subtitle: {
-    color: palette.textMuted,
-    fontSize: 16,
-    lineHeight: 24,
-  },
-  card: {
-    borderRadius: 20,
-    backgroundColor: palette.panel,
-    borderWidth: 1,
-    borderColor: palette.line,
-    padding: spacing.lg,
-    gap: 8,
-  },
-  cardTitle: {
-    color: palette.text,
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  cardBody: {
-    color: palette.textMuted,
-    fontSize: 14,
-    lineHeight: 21,
-  },
-  primaryButton: {
+  primaryBtn: { width: '100%', borderRadius: 18, overflow: 'hidden' },
+  primaryBtnGrad: { height: 56, alignItems: 'center', justifyContent: 'center' },
+  primaryLabel: { color: '#041109', fontSize: 16, fontWeight: '900', letterSpacing: 0.3 },
+  secondaryBtn: {
     height: 56,
     borderRadius: 18,
-    backgroundColor: palette.accent,
+    borderWidth: 1.5,
+    borderColor: 'rgba(57,255,20,0.3)',
+    backgroundColor: 'rgba(57,255,20,0.05)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: spacing.lg,
   },
-  primaryLabel: {
-    color: '#041109',
-    fontSize: 16,
-    fontWeight: '800',
-  },
+  secondaryLabel: { color: '#39FF14', fontSize: 16, fontWeight: '700' },
 })
