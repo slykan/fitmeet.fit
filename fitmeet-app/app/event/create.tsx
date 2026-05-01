@@ -1,6 +1,8 @@
 import { Ionicons } from '@expo/vector-icons'
+import DateTimePicker from '@react-native-community/datetimepicker'
 import * as DocumentPicker from 'expo-document-picker'
 import * as ImagePicker from 'expo-image-picker'
+import * as Location from 'expo-location'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
 import {
@@ -162,8 +164,9 @@ export default function CreateEventScreen() {
   const [description, setDescription] = useState('')
 
   // When
-  const [date,        setDate]        = useState('')
-  const [time,        setTime]        = useState('')
+  const [pickedDate,   setPickedDate]   = useState<Date | null>(null)
+  const [showDatePicker, setShowDatePicker] = useState(false)
+  const [showTimePicker, setShowTimePicker] = useState(false)
   const [duration,    setDuration]    = useState('')
 
   // Where
@@ -208,17 +211,11 @@ export default function CreateEventScreen() {
         if (!alive) return
         const ev = data.data
         const start = new Date(ev.schedule.start_at)
-        const yyyy = start.getFullYear()
-        const mm = String(start.getMonth() + 1).padStart(2, '0')
-        const dd = String(start.getDate()).padStart(2, '0')
-        const hh = String(start.getHours()).padStart(2, '0')
-        const mi = String(start.getMinutes()).padStart(2, '0')
 
         setTitle(ev.title ?? '')
         setCategory(ev.category?.value ?? '')
         setDescription(ev.description ?? '')
-        setDate(`${yyyy}-${mm}-${dd}`)
-        setTime(`${hh}:${mi}`)
+        setPickedDate(start)
         setDuration(ev.schedule?.duration_minutes ? String(ev.schedule.duration_minutes) : '')
         setLat(typeof ev.location?.lat === 'number' ? ev.location.lat : null)
         setLng(typeof ev.location?.lng === 'number' ? ev.location.lng : null)
@@ -297,6 +294,27 @@ export default function CreateEventScreen() {
     setImageRemoved(true)
   }
 
+  async function getCurrentLocation() {
+    setGeocoding(true)
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync()
+      if (status !== 'granted') {
+        Alert.alert('Permission denied', 'Location permission is required.')
+        return
+      }
+      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High })
+      const { latitude, longitude } = pos.coords
+      setLat(latitude)
+      setLng(longitude)
+      const addr = await reverseGeocode(latitude, longitude)
+      if (addr) setAddress(addr)
+    } catch {
+      Alert.alert('Error', 'Could not get current location.')
+    } finally {
+      setGeocoding(false)
+    }
+  }
+
   async function pickGpx() {
     const result = await DocumentPicker.getDocumentAsync({
       type: ['application/gpx+xml', 'text/xml', 'application/xml', '*/*'],
@@ -326,19 +344,13 @@ export default function CreateEventScreen() {
   async function handleSubmit() {
     if (!title.trim())    { Alert.alert('Missing', 'Add a title.'); return }
     if (!category)        { Alert.alert('Missing', 'Select a category.'); return }
-    if (!date || !time)   { Alert.alert('Missing', 'Set date and time.'); return }
+    if (!pickedDate)      { Alert.alert('Missing', 'Set date and time.'); return }
     if (lat === null)     { Alert.alert('Missing', 'Pin a location on the map.'); return }
-
-    const dtString = `${date.trim()}T${time.trim()}:00`
-    if (isNaN(Date.parse(dtString))) {
-      Alert.alert('Invalid date', 'Use YYYY-MM-DD and HH:MM.')
-      return
-    }
 
     setSubmitting(true)
     try {
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
-      const startAt  = new Date(dtString).toISOString()
+      const startAt  = pickedDate.toISOString()
 
       const fd = new FormData()
       fd.append('title',    title.trim())
@@ -462,21 +474,59 @@ export default function CreateEventScreen() {
         <SectionHeader title="When" icon="calendar-outline" />
 
         <View style={styles.row}>
-          <Field label="Date * (YYYY-MM-DD)" style={{ flex: 1 }}>
-            <TextInput
-              style={styles.input} value={date} onChangeText={setDate}
-              placeholder="2026-06-15" placeholderTextColor={palette.textDim}
-              keyboardType="numeric" maxLength={10}
-            />
+          <Field label="Date *" style={{ flex: 1 }}>
+            <Pressable style={styles.pickerBtn} onPress={() => setShowDatePicker(true)}>
+              <Ionicons name="calendar-outline" size={16} color={pickedDate ? palette.accent : palette.textMuted} />
+              <Text style={[styles.pickerLabel, pickedDate && styles.pickerLabelActive]}>
+                {pickedDate
+                  ? pickedDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+                  : 'Pick date'}
+              </Text>
+            </Pressable>
           </Field>
-          <Field label="Time * (HH:MM)" style={{ flex: 1 }}>
-            <TextInput
-              style={styles.input} value={time} onChangeText={setTime}
-              placeholder="09:00" placeholderTextColor={palette.textDim}
-              keyboardType="numeric" maxLength={5}
-            />
+          <Field label="Time *" style={{ flex: 1 }}>
+            <Pressable style={styles.pickerBtn} onPress={() => setShowTimePicker(true)}>
+              <Ionicons name="time-outline" size={16} color={pickedDate ? palette.accent : palette.textMuted} />
+              <Text style={[styles.pickerLabel, pickedDate && styles.pickerLabelActive]}>
+                {pickedDate
+                  ? pickedDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+                  : 'Pick time'}
+              </Text>
+            </Pressable>
           </Field>
         </View>
+
+        {showDatePicker && (
+          <DateTimePicker
+            mode="date"
+            value={pickedDate ?? new Date()}
+            minimumDate={new Date()}
+            display="calendar"
+            onChange={(_, selected) => {
+              setShowDatePicker(false)
+              if (!selected) return
+              const next = pickedDate ? new Date(pickedDate) : new Date()
+              next.setFullYear(selected.getFullYear(), selected.getMonth(), selected.getDate())
+              setPickedDate(next)
+            }}
+          />
+        )}
+
+        {showTimePicker && (
+          <DateTimePicker
+            mode="time"
+            value={pickedDate ?? new Date()}
+            display="spinner"
+            is24Hour
+            onChange={(_, selected) => {
+              setShowTimePicker(false)
+              if (!selected) return
+              const next = pickedDate ? new Date(pickedDate) : new Date()
+              next.setHours(selected.getHours(), selected.getMinutes(), 0, 0)
+              setPickedDate(next)
+            }}
+          />
+        )}
 
         <Field label="Duration">
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.chipRow, { marginBottom: 8 }]}>
@@ -542,6 +592,10 @@ export default function CreateEventScreen() {
               }
             </Pressable>
           </View>
+          <Pressable style={styles.locationBtn} onPress={getCurrentLocation} disabled={geocoding}>
+            <Ionicons name="navigate-outline" size={15} color={palette.accent} />
+            <Text style={styles.locationBtnText}>Use current location</Text>
+          </Pressable>
         </Field>
 
         <Field label="GPX route">
@@ -765,6 +819,21 @@ const styles = StyleSheet.create({
   toggleBtnActive:   { borderColor: palette.accent, backgroundColor: `${palette.accent}12` },
   toggleLabel:       { color: palette.textMuted, fontSize: 14, fontWeight: '700' },
   toggleLabelActive: { color: palette.accent },
+
+  pickerBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    height: 50, borderRadius: 14,
+    backgroundColor: palette.panel, borderWidth: 1, borderColor: palette.line,
+    paddingHorizontal: spacing.md,
+  },
+  pickerLabel:       { color: palette.textMuted, fontSize: 14, flex: 1 },
+  pickerLabelActive: { color: palette.text },
+
+  locationBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingVertical: 8, paddingHorizontal: 4, alignSelf: 'flex-start',
+  },
+  locationBtnText: { color: palette.accent, fontSize: 13, fontWeight: '600' },
 
   submitBtn:         { height: 56, borderRadius: 18, backgroundColor: palette.accent, alignItems: 'center', justifyContent: 'center', marginTop: 8 },
   submitBtnDisabled: { opacity: 0.5 },

@@ -84,6 +84,14 @@ export const useAuthStore = create<AuthState>((set) => ({
       if (raw) {
         const parsed = JSON.parse(raw) as Pick<AuthState, 'token' | 'user'>
         set({ token: parsed.token, user: parsed.user, hasHydrated: true })
+        if (parsed.token) {
+          requestJson<MeResponse>('/me', undefined, parsed.token)
+            .then(async (payload) => {
+              await storeSession({ token: parsed.token!, user: payload.data })
+              set({ user: payload.data })
+            })
+            .catch(() => {})
+        }
         return
       }
     } catch {

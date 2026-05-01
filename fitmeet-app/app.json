@@ -12,7 +12,11 @@
       "resizeMode": "contain",
       "backgroundColor": "#000000"
     },
-    "plugins": ["expo-web-browser", "expo-notifications"],
+    "plugins": [
+      "expo-web-browser",
+      "expo-notifications",
+      "@react-native-community/datetimepicker"
+    ],
     "ios": {
       "supportsTablet": true,
       "icon": "./assets/icon.png"

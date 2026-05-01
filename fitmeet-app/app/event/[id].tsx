@@ -374,6 +374,14 @@ export default function EventDetailScreen() {
             formatTime(event.schedule.start_at) +
             (event.schedule.duration_minutes ? ` · ${event.schedule.duration_minutes} min` : '')
           } />
+          {event.location.lat != null && event.location.lng != null && !cancelled && !past && (
+            <WeatherBadge
+              lat={event.location.lat}
+              lng={event.location.lng}
+              isoDate={event.schedule.start_at.slice(0, 10)}
+              hour={new Date(event.schedule.start_at).getHours()}
+            />
+          )}
           {event.location.address ? (
             <DetailRow icon="location-outline" primary={event.location.address} />
           ) : null}
@@ -409,16 +417,6 @@ export default function EventDetailScreen() {
             <DetailRow icon="lock-closed-outline" primary="Private event" />
           ) : null}
         </View>
-
-        {/* Weather */}
-        {event.location.lat != null && event.location.lng != null && !cancelled && !past && (
-          <WeatherBadge
-            lat={event.location.lat}
-            lng={event.location.lng}
-            isoDate={event.schedule.start_at.slice(0, 10)}
-            hour={new Date(event.schedule.start_at).getHours()}
-          />
-        )}
 
         {/* Map */}
         {event.location.lat != null && event.location.lng != null && (

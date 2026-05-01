@@ -42,8 +42,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    justifyContent: 'flex-end',
-    marginTop: 10,
   },
   temp: {
     color: palette.textDim,
