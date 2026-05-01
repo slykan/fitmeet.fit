@@ -10,7 +10,11 @@ export function Footer() {
         className="max-w-6xl mx-auto px-4 py-5 flex flex-wrap items-center justify-between gap-3 text-xs"
         style={{ color: 'var(--text-muted)' }}
       >
-        <span>© {new Date().getFullYear()} FitMeet. All rights reserved.</span>
+        <div className="flex flex-wrap items-center gap-3">
+          <span>© {new Date().getFullYear()} FitMeet</span>
+          <span>·</span>
+          <span>Find your people. Move together.</span>
+        </div>
         <div className="flex items-center gap-5">
           <Link
             href="/privacy"
