@@ -5,6 +5,7 @@ import { ActivityIndicator, FlatList, Image, Pressable, ScrollView, Share, Style
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs'
 
+import { EmptyEvents } from '@/src/components/EmptyEvents'
 import { HubMapCard } from '@/src/components/HubMapCard'
 import { WeatherBadge } from '@/src/components/WeatherBadge'
 import { CATEGORIES } from '@/src/lib/categories'
@@ -360,7 +361,7 @@ export default function HubScreen() {
         ListEmptyComponent={
           loading
             ? <ActivityIndicator color={palette.accent} style={{ paddingVertical: spacing.xl }} />
-            : <View style={styles.emptyWrap}><Text style={styles.emptyText}>No events found.</Text></View>
+            : <EmptyEvents variant="hub" />
         }
       />
     </SafeAreaView>

@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons'
+import { EmptyEvents } from '@/src/components/EmptyEvents'
 import { router } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import {
@@ -188,7 +189,7 @@ function EventsTab() {
 
       {loading && <ActivityIndicator color={palette.accent} style={{ paddingVertical: spacing.xl }} />}
       {!loading && events.length === 0 && (
-        <Text style={styles.emptyText}>No events found.</Text>
+        <EmptyEvents variant="meet" />
       )}
 
       {!loading && events.map(ev => {
