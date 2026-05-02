@@ -308,10 +308,22 @@ export default function CreateEventScreen() {
         pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced })
       }
       const { latitude, longitude } = pos.coords
-      setLat(latitude)
-      setLng(longitude)
       const addr = await reverseGeocode(latitude, longitude)
-      if (addr) setAddress(addr)
+      if (addr) {
+        const result = await forwardGeocode(addr)
+        if (result) {
+          setLat(result.lat)
+          setLng(result.lng)
+          setAddress(result.address)
+        } else {
+          setLat(latitude)
+          setLng(longitude)
+          setAddress(addr)
+        }
+      } else {
+        setLat(latitude)
+        setLng(longitude)
+      }
     } catch {
       Alert.alert('Error', 'Could not get current location. Make sure location is enabled.')
     } finally {
