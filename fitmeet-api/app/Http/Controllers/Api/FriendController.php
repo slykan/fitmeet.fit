@@ -109,6 +109,16 @@ class FriendController extends Controller
         return response()->json(['message' => 'Friend request declined.']);
     }
 
+    // DELETE /notifications/clear-all
+    public function notificationsClearAll(Request $request): JsonResponse
+    {
+        $me = $request->user();
+        FriendRequest::where('sender_id', $me->id)->where('status', 'accepted')->whereNull('accepted_read_at')->update(['accepted_read_at' => now()]);
+        EventNotification::where('user_id', $me->id)->delete();
+        EventReminder::where('user_id', $me->id)->whereNotNull('sent_at')->update(['sent_at' => null]);
+        return response()->json(['message' => 'Cleared.']);
+    }
+
     // GET /notifications/count
     public function notificationsCount(Request $request): JsonResponse
     {

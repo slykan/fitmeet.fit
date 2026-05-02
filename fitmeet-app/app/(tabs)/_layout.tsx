@@ -7,6 +7,11 @@ import { palette } from '@/src/theme'
 import { useAuthStore } from '@/src/store/auth'
 import { api } from '@/src/lib/api'
 
+export const badgeEvents = {
+  clearAlerts: () => {},
+  clearChat: () => {},
+}
+
 const tabIcon: Record<string, keyof typeof Ionicons.glyphMap> = {
   hub:           'radio-outline',
   meet:          'calendar-outline',
@@ -20,6 +25,9 @@ export default function TabsLayout() {
   const [notifCount, setNotifCount] = useState(0)
   const [msgCount,   setMsgCount]   = useState(0)
   const appState = useRef(AppState.currentState)
+
+  badgeEvents.clearAlerts = () => setNotifCount(0)
+  badgeEvents.clearChat   = () => setMsgCount(0)
 
   useEffect(() => {
     if (!token) {
@@ -74,6 +82,13 @@ export default function TabsLayout() {
           <Ionicons name={tabIcon[route.name] ?? 'ellipse-outline'} size={size} color={color} />
         ),
       })}
+      screenListeners={{
+        tabPress: (e) => {
+          const name = (e.target as string)?.split('-')[0]
+          if (name === 'notifications') setNotifCount(0)
+          if (name === 'messages')      setMsgCount(0)
+        },
+      }}
     >
       <Tabs.Screen name="hub"           options={{ title: 'Hub' }} />
       <Tabs.Screen name="meet"          options={{ title: 'Meet' }} />

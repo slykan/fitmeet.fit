@@ -78,6 +78,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Friends & notifications
     Route::get('notifications/count',              [FriendController::class, 'notificationsCount']);
+    Route::delete('notifications/clear-all',       [FriendController::class, 'notificationsClearAll']);
     Route::get('notifications',                   [FriendController::class, 'notifications']);
     Route::post('friends/request/{user}',         [FriendController::class, 'request']);
     Route::post('friends/accept/{friendRequest}',   [FriendController::class, 'accept']);

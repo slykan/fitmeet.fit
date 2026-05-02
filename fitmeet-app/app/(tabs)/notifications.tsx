@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
+import { badgeEvents } from './_layout'
 import {
   ActivityIndicator, Image, Pressable, RefreshControl,
   ScrollView, StyleSheet, Text, View,
@@ -141,7 +142,18 @@ export default function NotificationsScreen() {
     finally { setLoading(false); setRefreshing(false) }
   }, [])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    load()
+    badgeEvents.clearAlerts()
+  }, [load])
+
+  async function clearAll() {
+    try {
+      await api.delete('/notifications/clear-all')
+    } catch {}
+    setNotifications([])
+    badgeEvents.clearAlerts()
+  }
 
   async function accept(n: Extract<Notification, { type: 'friend_request' }>) {
     setActing(n.id)
@@ -177,6 +189,11 @@ export default function NotificationsScreen() {
       >
         <View style={styles.header}>
           <Text style={styles.title}>Notifications</Text>
+          {notifications.length > 0 && (
+            <Pressable onPress={clearAll} style={styles.clearBtn}>
+              <Text style={styles.clearBtnText}>Clear all</Text>
+            </Pressable>
+          )}
         </View>
 
         {loading && (
@@ -275,8 +292,10 @@ const styles = StyleSheet.create({
   safe:    { flex: 1, backgroundColor: palette.bg },
   content: { padding: spacing.lg, gap: spacing.md },
 
-  header: { marginBottom: 4 },
+  header: { marginBottom: 4, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   title:  { color: palette.text, fontSize: 30, fontWeight: '800' },
+  clearBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: palette.line },
+  clearBtnText: { color: palette.textDim, fontSize: 12, fontWeight: '700' },
 
   emptyWrap: { alignItems: 'center', paddingVertical: 56, gap: 10 },
   emptyText: { color: palette.text, fontSize: 16, fontWeight: '700' },

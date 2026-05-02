@@ -251,7 +251,7 @@ export default function ProfileScreen() {
               <View key={label} style={styles.prefRow}>
                 <Ionicons name={icon as never} size={17} color={palette.textDim} style={styles.prefIcon} />
                 <View style={styles.prefText}>
-                  <Text style={[styles.prefLabel, { color: palette.textDim }]}>{label}</Text>
+                  <Text style={styles.prefLabel}>{label}</Text>
                   <Text style={styles.prefDesc}>{desc}</Text>
                 </View>
                 <View style={[styles.toggle, user.push_notifications && styles.toggleOn]}>
