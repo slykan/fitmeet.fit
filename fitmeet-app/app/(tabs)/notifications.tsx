@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
-import { router } from 'expo-router'
-import { useCallback, useEffect, useState } from 'react'
+import { router, useFocusEffect } from 'expo-router'
+import { useCallback, useState } from 'react'
 import { badgeEvents } from './_layout'
 import {
   ActivityIndicator, Image, Pressable, RefreshControl,
@@ -142,10 +142,10 @@ export default function NotificationsScreen() {
     finally { setLoading(false); setRefreshing(false) }
   }, [])
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     load()
     badgeEvents.clearAlerts()
-  }, [load])
+  }, [load]))
 
   async function clearAll() {
     try {

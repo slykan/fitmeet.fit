@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useFocusEffect } from 'expo-router'
 import {
   ActivityIndicator,
   Alert,
@@ -711,9 +712,9 @@ export default function MessagesScreen() {
       .finally(() => setLoading(false))
   }, [])
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     load()
-  }, [load])
+  }, [load]))
 
   const filtered = conversations.filter((conv) => {
     const q = search.toLowerCase()

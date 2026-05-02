@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons'
-import { router } from 'expo-router'
+import { router, useFocusEffect } from 'expo-router'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ActivityIndicator, FlatList, Image, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -115,13 +115,13 @@ export default function HubScreen() {
     }
   }, [radiusIdx, goingOnly, myOnly, pastOnly, categories])
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     fetchEvents()
     api.get('/events/my-reminders').then(({ data }) => {
       const ids = new Set<number>(Object.keys(data.data ?? {}).map(Number).filter(Boolean))
       setReminderIds(ids)
     }).catch(() => {})
-  }, [fetchEvents])
+  }, [fetchEvents]))
 
   useEffect(() => {
     if (mapWasMoved) return

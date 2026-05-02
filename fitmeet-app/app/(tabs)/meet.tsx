@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
 import { EmptyEvents } from '@/src/components/EmptyEvents'
-import { router } from 'expo-router'
+import { router, useFocusEffect } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import {
   ActivityIndicator, Image, Pressable, ScrollView, Share,
@@ -106,7 +106,7 @@ function EventsTab() {
     finally { setLoading(false) }
   }, [category, radiusKm, goingOnly, friendsOnly, myOnly, pastOnly])
 
-  useEffect(() => { load() }, [load])
+  useFocusEffect(useCallback(() => { load() }, [load]))
   useEffect(() => {
     api.get('/events/my-reminders').then(({ data }) => {
       const ids = new Set<number>(Object.keys(data.data ?? {}).map(Number).filter(Boolean))
