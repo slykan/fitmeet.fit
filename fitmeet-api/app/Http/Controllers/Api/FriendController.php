@@ -115,7 +115,7 @@ class FriendController extends Controller
         $me = $request->user();
         FriendRequest::where('sender_id', $me->id)->where('status', 'accepted')->whereNull('accepted_read_at')->update(['accepted_read_at' => now()]);
         EventNotification::where('user_id', $me->id)->delete();
-        EventReminder::where('user_id', $me->id)->whereNotNull('sent_at')->update(['sent_at' => null]);
+        EventReminder::where('user_id', $me->id)->whereNotNull('sent_at')->update(['sent_at' => now()->subHours(25)]);
         return response()->json(['message' => 'Cleared.']);
     }
 

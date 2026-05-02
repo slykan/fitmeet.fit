@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons'
+import Constants from 'expo-constants'
 import { router } from 'expo-router'
 import { useState } from 'react'
 import { Linking } from 'react-native'
@@ -274,7 +275,7 @@ export default function ProfileScreen() {
           <Text style={styles.logoutLabel}>Log out</Text>
         </Pressable>
 
-        <Text style={styles.versionLabel}>FitMeet v1.0.3</Text>
+        <Text style={styles.versionLabel}>FitMeet v{Constants.expoConfig?.version ?? '1.0'}</Text>
 
       </ScrollView>
     </SafeAreaView>

@@ -773,39 +773,65 @@ export default function MessagesScreen() {
           const title = convTitle(conv, user?.id ?? 0)
           const last = conv.last_message
           return (
-            <Pressable key={conv.id} style={styles.convRow} onPress={() => setActiveConv(conv)}>
-              {conv.is_group ? (
-                <View style={[styles.avatar, { backgroundColor: `${palette.accent}18`, borderWidth: 1, borderColor: `${palette.accent}44` }]}>
-                  <Ionicons name="people" size={20} color={palette.accent} />
-                </View>
-              ) : conv.partner ? (
-                <View style={styles.avatar}>
-                  <Avatar person={conv.partner} size={48} />
-                </View>
-              ) : (
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarLetter}>{title.charAt(0).toUpperCase()}</Text>
-                </View>
-              )}
-
-              <View style={styles.convMeta}>
-                <View style={styles.convTop}>
-                  <Text style={styles.convName} numberOfLines={1}>{title}</Text>
-                  {last && <Text style={styles.convTime}>{timeAgo(last.created_at)}</Text>}
-                </View>
-                {last && (
-                  <Text style={styles.convPreview} numberOfLines={1}>
-                    {last.is_mine ? 'You: ' : ''}{last.body}
-                  </Text>
+            <View key={conv.id} style={styles.convRowWrap}>
+              <Pressable style={[styles.convRow, { flex: 1 }]} onPress={() => setActiveConv(conv)}>
+                {conv.is_group ? (
+                  <View style={[styles.avatar, { backgroundColor: `${palette.accent}18`, borderWidth: 1, borderColor: `${palette.accent}44` }]}>
+                    <Ionicons name="people" size={20} color={palette.accent} />
+                  </View>
+                ) : conv.partner ? (
+                  <View style={styles.avatar}>
+                    <Avatar person={conv.partner} size={48} />
+                  </View>
+                ) : (
+                  <View style={styles.avatar}>
+                    <Text style={styles.avatarLetter}>{title.charAt(0).toUpperCase()}</Text>
+                  </View>
                 )}
-              </View>
 
-              {conv.unread_count > 0 && (
-                <View style={styles.unreadBadge}>
-                  <Text style={styles.unreadText}>{conv.unread_count}</Text>
+                <View style={styles.convMeta}>
+                  <View style={styles.convTop}>
+                    <Text style={styles.convName} numberOfLines={1}>{title}</Text>
+                    {last && <Text style={styles.convTime}>{timeAgo(last.created_at)}</Text>}
+                  </View>
+                  {last && (
+                    <Text style={styles.convPreview} numberOfLines={1}>
+                      {last.is_mine ? 'You: ' : ''}{last.body}
+                    </Text>
+                  )}
                 </View>
-              )}
-            </Pressable>
+
+                {conv.unread_count > 0 && (
+                  <View style={styles.unreadBadge}>
+                    <Text style={styles.unreadText}>{conv.unread_count}</Text>
+                  </View>
+                )}
+              </Pressable>
+              <Pressable
+                style={styles.convDeleteBtn}
+                onPress={async () => {
+                  Alert.alert(
+                    conv.is_group ? 'Leave conversation' : 'Delete conversation',
+                    conv.is_group ? 'Leave this group chat?' : 'Delete this conversation?',
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      {
+                        text: conv.is_group ? 'Leave' : 'Delete',
+                        style: 'destructive',
+                        onPress: async () => {
+                          try {
+                            await api.delete(`/messages/conversations/${conv.id}`)
+                            setConversations(prev => prev.filter(c => c.id !== conv.id))
+                          } catch {}
+                        },
+                      },
+                    ]
+                  )
+                }}
+              >
+                <Ionicons name="trash-outline" size={16} color="rgba(255,100,100,0.6)" />
+              </Pressable>
+            </View>
           )
         })}
       </ScrollView>
@@ -834,7 +860,9 @@ const styles = StyleSheet.create({
   emptyWrap: { alignItems: 'center', gap: 8, paddingVertical: spacing.xl },
   emptyText: { color: palette.text, fontSize: 16, fontWeight: '700' },
   emptyHint: { color: palette.textMuted, fontSize: 13 },
+  convRowWrap: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   convRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 20, backgroundColor: palette.panel, borderWidth: 1, borderColor: palette.line },
+  convDeleteBtn: { width: 36, height: 36, borderRadius: 12, backgroundColor: 'rgba(255,100,100,0.08)', borderWidth: 1, borderColor: 'rgba(255,100,100,0.15)', alignItems: 'center', justifyContent: 'center' },
   avatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: palette.panelRaised, alignItems: 'center', justifyContent: 'center' },
   avatarLetter: { color: palette.text, fontSize: 20, fontWeight: '800' },
   convMeta: { flex: 1, gap: 4 },
