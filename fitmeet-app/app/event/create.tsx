@@ -302,14 +302,18 @@ export default function CreateEventScreen() {
         Alert.alert('Permission denied', 'Location permission is required.')
         return
       }
-      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High })
+      // Try last known position first (fast), fall back to fresh fix
+      let pos = await Location.getLastKnownPositionAsync({ maxAge: 60_000 })
+      if (!pos) {
+        pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced })
+      }
       const { latitude, longitude } = pos.coords
       setLat(latitude)
       setLng(longitude)
       const addr = await reverseGeocode(latitude, longitude)
       if (addr) setAddress(addr)
     } catch {
-      Alert.alert('Error', 'Could not get current location.')
+      Alert.alert('Error', 'Could not get current location. Make sure location is enabled.')
     } finally {
       setGeocoding(false)
     }
@@ -349,7 +353,8 @@ export default function CreateEventScreen() {
 
     setSubmitting(true)
     try {
-      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
+      const rawTz = Intl.DateTimeFormat().resolvedOptions().timeZone
+      const timezone = rawTz && !rawTz.startsWith('GMT') && !rawTz.startsWith('UTC') ? rawTz : 'Europe/Zagreb'
       const startAt  = pickedDate.toISOString()
 
       const fd = new FormData()
