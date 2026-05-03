@@ -2,6 +2,8 @@ import { Ionicons } from '@expo/vector-icons'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useFocusEffect } from 'expo-router'
 import * as ImagePicker from 'expo-image-picker'
+import * as MediaLibrary from 'expo-media-library'
+import * as FileSystem from 'expo-file-system'
 import {
   ActivityIndicator,
   Alert,
@@ -209,6 +211,7 @@ function ThreadView({
   const [loading, setLoading] = useState(true)
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
+  const [zoomImage, setZoomImage] = useState<string | null>(null)
   const [showMembers, setShowMembers] = useState(false)
   const [showAddMembers, setShowAddMembers] = useState(false)
   const [mutatingMembers, setMutatingMembers] = useState(false)
@@ -254,6 +257,23 @@ function ThreadView({
       Alert.alert('Could not send message', message ?? 'Please try again.')
     } finally {
       setSending(false)
+    }
+  }
+
+  async function downloadImage(url: string) {
+    try {
+      const { status } = await MediaLibrary.requestPermissionsAsync()
+      if (status !== 'granted') {
+        Alert.alert('Permission denied', 'Allow media access to save images.')
+        return
+      }
+      const filename = url.split('/').pop() ?? 'image.jpg'
+      const localUri = `${FileSystem.cacheDirectory}${filename}`
+      await FileSystem.downloadAsync(url, localUri)
+      await MediaLibrary.saveToLibraryAsync(localUri)
+      Alert.alert('Saved', 'Image saved to gallery.')
+    } catch {
+      Alert.alert('Error', 'Could not save image.')
     }
   }
 
@@ -438,6 +458,24 @@ function ThreadView({
         )}
       </View>
 
+      {/* Image zoom modal */}
+      <Modal visible={!!zoomImage} transparent animationType="fade" onRequestClose={() => setZoomImage(null)}>
+        <View style={th.imgZoomOverlay}>
+          <Pressable style={th.imgZoomClose} onPress={() => setZoomImage(null)}>
+            <Ionicons name="close" size={24} color="#fff" />
+          </Pressable>
+          {zoomImage && (
+            <Image source={{ uri: zoomImage }} style={th.imgZoomFull} resizeMode="contain" />
+          )}
+          {zoomImage && (
+            <Pressable style={th.imgZoomDownload} onPress={() => downloadImage(zoomImage)}>
+              <Ionicons name="download-outline" size={20} color="#fff" />
+              <Text style={th.imgZoomDownloadText}>Save to gallery</Text>
+            </Pressable>
+          )}
+        </View>
+      </Modal>
+
       {loading ? (
         <ActivityIndicator color={palette.accent} style={{ flex: 1 }} />
       ) : (
@@ -453,11 +491,13 @@ function ThreadView({
                 <Text style={th.senderName}>{item.sender.name}</Text>
               )}
               {item.image_url ? (
-                <Image
-                  source={{ uri: item.image_url }}
-                  style={th.msgImage}
-                  resizeMode="cover"
-                />
+                <Pressable onPress={() => setZoomImage(item.image_url!)}>
+                  <Image
+                    source={{ uri: item.image_url }}
+                    style={th.msgImage}
+                    resizeMode="cover"
+                  />
+                </Pressable>
               ) : null}
               {item.body ? (
                 <Text style={[th.bubbleText, item.is_mine && th.bubbleTextMine]}>{item.body}</Text>
@@ -544,6 +584,11 @@ const th = StyleSheet.create({
   sendBtn: { width: 46, height: 46, borderRadius: 16, backgroundColor: palette.accent, alignItems: 'center', justifyContent: 'center' },
   imageBtn: { width: 40, height: 40, borderRadius: 13, backgroundColor: palette.panel, borderWidth: 1, borderColor: palette.line, alignItems: 'center', justifyContent: 'center', marginBottom: 3 },
   msgImage: { width: 220, height: 160, borderRadius: 12, marginBottom: 4 },
+  imgZoomOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.93)', alignItems: 'center', justifyContent: 'center' },
+  imgZoomClose: { position: 'absolute', top: 52, right: 20, padding: 8, zIndex: 10 },
+  imgZoomFull: { width: '100%', height: '70%' },
+  imgZoomDownload: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 24, backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 16, paddingHorizontal: 20, paddingVertical: 12 },
+  imgZoomDownloadText: { color: '#fff', fontSize: 15, fontWeight: '700' },
   sendBtnDisabled: { opacity: 0.4 },
 })
 
@@ -559,6 +604,7 @@ function NewChatModal({
   const [friends, setFriends] = useState<Person[]>([])
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState<Person[]>([])
+  const [step, setStep] = useState<'pick' | 'compose'>('pick')
   const [groupTitle, setGroupTitle] = useState('')
   const [body, setBody] = useState('')
   const [sending, setSending] = useState(false)
@@ -574,6 +620,7 @@ function NewChatModal({
   function reset() {
     setSearch('')
     setSelected([])
+    setStep('pick')
     setGroupTitle('')
     setBody('')
     setError(null)
@@ -610,94 +657,126 @@ function NewChatModal({
   }
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={modal.overlay} onPress={onClose}>
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={() => { reset(); onClose() }}>
+      <Pressable style={modal.overlay} onPress={() => { reset(); onClose() }}>
         <Pressable style={modal.card} onPress={(e) => e.stopPropagation()}>
+
+          {/* Header */}
           <View style={modal.header}>
-            <View>
-              <Text style={modal.heading}>New Chat</Text>
-              <Text style={modal.sub}>Pick one friend or several for a group</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              {step === 'compose' && (
+                <Pressable onPress={() => setStep('pick')} hitSlop={8}>
+                  <Ionicons name="arrow-back" size={20} color={palette.textMuted} />
+                </Pressable>
+              )}
+              <View>
+                <Text style={modal.heading}>{step === 'pick' ? 'New Chat' : (selected.length > 1 ? 'Group Chat' : 'New Message')}</Text>
+                <Text style={modal.sub}>
+                  {step === 'pick'
+                    ? 'Pick one friend or several for a group'
+                    : selected.map(p => p.name).join(', ')}
+                </Text>
+              </View>
             </View>
             <Pressable style={modal.closeBtn} onPress={() => { reset(); onClose() }}>
               <Ionicons name="close" size={18} color={palette.textMuted} />
             </Pressable>
           </View>
 
-          <Text style={modal.label}>Recipients</Text>
-
-          <View style={modal.searchWrap}>
-            <Ionicons name="search-outline" size={15} color={palette.textDim} />
-            <TextInput
-              style={modal.searchInput}
-              value={search}
-              onChangeText={setSearch}
-              placeholder="Search friends..."
-              placeholderTextColor={palette.textDim}
-            />
-          </View>
-
-          {selected.length > 0 && (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 10 }}>
-              <View style={{ flexDirection: 'row', gap: 8 }}>
-                {selected.map((p) => (
-                  <Pressable key={p.id} style={modal.selectedChip} onPress={() => toggle(p)}>
-                    <Text style={modal.selectedChipText}>{p.name}</Text>
-                    <Ionicons name="close" size={12} color={palette.accent} />
-                  </Pressable>
-                ))}
+          {/* Step 1: Pick people */}
+          {step === 'pick' && (
+            <>
+              <View style={modal.searchWrap}>
+                <Ionicons name="search-outline" size={15} color={palette.textDim} />
+                <TextInput
+                  style={modal.searchInput}
+                  value={search}
+                  onChangeText={setSearch}
+                  placeholder="Search friends..."
+                  placeholderTextColor={palette.textDim}
+                />
               </View>
-            </ScrollView>
+
+              {selected.length > 0 && (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 6 }}>
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    {selected.map((p) => (
+                      <Pressable key={p.id} style={modal.selectedChip} onPress={() => toggle(p)}>
+                        <Text style={modal.selectedChipText}>{p.name}</Text>
+                        <Ionicons name="close" size={12} color={palette.accent} />
+                      </Pressable>
+                    ))}
+                  </View>
+                </ScrollView>
+              )}
+
+              <ScrollView style={{ maxHeight: 260 }} showsVerticalScrollIndicator={false}>
+                {friends.length === 0 && <Text style={modal.emptyText}>No friends yet.</Text>}
+                {filtered.map((friend) => {
+                  const active = selected.some((p) => p.id === friend.id)
+                  return (
+                    <Pressable key={friend.id} style={[modal.friendRow, active && modal.friendRowActive]} onPress={() => toggle(friend)}>
+                      <Avatar person={friend} size={34} />
+                      <Text style={[modal.friendName, active && modal.friendNameActive]}>{friend.name}</Text>
+                      {active && <Ionicons name="checkmark" size={16} color={palette.accent} />}
+                    </Pressable>
+                  )
+                })}
+              </ScrollView>
+
+              <Pressable
+                style={[modal.sendBtn, selected.length === 0 && modal.sendBtnDisabled]}
+                onPress={() => setStep('compose')}
+                disabled={selected.length === 0}
+              >
+                <Text style={modal.sendLabel}>OK — {selected.length} selected</Text>
+                <Ionicons name="arrow-forward" size={15} color="#041109" />
+              </Pressable>
+            </>
           )}
 
-          <ScrollView style={{ maxHeight: 180 }} showsVerticalScrollIndicator={false}>
-            {friends.length === 0 && <Text style={modal.emptyText}>No friends yet.</Text>}
-            {filtered.map((friend) => {
-              const active = selected.some((p) => p.id === friend.id)
-              return (
-                <Pressable key={friend.id} style={[modal.friendRow, active && modal.friendRowActive]} onPress={() => toggle(friend)}>
-                  <Avatar person={friend} size={34} />
-                  <Text style={[modal.friendName, active && modal.friendNameActive]}>{friend.name}</Text>
-                  {active && <Ionicons name="checkmark" size={16} color={palette.accent} />}
-                </Pressable>
-              )
-            })}
-          </ScrollView>
+          {/* Step 2: Compose */}
+          {step === 'compose' && (
+            <>
+              {selected.length > 1 && (
+                <TextInput
+                  style={modal.input}
+                  value={groupTitle}
+                  onChangeText={setGroupTitle}
+                  placeholder="Optional group name"
+                  placeholderTextColor={palette.textDim}
+                />
+              )}
 
-          {selected.length > 1 && (
-            <TextInput
-              style={modal.input}
-              value={groupTitle}
-              onChangeText={setGroupTitle}
-              placeholder="Optional group name"
-              placeholderTextColor={palette.textDim}
-            />
+              <TextInput
+                style={[modal.input, { height: 100, paddingTop: 12, textAlignVertical: 'top' }]}
+                value={body}
+                onChangeText={setBody}
+                placeholder="Write a message..."
+                placeholderTextColor={palette.textDim}
+                multiline
+                autoFocus
+              />
+
+              {error && <Text style={modal.error}>{error}</Text>}
+
+              <Pressable
+                style={[modal.sendBtn, (!body.trim() || sending) && modal.sendBtnDisabled]}
+                onPress={handleSend}
+                disabled={!body.trim() || sending}
+              >
+                {sending ? (
+                  <ActivityIndicator size="small" color="#041109" />
+                ) : (
+                  <>
+                    <Ionicons name="send" size={15} color="#041109" />
+                    <Text style={modal.sendLabel}>{selected.length > 1 ? 'Start Group Chat' : 'Send'}</Text>
+                  </>
+                )}
+              </Pressable>
+            </>
           )}
 
-          <TextInput
-            style={[modal.input, { height: 90, paddingTop: 12, textAlignVertical: 'top' }]}
-            value={body}
-            onChangeText={setBody}
-            placeholder="Write a message..."
-            placeholderTextColor={palette.textDim}
-            multiline
-          />
-
-          {error && <Text style={modal.error}>{error}</Text>}
-
-          <Pressable
-            style={[modal.sendBtn, (selected.length === 0 || !body.trim() || sending) && modal.sendBtnDisabled]}
-            onPress={handleSend}
-            disabled={selected.length === 0 || !body.trim() || sending}
-          >
-            {sending ? (
-              <ActivityIndicator size="small" color="#041109" />
-            ) : (
-              <>
-                <Ionicons name="send" size={15} color="#041109" />
-                <Text style={modal.sendLabel}>{selected.length > 1 ? 'Start Group Chat' : 'Send'}</Text>
-              </>
-            )}
-          </Pressable>
         </Pressable>
       </Pressable>
     </Modal>
