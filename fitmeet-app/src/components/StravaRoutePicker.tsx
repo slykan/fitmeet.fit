@@ -11,7 +11,7 @@ import { palette, spacing } from '@/src/theme'
 WebBrowser.maybeCompleteAuthSession()
 
 const CLIENT_ID = Constants.expoConfig?.extra?.stravaClientId ?? '234864'
-const REDIRECT_URI = 'fitmeet://strava-callback'
+const REDIRECT_URI = 'https://fitmeet.fit/strava-callback'
 
 interface StravaRoute {
   id: number
@@ -54,15 +54,16 @@ export function StravaRoutePicker({ visible, onClose, onImport }: Props) {
         `&approval_prompt=auto` +
         `&scope=read,activity:read_all`
 
-      const result = await WebBrowser.openAuthSessionAsync(authUrl, REDIRECT_URI)
+      const result = await WebBrowser.openAuthSessionAsync(authUrl, 'fitmeet://')
 
       if (result.type !== 'success' || !result.url) {
         setStep('connect')
         return
       }
 
-      const urlParams = new URL(result.url)
-      const code = urlParams.searchParams.get('code')
+      // result.url is fitmeet://strava-callback?code=...
+      const codeMatch = result.url.match(/[?&]code=([^&]+)/)
+      const code = codeMatch ? codeMatch[1] : null
       if (!code) { setStep('connect'); return }
 
       // Exchange code via our backend
