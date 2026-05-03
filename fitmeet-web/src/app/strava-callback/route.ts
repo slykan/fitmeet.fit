@@ -8,6 +8,22 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL('/', request.url))
   }
 
-  // Redirect back to mobile app with the auth code
-  return NextResponse.redirect(`fitmeet://strava-callback?code=${code}`)
+  const deepLink = `fitmeet://strava-callback?code=${encodeURIComponent(code)}`
+
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="refresh" content="0;url=${deepLink}">
+<script>window.location.href = "${deepLink}";</script>
+</head>
+<body>
+<p>Redirecting back to FitMeet...</p>
+<a href="${deepLink}">Tap here if not redirected</a>
+</body>
+</html>`
+
+  return new NextResponse(html, {
+    status: 200,
+    headers: { 'Content-Type': 'text/html' },
+  })
 }
