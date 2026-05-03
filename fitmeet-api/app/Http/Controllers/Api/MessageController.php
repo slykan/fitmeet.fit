@@ -79,6 +79,7 @@ class MessageController extends Controller
             ->map(fn (Message $message) => [
                 'id'         => $message->id,
                 'body'       => $message->body,
+                'image_url'  => $message->image_url,
                 'is_mine'    => $message->sender_id === $me,
                 'created_at' => $message->created_at->toIso8601String(),
                 'sender'     => [
@@ -132,12 +133,22 @@ class MessageController extends Controller
     // POST /messages/conversations/{conversation} — send in existing conversation
     public function sendToConversation(Request $request, Conversation $conversation): JsonResponse
     {
-        $request->validate(['body' => 'required|string|max:2000']);
+        $request->validate([
+            'body'       => 'nullable|string|max:2000',
+            'image_file' => 'nullable|file|mimes:jpeg,png,gif,webp|max:8192',
+        ]);
+        abort_if(!$request->filled('body') && !$request->hasFile('image_file'), 422, 'Message body or image required.');
 
         $me = $request->user()->id;
         $this->authorizeParticipant($conversation, $me);
 
-        $message = $this->createMessage($conversation, $me, $request->body);
+        $imageUrl = null;
+        if ($request->hasFile('image_file')) {
+            $path = $request->file('image_file')->store('message-images', 'public');
+            $imageUrl = config('app.url') . '/storage/' . $path;
+        }
+
+        $message = $this->createMessage($conversation, $me, $request->input('body', ''), $imageUrl);
 
         return response()->json([
             'data' => $this->serializeMessage($message, $me),
@@ -305,7 +316,7 @@ class MessageController extends Controller
         return $conversation;
     }
 
-    private function createMessage(Conversation $conversation, int $senderId, string $body): Message
+    private function createMessage(Conversation $conversation, int $senderId, string $body, ?string $imageUrl = null): Message
     {
         $conversation->participants()->updateExistingPivot($senderId, ['last_read_at' => now()]);
 
@@ -321,6 +332,7 @@ class MessageController extends Controller
             'sender_id'   => $senderId,
             'receiver_id' => $recipientIds[0],
             'body'        => $body,
+            'image_url'   => $imageUrl,
         ]);
 
         $message->load('sender:id,name,avatar');
@@ -465,6 +477,7 @@ class MessageController extends Controller
         return [
             'id'         => $message->id,
             'body'       => $message->body,
+            'image_url'  => $message->image_url,
             'is_mine'    => $message->sender_id === $me,
             'created_at' => $message->created_at->toIso8601String(),
             'sender'     => [

@@ -77,6 +77,9 @@ function isPast(iso: string) {
 function EventsTab() {
   const [events,     setEvents]     = useState<EventItem[]>([])
   const [loading,    setLoading]    = useState(true)
+  const [page,       setPage]       = useState(1)
+  const [lastPage,   setLastPage]   = useState(1)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [category,   setCategory]   = useState('')
   const [radiusKm,   setRadiusKm]   = useState<number | null>(null)
   const [goingOnly,   setGoingOnly]   = useState(false)
@@ -85,11 +88,12 @@ function EventsTab() {
   const [pastOnly,    setPastOnly]    = useState(false)
   const [reminderIds, setReminderIds] = useState<Set<number>>(new Set())
 
-  const load = useCallback(async () => {
-    setLoading(true)
+  const load = useCallback(async (pageNum = 1) => {
+    if (pageNum === 1) setLoading(true)
+    else setLoadingMore(true)
     try {
       let url = '/events'
-      const params: Record<string, unknown> = {}
+      const params: Record<string, unknown> = { page: pageNum }
       if (pastOnly) params.past = 1
       if (goingOnly) {
         url = '/events/joined'
@@ -101,9 +105,11 @@ function EventsTab() {
         if (friendsOnly) params.friends_only = 1
       }
       const { data } = await api.get(url, { params })
-      setEvents(data.data ?? [])
+      setEvents(prev => pageNum === 1 ? (data.data ?? []) : [...prev, ...(data.data ?? [])])
+      setPage(pageNum)
+      setLastPage(data.meta?.last_page ?? 1)
     } catch {}
-    finally { setLoading(false) }
+    finally { setLoading(false); setLoadingMore(false) }
   }, [category, radiusKm, goingOnly, friendsOnly, myOnly, pastOnly])
 
   useFocusEffect(useCallback(() => { load() }, [load]))
@@ -287,6 +293,19 @@ function EventsTab() {
           </Pressable>
         )
       })}
+
+      {!loading && events.length > 0 && page < lastPage && (
+        <Pressable
+          style={styles.loadMoreBtn}
+          onPress={() => load(page + 1)}
+          disabled={loadingMore}
+        >
+          {loadingMore
+            ? <ActivityIndicator size="small" color={palette.accent} />
+            : <Text style={styles.loadMoreText}>Load more</Text>
+          }
+        </Pressable>
+      )}
     </View>
   )
 }
@@ -494,6 +513,8 @@ const styles = StyleSheet.create({
   radiusLabelActive: { color: '#58beff' },
 
   emptyText: { color: palette.textMuted, fontSize: 14, textAlign: 'center', paddingVertical: spacing.xl },
+  loadMoreBtn: { alignItems: 'center', paddingVertical: 16, marginTop: 4 },
+  loadMoreText: { color: palette.accent, fontSize: 14, fontWeight: '700' },
 
   // Event card
   eventCard: {

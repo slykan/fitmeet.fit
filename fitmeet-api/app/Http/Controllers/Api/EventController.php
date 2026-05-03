@@ -82,7 +82,7 @@ class EventController extends Controller
             $query->where('skill_level', $request->skill_level);
         }
 
-        $events = $query->paginate(20);
+        $events = $query->paginate(10);
 
         return response()->json([
             'data' => EventResource::collection($events->items()),

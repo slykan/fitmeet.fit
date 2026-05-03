@@ -56,6 +56,9 @@ export default function HubScreen() {
   const user = useAuthStore((s) => s.user)
   const [events, setEvents] = useState<EventItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [page, setPage] = useState(1)
+  const [lastPage, setLastPage] = useState(1)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [radiusIdx, setRadiusIdx] = useState(0)
   const [categories, setCategories] = useState<Set<string>>(new Set())
   const [goingOnly,   setGoingOnly]   = useState(false)
@@ -89,10 +92,11 @@ export default function HubScreen() {
 
   const effectiveWeatherCenter = weatherCenter ?? mapCenter
 
-  const fetchEvents = useCallback(async () => {
-    setLoading(true)
+  const fetchEvents = useCallback(async (pageNum = 1) => {
+    if (pageNum === 1) setLoading(true)
+    else setLoadingMore(true)
     try {
-      const params: Record<string, unknown> = {}
+      const params: Record<string, unknown> = { page: pageNum }
       const radius = RADIUS_OPTIONS[radiusIdx]?.km
       if (radius) params.radius_km = radius
       if (pastOnly) params.past = 1
@@ -103,15 +107,17 @@ export default function HubScreen() {
 
       const { data } = await api.get(source, { params })
       const all: EventItem[] = data.data ?? []
-      setEvents(
-        categories.size > 0 && !goingOnly && !myOnly
-          ? all.filter((ev) => categories.has(ev.category.value))
-          : all,
-      )
+      const filtered = categories.size > 0 && !goingOnly && !myOnly
+        ? all.filter((ev) => categories.has(ev.category.value))
+        : all
+      setEvents(prev => pageNum === 1 ? filtered : [...prev, ...filtered])
+      setPage(pageNum)
+      setLastPage(data.meta?.last_page ?? 1)
     } catch {
-      setEvents([])
+      if (pageNum === 1) setEvents([])
     } finally {
       setLoading(false)
+      setLoadingMore(false)
     }
   }, [radiusIdx, goingOnly, myOnly, pastOnly, categories])
 
@@ -363,6 +369,20 @@ export default function HubScreen() {
             ? <ActivityIndicator color={palette.accent} style={{ paddingVertical: spacing.xl }} />
             : <EmptyEvents variant="hub" />
         }
+        ListFooterComponent={
+          !loading && events.length > 0 && page < lastPage ? (
+            <Pressable
+              style={styles.loadMoreBtn}
+              onPress={() => fetchEvents(page + 1)}
+              disabled={loadingMore}
+            >
+              {loadingMore
+                ? <ActivityIndicator size="small" color={palette.accent} />
+                : <Text style={styles.loadMoreText}>Load more</Text>
+              }
+            </Pressable>
+          ) : null
+        }
       />
     </SafeAreaView>
   )
@@ -443,6 +463,8 @@ const styles = StyleSheet.create({
   },
 
   emptyWrap: { alignItems: 'center', paddingVertical: spacing.xl },
+  loadMoreBtn: { alignItems: 'center', paddingVertical: 16, marginTop: 4 },
+  loadMoreText: { color: palette.accent, fontSize: 14, fontWeight: '700' },
   emptyText: { color: palette.textMuted, fontSize: 14 },
 
   eventCard: {

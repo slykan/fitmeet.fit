@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useFocusEffect } from 'expo-router'
+import * as ImagePicker from 'expo-image-picker'
 import {
   ActivityIndicator,
   Alert,
@@ -44,6 +45,7 @@ interface Conversation {
 interface Msg {
   id: number
   body: string
+  image_url?: string | null
   is_mine: boolean
   created_at: string
   sender: Person
@@ -255,6 +257,32 @@ function ThreadView({
     }
   }
 
+  async function pickAndSendImage() {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      quality: 0.8,
+      allowsEditing: false,
+    })
+    if (result.canceled || !result.assets?.[0]) return
+    const asset = result.assets[0]
+    setSending(true)
+    try {
+      const fd = new FormData()
+      fd.append('image_file', { uri: asset.uri, name: 'photo.jpg', type: 'image/jpeg' } as never)
+      const { data } = await api.post(
+        `/messages/conversations/${conv.id}`,
+        fd,
+        { headers: { 'Content-Type': 'multipart/form-data' } },
+      )
+      setMessages((prev) => [...prev, data.data ?? data.message])
+      setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 100)
+    } catch {
+      Alert.alert('Could not send image', 'Please try again.')
+    } finally {
+      setSending(false)
+    }
+  }
+
   const title = convTitle(conv, meId)
   const canManageMembers = !!(conv.is_group && (conv.can_manage_members || conv.created_by === meId))
   const memberIds = new Set(conv.participants.map((p) => p.id))
@@ -424,7 +452,16 @@ function ThreadView({
               {!item.is_mine && conv.is_group && (
                 <Text style={th.senderName}>{item.sender.name}</Text>
               )}
-              <Text style={[th.bubbleText, item.is_mine && th.bubbleTextMine]}>{item.body}</Text>
+              {item.image_url ? (
+                <Image
+                  source={{ uri: item.image_url }}
+                  style={th.msgImage}
+                  resizeMode="cover"
+                />
+              ) : null}
+              {item.body ? (
+                <Text style={[th.bubbleText, item.is_mine && th.bubbleTextMine]}>{item.body}</Text>
+              ) : null}
               <Text style={[th.bubbleTime, item.is_mine && th.bubbleTimeMine]}>{timeAgo(item.created_at)}</Text>
             </View>
           )}
@@ -434,6 +471,9 @@ function ThreadView({
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={th.inputRow}>
+          <Pressable style={th.imageBtn} onPress={pickAndSendImage} disabled={sending}>
+            <Ionicons name="image-outline" size={22} color={palette.textDim} />
+          </Pressable>
           <TextInput
             style={th.input}
             value={input}
@@ -499,9 +539,11 @@ const th = StyleSheet.create({
   memberRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   memberName: { color: palette.text, fontSize: 14, fontWeight: '600', flex: 1 },
   memberRemoveBtn: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  inputRow: { flexDirection: 'row', gap: 8, padding: spacing.md, borderTopWidth: 1, borderTopColor: palette.line },
+  inputRow: { flexDirection: 'row', gap: 8, padding: spacing.md, borderTopWidth: 1, borderTopColor: palette.line, alignItems: 'flex-end' },
   input: { flex: 1, maxHeight: 100, borderRadius: 18, backgroundColor: palette.panel, borderWidth: 1, borderColor: palette.line, paddingHorizontal: 16, paddingVertical: 10, color: palette.text, fontSize: 15 },
   sendBtn: { width: 46, height: 46, borderRadius: 16, backgroundColor: palette.accent, alignItems: 'center', justifyContent: 'center' },
+  imageBtn: { width: 40, height: 40, borderRadius: 13, backgroundColor: palette.panel, borderWidth: 1, borderColor: palette.line, alignItems: 'center', justifyContent: 'center', marginBottom: 3 },
+  msgImage: { width: 220, height: 160, borderRadius: 12, marginBottom: 4 },
   sendBtnDisabled: { opacity: 0.4 },
 })
 
