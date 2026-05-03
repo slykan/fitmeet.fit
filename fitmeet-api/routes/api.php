@@ -77,6 +77,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('users', [UserController::class, 'index']);
 
     // Friends & notifications
+    Route::post('strava/token',                    [\App\Http\Controllers\Api\StravaController::class, 'exchangeToken']);
     Route::get('notifications/count',              [FriendController::class, 'notificationsCount']);
     Route::delete('notifications/clear-all',       [FriendController::class, 'notificationsClearAll']);
     Route::get('notifications',                   [FriendController::class, 'notifications']);

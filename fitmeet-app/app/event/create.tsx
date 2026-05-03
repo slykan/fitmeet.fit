@@ -3,6 +3,7 @@ import DateTimePicker from '@react-native-community/datetimepicker'
 import * as DocumentPicker from 'expo-document-picker'
 import * as ImagePicker from 'expo-image-picker'
 import * as Location from 'expo-location'
+import { StravaRoutePicker } from '@/src/components/StravaRoutePicker'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
 import {
@@ -195,6 +196,7 @@ export default function CreateEventScreen() {
   // GPX
   const [gpxName,     setGpxName]     = useState<string | null>(null)
   const [gpxContent,  setGpxContent]  = useState<string | null>(null)
+  const [showStrava,  setShowStrava]  = useState(false)
 
   const [submitting,  setSubmitting]  = useState(false)
   const [prefilling,  setPrefilling]  = useState(false)
@@ -329,6 +331,21 @@ export default function CreateEventScreen() {
     } finally {
       setGeocoding(false)
     }
+  }
+
+  function handleStravaImport(gpxText: string) {
+    setGpxContent(gpxText)
+    setGpxName('strava-route.gpx')
+    const parsed = parseGpxText(gpxText)
+    setGpxTrack(parsed.track)
+    if (parsed.track.length > 0 && lat === null) {
+      setLat(parsed.track[0][0])
+      setLng(parsed.track[0][1])
+    }
+    if (parsed.distanceKm > 0)    setDistanceKm(String(parsed.distanceKm))
+    if (parsed.elevGain > 0)      setElevGain(String(parsed.elevGain))
+    if (parsed.maxGrade !== 0)    setMaxGrade(String(parsed.maxGrade))
+    if (parsed.maxDowngrade !== 0) setMaxDowngrade(String(parsed.maxDowngrade))
   }
 
   async function pickGpx() {
@@ -616,13 +633,25 @@ export default function CreateEventScreen() {
         </Field>
 
         <Field label="GPX route">
-          <Pressable style={[styles.uploadBtn, gpxName && styles.uploadBtnActive]} onPress={pickGpx}>
-            <Ionicons name="map-outline" size={16} color={gpxName ? palette.accent : palette.textMuted} />
-            <Text style={[styles.uploadLabel, gpxName && styles.uploadLabelActive]}>
-              {gpxName ? `${gpxName} · ${gpxTrack.length} pts` : 'Upload GPX file (optional)'}
-            </Text>
-          </Pressable>
+          <View style={{ gap: 8 }}>
+            <Pressable style={[styles.uploadBtn, gpxName && styles.uploadBtnActive]} onPress={pickGpx}>
+              <Ionicons name="map-outline" size={16} color={gpxName ? palette.accent : palette.textMuted} />
+              <Text style={[styles.uploadLabel, gpxName && styles.uploadLabelActive]}>
+                {gpxName ? `${gpxName} · ${gpxTrack.length} pts` : 'Upload GPX file (optional)'}
+              </Text>
+            </Pressable>
+            <Pressable style={styles.stravaBtn} onPress={() => setShowStrava(true)}>
+              <Ionicons name="logo-strava" size={15} color="#FC4C02" />
+              <Text style={styles.stravaBtnText}>Import from Strava</Text>
+            </Pressable>
+          </View>
         </Field>
+
+        <StravaRoutePicker
+          visible={showStrava}
+          onClose={() => setShowStrava(false)}
+          onImport={handleStravaImport}
+        />
 
         {/* ── Details ── */}
         <SectionHeader title="Details" icon="settings-outline" badge="optional" />
@@ -789,6 +818,8 @@ const styles = StyleSheet.create({
   uploadBtnActive: { borderColor: palette.accent, backgroundColor: `${palette.accent}12` },
   uploadLabel:       { color: palette.textMuted, fontSize: 14, flex: 1 },
   uploadLabelActive: { color: palette.accent },
+  stravaBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 14, paddingHorizontal: spacing.md, paddingVertical: 12, backgroundColor: 'rgba(252,76,2,0.08)', borderWidth: 1, borderColor: 'rgba(252,76,2,0.3)' },
+  stravaBtnText: { color: '#FC4C02', fontSize: 14, fontWeight: '700' },
 
   imagePreviewWrap: { gap: 10, marginTop: 8 },
   imagePreview: { width: '100%', height: 180, borderRadius: 14 },
