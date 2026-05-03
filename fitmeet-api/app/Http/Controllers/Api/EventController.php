@@ -27,7 +27,7 @@ class EventController extends Controller
                 ->orderByDesc('events.start_at');
         }
 
-        return $query->upcoming()->orderBy('events.start_at');
+        return $query->upcoming()->orderByDesc('events.created_at');
     }
 
     // GET /api/events

@@ -3,7 +3,7 @@ import { EmptyEvents } from '@/src/components/EmptyEvents'
 import { router, useFocusEffect } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import {
-  ActivityIndicator, Image, Pressable, ScrollView, Share,
+  ActivityIndicator, Image, Modal, Pressable, ScrollView, Share,
   StyleSheet, Text, TextInput, View,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -313,10 +313,11 @@ function EventsTab() {
 // ─── People Tab ───────────────────────────────────────────────────────────────
 
 function PeopleTab() {
-  const [users,   setUsers]   = useState<UserItem[]>([])
-  const [search,  setSearch]  = useState('')
-  const [loading, setLoading] = useState(true)
-  const [acting,  setActing]  = useState<number | null>(null)
+  const [users,        setUsers]        = useState<UserItem[]>([])
+  const [search,       setSearch]       = useState('')
+  const [loading,      setLoading]      = useState(true)
+  const [acting,       setActing]       = useState<number | null>(null)
+  const [zoomAvatar,   setZoomAvatar]   = useState<string | null>(null)
 
   const load = useCallback((q: string) => {
     setLoading(true)
@@ -379,11 +380,27 @@ function PeopleTab() {
         <Text style={styles.emptyText}>No people found.</Text>
       )}
 
+      {/* Avatar zoom modal */}
+      <Modal visible={!!zoomAvatar} transparent animationType="fade" onRequestClose={() => setZoomAvatar(null)}>
+        <Pressable style={styles.avatarZoomOverlay} onPress={() => setZoomAvatar(null)}>
+          {zoomAvatar && (
+            <Image source={{ uri: zoomAvatar }} style={styles.avatarZoomImg} resizeMode="cover" />
+          )}
+        </Pressable>
+      </Modal>
+
       {!loading && users.map(u => (
         <View key={u.id} style={styles.userCard}>
-          <View style={styles.userAvatar}>
-            <Text style={styles.userAvatarText}>{u.name.charAt(0).toUpperCase()}</Text>
-          </View>
+          <Pressable
+            style={styles.userAvatar}
+            onPress={() => u.avatar ? setZoomAvatar(u.avatar) : null}
+            disabled={!u.avatar}
+          >
+            {u.avatar
+              ? <Image source={{ uri: u.avatar }} style={styles.userAvatarImg} />
+              : <Text style={styles.userAvatarText}>{u.name.charAt(0).toUpperCase()}</Text>
+            }
+          </Pressable>
           <View style={{ flex: 1, gap: 2 }}>
             <Text style={styles.userName}>{u.name}</Text>
             {(u.home.city || u.home.country) && (
@@ -565,8 +582,12 @@ const styles = StyleSheet.create({
   userAvatar: {
     width: 44, height: 44, borderRadius: 22,
     backgroundColor: palette.accent, alignItems: 'center', justifyContent: 'center',
+    overflow: 'hidden',
   },
+  userAvatarImg:  { width: 44, height: 44, borderRadius: 22 },
   userAvatarText: { color: '#031109', fontSize: 18, fontWeight: '800' },
+  avatarZoomOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', alignItems: 'center', justifyContent: 'center' },
+  avatarZoomImg:     { width: 280, height: 280, borderRadius: 140 },
   userName:       { color: palette.text, fontSize: 15, fontWeight: '700' },
   userLocation:   { color: palette.textMuted, fontSize: 12 },
   userEvents:     { color: palette.textMuted, fontSize: 12 },
