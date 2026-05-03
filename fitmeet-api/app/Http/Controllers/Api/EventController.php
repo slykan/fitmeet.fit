@@ -27,7 +27,9 @@ class EventController extends Controller
                 ->orderByDesc('events.start_at');
         }
 
-        return $query->upcoming()->orderByDesc('events.created_at');
+        return $query->upcoming()
+            ->orderByRaw('CASE WHEN events.start_at <= NOW() AND DATE_ADD(events.start_at, INTERVAL COALESCE(events.duration_minutes, 60) MINUTE) >= NOW() THEN 0 ELSE 1 END ASC')
+            ->orderByDesc('events.created_at');
     }
 
     // GET /api/events

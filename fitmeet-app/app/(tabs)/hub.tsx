@@ -7,6 +7,7 @@ import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs'
 
 import { EmptyEvents } from '@/src/components/EmptyEvents'
 import { HubMapCard } from '@/src/components/HubMapCard'
+import { InProgressBadge } from '@/src/components/InProgressBadge'
 import { WeatherBadge } from '@/src/components/WeatherBadge'
 import { CATEGORIES } from '@/src/lib/categories'
 import { api } from '@/src/lib/api'
@@ -26,6 +27,7 @@ interface EventItem {
   status: string
   is_full: boolean
   is_joined: boolean
+  is_in_progress: boolean
   image_url: string | null
 }
 
@@ -187,7 +189,10 @@ export default function HubScreen() {
             <Text style={styles.eventEmoji}>{emoji}</Text>
           </View>
           <View style={styles.eventMeta}>
-            <Text style={styles.eventTitle} numberOfLines={1}>{ev.title}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+              <Text style={styles.eventTitle} numberOfLines={1}>{ev.title}</Text>
+              {ev.is_in_progress && <InProgressBadge />}
+            </View>
             <Text style={styles.eventCategory}>
               {ev.category.label}
               {ev.is_joined ? ' · Going' : ''}

@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
 import { EmptyEvents } from '@/src/components/EmptyEvents'
+import { InProgressBadge } from '@/src/components/InProgressBadge'
 import { router, useFocusEffect } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import {
@@ -29,6 +30,7 @@ interface EventItem {
   is_full: boolean
   is_joined: boolean
   is_organizer: boolean
+  is_in_progress: boolean
   skill_level: string | null
   image_url: string | null
 }
@@ -224,7 +226,10 @@ function EventsTab() {
                 <Text style={{ fontSize: 22 }}>{emoji}</Text>
               </View>
               <View style={{ flex: 1, gap: 2 }}>
-                <Text style={styles.eventTitle} numberOfLines={1}>{ev.title}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+                  <Text style={[styles.eventTitle, { flex: 1 }]} numberOfLines={1}>{ev.title}</Text>
+                  {ev.is_in_progress && <InProgressBadge />}
+                </View>
                 <View style={styles.tagRow}>
                   <View style={styles.catTag}>
                     <Text style={styles.catTagText}>{ev.category.label}</Text>

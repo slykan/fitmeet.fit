@@ -49,6 +49,8 @@ class EventResource extends JsonResource
             'is_full'            => $this->isFull(),
             'is_private'         => $this->is_private,
             'status'             => $this->status,
+            'is_in_progress'     => $this->start_at->lte(now()) &&
+                                    $this->start_at->copy()->addMinutes($this->duration_minutes ?? 60)->gte(now()),
 
             'organizer'    => new UserResource($this->whenLoaded('organizer')),
             'participants' => $this->whenLoaded('participants', fn () =>

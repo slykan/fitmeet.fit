@@ -73,12 +73,20 @@ class Event extends Model
         return $this->user_id === $user->id;
     }
 
-    // Scope: future events that still matter in feeds (active or cancelled)
+    // Scope: future events + in-progress events
     public function scopeUpcoming(Builder $query): Builder
     {
         return $query
             ->whereIn('events.status', ['active', 'cancelled'])
-            ->where('events.start_at', '>', now());
+            ->where(function ($q) {
+                // Not yet started
+                $q->where('events.start_at', '>', now())
+                // OR in-progress: started but end time not reached
+                ->orWhere(function ($q2) {
+                    $q2->where('events.start_at', '<=', now())
+                       ->whereRaw('DATE_ADD(events.start_at, INTERVAL COALESCE(events.duration_minutes, 60) MINUTE) >= ?', [now()]);
+                });
+            });
     }
 
     // Scope: events within $radiusKm of given coordinates
