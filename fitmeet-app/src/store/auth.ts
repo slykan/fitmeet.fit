@@ -33,6 +33,7 @@ type AuthState = {
   login: (input: { email: string; password: string; turnstileToken: string }) => Promise<void>
   register: (input: { name: string; email: string; password: string; turnstileToken: string }) => Promise<void>
   loginWithGoogle: (accessToken: string) => Promise<void>
+  loginWithStrava: (code: string) => Promise<void>
   refreshMe: () => Promise<void>
   logout: () => Promise<void>
 }
@@ -119,6 +120,14 @@ export const useAuthStore = create<AuthState>((set) => ({
     const payload = await requestJson<AuthResponse>('/auth/google-mobile', {
       method: 'POST',
       body: JSON.stringify({ access_token: accessToken }),
+    })
+    await storeSession({ token: payload.token, user: payload.data })
+    set({ token: payload.token, user: payload.data })
+  },
+  loginWithStrava: async (code: string) => {
+    const payload = await requestJson<AuthResponse>('/strava/login', {
+      method: 'POST',
+      body: JSON.stringify({ code }),
     })
     await storeSession({ token: payload.token, user: payload.data })
     set({ token: payload.token, user: payload.data })

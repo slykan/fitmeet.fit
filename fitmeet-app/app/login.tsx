@@ -20,15 +20,42 @@ import { palette, spacing } from '@/src/theme'
 WebBrowser.maybeCompleteAuthSession()
 
 export default function LoginScreen() {
-  const login          = useAuthStore((s) => s.login)
-  const loginWithGoogle = useAuthStore((s) => s.loginWithGoogle)
+  const login            = useAuthStore((s) => s.login)
+  const loginWithGoogle  = useAuthStore((s) => s.loginWithGoogle)
+  const loginWithStrava  = useAuthStore((s) => s.loginWithStrava)
 
-  const [email,       setEmail]       = useState('')
-  const [password,    setPassword]    = useState('')
-  const [submitting,  setSubmitting]  = useState(false)
-  const [error,       setError]       = useState<string | null>(null)
-  const [showCaptcha, setShowCaptcha] = useState(false)
+  const [email,         setEmail]         = useState('')
+  const [password,      setPassword]      = useState('')
+  const [submitting,    setSubmitting]     = useState(false)
+  const [error,         setError]         = useState<string | null>(null)
+  const [showCaptcha,   setShowCaptcha]   = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
+  const [stravaLoading, setStravaLoading] = useState(false)
+
+  async function handleStravaPress() {
+    setStravaLoading(true)
+    setError(null)
+    try {
+      const STRAVA_CLIENT_ID = '234864'
+      const REDIRECT_URI = 'https://fitmeet.fit/strava-callback'
+      const authUrl =
+        `https://www.strava.com/oauth/mobile/authorize` +
+        `?client_id=${STRAVA_CLIENT_ID}` +
+        `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
+        `&response_type=code&approval_prompt=auto&scope=read,profile:read_all`
+      const result = await WebBrowser.openAuthSessionAsync(authUrl, 'fitmeet://')
+      if (result.type !== 'success' || !result.url) return
+      const match = result.url.match(/[?&]code=([^&]+)/)
+      const code = match ? decodeURIComponent(match[1]) : null
+      if (!code) return
+      await loginWithStrava(code)
+      router.replace('/(tabs)/hub')
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Strava login failed.')
+    } finally {
+      setStravaLoading(false)
+    }
+  }
 
   const disabled = useMemo(
     () => !email.trim() || !password.trim() || submitting || googleLoading,
@@ -114,6 +141,22 @@ export default function LoginScreen() {
           )}
         </Pressable>
 
+        {/* Strava button */}
+        <Pressable
+          style={[styles.stravaBtn, stravaLoading && styles.disabledBtn]}
+          onPress={handleStravaPress}
+          disabled={stravaLoading}
+        >
+          {stravaLoading ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <>
+              <Ionicons name="logo-strava" size={18} color="#FC4C02" />
+              <Text style={styles.stravaLabel}>Continue with Strava</Text>
+            </>
+          )}
+        </Pressable>
+
         <View style={styles.divider}>
           <View style={styles.dividerLine} />
           <Text style={styles.dividerText}>or</Text>
@@ -194,6 +237,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
   },
   googleLabel: { color: palette.text, fontSize: 15, fontWeight: '700' },
+  stravaBtn: { height: 52, borderRadius: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: 'rgba(252,76,2,0.1)', borderWidth: 1, borderColor: 'rgba(252,76,2,0.35)' },
+  stravaLabel: { color: '#FC4C02', fontSize: 15, fontWeight: '700' },
   disabledBtn: { opacity: 0.5 },
 
   divider:     { flexDirection: 'row', alignItems: 'center', gap: 10 },

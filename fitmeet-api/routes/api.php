@@ -15,6 +15,8 @@ Route::prefix('auth')->group(function () {
     Route::get('google/callback', [AuthController::class, 'handleGoogleCallback']);
 });
 
+Route::post('strava/login', [\App\Http\Controllers\Api\StravaController::class, 'login']);
+
 // Turnstile page for mobile WebView
 Route::get('turnstile', function () {
     $siteKey = env('TURNSTILE_SITE_KEY', '0x4AAAAAAA272FNBOuqwbiqe');

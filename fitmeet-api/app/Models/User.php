@@ -21,6 +21,7 @@ class User extends Authenticatable
         'email',
         'password',
         'google_id',
+        'strava_id',
         'avatar',
         'phone',
         'hide_phone',
