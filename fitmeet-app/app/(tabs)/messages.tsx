@@ -658,8 +658,13 @@ function NewChatModal({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={() => { reset(); onClose() }}>
-      <Pressable style={modal.overlay} onPress={() => { reset(); onClose() }}>
-        <Pressable style={modal.card} onPress={(e) => e.stopPropagation()}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={0}
+      >
+        <Pressable style={modal.overlay} onPress={() => { reset(); onClose() }}>
+          <Pressable style={modal.card} onPress={(e) => e.stopPropagation()}>
 
           {/* Header */}
           <View style={modal.header}>
@@ -777,8 +782,9 @@ function NewChatModal({
             </>
           )}
 
+          </Pressable>
         </Pressable>
-      </Pressable>
+      </KeyboardAvoidingView>
     </Modal>
   )
 }
