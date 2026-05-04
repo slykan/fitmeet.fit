@@ -75,7 +75,7 @@ export function StravaRoutePicker({ visible, onClose, onImport }: Props) {
         `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
         `&response_type=code` +
         `&approval_prompt=auto` +
-        `&scope=read,activity:read_all`
+        `&scope=read,read_all,activity:read_all`
 
       const result = await WebBrowser.openAuthSessionAsync(authUrl, 'fitmeet://')
 
@@ -107,8 +107,9 @@ export function StravaRoutePicker({ visible, onClose, onImport }: Props) {
       onImport(gpxText, route.name)
       reset()
       onClose()
-    } catch {
-      Alert.alert('Error', 'Could not download GPX for this route.')
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message
+      Alert.alert('Error', msg ?? 'Could not download GPX for this route.')
     } finally {
       setLoadingRoute(null)
     }

@@ -8,6 +8,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class StravaController
@@ -63,6 +64,7 @@ class StravaController
         Cache::put("strava_import:{$request->user()->id}:{$importToken}", [
             'access_token' => $accessToken,
             'athlete_id' => $athleteId,
+            'scope' => $data['scope'] ?? null,
         ], now()->addMinutes(15));
 
         return response()->json([
@@ -94,7 +96,19 @@ class StravaController
             ->get("https://www.strava.com/api/v3/routes/{$routeId}/export_gpx");
 
         if (!$res->successful()) {
-            return response()->json(['message' => 'Could not download GPX for this route.'], 422);
+            Log::warning('Strava GPX export failed', [
+                'user_id' => $request->user()->id,
+                'route_id' => $routeId,
+                'status' => $res->status(),
+                'scope' => $session['scope'] ?? null,
+                'body' => Str::limit($res->body(), 1000),
+            ]);
+
+            $message = $res->status() === 401 || $res->status() === 403
+                ? 'Strava did not allow GPX export for this route. Reconnect Strava and approve route permissions.'
+                : 'Could not download GPX for this route.';
+
+            return response()->json(['message' => $message], 422);
         }
 
         return response()->json([
