@@ -236,4 +236,14 @@ class AuthController extends Controller
 
         return response()->json(['message' => 'Logged out.']);
     }
+
+    public function destroyAccount(): JsonResponse
+    {
+        $user = auth()->user();
+
+        $user->tokens()->delete();
+        $user->delete();
+
+        return response()->json(['message' => 'Account deleted.']);
+    }
 }

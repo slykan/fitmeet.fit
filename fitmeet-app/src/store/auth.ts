@@ -36,6 +36,7 @@ type AuthState = {
   loginWithStrava: (code: string) => Promise<void>
   refreshMe: () => Promise<void>
   logout: () => Promise<void>
+  deleteAccount: () => Promise<void>
 }
 
 const STORAGE_KEY = 'fitmeet-mobile-auth-v2'
@@ -186,6 +187,15 @@ export const useAuthStore = create<AuthState>((set) => ({
         await requestJson('/logout', { method: 'POST' }, token)
       } catch {}
     }
+    await AsyncStorage.removeItem(PUSH_TOKEN_STORAGE_KEY)
+    await AsyncStorage.removeItem(STORAGE_KEY)
+    set({ token: null, user: null })
+  },
+  deleteAccount: async () => {
+    const token = useAuthStore.getState().token
+    if (!token) return
+
+    await requestJson('/me', { method: 'DELETE' }, token)
     await AsyncStorage.removeItem(PUSH_TOKEN_STORAGE_KEY)
     await AsyncStorage.removeItem(STORAGE_KEY)
     set({ token: null, user: null })
