@@ -33,6 +33,19 @@ class EventController extends Controller
             ->orderByDesc('events.created_at');
     }
 
+    private function requestCoordinates(Request $request): array
+    {
+        $user = $request->user();
+
+        $lat = $request->filled('lat') ? $request->float('lat') : ($user?->home_lat ?? $user?->lat);
+        $lng = $request->filled('lng') ? $request->float('lng') : ($user?->home_lng ?? $user?->lng);
+
+        return [
+            is_numeric($lat) ? (float) $lat : null,
+            is_numeric($lng) ? (float) $lng : null,
+        ];
+    }
+
     // GET /api/events
     public function index(Request $request): JsonResponse
     {
@@ -40,14 +53,14 @@ class EventController extends Controller
 
         $query = Event::with('organizer');
 
-        if ($request->boolean('friends_only')) {
-            $friendIds = FriendRequest::where(function ($q) use ($user) {
-                $q->where('sender_id', $user->id)->orWhere('receiver_id', $user->id);
-            })->where('status', 'accepted')
-              ->get()
-              ->map(fn ($r) => $r->sender_id === $user->id ? $r->receiver_id : $r->sender_id)
-              ->values();
+        $friendIds = FriendRequest::where(function ($q) use ($user) {
+            $q->where('sender_id', $user->id)->orWhere('receiver_id', $user->id);
+        })->where('status', 'accepted')
+          ->get()
+          ->map(fn ($r) => $r->sender_id === $user->id ? $r->receiver_id : $r->sender_id)
+          ->values();
 
+        if ($request->boolean('friends_only')) {
             if ($friendIds->isEmpty()) {
                 return response()->json([
                     'data' => [],
@@ -61,16 +74,20 @@ class EventController extends Controller
 
             $query->whereIn('events.user_id', $friendIds);
         } else {
-            $query->public();
+            $query->where(function ($q) use ($friendIds) {
+                $q->where('events.is_private', false);
+                if ($friendIds->isNotEmpty()) {
+                    $q->orWhereIn('events.user_id', $friendIds);
+                }
+            });
         }
 
         $query = $this->applyTimeWindow($request, $query);
 
-        // Nearby filter â€” only when caller explicitly provides coordinates
-        $lat = $request->filled('lat') ? $request->float('lat') : null;
-        $lng = $request->filled('lng') ? $request->float('lng') : null;
+        // Nearby filter; mobile may send only radius_km, so use the user's saved coordinates.
+        [$lat, $lng] = $this->requestCoordinates($request);
 
-        if ($lat && $lng) {
+        if ($lat !== null && $lng !== null && ($request->filled('lat') || $request->filled('lng') || $request->filled('radius_km'))) {
             $radiusKm = $request->integer('radius_km', $user->radius_km);
             $query->nearby($lat, $lng, $radiusKm);
         }

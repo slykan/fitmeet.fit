@@ -74,10 +74,15 @@ export default function HubScreen() {
   const [weatherCenter, setWeatherCenter] = useState<{ lat: number; lng: number } | null>(null)
   const [mapWasMoved, setMapWasMoved] = useState(false)
 
-  const mapCenter = (() => {
+  const discoveryCenter = useMemo(() => {
     const lat = user?.home?.lat ?? user?.location?.lat
     const lng = user?.home?.lng ?? user?.location?.lng
     if (typeof lat === 'number' && typeof lng === 'number') return { lat, lng }
+    return null
+  }, [user?.home?.lat, user?.home?.lng, user?.location?.lat, user?.location?.lng])
+
+  const mapCenter = (() => {
+    if (discoveryCenter) return discoveryCenter
     const first = events[0]
     if (first) return { lat: first.location.lat, lng: first.location.lng }
     return { lat: 45.5511, lng: 18.6939 }
@@ -100,7 +105,13 @@ export default function HubScreen() {
     try {
       const params: Record<string, unknown> = { page: pageNum }
       const radius = RADIUS_OPTIONS[radiusIdx]?.km
-      if (radius) params.radius_km = radius
+      if (radius) {
+        params.radius_km = radius
+        if (discoveryCenter) {
+          params.lat = discoveryCenter.lat
+          params.lng = discoveryCenter.lng
+        }
+      }
       if (pastOnly) params.past = 1
 
       let source = '/events'
@@ -121,7 +132,7 @@ export default function HubScreen() {
       setLoading(false)
       setLoadingMore(false)
     }
-  }, [radiusIdx, goingOnly, myOnly, pastOnly, categories])
+  }, [radiusIdx, goingOnly, myOnly, pastOnly, categories, discoveryCenter])
 
   useFocusEffect(useCallback(() => {
     fetchEvents()

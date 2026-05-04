@@ -13,6 +13,7 @@ import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs'
 import { api } from '@/src/lib/api'
 import { CATEGORIES } from '@/src/lib/categories'
 import { WeatherBadge } from '@/src/components/WeatherBadge'
+import { useAuthStore } from '@/src/store/auth'
 import { palette, spacing } from '@/src/theme'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -77,6 +78,7 @@ function isPast(iso: string) {
 // ─── Events Tab ───────────────────────────────────────────────────────────────
 
 function EventsTab() {
+  const user = useAuthStore((s) => s.user)
   const [events,     setEvents]     = useState<EventItem[]>([])
   const [loading,    setLoading]    = useState(true)
   const [page,       setPage]       = useState(1)
@@ -89,6 +91,8 @@ function EventsTab() {
   const [myOnly,      setMyOnly]      = useState(false)
   const [pastOnly,    setPastOnly]    = useState(false)
   const [reminderIds, setReminderIds] = useState<Set<number>>(new Set())
+  const discoveryLat = user?.home?.lat ?? user?.location?.lat ?? null
+  const discoveryLng = user?.home?.lng ?? user?.location?.lng ?? null
 
   const load = useCallback(async (pageNum = 1) => {
     if (pageNum === 1) setLoading(true)
@@ -103,7 +107,13 @@ function EventsTab() {
         url = '/events/my'
       } else {
         if (category) params.category = category
-        if (radiusKm)  params.radius_km = radiusKm
+        if (radiusKm) {
+          params.radius_km = radiusKm
+          if (typeof discoveryLat === 'number' && typeof discoveryLng === 'number') {
+            params.lat = discoveryLat
+            params.lng = discoveryLng
+          }
+        }
         if (friendsOnly) params.friends_only = 1
       }
       const { data } = await api.get(url, { params })
@@ -112,7 +122,7 @@ function EventsTab() {
       setLastPage(data.meta?.last_page ?? 1)
     } catch {}
     finally { setLoading(false); setLoadingMore(false) }
-  }, [category, radiusKm, goingOnly, friendsOnly, myOnly, pastOnly])
+  }, [category, radiusKm, goingOnly, friendsOnly, myOnly, pastOnly, discoveryLat, discoveryLng])
 
   useFocusEffect(useCallback(() => { load() }, [load]))
   useEffect(() => {

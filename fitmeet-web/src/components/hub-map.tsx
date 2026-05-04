@@ -319,12 +319,7 @@ export default function HubMap() {
     }
     api.get('/events', { params })
       .then(({ data }) => {
-        const events = data.data ?? []
-        if (events.length === 0 && hasCoords && !friendsOnly) {
-          // Location filter returned nothing — fall back to all events
-          return api.get('/events').then(({ data: d }) => setEvents(d.data ?? []))
-        }
-        setEvents(events)
+        setEvents(data.data ?? [])
       })
       .catch(() => {})
       .finally(() => setReady(true))

@@ -61,6 +61,22 @@ export default function SettingsScreen() {
     )
   }
 
+  async function geocodeHome() {
+    const q = [city, country].filter(Boolean).join(', ')
+    if (!q.trim()) return null
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1`,
+        { headers: { 'Accept-Language': 'en', 'User-Agent': 'FitMeetApp/1.0' } }
+      )
+      const results = await res.json()
+      if (!results[0]) return null
+      return { lat: parseFloat(results[0].lat), lng: parseFloat(results[0].lon) }
+    } catch {
+      return null
+    }
+  }
+
   async function pickAvatar() {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'], quality: 0.9, allowsEditing: true, aspect: [1, 1],
@@ -89,7 +105,8 @@ export default function SettingsScreen() {
     if (!city.trim() || !country.trim()) { Alert.alert('Missing', 'City and country/address are required.'); return }
     setSaving(true); setError(null); setSaved(false)
     try {
-      await api.patch('/me', {
+      const coords = await geocodeHome()
+      const payload: Record<string, unknown> = {
         name: name.trim(),
         phone: phone.trim() || null,
         hide_phone: hidePhone,
@@ -98,7 +115,12 @@ export default function SettingsScreen() {
         radius,
         categories,
         skill_level: skillLevel || null,
-      })
+      }
+      if (coords) {
+        payload.home_lat = coords.lat
+        payload.home_lng = coords.lng
+      }
+      await api.patch('/me', payload)
       await refreshMe()
       setSaved(true)
       setTimeout(() => setSaved(false), 2500)
