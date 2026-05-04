@@ -1,7 +1,9 @@
 <?php
 
 use App\Jobs\SendPushNotification;
+use App\Jobs\SendStartedEventNotifications;
 use App\Mail\EventReminderMail;
+use App\Models\Event;
 use App\Models\EventReminder;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -50,3 +52,28 @@ Artisan::command('reminders:send', function () {
 })->purpose('Send pending event reminder emails');
 
 Schedule::command('reminders:send')->everyFifteenMinutes();
+
+Artisan::command('events:send-started', function () {
+    $events = Event::query()
+        ->where('status', 'active')
+        ->where('start_at', '<=', now())
+        ->where('start_at', '>=', now()->subMinutes(5))
+        ->whereDoesntHave('participants', function ($query) {
+            $query->whereExists(function ($subquery) {
+                $subquery->selectRaw('1')
+                    ->from('event_notifications')
+                    ->whereColumn('event_notifications.event_id', 'events.id')
+                    ->whereColumn('event_notifications.user_id', 'users.id')
+                    ->where('event_notifications.type', 'event_started');
+            });
+        })
+        ->get();
+
+    foreach ($events as $event) {
+        SendStartedEventNotifications::dispatchSync($event);
+    }
+
+    $this->info("Checked {$events->count()} started event(s).");
+})->purpose('Send notifications when joined events start');
+
+Schedule::command('events:send-started')->everyMinute();

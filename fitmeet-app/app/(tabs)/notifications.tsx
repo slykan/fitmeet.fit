@@ -23,6 +23,7 @@ type Notification =
   | { id: number; type: 'event_reminder';  event:   EventInfo; remind_offset: string; created_at: string; unread?: boolean }
   | { id: number; type: 'new_event';       event:   EventInfo; created_at: string; unread?: boolean }
   | { id: number; type: 'event_cancelled'; event:   EventInfo; created_at: string; unread?: boolean }
+  | { id: number; type: 'event_started';   event:   EventInfo; created_at: string; unread?: boolean }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -281,6 +282,22 @@ export default function NotificationsScreen() {
                 title={<>Event cancelled: <Text style={{ color: '#f87171' }}>{n.event.title}</Text></>}
                 subtitle={n.event.address ?? undefined}
                 time={timeAgo(n.created_at)}
+                unread={n.unread}
+              />
+            )
+          }
+
+          if (n.type === 'event_started') {
+            return (
+              <GenericCard
+                key={`es-${n.id}`}
+                icon="play-circle-outline"
+                iconColor={palette.accent}
+                iconBg="rgba(57,255,20,0.1)"
+                title={<>Started: <Text style={styles.accent}>{n.event.title}</Text></>}
+                subtitle={`${formatEventDate(n.event.start_at)}${n.event.address ? ' Â· ' + n.event.address : ''}`}
+                time={timeAgo(n.created_at)}
+                onPress={() => router.push(`/event/${n.event.id}` as never)}
                 unread={n.unread}
               />
             )
