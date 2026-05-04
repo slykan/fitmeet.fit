@@ -95,6 +95,12 @@ class StravaController
             ->accept('application/gpx+xml')
             ->get("https://www.strava.com/api/v3/routes/{$routeId}/export_gpx");
 
+        if ($res->successful() && str_contains(strtolower($res->body()), '<gpx')) {
+            return response()->json([
+                'gpx' => $res->body(),
+            ]);
+        }
+
         if (!$res->successful()) {
             Log::warning('Strava GPX export failed', [
                 'user_id' => $request->user()->id,
@@ -104,16 +110,26 @@ class StravaController
                 'body' => Str::limit($res->body(), 1000),
             ]);
 
-            $message = $res->status() === 401 || $res->status() === 403
-                ? 'Strava did not allow GPX export for this route. Reconnect Strava and approve route permissions.'
-                : 'Could not download GPX for this route.';
-
-            return response()->json(['message' => $message], 422);
+        } else {
+            Log::warning('Strava GPX export returned non-GPX body', [
+                'user_id' => $request->user()->id,
+                'route_id' => $routeId,
+                'content_type' => $res->header('content-type'),
+                'scope' => $session['scope'] ?? null,
+                'body' => Str::limit($res->body(), 1000),
+            ]);
         }
 
-        return response()->json([
-            'gpx' => $res->body(),
-        ]);
+        $streamGpx = $this->routeStreamsToGpx($session['access_token'], $routeId);
+        if ($streamGpx) {
+            return response()->json(['gpx' => $streamGpx]);
+        }
+
+        $message = $res->status() === 401 || $res->status() === 403
+            ? 'Strava did not allow route export. Reconnect Strava and approve route permissions.'
+            : 'Could not download GPX for this route.';
+
+        return response()->json(['message' => $message], 422);
     }
 
     // POST /api/strava/login  { code }  - sign in with Strava
@@ -155,5 +171,54 @@ class StravaController
             'token' => $token,
             'data'  => new UserResource($user),
         ]);
+    }
+
+    private function routeStreamsToGpx(string $accessToken, string $routeId): ?string
+    {
+        $res = Http::withToken($accessToken)
+            ->acceptJson()
+            ->get("https://www.strava.com/api/v3/routes/{$routeId}/streams");
+
+        if (!$res->successful()) {
+            Log::warning('Strava route streams failed', [
+                'route_id' => $routeId,
+                'status' => $res->status(),
+                'body' => Str::limit($res->body(), 1000),
+            ]);
+
+            return null;
+        }
+
+        $streams = collect($res->json() ?? [])->keyBy('type');
+        $latlng = $streams->get('latlng')['data'] ?? null;
+        if (!is_array($latlng) || count($latlng) < 2) {
+            Log::warning('Strava route streams missing latlng data', [
+                'route_id' => $routeId,
+                'body' => Str::limit($res->body(), 1000),
+            ]);
+
+            return null;
+        }
+
+        $altitude = $streams->get('altitude')['data'] ?? [];
+        $name = htmlspecialchars("Strava route {$routeId}", ENT_XML1 | ENT_COMPAT, 'UTF-8');
+        $points = collect($latlng)->map(function ($point, int $index) use ($altitude) {
+            if (!is_array($point) || count($point) < 2) {
+                return null;
+            }
+
+            $lat = (float) $point[0];
+            $lng = (float) $point[1];
+            $ele = is_array($altitude) && isset($altitude[$index])
+                ? '<ele>' . htmlspecialchars((string) (float) $altitude[$index], ENT_XML1 | ENT_COMPAT, 'UTF-8') . '</ele>'
+                : '';
+
+            return sprintf('<trkpt lat="%.7F" lon="%.7F">%s</trkpt>', $lat, $lng, $ele);
+        })->filter()->implode('');
+
+        return '<?xml version="1.0" encoding="UTF-8"?>'
+            . '<gpx version="1.1" creator="FitMeet" xmlns="http://www.topografix.com/GPX/1/1">'
+            . "<trk><name>{$name}</name><trkseg>{$points}</trkseg></trk>"
+            . '</gpx>';
     }
 }
