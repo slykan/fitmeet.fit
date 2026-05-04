@@ -70,7 +70,7 @@ class StravaController
         return response()->json([
             'import_token' => $importToken,
             'data' => collect($res->json() ?? [])->map(fn ($route) => [
-                'id' => $route['id'] ?? null,
+                'id' => isset($route['id']) ? (string) $route['id'] : null,
                 'name' => $route['name'] ?? 'Strava route',
                 'distance' => $route['distance'] ?? 0,
                 'elevation_gain' => $route['elevation_gain'] ?? 0,

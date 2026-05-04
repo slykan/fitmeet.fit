@@ -15,7 +15,7 @@ const CLIENT_ID = Constants.expoConfig?.extra?.stravaClientId ?? '234864'
 const REDIRECT_URI = 'https://fitmeet.fit/strava-callback'
 
 interface StravaRoute {
-  id: number
+  id: string
   name: string
   distance: number
   elevation_gain: number
@@ -33,7 +33,7 @@ export function StravaRoutePicker({ visible, onClose, onImport }: Props) {
   const [step, setStep] = useState<'connect' | 'loading' | 'routes'>('connect')
   const [routes, setRoutes] = useState<StravaRoute[]>([])
   const [importToken, setImportToken] = useState<string | null>(null)
-  const [loadingRoute, setLoadingRoute] = useState<number | null>(null)
+  const [loadingRoute, setLoadingRoute] = useState<string | null>(null)
   const handledCodeRef = useRef<string | null>(null)
 
   useEffect(() => {
