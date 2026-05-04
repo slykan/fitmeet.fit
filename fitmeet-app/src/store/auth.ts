@@ -15,7 +15,7 @@ export interface MobileUser {
     event_reminders: boolean
     friend_events: boolean
   }
-  push_notifications: boolean
+  push_notifications: boolean | null
   location: { lat: number | null; lng: number | null }
   home: { lat: number | null; lng: number | null; city: string | null; country: string | null }
   radius: 'nearby' | 'city' | 'region' | 'unlimited'

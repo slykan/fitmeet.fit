@@ -136,14 +136,14 @@ export function StravaRoutePicker({ visible, onClose, onImport }: Props) {
           {step === 'connect' && (
             <View style={styles.connectWrap}>
               <View style={styles.stravaLogo}>
-                <Text style={{ fontSize: 28 }}>🚴</Text>
+                <Text style={styles.stravaLogoText}>STRAVA</Text>
               </View>
               <Text style={styles.connectTitle}>Connect your Strava account</Text>
               <Text style={styles.connectSub}>
                 Pick a route from your Strava library. The GPX will be imported automatically.
               </Text>
               <Pressable style={styles.stravaBtn} onPress={connectStrava}>
-                <Ionicons name="bicycle-outline" size={18} color="#fff" />
+                <Text style={styles.stravaMiniMark}>STRAVA</Text>
                 <Text style={styles.stravaBtnText}>Connect Strava</Text>
               </Pressable>
             </View>
@@ -201,9 +201,11 @@ const styles = StyleSheet.create({
 
   connectWrap: { alignItems: 'center', gap: 12, paddingVertical: spacing.lg },
   stravaLogo: { width: 64, height: 64, borderRadius: 20, backgroundColor: '#FC4C02', alignItems: 'center', justifyContent: 'center' },
+  stravaLogoText: { color: '#fff', fontSize: 10, fontWeight: '900', letterSpacing: 0.8 },
   connectTitle: { color: palette.text, fontSize: 17, fontWeight: '700', textAlign: 'center' },
   connectSub: { color: palette.textMuted, fontSize: 13, textAlign: 'center', lineHeight: 19 },
   stravaBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#FC4C02', paddingHorizontal: 24, paddingVertical: 14, borderRadius: 16 },
+  stravaMiniMark: { color: '#fff', fontSize: 10, fontWeight: '900', letterSpacing: 0.6 },
   stravaBtnText: { color: '#fff', fontSize: 15, fontWeight: '800' },
 
   routesLabel: { color: palette.textDim, fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },

@@ -642,7 +642,7 @@ export default function CreateEventScreen() {
               </Text>
             </Pressable>
             <Pressable style={styles.stravaBtn} onPress={() => setShowStrava(true)}>
-              <Ionicons name="bicycle-outline" size={15} color="#FC4C02" />
+              <Text style={styles.stravaMark}>STRAVA</Text>
               <Text style={styles.stravaBtnText}>Import from Strava</Text>
             </Pressable>
           </View>
@@ -820,6 +820,7 @@ const styles = StyleSheet.create({
   uploadLabel:       { color: palette.textMuted, fontSize: 14, flex: 1 },
   uploadLabelActive: { color: palette.accent },
   stravaBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 14, paddingHorizontal: spacing.md, paddingVertical: 12, backgroundColor: 'rgba(252,76,2,0.08)', borderWidth: 1, borderColor: 'rgba(252,76,2,0.3)' },
+  stravaMark: { color: '#FC4C02', fontSize: 10, fontWeight: '900', letterSpacing: 0.7 },
   stravaBtnText: { color: '#FC4C02', fontSize: 14, fontWeight: '700' },
 
   imagePreviewWrap: { gap: 10, marginTop: 8 },

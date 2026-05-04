@@ -43,6 +43,7 @@ export default function ProfileScreen() {
   const [saving, setSaving]     = useState<PrefField | null>(null)
   const [prefError, setPrefError] = useState<string | null>(null)
   const [pushSaving, setPushSaving] = useState(false)
+  const pushEnabled = user?.push_notifications !== false
 
   async function togglePref(field: PrefField) {
     if (!user || saving !== null) return
@@ -67,7 +68,7 @@ export default function ProfileScreen() {
     setPrefError(null)
 
     try {
-      const next = !user.push_notifications
+      const next = !pushEnabled
       await api.patch('/me', { push_notifications: next })
       await refreshMe()
 
@@ -227,7 +228,7 @@ export default function ProfileScreen() {
               <Ionicons
                 name="phone-portrait-outline"
                 size={17}
-                color={user.push_notifications ? palette.accent : palette.textDim}
+                color={pushEnabled ? palette.accent : palette.textDim}
                 style={styles.prefIcon}
               />
               <View style={styles.prefText}>
@@ -237,8 +238,8 @@ export default function ProfileScreen() {
               {pushSaving ? (
                 <ActivityIndicator size="small" color={palette.accent} />
               ) : (
-                <Pressable onPress={togglePush} style={[styles.toggle, user.push_notifications && styles.toggleOn]}>
-                  <View style={[styles.knob, user.push_notifications && styles.knobOn]} />
+                <Pressable onPress={togglePush} style={[styles.toggle, pushEnabled && styles.toggleOn]}>
+                  <View style={[styles.knob, pushEnabled && styles.knobOn]} />
                 </Pressable>
               )}
             </View>
@@ -255,8 +256,8 @@ export default function ProfileScreen() {
                   <Text style={styles.prefLabel}>{label}</Text>
                   <Text style={styles.prefDesc}>{desc}</Text>
                 </View>
-                <View style={[styles.toggle, user.push_notifications && styles.toggleOn]}>
-                  <View style={[styles.knob, user.push_notifications && styles.knobOn]} />
+                <View style={[styles.toggle, pushEnabled && styles.toggleOn]}>
+                  <View style={[styles.knob, pushEnabled && styles.knobOn]} />
                 </View>
               </View>
             ))}

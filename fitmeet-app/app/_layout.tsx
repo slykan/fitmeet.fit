@@ -39,7 +39,7 @@ export default function RootLayout() {
   useEffect(() => {
     if (!hasHydrated || !token || !user) return
 
-    syncPushToken(user.push_notifications).catch(() => {})
+    syncPushToken(user.push_notifications !== false).catch(() => {})
   }, [hasHydrated, token, user?.id, user?.push_notifications])
 
   return (

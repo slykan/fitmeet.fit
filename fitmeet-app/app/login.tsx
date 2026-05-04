@@ -151,7 +151,7 @@ export default function LoginScreen() {
             <ActivityIndicator size="small" color="#fff" />
           ) : (
             <>
-              <Ionicons name="bicycle-outline" size={18} color="#FC4C02" />
+              <Text style={styles.stravaMark}>STRAVA</Text>
               <Text style={styles.stravaLabel}>Continue with Strava</Text>
             </>
           )}
@@ -238,6 +238,7 @@ const styles = StyleSheet.create({
   },
   googleLabel: { color: palette.text, fontSize: 15, fontWeight: '700' },
   stravaBtn: { height: 52, borderRadius: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: 'rgba(252,76,2,0.1)', borderWidth: 1, borderColor: 'rgba(252,76,2,0.35)' },
+  stravaMark: { color: '#FC4C02', fontSize: 10, fontWeight: '900', letterSpacing: 0.8 },
   stravaLabel: { color: '#FC4C02', fontSize: 15, fontWeight: '700' },
   disabledBtn: { opacity: 0.5 },
 
