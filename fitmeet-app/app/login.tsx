@@ -126,7 +126,6 @@ export default function LoginScreen() {
       <View style={styles.container}>
 
         <View style={styles.header}>
-          <Text style={styles.brand}>FITMEET</Text>
           <Text style={styles.title}>Sign in</Text>
           <Text style={styles.subtitle}>Find your people. Move together.</Text>
         </View>
@@ -229,10 +228,6 @@ const styles = StyleSheet.create({
   safe:      { flex: 1, backgroundColor: palette.bg },
   container: { flex: 1, padding: spacing.lg, gap: spacing.md },
   header:    { gap: 6, marginTop: spacing.xl },
-  brand: {
-    color: palette.accent, fontSize: 13, fontWeight: '800',
-    letterSpacing: 2, textTransform: 'uppercase',
-  },
   title:    { color: palette.text, fontSize: 30, lineHeight: 36, fontWeight: '800' },
   subtitle: { color: palette.textMuted, fontSize: 15 },
 
