@@ -48,7 +48,7 @@ export default function ProfileScreen() {
   async function togglePref(field: PrefField) {
     if (!user || saving !== null) return
     const key     = PREF_KEY[field]
-    const current = user.email_preferences[key]
+    const current = user.email_preferences?.[key] ?? true
     setSaving(field)
     setPrefError(null)
     try {
@@ -89,6 +89,14 @@ export default function ProfileScreen() {
   }
 
   if (!user) return null
+  const emailPreferences = user.email_preferences ?? {
+    friend_requests: true,
+    new_events: true,
+    event_reminders: true,
+    friend_events: true,
+  }
+  const home = user.home ?? { city: null, country: null }
+  const categories = user.categories ?? []
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -129,13 +137,13 @@ export default function ProfileScreen() {
         </Pressable>
 
         {/* Location */}
-        {user.home.city ? (
+        {home.city ? (
           <View style={styles.card}>
             <Text style={styles.sectionLabel}>Location</Text>
             <View style={styles.row}>
               <Ionicons name="location-outline" size={15} color={palette.accent} />
               <Text style={styles.rowText}>
-                {user.home.city}{user.home.country ? `, ${user.home.country}` : ''}
+                {home.city}{home.country ? `, ${home.country}` : ''}
               </Text>
             </View>
             <View style={styles.row}>
@@ -146,12 +154,12 @@ export default function ProfileScreen() {
         ) : null}
 
         {/* Interests */}
-        {(user.categories.length > 0 || user.skill_level) ? (
+        {(categories.length > 0 || user.skill_level) ? (
           <View style={styles.card}>
             <Text style={styles.sectionLabel}>Interests</Text>
-            {user.categories.length > 0 && (
+            {categories.length > 0 && (
               <View style={styles.tags}>
-                {user.categories.map(cat => (
+                {categories.map(cat => (
                   <View key={cat} style={styles.tag}>
                     <Text style={styles.tagText}>{cat.replace('_', ' ')}</Text>
                   </View>
@@ -186,7 +194,7 @@ export default function ProfileScreen() {
           <Text style={styles.sectionLabel}>Email settings</Text>
           <View style={styles.prefList}>
             {PREF_ROWS.map(({ field, label, desc, icon }) => {
-              const enabled  = user.email_preferences[PREF_KEY[field]]
+              const enabled  = emailPreferences[PREF_KEY[field]]
               const isSaving = saving === field
               return (
                 <View key={field} style={styles.prefRow}>

@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons'
 import Constants from 'expo-constants'
 import * as WebBrowser from 'expo-web-browser'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 
 import { api } from '@/src/lib/api'
@@ -34,11 +34,13 @@ export function StravaRoutePicker({ visible, onClose, onImport }: Props) {
   const [routes, setRoutes] = useState<StravaRoute[]>([])
   const [importToken, setImportToken] = useState<string | null>(null)
   const [loadingRoute, setLoadingRoute] = useState<number | null>(null)
+  const handledCodeRef = useRef<string | null>(null)
 
   useEffect(() => {
     if (!visible) return
 
     setStravaCodeCallback((code) => {
+      handledCodeRef.current = code
       loadRoutes(code).catch(() => {
         setStep('connect')
         Alert.alert('Error', 'Could not connect to Strava. Please try again.')
@@ -53,6 +55,7 @@ export function StravaRoutePicker({ visible, onClose, onImport }: Props) {
     setRoutes([])
     setImportToken(null)
     setLoadingRoute(null)
+    handledCodeRef.current = null
   }
 
   async function loadRoutes(code: string) {
@@ -85,6 +88,7 @@ export function StravaRoutePicker({ visible, onClose, onImport }: Props) {
       const codeMatch = result.url.match(/[?&]code=([^&]+)/)
       const code = codeMatch ? codeMatch[1] : null
       if (!code) { setStep('connect'); return }
+      if (handledCodeRef.current === code) return
 
       await loadRoutes(code)
     } catch (e) {

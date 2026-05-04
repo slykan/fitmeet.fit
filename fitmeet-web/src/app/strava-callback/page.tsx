@@ -28,7 +28,7 @@ export default function StravaCallbackPage() {
       flexDirection: 'column',
       gap: 12,
     }}>
-      <div style={{ fontSize: 32 }}>🚴</div>
+      <div style={{ fontSize: 18, color: '#FC4C02', fontWeight: 900, letterSpacing: 1 }}>STRAVA</div>
       <p style={{ color: '#aaa', fontSize: 15 }}>Redirecting back to FitMeet...</p>
     </div>
   )

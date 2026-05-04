@@ -29,7 +29,10 @@ export default function StravaCallbackScreen() {
 
     // Not authenticated → sign in flow
     loginWithStrava(decoded)
-      .then(() => router.replace('/(tabs)/hub'))
+      .then(() => {
+        const user = useAuthStore.getState().user
+        router.replace(user?.onboarding_complete ? '/(tabs)/hub' : '/onboarding')
+      })
       .catch(() => router.replace('/login'))
   }, [code, token, loginWithStrava])
 

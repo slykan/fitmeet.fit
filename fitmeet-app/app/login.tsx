@@ -49,7 +49,8 @@ export default function LoginScreen() {
       const code = match ? decodeURIComponent(match[1]) : null
       if (!code) return
       await loginWithStrava(code)
-      router.replace('/(tabs)/hub')
+      const user = useAuthStore.getState().user
+      router.replace(user?.onboarding_complete ? '/(tabs)/hub' : '/onboarding')
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Strava login failed.')
     } finally {
@@ -73,7 +74,10 @@ export default function LoginScreen() {
     setGoogleLoading(true)
     setError(null)
     loginWithGoogle(accessToken)
-      .then(() => router.replace('/(tabs)/hub'))
+      .then(() => {
+        const user = useAuthStore.getState().user
+        router.replace(user?.onboarding_complete ? '/(tabs)/hub' : '/onboarding')
+      })
       .catch(err => setError(err instanceof Error ? err.message : 'Google login failed.'))
       .finally(() => setGoogleLoading(false))
   }, [response, loginWithGoogle])
@@ -88,7 +92,8 @@ export default function LoginScreen() {
         if (!accessToken) return
 
         await loginWithGoogle(accessToken)
-        router.replace('/(tabs)/hub')
+        const user = useAuthStore.getState().user
+        router.replace(user?.onboarding_complete ? '/(tabs)/hub' : '/onboarding')
         return
       }
 
@@ -107,7 +112,8 @@ export default function LoginScreen() {
     setError(null)
     try {
       await login({ email: email.trim(), password, turnstileToken })
-      router.replace('/(tabs)/hub')
+      const user = useAuthStore.getState().user
+      router.replace(user?.onboarding_complete ? '/(tabs)/hub' : '/onboarding')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed.')
     } finally {

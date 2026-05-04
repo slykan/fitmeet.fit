@@ -75,6 +75,29 @@ type MeResponse = {
   data: MobileUser
 }
 
+function normalizeUser(user: MobileUser): MobileUser {
+  return {
+    ...user,
+    avatar: user.avatar ?? null,
+    phone: user.phone ?? null,
+    hide_phone: user.hide_phone ?? false,
+    email_preferences: {
+      friend_requests: user.email_preferences?.friend_requests ?? true,
+      new_events: user.email_preferences?.new_events ?? true,
+      event_reminders: user.email_preferences?.event_reminders ?? true,
+      friend_events: user.email_preferences?.friend_events ?? true,
+    },
+    push_notifications: user.push_notifications ?? true,
+    location: user.location ?? { lat: null, lng: null },
+    home: user.home ?? { lat: null, lng: null, city: null, country: null },
+    radius: user.radius ?? 'nearby',
+    radius_km: user.radius_km ?? 50,
+    categories: user.categories ?? [],
+    skill_level: user.skill_level ?? null,
+    onboarding_complete: user.onboarding_complete ?? false,
+  }
+}
+
 export const useAuthStore = create<AuthState>((set) => ({
   token: null,
   user: null,
@@ -84,12 +107,14 @@ export const useAuthStore = create<AuthState>((set) => ({
       const raw = await AsyncStorage.getItem(STORAGE_KEY)
       if (raw) {
         const parsed = JSON.parse(raw) as Pick<AuthState, 'token' | 'user'>
-        set({ token: parsed.token, user: parsed.user, hasHydrated: true })
+        const normalizedUser = parsed.user ? normalizeUser(parsed.user) : null
+        set({ token: parsed.token, user: normalizedUser, hasHydrated: true })
         if (parsed.token) {
           requestJson<MeResponse>('/me', undefined, parsed.token)
             .then(async (payload) => {
-              await storeSession({ token: parsed.token!, user: payload.data })
-              set({ user: payload.data })
+              const user = normalizeUser(payload.data)
+              await storeSession({ token: parsed.token!, user })
+              set({ user })
             })
             .catch(() => {})
         }
@@ -105,39 +130,44 @@ export const useAuthStore = create<AuthState>((set) => ({
       method: 'POST',
       body: JSON.stringify({ email, password, cf_turnstile_response: turnstileToken }),
     })
-    await storeSession({ token: payload.token, user: payload.data })
-    set({ token: payload.token, user: payload.data })
+    const user = normalizeUser(payload.data)
+    await storeSession({ token: payload.token, user })
+    set({ token: payload.token, user })
   },
   register: async ({ name, email, password, turnstileToken }) => {
     const payload = await requestJson<AuthResponse>('/auth/register-mobile', {
       method: 'POST',
       body: JSON.stringify({ name, email, password, cf_turnstile_response: turnstileToken }),
     })
-    await storeSession({ token: payload.token, user: payload.data })
-    set({ token: payload.token, user: payload.data })
+    const user = normalizeUser(payload.data)
+    await storeSession({ token: payload.token, user })
+    set({ token: payload.token, user })
   },
   loginWithGoogle: async (accessToken: string) => {
     const payload = await requestJson<AuthResponse>('/auth/google-mobile', {
       method: 'POST',
       body: JSON.stringify({ access_token: accessToken }),
     })
-    await storeSession({ token: payload.token, user: payload.data })
-    set({ token: payload.token, user: payload.data })
+    const user = normalizeUser(payload.data)
+    await storeSession({ token: payload.token, user })
+    set({ token: payload.token, user })
   },
   loginWithStrava: async (code: string) => {
     const payload = await requestJson<AuthResponse>('/strava/login', {
       method: 'POST',
       body: JSON.stringify({ code }),
     })
-    await storeSession({ token: payload.token, user: payload.data })
-    set({ token: payload.token, user: payload.data })
+    const user = normalizeUser(payload.data)
+    await storeSession({ token: payload.token, user })
+    set({ token: payload.token, user })
   },
   refreshMe: async () => {
     const token = useAuthStore.getState().token
     if (!token) return
     const payload = await requestJson<MeResponse>('/me', undefined, token)
-    await storeSession({ token, user: payload.data })
-    set({ user: payload.data })
+    const user = normalizeUser(payload.data)
+    await storeSession({ token, user })
+    set({ user })
   },
   logout: async () => {
     const token = useAuthStore.getState().token
