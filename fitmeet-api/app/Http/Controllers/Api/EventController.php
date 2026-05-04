@@ -15,6 +15,7 @@ use App\Models\FriendRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class EventController extends Controller
 {
@@ -103,13 +104,18 @@ class EventController extends Controller
 
         if ($request->hasFile('gpx_file')) {
             $data['gpx_path'] = $request->file('gpx_file')->store('gpx', 'public');
+        } elseif ($request->filled('gpx_text')) {
+            $data['gpx_path'] = $this->storeGpxText(
+                (string) $request->string('gpx_text'),
+                (string) $request->string('gpx_name')
+            );
         }
 
         if ($request->hasFile('image_file')) {
             $data['image_path'] = $request->file('image_file')->store('event-images', 'public');
         }
 
-        unset($data['gpx_file'], $data['image_file']);
+        unset($data['gpx_file'], $data['gpx_text'], $data['gpx_name'], $data['image_file']);
 
         $event = $request->user()->events()->create($data);
         $event->load('organizer');
@@ -221,7 +227,18 @@ HTML;
         $data = $request->validated();
 
         if ($request->hasFile('gpx_file')) {
+            if ($event->gpx_path) {
+                Storage::disk('public')->delete($event->gpx_path);
+            }
             $data['gpx_path'] = $request->file('gpx_file')->store('gpx', 'public');
+        } elseif ($request->filled('gpx_text')) {
+            if ($event->gpx_path) {
+                Storage::disk('public')->delete($event->gpx_path);
+            }
+            $data['gpx_path'] = $this->storeGpxText(
+                (string) $request->string('gpx_text'),
+                (string) $request->string('gpx_name')
+            );
         }
 
         if ($request->hasFile('image_file')) {
@@ -236,7 +253,7 @@ HTML;
             $data['image_path'] = null;
         }
 
-        unset($data['gpx_file'], $data['image_file'], $data['image_remove']);
+        unset($data['gpx_file'], $data['gpx_text'], $data['gpx_name'], $data['image_file'], $data['image_remove']);
 
         $event->update($data);
         $event->load('organizer');
@@ -429,5 +446,15 @@ HTML;
             ->delete();
 
         return response()->json(['message' => 'Reminder cancelled.']);
+    }
+
+    private function storeGpxText(string $gpxText, ?string $name = null): string
+    {
+        $baseName = Str::limit(Str::slug(pathinfo($name ?: 'route.gpx', PATHINFO_FILENAME)), 80, '');
+        $path = 'gpx/' . ($baseName ?: 'route') . '-' . Str::uuid() . '.gpx';
+
+        Storage::disk('public')->put($path, $gpxText);
+
+        return $path;
     }
 }

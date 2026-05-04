@@ -35,6 +35,8 @@ class UpdateEventRequest extends FormRequest
             'max_downgrade'    => ['sometimes', 'nullable', 'numeric', 'min:-100', 'max:0'],
 
             'gpx_file'         => ['sometimes', 'nullable', 'file', 'max:8192'],
+            'gpx_text'         => ['sometimes', 'nullable', 'string', 'max:8388608'],
+            'gpx_name'         => ['sometimes', 'nullable', 'string', 'max:120'],
             'image_file'       => ['sometimes', 'nullable', 'file', 'max:8192'],
             'image_remove'     => ['sometimes', 'boolean'],
 

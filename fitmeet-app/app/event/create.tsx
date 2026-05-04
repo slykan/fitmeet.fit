@@ -333,9 +333,9 @@ export default function CreateEventScreen() {
     }
   }
 
-  function handleStravaImport(gpxText: string) {
+  function handleStravaImport(gpxText: string, routeName?: string) {
     setGpxContent(gpxText)
-    setGpxName('strava-route.gpx')
+    setGpxName(`${(routeName ?? 'strava-route').replace(/[^\w.-]+/g, '-').replace(/^-+|-+$/g, '') || 'strava-route'}.gpx`)
     const parsed = parseGpxText(gpxText)
     setGpxTrack(parsed.track)
     if (parsed.track.length > 0 && lat === null) {
@@ -411,7 +411,8 @@ export default function CreateEventScreen() {
         fd.append('image_remove', '1')
       }
       if (gpxContent && gpxName) {
-        fd.append('gpx_file', { uri: `data:application/gpx+xml;base64,${btoa(gpxContent)}`, name: gpxName, type: 'application/gpx+xml' } as never)
+        fd.append('gpx_text', gpxContent)
+        fd.append('gpx_name', gpxName)
       }
 
       const { data } = editId

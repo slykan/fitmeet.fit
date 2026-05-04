@@ -1,11 +1,12 @@
 import { Ionicons } from '@expo/vector-icons'
 import Constants from 'expo-constants'
 import * as WebBrowser from 'expo-web-browser'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 
 import { api } from '@/src/lib/api'
 import { parseGpxText } from '@/src/lib/gpx'
+import { clearStravaCodeCallback, setStravaCodeCallback } from '@/src/lib/strava-bridge'
 import { palette, spacing } from '@/src/theme'
 
 WebBrowser.maybeCompleteAuthSession()
@@ -25,22 +26,41 @@ interface StravaRoute {
 interface Props {
   visible: boolean
   onClose: () => void
-  onImport: (gpxText: string) => void
+  onImport: (gpxText: string, routeName?: string) => void
 }
 
 export function StravaRoutePicker({ visible, onClose, onImport }: Props) {
   const [step, setStep] = useState<'connect' | 'loading' | 'routes'>('connect')
   const [routes, setRoutes] = useState<StravaRoute[]>([])
-  const [accessToken, setAccessToken] = useState<string | null>(null)
-  const [athleteId, setAthleteId] = useState<number | null>(null)
+  const [importToken, setImportToken] = useState<string | null>(null)
   const [loadingRoute, setLoadingRoute] = useState<number | null>(null)
+
+  useEffect(() => {
+    if (!visible) return
+
+    setStravaCodeCallback((code) => {
+      loadRoutes(code).catch(() => {
+        setStep('connect')
+        Alert.alert('Error', 'Could not connect to Strava. Please try again.')
+      })
+    })
+
+    return clearStravaCodeCallback
+  }, [visible])
 
   function reset() {
     setStep('connect')
     setRoutes([])
-    setAccessToken(null)
-    setAthleteId(null)
+    setImportToken(null)
     setLoadingRoute(null)
+  }
+
+  async function loadRoutes(code: string) {
+    setStep('loading')
+    const { data } = await api.post('/strava/routes', { code })
+    setImportToken(data.import_token)
+    setRoutes(data.data ?? [])
+    setStep('routes')
   }
 
   async function connectStrava() {
@@ -66,21 +86,7 @@ export function StravaRoutePicker({ visible, onClose, onImport }: Props) {
       const code = codeMatch ? codeMatch[1] : null
       if (!code) { setStep('connect'); return }
 
-      // Exchange code via our backend
-      const { data } = await api.post('/strava/token', { code })
-      const token: string = data.access_token
-      const aid: number = data.athlete_id
-      setAccessToken(token)
-      setAthleteId(aid)
-
-      // Fetch routes from Strava
-      const res = await fetch(
-        `https://www.strava.com/api/v3/athletes/${aid}/routes?per_page=30`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
-      const routeData: StravaRoute[] = await res.json()
-      setRoutes(routeData)
-      setStep('routes')
+      await loadRoutes(code)
     } catch (e) {
       setStep('connect')
       Alert.alert('Error', 'Could not connect to Strava. Please try again.')
@@ -88,16 +94,13 @@ export function StravaRoutePicker({ visible, onClose, onImport }: Props) {
   }
 
   async function importRoute(route: StravaRoute) {
-    if (!accessToken) return
+    if (!importToken) return
     setLoadingRoute(route.id)
     try {
-      const res = await fetch(
-        `https://www.strava.com/api/v3/routes/${route.id}/export_gpx`,
-        { headers: { Authorization: `Bearer ${accessToken}` } }
-      )
-      const gpxText = await res.text()
+      const { data } = await api.post(`/strava/routes/${route.id}/gpx`, { import_token: importToken })
+      const gpxText = data.gpx as string
       parseGpxText(gpxText) // validate
-      onImport(gpxText)
+      onImport(gpxText, route.name)
       reset()
       onClose()
     } catch {

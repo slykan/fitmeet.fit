@@ -35,6 +35,8 @@ class StoreEventRequest extends FormRequest
             'max_downgrade'    => ['nullable', 'numeric', 'min:-100', 'max:0'],
 
             'gpx_file'         => ['nullable', 'file', 'max:8192'],
+            'gpx_text'         => ['nullable', 'string', 'max:8388608'],
+            'gpx_name'         => ['nullable', 'string', 'max:120'],
             'image_file'       => ['nullable', 'file', 'max:8192'],
 
             'skill_level'      => ['nullable', Rule::in(['beginner', 'advanced', 'pro'])],
