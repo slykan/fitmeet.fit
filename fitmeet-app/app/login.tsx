@@ -151,7 +151,7 @@ export default function LoginScreen() {
             <ActivityIndicator size="small" color="#fff" />
           ) : (
             <>
-              <Ionicons name="logo-strava" size={18} color="#FC4C02" />
+              <Ionicons name="bicycle-outline" size={18} color="#FC4C02" />
               <Text style={styles.stravaLabel}>Continue with Strava</Text>
             </>
           )}

@@ -15,7 +15,7 @@ export default function WelcomeScreen() {
     const timer = setTimeout(() => {
       Animated.parallel([
         Animated.timing(heroShift, {
-          toValue: 34,
+          toValue: 14,
           duration: 760,
           easing: Easing.out(Easing.cubic),
           useNativeDriver: true,
@@ -46,6 +46,9 @@ export default function WelcomeScreen() {
           style={[styles.logo, { transform: [{ translateY: heroShift }] }]}
           resizeMode="contain"
         />
+        <Animated.Text style={[styles.logoText, { transform: [{ translateY: heroShift }] }]}>
+          FIT<Text style={styles.logoTextGreen}>MEET</Text>
+        </Animated.Text>
       </View>
 
       <View pointerEvents="box-none" style={styles.safe}>
@@ -88,14 +91,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'flex-start',
     paddingHorizontal: 48,
-    paddingTop: 72,
+    paddingTop: 46,
     backgroundColor: '#000000',
   },
   logo: {
-    width: '42%',
-    maxWidth: 180,
+    width: '34%',
+    maxWidth: 150,
     aspectRatio: 439 / 448,
-    marginBottom: 18,
+    marginBottom: 10,
   },
   safe: {
     ...StyleSheet.absoluteFillObject,
@@ -109,7 +112,7 @@ const styles = StyleSheet.create({
   },
   logoText: {
     color: '#ffffff',
-    fontSize: 22,
+    fontSize: 21,
     fontWeight: '900',
     letterSpacing: 1.5,
     textAlign: 'center',

@@ -140,7 +140,7 @@ export function StravaRoutePicker({ visible, onClose, onImport }: Props) {
                 Pick a route from your Strava library. The GPX will be imported automatically.
               </Text>
               <Pressable style={styles.stravaBtn} onPress={connectStrava}>
-                <Ionicons name="logo-strava" size={18} color="#fff" />
+                <Ionicons name="bicycle-outline" size={18} color="#fff" />
                 <Text style={styles.stravaBtnText}>Connect Strava</Text>
               </Pressable>
             </View>

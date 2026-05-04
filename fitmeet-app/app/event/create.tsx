@@ -641,7 +641,7 @@ export default function CreateEventScreen() {
               </Text>
             </Pressable>
             <Pressable style={styles.stravaBtn} onPress={() => setShowStrava(true)}>
-              <Ionicons name="logo-strava" size={15} color="#FC4C02" />
+              <Ionicons name="bicycle-outline" size={15} color="#FC4C02" />
               <Text style={styles.stravaBtnText}>Import from Strava</Text>
             </Pressable>
           </View>

@@ -252,7 +252,7 @@ export default function HubScreen() {
             <Text style={styles.eyebrow}>Hub</Text>
             <Text style={styles.title}>Nearby energy</Text>
           </View>
-          <Pressable style={styles.refreshChip} onPress={fetchEvents}>
+          <Pressable style={styles.refreshChip} onPress={() => fetchEvents()}>
             <Ionicons name="refresh-outline" size={16} color={palette.accent} />
             <Text style={styles.refreshLabel}>Refresh</Text>
           </Pressable>

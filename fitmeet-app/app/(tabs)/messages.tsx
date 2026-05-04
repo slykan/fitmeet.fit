@@ -26,6 +26,11 @@ import { api } from '@/src/lib/api'
 import { useAuthStore } from '@/src/store/auth'
 import { palette, spacing } from '@/src/theme'
 
+const fileSystemPaths = FileSystem as typeof FileSystem & {
+  cacheDirectory?: string
+  documentDirectory?: string
+}
+
 interface Person {
   id: number
   name: string
@@ -268,7 +273,12 @@ function ThreadView({
         return
       }
       const filename = url.split('/').pop() ?? 'image.jpg'
-      const localUri = `${FileSystem.cacheDirectory}${filename}`
+      const storageRoot = fileSystemPaths.cacheDirectory ?? fileSystemPaths.documentDirectory
+      if (!storageRoot) {
+        Alert.alert('Error', 'Could not access local storage.')
+        return
+      }
+      const localUri = `${storageRoot}${filename}`
       await FileSystem.downloadAsync(url, localUri)
       await MediaLibrary.saveToLibraryAsync(localUri)
       Alert.alert('Saved', 'Image saved to gallery.')

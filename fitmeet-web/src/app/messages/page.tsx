@@ -3,7 +3,7 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
-import { ArrowLeft, Check, MessageSquare, Plus, Search, Send, Trash2, Users, X } from 'lucide-react'
+import { ArrowLeft, Check, Download, ImageIcon, MessageSquare, Plus, Search, Send, Trash2, UserPlus, Users, X } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
 import api from '@/lib/api'
@@ -23,6 +23,7 @@ interface Conversation {
   participants: Person[]
   last_message: {
     body: string
+    image_url: string | null
     is_mine: boolean
     created_at: string
     sender: Person
@@ -36,11 +37,13 @@ interface ConversationDetail {
   title: string
   partner: Person | null
   participants: Person[]
+  can_manage_members: boolean
 }
 
 interface Msg {
   id: number
   body: string
+  image_url: string | null
   is_mine: boolean
   created_at: string
   sender: Person
@@ -137,8 +140,16 @@ function ThreadView({
   const [loading, setLoading] = useState(true)
   const [body, setBody] = useState('')
   const [sending, setSending] = useState(false)
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [imageModal, setImageModal] = useState<string | null>(null)
+  const [addMembersOpen, setAddMembersOpen] = useState(false)
+  const [friends, setFriends] = useState<Person[]>([])
+  const [selectedMembers, setSelectedMembers] = useState<Set<number>>(new Set())
+  const [addingMembers, setAddingMembers] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     setLoading(true)
@@ -155,6 +166,12 @@ function ThreadView({
   }, [conversationId, userId])
 
   useEffect(() => {
+    return () => {
+      if (imagePreview) URL.revokeObjectURL(imagePreview)
+    }
+  }, [imagePreview])
+
+  useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
@@ -169,17 +186,77 @@ function ThreadView({
 
   async function handleSend() {
     const text = body.trim()
-    if (!text || sending || !conversation) return
+    if ((!text && !imageFile) || sending || !conversation) return
 
     setSending(true)
     setBody('')
+    const file = imageFile
+    clearImage()
     try {
-      const { data } = await api.post(`/messages/conversations/${conversation.id}`, { body: text })
+      const formData = new FormData()
+      if (text) formData.append('body', text)
+      if (file) formData.append('image_file', file)
+      const { data } = await api.post(`/messages/conversations/${conversation.id}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
       setMessages((current) => [...current, data.data])
     } finally {
       setSending(false)
       inputRef.current?.focus()
     }
+  }
+
+  function pickImage(file: File | null) {
+    if (imagePreview) URL.revokeObjectURL(imagePreview)
+    setImageFile(file)
+    setImagePreview(file ? URL.createObjectURL(file) : null)
+  }
+
+  function clearImage() {
+    if (imagePreview) URL.revokeObjectURL(imagePreview)
+    setImageFile(null)
+    setImagePreview(null)
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  function loadFriendsForGroup() {
+    api.get('/users', { params: { friends_only: 1 } })
+      .then(({ data }) => setFriends(data.data ?? []))
+      .catch(() => {})
+  }
+
+  function openAddMembers() {
+    setSelectedMembers(new Set())
+    setAddMembersOpen(true)
+    loadFriendsForGroup()
+  }
+
+  async function handleAddMembers() {
+    if (!conversation || selectedMembers.size === 0) return
+    setAddingMembers(true)
+    try {
+      const { data } = await api.post(`/messages/conversations/${conversation.id}/participants`, {
+        participant_ids: Array.from(selectedMembers),
+      })
+      setConversation(data.conversation)
+      setAddMembersOpen(false)
+      setSelectedMembers(new Set())
+    } finally {
+      setAddingMembers(false)
+    }
+  }
+
+  async function downloadImage(url: string) {
+    const res = await fetch(url)
+    const blob = await res.blob()
+    const href = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = href
+    a.download = url.split('/').pop() || 'fitmeet-message-image'
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(href)
   }
 
   async function handleDeleteConversation() {
@@ -215,6 +292,16 @@ function ThreadView({
                 </p>
               )}
             </div>
+            {conversation.is_group && conversation.can_manage_members && (
+              <button
+                onClick={openAddMembers}
+                title="Add people"
+                className="p-2 rounded-xl transition-colors hover:bg-[--border]"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                <UserPlus size={16} />
+              </button>
+            )}
             <button
               onClick={handleDeleteConversation}
               title={conversation.is_group ? 'Leave conversation' : 'Delete conversation'}
@@ -258,6 +345,26 @@ function ThreadView({
               <p className="text-sm leading-relaxed" style={{ wordBreak: 'break-word' }}>
                 {message.body}
               </p>
+              {message.image_url && (
+                <div className={message.body ? 'mt-2' : ''}>
+                  <button
+                    type="button"
+                    onClick={() => setImageModal(message.image_url)}
+                    className="block overflow-hidden rounded-xl border"
+                    style={{ borderColor: message.is_mine ? 'rgba(0,0,0,0.18)' : 'var(--border)' }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={message.image_url} alt="Message attachment" className="max-h-64 max-w-full object-cover" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => downloadImage(message.image_url!)}
+                    className="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold opacity-70 hover:opacity-100"
+                  >
+                    <Download size={12} /> Download
+                  </button>
+                </div>
+              )}
               <p
                 className="text-xs mt-1"
                 style={{
@@ -277,6 +384,21 @@ function ThreadView({
         className="px-4 py-3 border-t flex gap-3 items-end"
         style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
       >
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => pickImage(e.target.files?.[0] ?? null)}
+        />
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          className="flex-shrink-0 w-11 h-11 rounded-2xl border flex items-center justify-center transition-colors hover:bg-[--border]"
+          style={{ borderColor: imageFile ? 'var(--primary)' : 'var(--border)', color: imageFile ? 'var(--primary)' : 'var(--text-muted)' }}
+        >
+          <ImageIcon size={17} />
+        </button>
         <textarea
           ref={inputRef}
           value={body}
@@ -294,13 +416,100 @@ function ThreadView({
         />
         <button
           onClick={handleSend}
-          disabled={!body.trim() || sending}
+          disabled={(!body.trim() && !imageFile) || sending}
           className="flex-shrink-0 w-11 h-11 rounded-2xl flex items-center justify-center transition-opacity hover:opacity-80 disabled:opacity-40"
           style={{ background: 'var(--primary)', color: '#000' }}
         >
           <Send size={17} />
         </button>
       </div>
+      {imagePreview && (
+        <div className="px-4 pb-3 border-t flex items-center gap-3" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={imagePreview} alt="Selected attachment" className="h-16 w-16 rounded-xl object-cover border" style={{ borderColor: 'var(--border)' }} />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold truncate">{imageFile?.name}</p>
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Image will be sent with your message.</p>
+          </div>
+          <button onClick={clearImage} className="p-2 rounded-xl hover:bg-[--border]" style={{ color: 'var(--text-muted)' }}>
+            <X size={16} />
+          </button>
+        </div>
+      )}
+      {imageModal && (
+        <div
+          className="fixed inset-0 z-[2100] flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.86)' }}
+          onClick={() => setImageModal(null)}
+        >
+          <button
+            type="button"
+            onClick={() => setImageModal(null)}
+            className="absolute right-4 top-4 h-10 w-10 rounded-full border flex items-center justify-center"
+            style={{ borderColor: 'rgba(255,255,255,0.18)', color: '#fff', background: 'rgba(255,255,255,0.06)' }}
+          >
+            <X size={18} />
+          </button>
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); downloadImage(imageModal) }}
+            className="absolute left-4 top-4 h-10 px-4 rounded-full border flex items-center gap-2 text-sm font-semibold"
+            style={{ borderColor: 'rgba(255,255,255,0.18)', color: '#fff', background: 'rgba(255,255,255,0.06)' }}
+          >
+            <Download size={16} /> Download
+          </button>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={imageModal} alt="Message attachment" className="max-h-[88vh] max-w-[92vw] rounded-2xl object-contain" onClick={(e) => e.stopPropagation()} />
+        </div>
+      )}
+      {addMembersOpen && conversation && (
+        <div className="fixed inset-0 z-[2100] flex items-end sm:items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.65)' }} onClick={(e) => e.target === e.currentTarget && setAddMembersOpen(false)}>
+          <div className="w-full rounded-2xl border p-5 space-y-4" style={{ maxWidth: 460, background: 'var(--surface)', borderColor: 'var(--border)' }}>
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="font-bold text-lg">Add people</h2>
+                <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Invite friends into this group conversation.</p>
+              </div>
+              <button onClick={() => setAddMembersOpen(false)} style={{ color: 'var(--text-muted)' }}><X size={20} /></button>
+            </div>
+            <div className="flex flex-wrap gap-2 max-h-64 overflow-y-auto">
+              {friends
+                .filter((friend) => !conversation.participants.some((participant) => participant.id === friend.id))
+                .map((friend) => {
+                  const active = selectedMembers.has(friend.id)
+                  return (
+                    <button
+                      key={friend.id}
+                      onClick={() => setSelectedMembers((current) => {
+                        const next = new Set(current)
+                        next.has(friend.id) ? next.delete(friend.id) : next.add(friend.id)
+                        return next
+                      })}
+                      className="flex items-center gap-2 text-sm px-3 py-2 rounded-full border"
+                      style={{
+                        borderColor: active ? 'var(--primary)' : 'var(--border)',
+                        color: active ? 'var(--primary)' : 'var(--text-primary)',
+                        background: active ? 'rgba(57,255,20,0.08)' : 'transparent',
+                      }}
+                    >
+                      <PersonAvatar person={friend} size={24} />
+                      {friend.name}
+                      {active && <Check size={13} />}
+                    </button>
+                  )
+                })}
+            </div>
+            <button
+              onClick={handleAddMembers}
+              disabled={selectedMembers.size === 0 || addingMembers}
+              className="w-full py-3 rounded-xl font-semibold text-sm disabled:opacity-40"
+              style={{ background: 'var(--primary)', color: '#000' }}
+            >
+              {addingMembers ? 'Adding...' : 'Add selected'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -660,7 +869,7 @@ function MessagesContent() {
                       </div>
                     </div>
                     <p className="text-xs truncate mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                      {previewPrefix}{conversation.last_message.body}
+                      {previewPrefix}{conversation.last_message.body || (conversation.last_message.image_url ? 'Photo' : '')}
                     </p>
                   </div>
                 </button>

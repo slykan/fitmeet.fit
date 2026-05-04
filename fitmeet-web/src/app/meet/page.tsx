@@ -35,6 +35,7 @@ interface UserItem {
 interface EventItem {
   id: number
   title: string
+  image_url: string | null
   category: { value: string; label: string }
   location: { lat: number | null; lng: number | null; address: string | null }
   schedule: { start_at: string; timezone: string; duration_minutes: number | null }
@@ -68,8 +69,14 @@ function formatDate(iso: string, timezone?: string | null) {
   }
 }
 
-function isPastEvent(iso: string) {
-  return new Date(iso).getTime() <= Date.now()
+function eventTiming(ev: EventItem) {
+  const start = new Date(ev.schedule.start_at).getTime()
+  const end = start + (ev.schedule.duration_minutes ?? 60) * 60_000
+  const now = Date.now()
+  return {
+    inProgress: start <= now && now < end,
+    past: now >= end,
+  }
 }
 
 function Avatar({ user }: { user: UserItem }) {
@@ -503,25 +510,40 @@ function EventsTab() {
       )}
 
       {!loading && events.map(ev => {
-        const pastEvent = isPastEvent(ev.schedule.start_at)
+        const { past: pastEvent, inProgress } = eventTiming(ev)
         const mutedEvent = ev.status === 'cancelled' || pastEvent
 
         return (
         <div key={ev.id}
           onClick={() => router.push(`/events/view?id=${ev.id}`)}
-          className="rounded-2xl border p-4 flex items-start justify-between gap-3 transition-opacity hover:opacity-80 cursor-pointer"
+          className="rounded-2xl border p-3 flex items-start justify-between gap-3 transition-opacity hover:opacity-80 cursor-pointer"
           style={{
             background: 'var(--surface)',
             borderColor: ev.status === 'cancelled' ? 'rgba(248,113,113,0.35)' : 'var(--border)',
             opacity: mutedEvent ? 0.68 : 1,
           }}>
-          <div className="flex-1 min-w-0">
+          {ev.image_url ? (
+            <Image
+              src={ev.image_url}
+              alt={ev.title}
+              width={96}
+              height={96}
+              className="w-24 h-24 rounded-xl object-cover flex-shrink-0"
+            />
+          ) : (
+            <div className="w-24 h-24 rounded-xl flex-shrink-0 flex items-center justify-center text-3xl"
+              style={{ background: 'var(--background)', border: '1px solid var(--border)' }}>
+              {CATEGORY_EMOJI[ev.category.value] ?? '•'}
+            </div>
+          )}
+          <div className="flex-1 min-w-0 py-1">
             <div className="flex items-center gap-2 mb-1.5">
               <span className="text-xs px-2 py-0.5 rounded-full border font-medium"
                 style={{ borderColor: 'var(--primary)', color: 'var(--primary)', background: 'rgba(57,255,20,0.08)' }}>
                 {CATEGORY_EMOJI[ev.category.value] ?? ''} {ev.category.label}
               </span>
-              {pastEvent && <span className="text-xs font-medium" style={{ color: 'var(--secondary)' }}>Past</span>}
+              {inProgress && <span className="text-xs font-medium" style={{ color: 'var(--primary)' }}>In progress</span>}
+              {pastEvent && !inProgress && <span className="text-xs font-medium" style={{ color: 'var(--secondary)' }}>Past</span>}
               {ev.status === 'cancelled' && <span className="text-xs text-red-400 font-medium">Cancelled</span>}
               {ev.is_full && <span className="text-xs text-red-400 font-medium">Full</span>}
               {ev.skill_level && (

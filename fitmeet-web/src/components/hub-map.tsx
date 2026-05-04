@@ -29,9 +29,10 @@ L.Icon.Default.mergeOptions({
 interface EventPin {
   id: number
   title: string
+  image_url: string | null
   category: { value: string; label: string }
   location: { lat: number; lng: number; address: string | null }
-  schedule: { start_at: string; timezone: string }
+  schedule: { start_at: string; timezone: string; duration_minutes: number | null }
   activity: { distance_km: number | null; elevation_gain: number | null }
   participants_count: number
   max_participants: number | null
@@ -91,6 +92,16 @@ function createEmojiIcon(emoji: string, angle = 0, zIndex = 1, delayMs = 0, canc
     iconSize: [64, 64],
     iconAnchor: [32, 54],
   })
+}
+
+function eventTiming(event: Pick<EventPin, 'schedule'>) {
+  const start = new Date(event.schedule.start_at).getTime()
+  const end = start + (event.schedule.duration_minutes ?? 60) * 60_000
+  const now = Date.now()
+  return {
+    inProgress: start <= now && now < end,
+    past: now >= end,
+  }
 }
 
 function getZoomForRadius(km: number): number {
@@ -865,7 +876,21 @@ export default function HubMap() {
           padding: '20px 16px 24px',
           boxShadow: '0 -8px 32px rgba(0,0,0,0.45)',
         }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 14 }}>
+            {selected.image_url ? (
+              <img
+                src={selected.image_url}
+                alt={selected.title}
+                style={{
+                  width: 82,
+                  height: 82,
+                  borderRadius: 14,
+                  objectFit: 'cover',
+                  flexShrink: 0,
+                  border: '1px solid var(--border)',
+                }}
+              />
+            ) : null}
             <div style={{ flex: 1 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                 <span style={{
@@ -880,6 +905,12 @@ export default function HubMap() {
                 )}
                 {selected.is_full && (
                   <span style={{ fontSize: 11, color: '#f87171', fontWeight: 600 }}>Full</span>
+                )}
+                {eventTiming(selected).inProgress && (
+                  <span style={{ fontSize: 11, color: 'var(--primary)', fontWeight: 600 }}>In progress</span>
+                )}
+                {eventTiming(selected).past && (
+                  <span style={{ fontSize: 11, color: 'var(--secondary)', fontWeight: 600 }}>Past</span>
                 )}
               </div>
               <h3 style={{ fontWeight: 700, fontSize: 17, marginBottom: 6, lineHeight: 1.3 }}>

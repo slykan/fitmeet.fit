@@ -443,6 +443,7 @@ class MessageController extends Controller
             'participants' => UserResource::collection($conversation->participants->values())->resolve(),
             'last_message' => [
                 'body'       => $conversation->latestMessage->body,
+                'image_url'  => $conversation->latestMessage->image_url,
                 'is_mine'    => (int) $conversation->latestMessage->sender_id === $me,
                 'created_at' => $conversation->latestMessage->created_at->toIso8601String(),
                 'sender'     => [
