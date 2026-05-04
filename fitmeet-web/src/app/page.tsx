@@ -51,6 +51,24 @@ const highlights = [
   },
 ]
 
+const latestFeatures = [
+  {
+    icon: Route,
+    title: 'Strava GPX import',
+    description: 'Bring in saved Strava routes and attach them to events with distance and elevation.',
+  },
+  {
+    icon: MessageSquareText,
+    title: 'Group messages',
+    description: 'Create group chats, add people later, share images and keep event plans in one place.',
+  },
+  {
+    icon: Bell,
+    title: 'Smarter alerts',
+    description: 'Event reminders, cancellation notices and fresh notifications are easier to spot.',
+  },
+]
+
 const steps = [
   {
     step: '01',
@@ -138,6 +156,41 @@ export default function HomePage() {
                   >
                     Create account
                   </Link>
+                </div>
+
+                <div
+                  className="mb-8 rounded-2xl border p-4"
+                  style={{
+                    borderColor: 'rgba(57,255,20,0.16)',
+                    background: 'linear-gradient(180deg, rgba(57,255,20,0.055), rgba(255,255,255,0.025))',
+                  }}
+                >
+                  <div className="flex items-center justify-between gap-3 mb-3">
+                    <p className="text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--primary)' }}>
+                      New in FitMeet
+                    </p>
+                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                      Routes, alerts, chat
+                    </span>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    {latestFeatures.map(({ icon: Icon, title, description }) => (
+                      <div key={title} className="flex gap-3 sm:block">
+                        <div
+                          className="w-9 h-9 shrink-0 rounded-xl flex items-center justify-center sm:mb-3"
+                          style={{ background: 'rgba(57,255,20,0.1)' }}
+                        >
+                          <Icon size={17} style={{ color: 'var(--primary)' }} />
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold mb-1">{title}</p>
+                          <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+                            {description}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="flex flex-wrap gap-2">
