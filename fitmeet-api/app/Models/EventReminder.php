@@ -7,11 +7,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class EventReminder extends Model
 {
-    protected $fillable = ['user_id', 'event_id', 'remind_offset', 'remind_at', 'sent_at'];
+    protected $fillable = ['user_id', 'event_id', 'remind_offset', 'remind_at', 'sent_at', 'read_at'];
 
     protected $casts = [
         'remind_at' => 'datetime',
         'sent_at'   => 'datetime',
+        'read_at'   => 'datetime',
     ];
 
     public function user(): BelongsTo  { return $this->belongsTo(User::class); }

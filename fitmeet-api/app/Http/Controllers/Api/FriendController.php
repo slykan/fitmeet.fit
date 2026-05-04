@@ -115,8 +115,30 @@ class FriendController extends Controller
         $me = $request->user();
         FriendRequest::where('sender_id', $me->id)->where('status', 'accepted')->whereNull('accepted_read_at')->update(['accepted_read_at' => now()]);
         EventNotification::where('user_id', $me->id)->delete();
-        EventReminder::where('user_id', $me->id)->whereNotNull('sent_at')->update(['sent_at' => now()->subHours(25)]);
+        EventReminder::where('user_id', $me->id)->whereNotNull('sent_at')->update(['read_at' => now(), 'sent_at' => now()->subHours(25)]);
         return response()->json(['message' => 'Cleared.']);
+    }
+
+    // POST /notifications/read
+    public function notificationsMarkRead(Request $request): JsonResponse
+    {
+        $me = $request->user();
+
+        FriendRequest::where('sender_id', $me->id)
+            ->where('status', 'accepted')
+            ->whereNull('accepted_read_at')
+            ->update(['accepted_read_at' => now()]);
+
+        EventNotification::where('user_id', $me->id)
+            ->whereNull('read_at')
+            ->update(['read_at' => now()]);
+
+        EventReminder::where('user_id', $me->id)
+            ->whereNotNull('sent_at')
+            ->whereNull('read_at')
+            ->update(['read_at' => now()]);
+
+        return response()->json(['message' => 'Notifications marked as read.']);
     }
 
     // GET /notifications/count
@@ -126,10 +148,12 @@ class FriendController extends Controller
 
         $pending = FriendRequest::where('receiver_id', $me->id)->where('status', 'pending')->count();
         $accepted = FriendRequest::where('sender_id', $me->id)->where('status', 'accepted')->whereNull('accepted_read_at')->count();
-        $reminders = EventReminder::where('user_id', $me->id)->whereNotNull('sent_at')->where('sent_at', '>=', now()->subHours(24))->count();
+        $reminders = EventReminder::where('user_id', $me->id)->whereNotNull('sent_at')->whereNull('read_at')->where('sent_at', '>=', now()->subHours(24))->count();
         $newEvents = EventNotification::where('user_id', $me->id)->where('type', 'new_event')->where('created_at', '>=', now()->subDays(7))
+            ->whereNull('read_at')
             ->whereHas('event', fn ($q) => $q->where('events.start_at', '>', now())->where('events.status', 'active'))->count();
         $cancelled = EventNotification::where('user_id', $me->id)->where('type', 'event_cancelled')->where('created_at', '>=', now()->subDays(30))
+            ->whereNull('read_at')
             ->whereHas('event', fn ($q) => $q->where('events.status', 'cancelled'))->count();
 
         return response()->json(['count' => $pending + $accepted + $reminders + $newEvents + $cancelled]);
@@ -183,6 +207,7 @@ class FriendController extends Controller
             ->map(fn ($r) => [
                 'id'            => $r->id,
                 'type'          => 'event_reminder',
+                'unread'        => $r->read_at === null,
                 'remind_offset' => $r->remind_offset,
                 'event'         => [
                     'id'       => $r->event->id,
@@ -206,6 +231,7 @@ class FriendController extends Controller
             ->map(fn ($n) => [
                 'id'         => $n->id,
                 'type'       => 'new_event',
+                'unread'     => $n->read_at === null,
                 'event'      => [
                     'id'           => $n->event->id,
                     'title'        => $n->event->title,
@@ -229,6 +255,7 @@ class FriendController extends Controller
             ->map(fn ($n) => [
                 'id'         => $n->id,
                 'type'       => 'event_cancelled',
+                'unread'     => $n->read_at === null,
                 'event'      => [
                     'id'       => $n->event->id,
                     'title'    => $n->event->title,

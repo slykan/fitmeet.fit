@@ -18,11 +18,11 @@ interface UserInfo { id: number; name: string; avatar: string | null }
 interface EventInfo { id: number; title: string; start_at: string; address: string | null; category: string }
 
 type Notification =
-  | { id: number; type: 'friend_request';  sender:  UserInfo; created_at: string }
-  | { id: number; type: 'friend_accepted'; friend:  UserInfo; created_at: string }
-  | { id: number; type: 'event_reminder';  event:   EventInfo; remind_offset: string; created_at: string }
-  | { id: number; type: 'new_event';       event:   EventInfo; created_at: string }
-  | { id: number; type: 'event_cancelled'; event:   EventInfo; created_at: string }
+  | { id: number; type: 'friend_request';  sender:  UserInfo; created_at: string; unread?: boolean }
+  | { id: number; type: 'friend_accepted'; friend:  UserInfo; created_at: string; unread?: boolean }
+  | { id: number; type: 'event_reminder';  event:   EventInfo; remind_offset: string; created_at: string; unread?: boolean }
+  | { id: number; type: 'new_event';       event:   EventInfo; created_at: string; unread?: boolean }
+  | { id: number; type: 'event_cancelled'; event:   EventInfo; created_at: string; unread?: boolean }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -63,7 +63,7 @@ function FriendRequestCard({
   acting: boolean
 }) {
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, (n.unread ?? true) && styles.cardUnread]}>
       <View style={styles.cardRow}>
         <View style={[styles.iconWrap, { backgroundColor: 'rgba(57,255,20,0.1)' }]}>
           <Avatar user={n.sender} />
@@ -100,14 +100,14 @@ function FriendRequestCard({
 }
 
 function GenericCard({
-  icon, iconColor, iconBg, title, subtitle, time, onPress,
+  icon, iconColor, iconBg, title, subtitle, time, onPress, unread,
 }: {
   icon: string; iconColor: string; iconBg: string
   title: React.ReactNode; subtitle?: string; time: string
-  onPress?: () => void
+  onPress?: () => void; unread?: boolean
 }) {
   return (
-    <Pressable style={styles.card} onPress={onPress} disabled={!onPress}>
+    <Pressable style={[styles.card, unread && styles.cardUnread]} onPress={onPress} disabled={!onPress}>
       <View style={styles.cardRow}>
         <View style={[styles.iconWrap, { backgroundColor: iconBg }]}>
           <Ionicons name={icon as never} size={18} color={iconColor} />
@@ -137,7 +137,11 @@ export default function NotificationsScreen() {
     else setLoading(true)
     try {
       const { data } = await api.get('/notifications')
-      setNotifications(data.data ?? [])
+      const items = (data.data ?? []) as Notification[]
+      setNotifications(items)
+      if (items.some(item => item.unread)) {
+        api.post('/notifications/read').then(() => badgeEvents.clearAlerts()).catch(() => {})
+      }
     } catch {}
     finally { setLoading(false); setRefreshing(false) }
   }, [])
@@ -230,6 +234,7 @@ export default function NotificationsScreen() {
                 iconBg="rgba(57,255,20,0.1)"
                 title={<><Text style={styles.accent}>{n.friend.name}</Text> accepted your friend request</>}
                 time={timeAgo(n.created_at)}
+                unread={n.unread ?? true}
               />
             )
           }
@@ -245,6 +250,7 @@ export default function NotificationsScreen() {
                 subtitle={`${formatEventDate(n.event.start_at)}${n.event.address ? ' · ' + n.event.address : ''}`}
                 time={timeAgo(n.created_at)}
                 onPress={() => router.push(`/event/${n.event.id}` as never)}
+                unread={n.unread}
               />
             )
           }
@@ -260,6 +266,7 @@ export default function NotificationsScreen() {
                 subtitle={`${n.event.category} · ${formatEventDate(n.event.start_at)}${n.event.address ? ' · ' + n.event.address : ''}`}
                 time={timeAgo(n.created_at)}
                 onPress={() => router.push(`/event/${n.event.id}` as never)}
+                unread={n.unread}
               />
             )
           }
@@ -274,6 +281,7 @@ export default function NotificationsScreen() {
                 title={<>Event cancelled: <Text style={{ color: '#f87171' }}>{n.event.title}</Text></>}
                 subtitle={n.event.address ?? undefined}
                 time={timeAgo(n.created_at)}
+                unread={n.unread}
               />
             )
           }
@@ -304,6 +312,14 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: palette.panel, borderRadius: 22,
     borderWidth: 1, borderColor: palette.line, padding: spacing.md, gap: 12,
+  },
+  cardUnread: {
+    borderColor: 'rgba(57,255,20,0.7)',
+    backgroundColor: 'rgba(57,255,20,0.045)',
+    shadowColor: palette.accent,
+    shadowOpacity: 0.22,
+    shadowRadius: 10,
+    elevation: 3,
   },
   cardRow:  { flexDirection: 'row', alignItems: 'center', gap: 12 },
   cardBody: { flex: 1, gap: 3 },

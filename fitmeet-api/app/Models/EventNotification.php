@@ -7,7 +7,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class EventNotification extends Model
 {
-    protected $fillable = ['user_id', 'event_id', 'type'];
+    protected $fillable = ['user_id', 'event_id', 'type', 'read_at'];
+
+    protected $casts = [
+        'read_at' => 'datetime',
+    ];
 
     public function event(): BelongsTo
     {
