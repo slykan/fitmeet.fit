@@ -64,6 +64,7 @@ export default function HubScreen() {
   const [radiusIdx, setRadiusIdx] = useState(0)
   const [categories, setCategories] = useState<Set<string>>(new Set())
   const [goingOnly,   setGoingOnly]   = useState(false)
+  const [friendsOnly, setFriendsOnly] = useState(false)
   const [myOnly,      setMyOnly]      = useState(false)
   const [pastOnly,    setPastOnly]    = useState(false)
   const [reminderIds, setReminderIds] = useState<Set<number>>(new Set())
@@ -117,10 +118,11 @@ export default function HubScreen() {
       let source = '/events'
       if (goingOnly) source = '/events/joined'
       else if (myOnly) source = '/events/my'
+      else if (friendsOnly) params.friends_only = 1
 
       const { data } = await api.get(source, { params })
       const all: EventItem[] = data.data ?? []
-      const filtered = categories.size > 0 && !goingOnly && !myOnly
+      const filtered = categories.size > 0 && !goingOnly && !myOnly && !friendsOnly
         ? all.filter((ev) => categories.has(ev.category.value))
         : all
       setEvents(prev => pageNum === 1 ? filtered : [...prev, ...filtered])
@@ -132,7 +134,7 @@ export default function HubScreen() {
       setLoading(false)
       setLoadingMore(false)
     }
-  }, [radiusIdx, goingOnly, myOnly, pastOnly, categories, discoveryCenter])
+  }, [radiusIdx, goingOnly, friendsOnly, myOnly, pastOnly, categories, discoveryCenter])
 
   useFocusEffect(useCallback(() => {
     fetchEvents()
@@ -293,8 +295,9 @@ export default function HubScreen() {
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
           {[
-            { label: 'Going', active: goingOnly, onPress: () => { setGoingOnly((v) => !v); setMyOnly(false) } },
-            { label: 'My', active: myOnly, onPress: () => { setMyOnly((v) => !v); setGoingOnly(false) } },
+            { label: 'Going', active: goingOnly, onPress: () => { setGoingOnly((v) => !v); setFriendsOnly(false); setMyOnly(false) } },
+            { label: 'Friends', active: friendsOnly, onPress: () => { setFriendsOnly((v) => !v); setGoingOnly(false); setMyOnly(false) } },
+            { label: 'My', active: myOnly, onPress: () => { setMyOnly((v) => !v); setGoingOnly(false); setFriendsOnly(false) } },
             { label: 'Past', active: pastOnly, onPress: () => setPastOnly((v) => !v) },
           ].map((f) => (
             <Pressable key={f.label} style={[styles.chip, f.active && styles.chipActive]} onPress={f.onPress}>
@@ -363,7 +366,7 @@ export default function HubScreen() {
 
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>
-          {goingOnly ? 'Going' : myOnly ? 'My events' : 'Events near you'}
+          {goingOnly ? 'Going' : friendsOnly ? 'Friends events' : myOnly ? 'My events' : 'Events near you'}
         </Text>
         {!loading ? <Text style={styles.sectionCount}>{events.length}</Text> : null}
       </View>
