@@ -64,7 +64,7 @@ function FriendRequestCard({
   acting: boolean
 }) {
   return (
-    <View style={[styles.card, (n.unread ?? true) && styles.cardUnread]}>
+    <View style={[styles.card, (n.unread ?? true) ? styles.cardUnread : styles.cardRead]}>
       <View style={styles.cardRow}>
         <View style={[styles.iconWrap, { backgroundColor: 'rgba(57,255,20,0.1)' }]}>
           <Avatar user={n.sender} />
@@ -108,7 +108,7 @@ function GenericCard({
   onPress?: () => void; unread?: boolean
 }) {
   return (
-    <Pressable style={[styles.card, unread && styles.cardUnread]} onPress={onPress} disabled={!onPress}>
+    <Pressable style={[styles.card, unread ? styles.cardUnread : styles.cardRead]} onPress={onPress} disabled={!onPress}>
       <View style={styles.cardRow}>
         <View style={[styles.iconWrap, { backgroundColor: iconBg }]}>
           <Ionicons name={icon as never} size={18} color={iconColor} />
@@ -332,12 +332,12 @@ const styles = StyleSheet.create({
   },
   cardUnread: {
     borderWidth: 2,
-    borderColor: 'rgba(57,255,20,0.5)',
+    borderColor: 'rgba(57,255,20,0.62)',
     backgroundColor: 'rgba(57,255,20,0.025)',
-    shadowColor: palette.accent,
-    shadowOpacity: 0.08,
-    shadowRadius: 2,
-    elevation: 1,
+  },
+  cardRead: {
+    borderWidth: 1,
+    borderColor: 'rgba(88,190,255,0.28)',
   },
   cardRow:  { flexDirection: 'row', alignItems: 'center', gap: 12 },
   cardBody: { flex: 1, gap: 3 },
