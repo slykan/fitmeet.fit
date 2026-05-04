@@ -265,7 +265,7 @@ const styles = StyleSheet.create({
   errorText: { color: '#ff8b8b', fontSize: 14, lineHeight: 20 },
 
   primaryBtn: {
-    marginTop: 'auto', height: 56, borderRadius: 18,
+    marginTop: spacing.md, height: 56, borderRadius: 18,
     backgroundColor: palette.accent,
     alignItems: 'center', justifyContent: 'center',
   },

@@ -26,8 +26,8 @@ class UpdateProfileRequest extends FormRequest
             // Home location
             'home_lat'     => ['sometimes', 'nullable', 'numeric', 'between:-90,90'],
             'home_lng'     => ['sometimes', 'nullable', 'numeric', 'between:-180,180'],
-            'home_city'    => ['sometimes', 'nullable', 'string', 'max:100'],
-            'home_country' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'home_city'    => ['sometimes', 'required', 'string', 'max:100'],
+            'home_country' => ['sometimes', 'required', 'string', 'max:100'],
 
             'radius'       => ['sometimes', Rule::in(['nearby', 'city', 'region', 'unlimited'])],
 

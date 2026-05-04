@@ -75,6 +75,10 @@ export default function OnboardingScreen() {
       setError('Name is required.')
       return
     }
+    if (!city.trim() || !country.trim()) {
+      setError('City and country are required.')
+      return
+    }
     setSaving(true)
     setError(null)
     try {
@@ -162,19 +166,19 @@ export default function OnboardingScreen() {
         </Section>
 
         {/* Home location */}
-        <Section label="Home location">
+        <Section label="Home location *">
           <TextInput
             style={styles.input}
             value={city}
             onChangeText={setCity}
-            placeholder="City"
+            placeholder="City *"
             placeholderTextColor={palette.textDim}
           />
           <TextInput
             style={[styles.input, { marginTop: 10 }]}
             value={country}
             onChangeText={setCountry}
-            placeholder="Country"
+            placeholder="Country / address *"
             placeholderTextColor={palette.textDim}
           />
         </Section>
@@ -272,10 +276,6 @@ export default function OnboardingScreen() {
           </Text>
         </Pressable>
 
-        <Pressable onPress={() => router.replace('/(tabs)/hub')} style={styles.skipButton}>
-          <Text style={styles.skipLabel}>Skip for now</Text>
-        </Pressable>
-
       </ScrollView>
     </SafeAreaView>
   )
@@ -368,6 +368,4 @@ const styles = StyleSheet.create({
   primaryButtonDisabled: { opacity: 0.55 },
   primaryLabel: { color: '#041109', fontSize: 16, fontWeight: '800' },
 
-  skipButton: { alignItems: 'center', paddingVertical: spacing.sm },
-  skipLabel: { color: palette.textDim, fontSize: 14 },
 })

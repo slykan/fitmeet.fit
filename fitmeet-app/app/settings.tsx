@@ -86,14 +86,15 @@ export default function SettingsScreen() {
 
   async function handleSave() {
     if (!name.trim()) { Alert.alert('Missing', 'Name is required.'); return }
+    if (!city.trim() || !country.trim()) { Alert.alert('Missing', 'City and country/address are required.'); return }
     setSaving(true); setError(null); setSaved(false)
     try {
       await api.patch('/me', {
         name: name.trim(),
         phone: phone.trim() || null,
         hide_phone: hidePhone,
-        home_city: city.trim() || null,
-        home_country: country.trim() || null,
+        home_city: city.trim(),
+        home_country: country.trim(),
         radius,
         categories,
         skill_level: skillLevel || null,
@@ -207,11 +208,11 @@ export default function SettingsScreen() {
         <SectionHeader title="Location" icon="location-outline" />
 
         <View style={styles.row}>
-          <Field label="City" style={{ flex: 1 }}>
+          <Field label="City *" style={{ flex: 1 }}>
             <TextInput style={styles.input} value={city} onChangeText={setCity}
               placeholder="Zagreb" placeholderTextColor={palette.textDim} />
           </Field>
-          <Field label="Country" style={{ flex: 1 }}>
+          <Field label="Country / address *" style={{ flex: 1 }}>
             <TextInput style={styles.input} value={country} onChangeText={setCountry}
               placeholder="Croatia" placeholderTextColor={palette.textDim} />
           </Field>
