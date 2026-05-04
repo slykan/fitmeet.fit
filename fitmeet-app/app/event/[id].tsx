@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
-import { router, useLocalSearchParams } from 'expo-router'
-import { useEffect, useState } from 'react'
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router'
+import { useCallback, useEffect, useState } from 'react'
 import {
   ActivityIndicator, Alert, Image, Modal, Pressable,
   ScrollView, Share, StyleSheet, Text, View, type StyleProp, type ViewStyle,
@@ -113,19 +113,25 @@ export default function EventDetailScreen() {
   const [coloredSegments, setColoredSegments] = useState<TrackSegment[]>([])
   const [elevationProfile, setElevationProfile] = useState<ElevationPoint[]>([])
 
-  useEffect(() => {
+  const loadEvent = useCallback(() => {
     if (!id) return
     setLoading(true)
+    setError(null)
     api.get(`/events/${id}`)
       .then(({ data }) => setEvent(data.data))
       .catch(() => setError('Could not load event.'))
       .finally(() => setLoading(false))
   }, [id])
 
+  useFocusEffect(loadEvent)
+
   useEffect(() => {
+    setColoredSegments([])
+    setElevationProfile([])
     if (!event?.activity.gpx_url) return
     const token = useAuthStore.getState().token
-    fetch(event.activity.gpx_url, {
+    const separator = event.activity.gpx_url.includes('?') ? '&' : '?'
+    fetch(`${event.activity.gpx_url}${separator}t=${Date.now()}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
       .then(r => r.text())
@@ -234,7 +240,7 @@ export default function EventDetailScreen() {
         text: 'Cancel event', style: 'destructive', onPress: async () => {
           setActing(true)
           try {
-            await api.patch(`/events/${event.id}`, { status: 'cancelled' })
+            await api.delete(`/events/${event.id}`)
             const { data } = await api.get(`/events/${event.id}`)
             setEvent(data.data)
           } catch {

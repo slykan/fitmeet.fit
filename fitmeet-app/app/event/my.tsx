@@ -63,7 +63,7 @@ export default function MyEventsScreen() {
           onPress: async () => {
             setCancelling(ev.id)
             try {
-              await api.patch(`/events/${ev.id}`, { status: 'cancelled' })
+              await api.delete(`/events/${ev.id}`)
               await load()
             } catch {
               Alert.alert('Error', 'Could not cancel event.')
