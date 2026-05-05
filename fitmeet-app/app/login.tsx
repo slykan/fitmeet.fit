@@ -23,6 +23,9 @@ export default function LoginScreen() {
   const login            = useAuthStore((s) => s.login)
   const loginWithGoogle  = useAuthStore((s) => s.loginWithGoogle)
   const loginWithStrava  = useAuthStore((s) => s.loginWithStrava)
+  const hasHydrated      = useAuthStore((s) => s.hasHydrated)
+  const token            = useAuthStore((s) => s.token)
+  const user             = useAuthStore((s) => s.user)
 
   const [email,         setEmail]         = useState('')
   const [password,      setPassword]      = useState('')
@@ -31,6 +34,11 @@ export default function LoginScreen() {
   const [showCaptcha,   setShowCaptcha]   = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
   const [stravaLoading, setStravaLoading] = useState(false)
+
+  useEffect(() => {
+    if (!hasHydrated || !token) return
+    router.replace(user?.onboarding_complete ? '/(tabs)/hub' : '/onboarding')
+  }, [hasHydrated, token, user?.onboarding_complete])
 
   async function handleStravaPress() {
     setStravaLoading(true)

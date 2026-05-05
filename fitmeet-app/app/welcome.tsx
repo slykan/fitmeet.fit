@@ -4,12 +4,22 @@ import { useEffect, useRef } from 'react'
 import { Animated, Easing, Image, Pressable, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
+import { useAuthStore } from '@/src/store/auth'
+
 const LOGO = require('../assets/logo-c.png')
 
 export default function WelcomeScreen() {
+  const hasHydrated = useAuthStore((s) => s.hasHydrated)
+  const token = useAuthStore((s) => s.token)
+  const user = useAuthStore((s) => s.user)
   const heroShift = useRef(new Animated.Value(0)).current
   const ctaOpacity = useRef(new Animated.Value(0)).current
   const ctaShift = useRef(new Animated.Value(34)).current
+
+  useEffect(() => {
+    if (!hasHydrated || !token) return
+    router.replace(user?.onboarding_complete ? '/(tabs)/hub' : '/onboarding')
+  }, [hasHydrated, token, user?.onboarding_complete])
 
   useEffect(() => {
     const timer = setTimeout(() => {

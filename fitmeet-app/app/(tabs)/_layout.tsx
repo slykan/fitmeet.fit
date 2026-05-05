@@ -1,7 +1,7 @@
-import { Tabs } from 'expo-router'
+import { Tabs, usePathname } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { useEffect, useRef, useState } from 'react'
-import { AppState } from 'react-native'
+import { AppState, BackHandler } from 'react-native'
 
 import { palette } from '@/src/theme'
 import { useAuthStore } from '@/src/store/auth'
@@ -22,12 +22,36 @@ const tabIcon: Record<string, keyof typeof Ionicons.glyphMap> = {
 
 export default function TabsLayout() {
   const token = useAuthStore((state) => state.token)
+  const pathname = usePathname()
   const [notifCount, setNotifCount] = useState(0)
   const [msgCount,   setMsgCount]   = useState(0)
   const appState = useRef(AppState.currentState)
 
   badgeEvents.clearAlerts = () => setNotifCount(0)
   badgeEvents.clearChat   = () => setMsgCount(0)
+
+  useEffect(() => {
+    const tabPaths = new Set([
+      '/hub',
+      '/meet',
+      '/notifications',
+      '/messages',
+      '/profile',
+      '/(tabs)/hub',
+      '/(tabs)/meet',
+      '/(tabs)/notifications',
+      '/(tabs)/messages',
+      '/(tabs)/profile',
+    ])
+    if (!tabPaths.has(pathname)) return
+
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      BackHandler.exitApp()
+      return true
+    })
+
+    return () => sub.remove()
+  }, [pathname])
 
   useEffect(() => {
     if (!token) {

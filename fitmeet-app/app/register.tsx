@@ -15,6 +15,9 @@ WebBrowser.maybeCompleteAuthSession()
 export default function RegisterScreen() {
   const register        = useAuthStore((s) => s.register)
   const loginWithGoogle = useAuthStore((s) => s.loginWithGoogle)
+  const hasHydrated     = useAuthStore((s) => s.hasHydrated)
+  const token           = useAuthStore((s) => s.token)
+  const user            = useAuthStore((s) => s.user)
 
   const [name,        setName]        = useState('')
   const [email,       setEmail]       = useState('')
@@ -24,6 +27,11 @@ export default function RegisterScreen() {
   const [error,       setError]       = useState<string | null>(null)
   const [showCaptcha, setShowCaptcha] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
+
+  useEffect(() => {
+    if (!hasHydrated || !token) return
+    router.replace(user?.onboarding_complete ? '/(tabs)/hub' : '/onboarding')
+  }, [hasHydrated, token, user?.onboarding_complete])
 
   const disabled =
     submitting || googleLoading ||
