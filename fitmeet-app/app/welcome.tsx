@@ -61,7 +61,6 @@ export default function WelcomeScreen() {
             },
           ]}
         >
-          <Text style={styles.brand}>FITMEET.FIT</Text>
           <Text style={styles.tagline}>Find your people. Move together.</Text>
 
           <Pressable style={styles.primaryBtn} onPress={() => router.push('/register')}>
@@ -103,7 +102,7 @@ const styles = StyleSheet.create({
   safe: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'flex-end',
-    paddingBottom: 18,
+    paddingBottom: 96,
   },
   ctaWrap: {
     gap: 12,
@@ -118,13 +117,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   logoTextGreen: { color: '#39FF14' },
-  brand: {
-    color: '#ffffff',
-    textAlign: 'center',
-    fontSize: 26,
-    fontWeight: '900',
-    letterSpacing: 0.6,
-  },
   tagline: {
     color: 'rgba(255,255,255,0.72)',
     textAlign: 'center',
