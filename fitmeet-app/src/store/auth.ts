@@ -49,6 +49,12 @@ async function storeSession(input: { token: string; user: MobileUser }) {
   await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(input))
 }
 
+class ApiError extends Error {
+  constructor(public status: number, message: string) {
+    super(message)
+  }
+}
+
 async function requestJson<T>(path: string, init?: RequestInit, token?: string): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     ...init,
@@ -62,7 +68,7 @@ async function requestJson<T>(path: string, init?: RequestInit, token?: string):
 
   const data = await res.json().catch(() => ({}))
   if (!res.ok) {
-    throw new Error(data?.message ?? 'Something went wrong.')
+    throw new ApiError(res.status, data?.message ?? 'Something went wrong.')
   }
   return data as T
 }
@@ -117,7 +123,12 @@ export const useAuthStore = create<AuthState>((set) => ({
               await storeSession({ token: parsed.token!, user })
               set({ user })
             })
-            .catch(() => {})
+            .catch(async (err) => {
+              if (err instanceof ApiError && err.status === 401) {
+                await AsyncStorage.removeItem(STORAGE_KEY)
+                set({ token: null, user: null })
+              }
+            })
         }
         return
       }
