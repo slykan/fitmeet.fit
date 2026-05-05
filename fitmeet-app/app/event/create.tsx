@@ -198,6 +198,8 @@ export default function CreateEventScreen() {
   const [gpxContent,  setGpxContent]  = useState<string | null>(null)
   const [showStrava,  setShowStrava]  = useState(false)
 
+  const [joinOnCreate, setJoinOnCreate] = useState(true)
+
   const [submitting,  setSubmitting]  = useState(false)
   const [prefilling,  setPrefilling]  = useState(false)
 
@@ -425,6 +427,11 @@ export default function CreateEventScreen() {
         : await api.post('/events', fd, {
             headers: { 'Content-Type': 'multipart/form-data' },
           })
+
+      if (!editId && joinOnCreate) {
+        await api.post(`/events/${data.data.id}/join`).catch(() => {})
+      }
+
       router.replace(`/event/${data.data.id}` as never)
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message
@@ -736,6 +743,15 @@ export default function CreateEventScreen() {
         </Field>
 
         {/* ── Submit ── */}
+        {!editId && (
+          <Pressable style={styles.joinToggle} onPress={() => setJoinOnCreate(v => !v)}>
+            <View style={[styles.checkbox, joinOnCreate && styles.checkboxActive]}>
+              {joinOnCreate && <Ionicons name="checkmark" size={14} color="#041109" />}
+            </View>
+            <Text style={styles.joinToggleLabel}>Join this event automatically</Text>
+          </Pressable>
+        )}
+
         <Pressable
           style={[styles.submitBtn, submitting && styles.submitBtnDisabled]}
           onPress={handleSubmit}
@@ -884,6 +900,16 @@ const styles = StyleSheet.create({
     paddingVertical: 8, paddingHorizontal: 4, alignSelf: 'flex-start',
   },
   locationBtnText: { color: palette.accent, fontSize: 13, fontWeight: '600' },
+
+  joinToggle: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 4 },
+  checkbox: {
+    width: 24, height: 24, borderRadius: 8,
+    borderWidth: 2, borderColor: palette.line,
+    backgroundColor: palette.panel,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  checkboxActive: { backgroundColor: palette.accent, borderColor: palette.accent },
+  joinToggleLabel: { color: palette.text, fontSize: 15, fontWeight: '600', flex: 1 },
 
   submitBtn:         { height: 56, borderRadius: 18, backgroundColor: palette.accent, alignItems: 'center', justifyContent: 'center', marginTop: 8 },
   submitBtnDisabled: { opacity: 0.5 },

@@ -412,7 +412,10 @@ function ThreadView({
   }
 
   return (
-    <View style={{ flex: 1 }}>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
       <View>
         <View style={th.header}>
           <Pressable style={th.backBtn} onPress={onBack}>
@@ -519,33 +522,31 @@ function ThreadView({
         />
       )}
 
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <View style={th.inputRow}>
-          <Pressable style={th.imageBtn} onPress={pickAndSendImage} disabled={sending}>
-            <Ionicons name="image-outline" size={22} color={palette.textDim} />
-          </Pressable>
-          <TextInput
-            style={th.input}
-            value={input}
-            onChangeText={setInput}
-            placeholder="Write a message..."
-            placeholderTextColor={palette.textDim}
-            multiline
-            maxLength={2000}
-          />
-          <Pressable
-            style={[th.sendBtn, (!input.trim() || sending) && th.sendBtnDisabled]}
-            onPress={send}
-            disabled={!input.trim() || sending}
-          >
-            {sending ? (
-              <ActivityIndicator size="small" color="#041109" />
-            ) : (
-              <Ionicons name="send" size={18} color="#041109" />
-            )}
-          </Pressable>
-        </View>
-      </KeyboardAvoidingView>
+      <View style={th.inputRow}>
+        <Pressable style={th.imageBtn} onPress={pickAndSendImage} disabled={sending}>
+          <Ionicons name="image-outline" size={22} color={palette.textDim} />
+        </Pressable>
+        <TextInput
+          style={th.input}
+          value={input}
+          onChangeText={setInput}
+          placeholder="Write a message..."
+          placeholderTextColor={palette.textDim}
+          multiline
+          maxLength={2000}
+        />
+        <Pressable
+          style={[th.sendBtn, (!input.trim() || sending) && th.sendBtnDisabled]}
+          onPress={send}
+          disabled={!input.trim() || sending}
+        >
+          {sending ? (
+            <ActivityIndicator size="small" color="#041109" />
+          ) : (
+            <Ionicons name="send" size={18} color="#041109" />
+          )}
+        </Pressable>
+      </View>
 
       <MemberPickerModal
         visible={showAddMembers}
@@ -562,7 +563,7 @@ function ThreadView({
         submitting={mutatingMembers}
         submitLabel="Add to Group"
       />
-    </View>
+    </KeyboardAvoidingView>
   )
 }
 
