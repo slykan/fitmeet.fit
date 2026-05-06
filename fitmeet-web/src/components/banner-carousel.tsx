@@ -29,20 +29,14 @@ export function BannerCarousel() {
 
   return (
     <div className="relative w-full overflow-hidden rounded-2xl" style={{ boxShadow: '0 8px 40px rgba(0,0,0,0.4)' }}>
-      <div
-        style={{
-          transition: 'opacity 0.3s ease',
-          opacity: fading ? 0 : 1,
-          aspectRatio: '16 / 7',
-          position: 'relative',
-        }}
-      >
+      <div style={{ transition: 'opacity 0.3s ease', opacity: fading ? 0 : 1 }}>
         <Image
           src={BANNERS[current].src}
           alt={BANNERS[current].alt}
-          fill
+          width={1920}
+          height={1080}
           sizes="(max-width: 1280px) 100vw, 1152px"
-          className="object-cover"
+          style={{ width: '100%', height: 'auto', display: 'block' }}
           priority={current === 0}
         />
       </div>
