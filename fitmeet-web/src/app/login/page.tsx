@@ -33,7 +33,8 @@ function LoginContent() {
   const searchParams = useSearchParams()
   const { theme } = useTheme()
   const [mounted, setMounted] = useState(false)
-  const [googleLoading, setGoogleLoading] = useState(false)
+  const [googleLoading,  setGoogleLoading]  = useState(false)
+  const [stravaLoading,  setStravaLoading]  = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -72,6 +73,15 @@ function LoginContent() {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
       setError(msg ?? 'Invalid email or password.')
     }
+  }
+
+  function handleStravaLogin() {
+    setStravaLoading(true)
+    const redirectUri = encodeURIComponent('https://fitmeet.fit/strava-callback')
+    window.location.href =
+      `https://www.strava.com/oauth/authorize?client_id=234864` +
+      `&redirect_uri=${redirectUri}&response_type=code&approval_prompt=auto` +
+      `&scope=read&state=web-login`
   }
 
   async function handleGoogleLogin() {
@@ -169,6 +179,20 @@ function LoginContent() {
           <Button variant="ghost" size="lg" onClick={handleGoogleLogin} loading={googleLoading} className="w-full gap-3 border">
             {!googleLoading && <GoogleIcon />}
             Continue with Google
+          </Button>
+
+          {/* Strava */}
+          <Button
+            variant="ghost" size="lg"
+            onClick={handleStravaLogin}
+            loading={stravaLoading}
+            className="w-full gap-3 border"
+            style={{ borderColor: 'rgba(252,76,2,0.35)', color: '#FC4C02' }}
+          >
+            {!stravaLoading && (
+              <span style={{ fontSize: 11, fontWeight: 900, letterSpacing: 0.6 }}>STRAVA</span>
+            )}
+            Continue with Strava
           </Button>
 
           <p className="text-center text-sm" style={{ color: 'var(--text-muted)' }}>

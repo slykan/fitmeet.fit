@@ -25,6 +25,15 @@ const SKILL_OPTIONS = [
   { value: 'pro',      label: 'Pro',      desc: 'Expert' },
 ] as const
 
+interface StravaRoute {
+  id: string
+  name: string
+  distance: number
+  elevation_gain: number
+}
+
+const STRAVA_CLIENT_ID = '234864'
+
 const DURATION_PRESETS = [
   { label: '30 min', value: '30' },
   { label: '1 h',    value: '60' },
@@ -74,8 +83,14 @@ export default function CreateEventPage() {
   )
   const [gpxFile,   setGpxFile]   = useState<File | null>(null)
   const [gpxResult, setGpxResult] = useState<GpxResult | null>(null)
+  const [gpxText,   setGpxText]   = useState<string | null>(null)
+  const [gpxName,   setGpxName]   = useState<string | null>(null)
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [stravaRoutes,      setStravaRoutes]      = useState<StravaRoute[]>([])
+  const [stravaImportToken, setStravaImportToken] = useState<string | null>(null)
+  const [showStravaModal,   setShowStravaModal]   = useState(false)
+  const [importingRoute,    setImportingRoute]    = useState<string | null>(null)
 
   const {
     register,
@@ -98,6 +113,19 @@ export default function CreateEventPage() {
   useEffect(() => {
     if (!token) router.replace('/login')
   }, [token, router])
+
+  // Pick up Strava routes returned from OAuth callback
+  useEffect(() => {
+    const stored = sessionStorage.getItem('strava_routes_pending')
+    if (!stored) return
+    sessionStorage.removeItem('strava_routes_pending')
+    try {
+      const { routes, importToken } = JSON.parse(stored)
+      setStravaRoutes(routes ?? [])
+      setStravaImportToken(importToken ?? null)
+      setShowStravaModal(true)
+    } catch {}
+  }, [])
 
   const watchedLat      = watch('lat')
   const watchedLng      = watch('lng')
@@ -171,6 +199,41 @@ export default function CreateEventPage() {
     if (result.maxDowngrade < 0)     setValue('max_downgrade',  String(result.maxDowngrade))
   }
 
+  function connectStrava() {
+    const redirectUri = encodeURIComponent('https://fitmeet.fit/strava-callback')
+    window.location.href =
+      `https://www.strava.com/oauth/authorize?client_id=${STRAVA_CLIENT_ID}` +
+      `&redirect_uri=${redirectUri}&response_type=code&approval_prompt=auto` +
+      `&scope=read,read_all,activity:read_all&state=web-import`
+  }
+
+  async function importStravaRoute(route: StravaRoute) {
+    if (!stravaImportToken) return
+    setImportingRoute(route.id)
+    try {
+      const { data } = await api.post(`/strava/routes/${route.id}/gpx`, { import_token: stravaImportToken })
+      const text = data.gpx as string
+      const result = parseGpx(text)
+      setGpxText(text)
+      setGpxName(route.name + '.gpx')
+      setGpxFile(null)
+      setGpxResult(result)
+      if (result.track.length > 0 && watchedLat === null) {
+        setValue('lat', result.track[0][0])
+        setValue('lng', result.track[0][1])
+      }
+      if (result.distanceKm > 0)    setValue('distance_km',    String(result.distanceKm))
+      if (result.elevationGain > 0) setValue('elevation_gain', String(result.elevationGain))
+      if (result.maxGrade > 0)      setValue('max_grade',      String(result.maxGrade))
+      if (result.maxDowngrade < 0)  setValue('max_downgrade',  String(result.maxDowngrade))
+      setShowStravaModal(false)
+    } catch {
+      alert('Could not download GPX for this route.')
+    } finally {
+      setImportingRoute(null)
+    }
+  }
+
   function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null
     setImageFile(file)
@@ -212,9 +275,10 @@ export default function CreateEventPage() {
       if (data.max_grade)      fd.append('max_grade',      data.max_grade)
       if (data.max_downgrade)  fd.append('max_downgrade',  data.max_downgrade)
       if (data.pace)           fd.append('pace',           data.pace)
-      if (gpxFile)             fd.append('gpx_file',       gpxFile)
-      if (imageFile)           fd.append('image_file',     imageFile)
-      if (data.youtube_url)    fd.append('youtube_url',    data.youtube_url)
+      if (gpxFile)             fd.append('gpx_file',  gpxFile)
+      else if (gpxText && gpxName) { fd.append('gpx_text', gpxText); fd.append('gpx_name', gpxName) }
+      if (imageFile)           fd.append('image_file', imageFile)
+      if (data.youtube_url)    fd.append('youtube_url', data.youtube_url)
 
       const { data: res } = await api.post('/events', fd)
       router.replace(`/events/view?id=${res.data.id}`)
@@ -439,25 +503,33 @@ export default function CreateEventPage() {
               </Field>
 
               <Field label="GPX route" className="mt-4">
-                <label
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl border cursor-pointer transition-all"
-                  style={gpxFile
-                    ? { borderColor: 'var(--primary)', background: 'rgba(57,255,20,0.06)', color: 'var(--primary)' }
-                    : { borderColor: 'var(--border)', color: 'var(--text-muted)' }
-                  }
-                >
-                  <input
-                    type="file"
-                    accept=".gpx,.xml"
-                    className="hidden"
-                    onChange={handleGpxChange}
-                  />
-                  <span className="text-sm">
-                    {gpxFile
-                      ? `📍 ${gpxFile.name} · ${gpxResult?.track.length ?? 0} points`
-                      : '+ Upload GPX file (optional)'}
-                  </span>
-                </label>
+                <div className="flex flex-col gap-2">
+                  <label
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl border cursor-pointer transition-all"
+                    style={gpxFile || gpxText
+                      ? { borderColor: 'var(--primary)', background: 'rgba(57,255,20,0.06)', color: 'var(--primary)' }
+                      : { borderColor: 'var(--border)', color: 'var(--text-muted)' }
+                    }
+                  >
+                    <input type="file" accept=".gpx,.xml" className="hidden" onChange={handleGpxChange} />
+                    <span className="text-sm">
+                      {gpxFile
+                        ? `📍 ${gpxFile.name} · ${gpxResult?.track.length ?? 0} pts`
+                        : gpxText
+                        ? `📍 ${gpxName} · ${gpxResult?.track.length ?? 0} pts (Strava)`
+                        : '+ Upload GPX file (optional)'}
+                    </span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={connectStrava}
+                    className="flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-semibold transition-all"
+                    style={{ borderColor: 'rgba(252,76,2,0.35)', color: '#FC4C02', background: 'rgba(252,76,2,0.05)' }}
+                  >
+                    <span style={{ fontSize: 10, fontWeight: 900, letterSpacing: 0.6 }}>STRAVA</span>
+                    Import from Strava
+                  </button>
+                </div>
               </Field>
 
               {gpxResult && gpxResult.elevationProfile.length >= 2 && (
@@ -569,6 +641,58 @@ export default function CreateEventPage() {
           </form>
         </div>
       </main>
+
+      {/* Strava routes modal */}
+      {showStravaModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.7)' }}
+          onClick={() => setShowStravaModal(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl border p-6"
+            style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p style={{ color: '#FC4C02', fontSize: 11, fontWeight: 900, letterSpacing: 0.6 }}>STRAVA</p>
+                <p className="font-bold text-lg">Your routes</p>
+              </div>
+              <button onClick={() => setShowStravaModal(false)} style={{ color: 'var(--text-muted)' }}>✕</button>
+            </div>
+
+            {stravaRoutes.length === 0 ? (
+              <p className="text-sm text-center py-6" style={{ color: 'var(--text-muted)' }}>
+                No routes found. Create a route on Strava first.
+              </p>
+            ) : (
+              <div className="flex flex-col gap-2 max-h-80 overflow-y-auto">
+                {stravaRoutes.map(r => (
+                  <button
+                    key={r.id}
+                    onClick={() => importStravaRoute(r)}
+                    disabled={importingRoute === r.id}
+                    className="flex items-center gap-3 px-4 py-3 rounded-xl border text-left transition-all hover:opacity-80 disabled:opacity-50"
+                    style={{ borderColor: 'var(--border)', background: 'var(--background)' }}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm truncate">{r.name}</p>
+                      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                        {(r.distance / 1000).toFixed(1)} km
+                        {r.elevation_gain > 0 ? ` · ↑${Math.round(r.elevation_gain)} m` : ''}
+                      </p>
+                    </div>
+                    <span style={{ color: importingRoute === r.id ? 'var(--text-muted)' : '#FC4C02', fontSize: 13, fontWeight: 700 }}>
+                      {importingRoute === r.id ? '...' : 'Import'}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </>
   )
 }
