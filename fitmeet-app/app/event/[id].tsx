@@ -5,6 +5,7 @@ import {
   ActivityIndicator, Alert, Image, Modal, Pressable,
   Linking, ScrollView, Share, StyleSheet, Text, View, type StyleProp, type ViewStyle,
 } from 'react-native'
+import { WebView } from 'react-native-webview'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { WeatherBadge } from '@/src/components/WeatherBadge'
@@ -84,6 +85,28 @@ function youtubeVideoId(url: string | null | undefined) {
   return url.match(/(?:youtube\.com\/(?:watch\?.*v=|shorts\/|embed\/|live\/)|youtu\.be\/)([\w-]{11})/)?.[1] ?? null
 }
 
+function youtubeEmbedHtml(videoId: string) {
+  const safeId = videoId.replace(/[^\w-]/g, '')
+  return `<!doctype html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <style>
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; }
+    iframe { width: 100%; height: 100%; border: 0; display: block; background: #000; }
+  </style>
+</head>
+<body>
+  <iframe
+    src="https://www.youtube-nocookie.com/embed/${safeId}?rel=0&playsinline=1&modestbranding=1&enablejsapi=1&origin=https%3A%2F%2Ffitmeet.fit"
+    title="Event video"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+    allowfullscreen>
+  </iframe>
+</body>
+</html>`
+}
+
 const REMINDER_OPTIONS: Array<{ value: ReminderOffset; label: string }> = [
   { value: '1h', label: '1h before' },
   { value: '5h', label: '5h before' },
@@ -128,6 +151,7 @@ export default function EventDetailScreen() {
   const [showReminderModal, setShowReminderModal] = useState(false)
   const [settingReminders, setSettingReminders] = useState(false)
   const [showParticipants, setShowParticipants] = useState(false)
+  const [youtubeOpen, setYoutubeOpen] = useState(false)
   const [coloredSegments, setColoredSegments] = useState<TrackSegment[]>([])
   const [elevationProfile, setElevationProfile] = useState<ElevationPoint[]>([])
 
@@ -142,6 +166,10 @@ export default function EventDetailScreen() {
   }, [id])
 
   useFocusEffect(loadEvent)
+
+  useEffect(() => {
+    setYoutubeOpen(false)
+  }, [event?.id, event?.youtube_url])
 
   useEffect(() => {
     setColoredSegments([])
@@ -476,16 +504,33 @@ export default function EventDetailScreen() {
               <Text style={styles.cardLabel}>Video</Text>
             </View>
             {ytId ? (
-              <Pressable onPress={() => event.youtube_url && Linking.openURL(event.youtube_url)} style={styles.ytThumb}>
-                <Image
-                  source={{ uri: `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` }}
-                  style={StyleSheet.absoluteFillObject}
-                  resizeMode="cover"
-                />
-                <View style={styles.ytPlayBtn}>
-                  <Ionicons name="play" size={28} color="#fff" />
+              youtubeOpen ? (
+                <View style={styles.ytPlayer}>
+                  <WebView
+                    source={{ html: youtubeEmbedHtml(ytId), baseUrl: 'https://fitmeet.fit' }}
+                    originWhitelist={['https://*', 'about:blank']}
+                    javaScriptEnabled
+                    domStorageEnabled
+                    mediaPlaybackRequiresUserAction={false}
+                    allowsFullscreenVideo
+                    allowsInlineMediaPlayback
+                    setSupportMultipleWindows={false}
+                    mixedContentMode="always"
+                    style={{ flex: 1, backgroundColor: '#000' }}
+                  />
                 </View>
-              </Pressable>
+              ) : (
+                <Pressable onPress={() => setYoutubeOpen(true)} style={styles.ytThumb}>
+                  <Image
+                    source={{ uri: `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` }}
+                    style={StyleSheet.absoluteFillObject}
+                    resizeMode="cover"
+                  />
+                  <View style={styles.ytPlayBtn}>
+                    <Ionicons name="play" size={28} color="#fff" />
+                  </View>
+                </Pressable>
+              )
             ) : null}
             <Pressable onPress={() => event.youtube_url && Linking.openURL(event.youtube_url)}>
               <Text style={styles.ytLink}>Open on YouTube</Text>
@@ -734,6 +779,7 @@ const styles = StyleSheet.create({
     height: 200, borderRadius: 14, overflow: 'hidden',
     backgroundColor: '#000', alignItems: 'center', justifyContent: 'center',
   },
+  ytPlayer: { height: 220, borderRadius: 14, overflow: 'hidden', backgroundColor: '#000' },
   videoHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   ytPlayBtn: {
     width: 60, height: 60, borderRadius: 30,
