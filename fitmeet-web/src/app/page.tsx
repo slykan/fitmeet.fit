@@ -16,6 +16,7 @@ import Image from 'next/image'
 
 import { Navbar } from '@/components/navbar'
 import { HeroMap } from '@/components/hero-map'
+import { BannerCarousel } from '@/components/banner-carousel'
 
 const categories = [
   'Running',
@@ -232,6 +233,12 @@ export default function HomePage() {
                 </div>
               </div>
             </div>
+          </div>
+        </section>
+
+        <section className="py-10 md:py-12 border-b" style={{ borderColor: 'var(--border)' }}>
+          <div className="max-w-6xl mx-auto px-4">
+            <BannerCarousel />
           </div>
         </section>
 
