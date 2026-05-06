@@ -32,6 +32,7 @@ class Event extends Model
         'max_downgrade',
         'gpx_path',
         'image_path',
+        'youtube_url',
         'skill_level',
         'max_participants',
         'is_private',

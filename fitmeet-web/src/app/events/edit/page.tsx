@@ -294,7 +294,7 @@ function EditContent() {
       if (gpxFile)             fd.append('gpx_file', gpxFile)
       else if (gpxText && gpxName) { fd.append('gpx_text', gpxText); fd.append('gpx_name', gpxName) }
       if (imageFile)           fd.append('image_file', imageFile)
-      if (data.youtube_url)    fd.append('youtube_url', data.youtube_url)
+      fd.append('youtube_url', data.youtube_url?.trim() || '')
 
       await api.patch(`/events/${id}`, fd)
       router.replace(`/events/view?id=${id}`)

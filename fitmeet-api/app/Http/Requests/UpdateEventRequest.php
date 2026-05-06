@@ -39,6 +39,7 @@ class UpdateEventRequest extends FormRequest
             'gpx_name'         => ['sometimes', 'nullable', 'string', 'max:120'],
             'image_file'       => ['sometimes', 'nullable', 'file', 'max:8192'],
             'image_remove'     => ['sometimes', 'boolean'],
+            'youtube_url'      => ['sometimes', 'nullable', 'string', 'regex:/^https?:\/\/(www\.)?(youtube\.com\/(watch\?v=|shorts\/)|youtu\.be\/)[\w-]{11}/'],
 
             'skill_level'      => ['sometimes', 'nullable', Rule::in(['beginner', 'advanced', 'pro'])],
             'max_participants' => ['sometimes', 'nullable', 'integer', 'min:2'],

@@ -422,7 +422,7 @@ export default function CreateEventScreen() {
         fd.append('gpx_text', gpxContent)
         fd.append('gpx_name', gpxName)
       }
-      if (youtubeUrl.trim()) fd.append('youtube_url', youtubeUrl.trim())
+      if (editId || youtubeUrl.trim()) fd.append('youtube_url', youtubeUrl.trim())
 
       const { data } = editId
         ? await api.post(`/events/${editId}`, (() => {
