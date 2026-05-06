@@ -52,6 +52,7 @@ interface FormData {
   max_grade:        string
   max_downgrade:    string
   pace:             string
+  youtube_url:      string
 }
 
 function localDatetimeMin(): string {
@@ -213,6 +214,7 @@ export default function CreateEventPage() {
       if (data.pace)           fd.append('pace',           data.pace)
       if (gpxFile)             fd.append('gpx_file',       gpxFile)
       if (imageFile)           fd.append('image_file',     imageFile)
+      if (data.youtube_url)    fd.append('youtube_url',    data.youtube_url)
 
       const { data: res } = await api.post('/events', fd)
       router.replace(`/events/view?id=${res.data.id}`)
@@ -320,6 +322,17 @@ export default function CreateEventPage() {
                     </div>
                   )}
                 </div>
+              </Field>
+              <Field label="YouTube video URL" className="mt-4">
+                <input
+                  {...register('youtube_url', {
+                    validate: v => !v || /^https?:\/\/(www\.)?(youtube\.com\/(watch\?v=|shorts\/)|youtu\.be\/)[\w-]{11}/.test(v) || 'Enter a valid YouTube URL',
+                  })}
+                  type="url"
+                  placeholder="https://youtube.com/watch?v=..."
+                  className={inputCls(!!errors.youtube_url)}
+                />
+                {errors.youtube_url && <p className="text-xs mt-1" style={{ color: '#f87171' }}>{errors.youtube_url.message}</p>}
               </Field>
             </Section>
 
