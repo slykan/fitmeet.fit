@@ -3,7 +3,7 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import {
   ActivityIndicator, Alert, Image, Modal, Pressable,
-  ScrollView, Share, StyleSheet, Text, View, type StyleProp, type ViewStyle,
+  Linking, ScrollView, Share, StyleSheet, Text, View, type StyleProp, type ViewStyle,
 } from 'react-native'
 import { WebView } from 'react-native-webview'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -68,6 +68,23 @@ function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
 }
 
+function youtubeVideoId(url: string | null | undefined) {
+  if (!url) return null
+  try {
+    const parsed = new URL(url)
+    const host = parsed.hostname.replace(/^www\./, '')
+    if (host === 'youtu.be') return parsed.pathname.split('/').filter(Boolean)[0] ?? null
+    if (!host.endsWith('youtube.com')) return null
+
+    const watchId = parsed.searchParams.get('v')
+    if (watchId) return watchId
+
+    const parts = parsed.pathname.split('/').filter(Boolean)
+    if (['shorts', 'embed', 'live'].includes(parts[0])) return parts[1] ?? null
+  } catch {}
+  return url.match(/(?:youtube\.com\/(?:watch\?.*v=|shorts\/|embed\/|live\/)|youtu\.be\/)([\w-]{11})/)?.[1] ?? null
+}
+
 const REMINDER_OPTIONS: Array<{ value: ReminderOffset; label: string }> = [
   { value: '1h', label: '1h before' },
   { value: '5h', label: '5h before' },
@@ -127,6 +144,10 @@ export default function EventDetailScreen() {
   }, [id])
 
   useFocusEffect(loadEvent)
+
+  useEffect(() => {
+    setYoutubeOpen(false)
+  }, [event?.id, event?.youtube_url])
 
   useEffect(() => {
     setColoredSegments([])
@@ -306,6 +327,7 @@ export default function EventDetailScreen() {
   let actionFn    = join
   let actionDisabled = false
   const showActionRow = event.status === 'active' || event.is_joined
+  const ytId = youtubeVideoId(event.youtube_url)
 
   if (cancelled) {
     actionLabel = 'Event Cancelled'
@@ -452,38 +474,6 @@ export default function EventDetailScreen() {
           </View>
         ) : null}
 
-        {/* YouTube */}
-        {event.youtube_url ? (() => {
-          const ytId = event.youtube_url!.match(/(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)([\w-]{11})/)?.[1]
-          if (!ytId) return null
-          return (
-            <View style={styles.card}>
-              <Text style={styles.cardLabel}>Video</Text>
-              {youtubeOpen ? (
-                <View style={{ height: 220, borderRadius: 14, overflow: 'hidden' }}>
-                  <WebView
-                    source={{ uri: `https://www.youtube.com/embed/${ytId}?autoplay=1&rel=0` }}
-                    javaScriptEnabled
-                    allowsFullscreenVideo
-                    style={{ flex: 1 }}
-                  />
-                </View>
-              ) : (
-                <Pressable onPress={() => setYoutubeOpen(true)} style={styles.ytThumb}>
-                  <Image
-                    source={{ uri: `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` }}
-                    style={StyleSheet.absoluteFillObject}
-                    resizeMode="cover"
-                  />
-                  <View style={styles.ytPlayBtn}>
-                    <Ionicons name="play" size={28} color="#fff" />
-                  </View>
-                </Pressable>
-              )}
-            </View>
-          )
-        })() : null}
-
         {/* Organizer */}
         {event.organizer ? (
           <View style={styles.card}>
@@ -549,6 +539,42 @@ export default function EventDetailScreen() {
             </Pressable>
           </View>
         )}
+
+        {/* YouTube */}
+        {event.youtube_url ? (
+          <View style={styles.card}>
+            <View style={styles.videoHeader}>
+              <Ionicons name="logo-youtube" size={18} color="#FF0000" />
+              <Text style={styles.cardLabel}>Video</Text>
+            </View>
+            {ytId ? (
+              youtubeOpen ? (
+                <View style={styles.ytPlayer}>
+                  <WebView
+                    source={{ uri: `https://www.youtube.com/embed/${ytId}?autoplay=1&rel=0` }}
+                    javaScriptEnabled
+                    allowsFullscreenVideo
+                    style={{ flex: 1 }}
+                  />
+                </View>
+              ) : (
+                <Pressable onPress={() => setYoutubeOpen(true)} style={styles.ytThumb}>
+                  <Image
+                    source={{ uri: `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` }}
+                    style={StyleSheet.absoluteFillObject}
+                    resizeMode="cover"
+                  />
+                  <View style={styles.ytPlayBtn}>
+                    <Ionicons name="play" size={28} color="#fff" />
+                  </View>
+                </Pressable>
+              )
+            ) : null}
+            <Pressable onPress={() => event.youtube_url && Linking.openURL(event.youtube_url)}>
+              <Text style={styles.ytLink}>Open on YouTube</Text>
+            </Pressable>
+          </View>
+        ) : null}
 
         {/* Join / Leave + reminders */}
         {showActionRow && (
@@ -725,11 +751,14 @@ const styles = StyleSheet.create({
     height: 200, borderRadius: 14, overflow: 'hidden',
     backgroundColor: '#000', alignItems: 'center', justifyContent: 'center',
   },
+  ytPlayer: { height: 220, borderRadius: 14, overflow: 'hidden' },
+  videoHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   ytPlayBtn: {
     width: 60, height: 60, borderRadius: 30,
     backgroundColor: 'rgba(255,0,0,0.85)',
     alignItems: 'center', justifyContent: 'center',
   },
+  ytLink: { color: '#FF4B4B', fontSize: 13, fontWeight: '800' },
 
   personRow:   { flexDirection: 'row', alignItems: 'center', gap: 10 },
   personName:  { color: palette.text, fontSize: 15, fontWeight: '700', flex: 1 },
