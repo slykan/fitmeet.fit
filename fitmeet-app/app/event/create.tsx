@@ -198,6 +198,7 @@ export default function CreateEventScreen() {
   const [gpxContent,  setGpxContent]  = useState<string | null>(null)
   const [showStrava,  setShowStrava]  = useState(false)
 
+  const [youtubeUrl,   setYoutubeUrl]   = useState('')
   const [joinOnCreate, setJoinOnCreate] = useState(true)
 
   const [submitting,  setSubmitting]  = useState(false)
@@ -236,6 +237,7 @@ export default function CreateEventScreen() {
         setImageUri(null)
         setImageName(null)
         setImageRemoved(false)
+        setYoutubeUrl(ev.youtube_url ?? '')
       })
       .catch(() => {
         Alert.alert('Error', 'Could not load event for editing.')
@@ -381,6 +383,10 @@ export default function CreateEventScreen() {
     if (!category)        { Alert.alert('Missing', 'Select a category.'); return }
     if (!pickedDate)      { Alert.alert('Missing', 'Set date and time.'); return }
     if (lat === null)     { Alert.alert('Missing', 'Pin a location on the map.'); return }
+    if (youtubeUrl.trim() && !/^https?:\/\/(www\.)?(youtube\.com\/(watch\?v=|shorts\/)|youtu\.be\/)[\w-]{11}/.test(youtubeUrl.trim())) {
+      Alert.alert('Invalid URL', 'Enter a valid YouTube video URL.')
+      return
+    }
 
     setSubmitting(true)
     try {
@@ -416,6 +422,7 @@ export default function CreateEventScreen() {
         fd.append('gpx_text', gpxContent)
         fd.append('gpx_name', gpxName)
       }
+      if (youtubeUrl.trim()) fd.append('youtube_url', youtubeUrl.trim())
 
       const { data } = editId
         ? await api.post(`/events/${editId}`, (() => {
@@ -510,6 +517,21 @@ export default function CreateEventScreen() {
               </Pressable>
             </View>
           )}
+        </Field>
+
+        <Field label="YouTube video">
+          <View style={styles.row}>
+            <Ionicons name="logo-youtube" size={18} color="#FF0000" style={{ marginTop: 16 }} />
+            <TextInput
+              style={[styles.input, { flex: 1 }]}
+              value={youtubeUrl}
+              onChangeText={setYoutubeUrl}
+              placeholder="https://youtube.com/watch?v=..."
+              placeholderTextColor={palette.textDim}
+              autoCapitalize="none"
+              keyboardType="url"
+            />
+          </View>
         </Field>
 
         {/* ── When ── */}

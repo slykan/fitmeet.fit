@@ -42,6 +42,7 @@ class StoreEventRequest extends FormRequest
             'skill_level'      => ['nullable', Rule::in(['beginner', 'advanced', 'pro'])],
             'max_participants' => ['nullable', 'integer', 'min:2', 'max:9999'],
             'is_private'       => ['boolean'],
+            'youtube_url'      => ['nullable', 'string', 'regex:/^https?:\/\/(www\.)?(youtube\.com\/(watch\?v=|shorts\/)|youtu\.be\/)[\w-]{11}/'],
         ];
     }
 }

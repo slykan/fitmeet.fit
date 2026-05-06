@@ -60,7 +60,8 @@ class EventResource extends JsonResource
                     ->values()
             ),
 
-            'views_count' => $this->views_count ?? 0,
+            'views_count'  => $this->views_count ?? 0,
+            'youtube_url'  => $this->youtube_url,
 
             // Auth-dependent fields
             'is_organizer' => $user ? $this->isOrganizer($user) : false,

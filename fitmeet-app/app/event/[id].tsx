@@ -5,6 +5,7 @@ import {
   ActivityIndicator, Alert, Image, Modal, Pressable,
   ScrollView, Share, StyleSheet, Text, View, type StyleProp, type ViewStyle,
 } from 'react-native'
+import { WebView } from 'react-native-webview'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { WeatherBadge } from '@/src/components/WeatherBadge'
@@ -45,6 +46,7 @@ interface EventDetail {
   is_organizer: boolean
   is_private: boolean
   image_url: string | null
+  youtube_url: string | null
   organizer: Participant | null
   participants: Participant[]
   skill_level: string | null
@@ -110,6 +112,7 @@ export default function EventDetailScreen() {
   const [showReminderModal, setShowReminderModal] = useState(false)
   const [settingReminders, setSettingReminders] = useState(false)
   const [showParticipants, setShowParticipants] = useState(false)
+  const [youtubeOpen, setYoutubeOpen] = useState(false)
   const [coloredSegments, setColoredSegments] = useState<TrackSegment[]>([])
   const [elevationProfile, setElevationProfile] = useState<ElevationPoint[]>([])
 
@@ -449,6 +452,38 @@ export default function EventDetailScreen() {
           </View>
         ) : null}
 
+        {/* YouTube */}
+        {event.youtube_url ? (() => {
+          const ytId = event.youtube_url!.match(/(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)([\w-]{11})/)?.[1]
+          if (!ytId) return null
+          return (
+            <View style={styles.card}>
+              <Text style={styles.cardLabel}>Video</Text>
+              {youtubeOpen ? (
+                <View style={{ height: 220, borderRadius: 14, overflow: 'hidden' }}>
+                  <WebView
+                    source={{ uri: `https://www.youtube.com/embed/${ytId}?autoplay=1&rel=0` }}
+                    javaScriptEnabled
+                    allowsFullscreenVideo
+                    style={{ flex: 1 }}
+                  />
+                </View>
+              ) : (
+                <Pressable onPress={() => setYoutubeOpen(true)} style={styles.ytThumb}>
+                  <Image
+                    source={{ uri: `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` }}
+                    style={StyleSheet.absoluteFillObject}
+                    resizeMode="cover"
+                  />
+                  <View style={styles.ytPlayBtn}>
+                    <Ionicons name="play" size={28} color="#fff" />
+                  </View>
+                </Pressable>
+              )}
+            </View>
+          )
+        })() : null}
+
         {/* Organizer */}
         {event.organizer ? (
           <View style={styles.card}>
@@ -685,6 +720,16 @@ const styles = StyleSheet.create({
   detailSecondary:{ color: palette.textDim, fontSize: 13 },
 
   description: { color: palette.textMuted, fontSize: 14, lineHeight: 22 },
+
+  ytThumb: {
+    height: 200, borderRadius: 14, overflow: 'hidden',
+    backgroundColor: '#000', alignItems: 'center', justifyContent: 'center',
+  },
+  ytPlayBtn: {
+    width: 60, height: 60, borderRadius: 30,
+    backgroundColor: 'rgba(255,0,0,0.85)',
+    alignItems: 'center', justifyContent: 'center',
+  },
 
   personRow:   { flexDirection: 'row', alignItems: 'center', gap: 10 },
   personName:  { color: palette.text, fontSize: 15, fontWeight: '700', flex: 1 },

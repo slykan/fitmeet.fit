@@ -44,6 +44,7 @@ interface Event {
   status: string
   is_organizer: boolean
   is_joined: boolean
+  youtube_url: string | null
   organizer: { id: number; name: string; avatar: string | null }
 }
 
@@ -268,6 +269,21 @@ function EventContent() {
             {event.description && (
               <p className="text-sm leading-relaxed mb-5" style={{ color: 'var(--text-muted)' }}>{event.description}</p>
             )}
+
+            {event.youtube_url && (() => {
+              const ytId = event.youtube_url!.match(/(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)([\w-]{11})/)?.[1]
+              return ytId ? (
+                <div className="mb-5 rounded-2xl overflow-hidden border" style={{ borderColor: 'var(--border)', aspectRatio: '16/9' }}>
+                  <iframe
+                    src={`https://www.youtube.com/embed/${ytId}?rel=0`}
+                    className="w-full h-full"
+                    allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    title="Event video"
+                  />
+                </div>
+              ) : null
+            })()}
 
             {event.status === 'cancelled' && (
               <div className="mb-5 rounded-xl border px-4 py-3 text-sm"
