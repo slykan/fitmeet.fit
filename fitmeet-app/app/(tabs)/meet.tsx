@@ -34,6 +34,7 @@ interface EventItem {
   is_in_progress: boolean
   skill_level: string | null
   image_url: string | null
+  views_count: number
 }
 
 interface UserItem {
@@ -317,6 +318,12 @@ function EventsTab() {
                   </Text>
                 </View>
               ) : null}
+              {ev.views_count > 0 && (
+                <View style={styles.detailRow}>
+                  <Ionicons name="eye-outline" size={12} color={palette.textDim} />
+                  <Text style={styles.detailText}>{ev.views_count} seen</Text>
+                </View>
+              )}
             </View>
           </Pressable>
         )

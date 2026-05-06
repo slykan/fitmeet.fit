@@ -145,6 +145,7 @@ class EventController extends Controller
     // GET /api/events/{event}
     public function show(Request $request, Event $event): JsonResponse
     {
+        $event->increment('views_count');
         $event->load('organizer', 'participants');
 
         return response()->json(['data' => new EventResource($event)]);
