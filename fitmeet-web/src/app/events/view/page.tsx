@@ -5,7 +5,7 @@ import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Calendar, MapPin, Users, Zap, ChevronLeft, Lock, Pencil, ChevronDown, ChevronUp, Bell, Check, X, Share2, XCircle, Download, Wind, Cloud } from 'lucide-react'
+import { Calendar, MapPin, Users, Zap, ChevronLeft, Lock, Pencil, ChevronDown, ChevronUp, Bell, Check, X, Share2, XCircle, Download, Wind, Cloud, Eye } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
 import { WeatherBadge } from '@/components/WeatherBadge'
@@ -38,6 +38,7 @@ interface Event {
   skill_level: string | null
   max_participants: number | null
   participants_count: number
+  views_count: number
   participants: Participant[]
   is_full: boolean
   is_private: boolean
@@ -309,6 +310,12 @@ function EventContent() {
                     </button>
                   )}
                 </div>
+                {(event.views_count ?? 0) > 0 && (
+                  <div className="flex items-center gap-2.5 mt-1">
+                    <Eye size={15} style={{ color: 'var(--primary)', flexShrink: 0 }} />
+                    <span className="text-sm" style={{ color: 'var(--text-muted)' }}>{event.views_count} seen</span>
+                  </div>
+                )}
                 {showParticipants && event.participants?.length > 0 && (
                   <div className="mt-2 ml-6 flex flex-wrap gap-2">
                     {event.participants.map(p => (
