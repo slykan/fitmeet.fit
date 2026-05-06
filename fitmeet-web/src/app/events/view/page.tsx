@@ -270,8 +270,6 @@ function EventContent() {
               <p className="text-sm leading-relaxed mb-5" style={{ color: 'var(--text-muted)' }}>{event.description}</p>
             )}
 
-            <YouTubeEmbed url={event.youtube_url} />
-
             {event.status === 'cancelled' && (
               <div className="mb-5 rounded-xl border px-4 py-3 text-sm"
                 style={{ borderColor: 'rgba(248,113,113,0.35)', background: 'rgba(248,113,113,0.08)', color: '#fca5a5' }}>
@@ -466,6 +464,8 @@ function EventContent() {
           {error && (
             <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-xl px-4 py-3">{error}</div>
           )}
+
+          <YouTubeEmbed url={event.youtube_url} />
 
           {event.status === 'active' && (
             event.is_joined ? (

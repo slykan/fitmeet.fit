@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic'
 import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useForm, Controller } from 'react-hook-form'
-import { Calendar, MapPin, Info, Settings, Lock, Unlock, LocateFixed, Search } from 'lucide-react'
+import { Calendar, MapPin, Info, Settings, Lock, Unlock, LocateFixed, Search, CirclePlay } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
 import ElevationChart from '@/components/elevation-chart'
@@ -411,14 +411,17 @@ function EditContent() {
           </Field>
 
           <Field label="YouTube video URL" className="mt-4">
-            <input
-              {...register('youtube_url', {
-                validate: v => !v || /^https?:\/\/(www\.)?(youtube\.com\/(watch\?v=|shorts\/)|youtu\.be\/)[\w-]{11}/.test(v) || 'Enter a valid YouTube URL',
-              })}
-              type="url"
-              placeholder="https://youtube.com/watch?v=..."
-              className={inputCls(!!errors.youtube_url)}
-            />
+            <div className="relative">
+              <CirclePlay size={18} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#ff0033' }} />
+              <input
+                {...register('youtube_url', {
+                  validate: v => !v || /^https?:\/\/(www\.)?(youtube\.com\/(watch\?v=|shorts\/)|youtu\.be\/)[\w-]{11}/.test(v) || 'Enter a valid YouTube URL',
+                })}
+                type="url"
+                placeholder="https://youtube.com/watch?v=..."
+                className={cn(inputCls(!!errors.youtube_url), 'pl-10')}
+              />
+            </div>
             {errors.youtube_url && <p className="text-xs mt-1" style={{ color: '#f87171' }}>{errors.youtube_url.message}</p>}
           </Field>
         </Section>
