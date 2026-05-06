@@ -12,6 +12,7 @@ type PublicShareEvent = {
   id: number
   title: string
   description: string | null
+  image_url: string | null
   category?: { label?: string | null }
   schedule?: { start_at?: string | null; timezone?: string | null }
 }
@@ -126,13 +127,13 @@ export async function generateMetadata(
       url: canonicalUrl,
       siteName: 'FitMeet',
       type: 'article',
-      images: [{ url: FALLBACK_IMAGE }],
+      images: [{ url: event.image_url ?? FALLBACK_IMAGE }],
     },
     twitter: {
       card: 'summary_large_image',
       title,
       description,
-      images: [FALLBACK_IMAGE],
+      images: [event.image_url ?? FALLBACK_IMAGE],
     },
   }
 }
