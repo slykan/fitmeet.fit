@@ -32,10 +32,10 @@ interface EventItem {
 }
 
 const RADIUS_OPTIONS = [
+  { label: 'All', km: null },
   { label: 'Nearby', km: 50 },
   { label: 'City', km: 200 },
   { label: 'Region', km: 500 },
-  { label: 'All', km: null },
 ] as const
 
 const CATEGORY_EMOJI: Record<string, string> = Object.fromEntries(
@@ -71,6 +71,7 @@ export default function HubScreen() {
   const [showWind, setShowWind] = useState(true)
   const [showClouds, setShowClouds] = useState(true)
   const [weather, setWeather] = useState<CurrentWeather | null>(null)
+  const [showFilter, setShowFilter] = useState(false)
   const [mapTouching, setMapTouching] = useState(false)
   const [weatherCenter, setWeatherCenter] = useState<{ lat: number; lng: number } | null>(null)
   const [mapWasMoved, setMapWasMoved] = useState(false)
@@ -257,6 +258,11 @@ export default function HubScreen() {
     )
   }
 
+  const activeFilterCount =
+    (radiusIdx !== 0 ? 1 : 0) + categories.size +
+    (goingOnly ? 1 : 0) + (friendsOnly ? 1 : 0) + (myOnly ? 1 : 0) + (pastOnly ? 1 : 0) +
+    (!showWind ? 1 : 0) + (!showClouds ? 1 : 0)
+
   const header = (
     <View>
       <View style={styles.topArea}>
@@ -265,81 +271,104 @@ export default function HubScreen() {
             <Text style={styles.eyebrow}>Hub</Text>
             <Text style={styles.title}>Nearby energy</Text>
           </View>
-          <Pressable style={styles.refreshChip} onPress={() => fetchEvents()}>
-            <Ionicons name="refresh-outline" size={16} color={palette.accent} />
-            <Text style={styles.refreshLabel}>Refresh</Text>
-          </Pressable>
+          <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+            <Pressable
+              style={[styles.filterBtn, activeFilterCount > 0 && styles.filterBtnActive]}
+              onPress={() => setShowFilter((v) => !v)}
+            >
+              <Ionicons name="options-outline" size={15} color={activeFilterCount > 0 ? '#031109' : palette.text} />
+              <Text style={[styles.filterBtnLabel, activeFilterCount > 0 && styles.filterBtnLabelActive]}>Filter</Text>
+              {activeFilterCount > 0 && (
+                <View style={styles.filterBadge}>
+                  <Text style={styles.filterBadgeText}>{activeFilterCount}</Text>
+                </View>
+              )}
+            </Pressable>
+            <Pressable style={styles.refreshChip} onPress={() => fetchEvents()}>
+              <Ionicons name="refresh-outline" size={16} color={palette.accent} />
+              <Text style={styles.refreshLabel}>Refresh</Text>
+            </Pressable>
+          </View>
         </View>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
-          <Pressable style={[styles.chip, categories.size === 0 && styles.chipActive]} onPress={() => setCategories(new Set())}>
-            <Text style={[styles.chipLabel, categories.size === 0 && styles.chipLabelActive]}>All interests</Text>
-          </Pressable>
-          {CATEGORIES.map((cat) => {
-            const active = categories.has(cat.value)
-            return (
-              <Pressable key={cat.value} style={[styles.chip, active && styles.chipActive]} onPress={() => toggleCategory(cat.value)}>
-                <Text style={[styles.chipLabel, active && styles.chipLabelActive]}>{cat.emoji} {cat.label}</Text>
+        {showFilter && (
+          <View style={styles.filterDropdown}>
+            <Text style={styles.filterSectionLabel}>Category</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+              <Pressable style={[styles.chip, categories.size === 0 && styles.chipActive]} onPress={() => setCategories(new Set())}>
+                <Text style={[styles.chipLabel, categories.size === 0 && styles.chipLabelActive]}>All</Text>
               </Pressable>
-            )
-          })}
-        </ScrollView>
+              {CATEGORIES.map((cat) => {
+                const active = categories.has(cat.value)
+                return (
+                  <Pressable key={cat.value} style={[styles.chip, active && styles.chipActive]} onPress={() => toggleCategory(cat.value)}>
+                    <Text style={[styles.chipLabel, active && styles.chipLabelActive]}>{cat.emoji} {cat.label}</Text>
+                  </Pressable>
+                )
+              })}
+            </ScrollView>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
-          {RADIUS_OPTIONS.map((r, i) => (
-            <Pressable key={r.label} style={[styles.chip, styles.radiusChip, radiusIdx === i && styles.chipRadius]} onPress={() => setRadiusIdx(i)}>
-              <Text style={[styles.chipLabel, radiusIdx === i && styles.chipLabelRadius]}>{r.label}</Text>
-            </Pressable>
-          ))}
-        </ScrollView>
+            <Text style={styles.filterSectionLabel}>Distance</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+              {RADIUS_OPTIONS.map((r, i) => (
+                <Pressable key={r.label} style={[styles.chip, radiusIdx === i && styles.chipRadius]} onPress={() => setRadiusIdx(i)}>
+                  <Text style={[styles.chipLabel, radiusIdx === i && styles.chipLabelRadius]}>{r.label}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
-          {[
-            { label: 'Going', active: goingOnly, onPress: () => { setGoingOnly((v) => !v); setFriendsOnly(false); setMyOnly(false) } },
-            { label: 'Friends', active: friendsOnly, onPress: () => { setFriendsOnly((v) => !v); setGoingOnly(false); setMyOnly(false) } },
-            { label: 'My', active: myOnly, onPress: () => { setMyOnly((v) => !v); setGoingOnly(false); setFriendsOnly(false) } },
-            { label: 'Past', active: pastOnly, onPress: () => setPastOnly((v) => !v) },
-          ].map((f) => (
-            <Pressable key={f.label} style={[styles.chip, f.active && styles.chipActive]} onPress={f.onPress}>
-              <Text style={[styles.chipLabel, f.active && styles.chipLabelActive]}>{f.label}</Text>
-            </Pressable>
-          ))}
-        </ScrollView>
+            <Text style={styles.filterSectionLabel}>Show</Text>
+            <View style={styles.filterRow}>
+              {[
+                { label: 'Going',   active: goingOnly,   onPress: () => { setGoingOnly((v) => !v); setFriendsOnly(false); setMyOnly(false) } },
+                { label: 'Friends', active: friendsOnly, onPress: () => { setFriendsOnly((v) => !v); setGoingOnly(false); setMyOnly(false) } },
+                { label: 'My',      active: myOnly,      onPress: () => { setMyOnly((v) => !v); setGoingOnly(false); setFriendsOnly(false) } },
+                { label: 'Past',    active: pastOnly,    onPress: () => setPastOnly((v) => !v) },
+              ].map((f) => (
+                <Pressable key={f.label} style={[styles.chip, f.active && styles.chipActive]} onPress={f.onPress}>
+                  <Text style={[styles.chipLabel, f.active && styles.chipLabelActive]}>{f.label}</Text>
+                </Pressable>
+              ))}
+            </View>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
-          {weather && (
-            <>
-              <View style={styles.weatherChip}>
-                <Ionicons name="thermometer-outline" size={13} color={palette.textMuted} />
-                <Text style={styles.weatherChipText}>{weather.temperature}°</Text>
+            <Text style={styles.filterSectionLabel}>Map overlays</Text>
+            <View style={styles.filterRow}>
+              <Pressable style={[styles.chip, showWind && styles.chipWeatherOn]} onPress={() => setShowWind((v) => !v)}>
+                <Ionicons name="flag-outline" size={13} color={showWind ? palette.accent : palette.textMuted} />
+                <Text style={[styles.chipLabel, showWind && styles.chipLabelWeatherOn]}>Wind</Text>
+              </Pressable>
+              <Pressable style={[styles.chip, showClouds && styles.chipWeatherOn]} onPress={() => setShowClouds((v) => !v)}>
+                <Ionicons name="cloud-outline" size={13} color={showClouds ? palette.accent : palette.textMuted} />
+                <Text style={[styles.chipLabel, showClouds && styles.chipLabelWeatherOn]}>Clouds</Text>
+              </Pressable>
+            </View>
+          </View>
+        )}
+
+        {weather && (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+            <View style={styles.weatherChip}>
+              <Ionicons name="thermometer-outline" size={13} color={palette.textMuted} />
+              <Text style={styles.weatherChipText}>{weather.temperature}°</Text>
+            </View>
+            <View style={styles.weatherChip}>
+              <View style={{ transform: [{ rotate: `${(weather.windDir + 180) % 360}deg` }] }}>
+                <Ionicons name="arrow-up-outline" size={13} color={palette.textMuted} />
               </View>
+              <Text style={styles.weatherChipText}>{weather.windSpeed} km/h</Text>
+            </View>
+            <View style={styles.weatherChip}>
+              <Ionicons name="sunny-outline" size={13} color={palette.textMuted} />
+              <Text style={styles.weatherChipText}>UV {weather.uvIndex}</Text>
+            </View>
+            {weatherLabel ? (
               <View style={styles.weatherChip}>
-                <View style={{ transform: [{ rotate: `${(weather.windDir + 180) % 360}deg` }] }}>
-                  <Ionicons name="arrow-up-outline" size={13} color={palette.textMuted} />
-                </View>
-                <Text style={styles.weatherChipText}>{weather.windSpeed} km/h</Text>
+                <Ionicons name="cloudy-outline" size={13} color={palette.textMuted} />
+                <Text style={styles.weatherChipText}>{weatherLabel}</Text>
               </View>
-              <View style={styles.weatherChip}>
-                <Ionicons name="sunny-outline" size={13} color={palette.textMuted} />
-                <Text style={styles.weatherChipText}>UV {weather.uvIndex}</Text>
-              </View>
-              {weatherLabel ? (
-                <View style={styles.weatherChip}>
-                  <Ionicons name="cloudy-outline" size={13} color={palette.textMuted} />
-                  <Text style={styles.weatherChipText}>{weatherLabel}</Text>
-                </View>
-              ) : null}
-            </>
-          )}
-          <Pressable style={[styles.chip, showWind && styles.chipWeatherOn]} onPress={() => setShowWind((v) => !v)}>
-            <Ionicons name="flag-outline" size={13} color={showWind ? palette.accent : palette.textMuted} />
-            <Text style={[styles.chipLabel, showWind && styles.chipLabelWeatherOn]}>Wind</Text>
-          </Pressable>
-          <Pressable style={[styles.chip, showClouds && styles.chipWeatherOn]} onPress={() => setShowClouds((v) => !v)}>
-            <Ionicons name="cloud-outline" size={13} color={showClouds ? palette.accent : palette.textMuted} />
-            <Text style={[styles.chipLabel, showClouds && styles.chipLabelWeatherOn]}>Clouds</Text>
-          </Pressable>
-        </ScrollView>
+            ) : null}
+          </ScrollView>
+        )}
       </View>
 
       <View style={styles.mapWrap}>
@@ -429,7 +458,29 @@ const styles = StyleSheet.create({
   },
   refreshLabel: { color: palette.text, fontSize: 13, fontWeight: '700' },
 
-  filterRow: { gap: 6, paddingVertical: 2 },
+  filterBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: palette.panel, borderWidth: 1, borderColor: palette.line,
+    borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8,
+  },
+  filterBtnActive: { backgroundColor: palette.accent, borderColor: palette.accent },
+  filterBtnLabel: { color: palette.text, fontSize: 13, fontWeight: '700' },
+  filterBtnLabelActive: { color: '#031109' },
+  filterBadge: {
+    backgroundColor: '#031109', borderRadius: 999,
+    minWidth: 18, height: 18, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4,
+  },
+  filterBadgeText: { color: palette.accent, fontSize: 11, fontWeight: '800' },
+  filterDropdown: {
+    backgroundColor: palette.panelRaised, borderRadius: 18,
+    borderWidth: 1, borderColor: palette.line,
+    padding: 14, gap: 8,
+  },
+  filterSectionLabel: {
+    color: palette.textMuted, fontSize: 11, fontWeight: '800',
+    textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 4,
+  },
+  filterRow: { gap: 6, paddingVertical: 2, flexDirection: 'row', flexWrap: 'wrap' },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -442,7 +493,6 @@ const styles = StyleSheet.create({
     borderColor: palette.line,
   },
   chipActive: { backgroundColor: palette.accent, borderColor: palette.accent },
-  radiusChip: { minWidth: 78, justifyContent: 'center' },
   chipLabel: { color: palette.text, fontWeight: '700', fontSize: 12 },
   chipLabelActive: { color: '#031109' },
   chipRadius: { borderColor: 'rgba(0,168,255,0.5)', backgroundColor: 'rgba(0,168,255,0.08)' },

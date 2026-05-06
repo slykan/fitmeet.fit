@@ -91,6 +91,7 @@ function EventsTab() {
   const [myOnly,      setMyOnly]      = useState(false)
   const [pastOnly,    setPastOnly]    = useState(false)
   const [reminderIds, setReminderIds] = useState<Set<number>>(new Set())
+  const [showFilter, setShowFilter] = useState(false)
   const discoveryLat = user?.home?.lat ?? user?.location?.lat ?? null
   const discoveryLng = user?.home?.lng ?? user?.location?.lng ?? null
 
@@ -149,61 +150,73 @@ function EventsTab() {
     })
   }
 
+  const activeFilterCount =
+    (category ? 1 : 0) + (radiusKm !== null ? 1 : 0) +
+    (goingOnly ? 1 : 0) + (friendsOnly ? 1 : 0) + (myOnly ? 1 : 0) + (pastOnly ? 1 : 0)
+
   return (
     <View style={{ gap: spacing.md }}>
-      {/* Category filter */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
-        <Pressable
-          style={[styles.filterChip, !category && styles.filterChipActive]}
-          onPress={() => setCategory('')}
-        >
-          <Text style={[styles.filterLabel, !category && styles.filterLabelActive]}>All</Text>
-        </Pressable>
-        {CATEGORIES.map(cat => (
-          <Pressable
-            key={cat.value}
-            style={[styles.filterChip, category === cat.value && styles.filterChipActive]}
-            onPress={() => setCategory(v => v === cat.value ? '' : cat.value)}
-          >
-            <Text style={[styles.filterLabel, category === cat.value && styles.filterLabelActive]}>
-              {cat.emoji} {cat.label}
-            </Text>
-          </Pressable>
-        ))}
-      </ScrollView>
+      <Pressable
+        style={[styles.filterBtn, activeFilterCount > 0 && styles.filterBtnActive]}
+        onPress={() => setShowFilter(v => !v)}
+      >
+        <Ionicons name="options-outline" size={15} color={activeFilterCount > 0 ? '#031109' : palette.text} />
+        <Text style={[styles.filterBtnLabel, activeFilterCount > 0 && styles.filterBtnLabelActive]}>Filter</Text>
+        {activeFilterCount > 0 && (
+          <View style={styles.filterBadge}>
+            <Text style={styles.filterBadgeText}>{activeFilterCount}</Text>
+          </View>
+        )}
+      </Pressable>
 
-      {/* Radius */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
-        {RADIUS_OPTIONS.map(r => (
-          <Pressable
-            key={String(r.km)}
-            style={[styles.filterChip, radiusKm === r.km && styles.radiusChipActive]}
-            onPress={() => setRadiusKm(r.km)}
-          >
-            <Text style={[styles.filterLabel, radiusKm === r.km && styles.radiusLabelActive]}>
-              {r.label}
-            </Text>
-          </Pressable>
-        ))}
-      </ScrollView>
+      {showFilter && (
+        <View style={styles.filterDropdown}>
+          <Text style={styles.filterSectionLabel}>Category</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+            <Pressable style={[styles.filterChip, !category && styles.filterChipActive]} onPress={() => setCategory('')}>
+              <Text style={[styles.filterLabel, !category && styles.filterLabelActive]}>All</Text>
+            </Pressable>
+            {CATEGORIES.map(cat => (
+              <Pressable
+                key={cat.value}
+                style={[styles.filterChip, category === cat.value && styles.filterChipActive]}
+                onPress={() => setCategory(v => v === cat.value ? '' : cat.value)}
+              >
+                <Text style={[styles.filterLabel, category === cat.value && styles.filterLabelActive]}>
+                  {cat.emoji} {cat.label}
+                </Text>
+              </Pressable>
+            ))}
+          </ScrollView>
 
-      {/* Toggle filters */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
-        {[
-          { label: '✓ Going',  active: goingOnly, toggle: () => { setGoingOnly(v => !v); setMyOnly(false) } },
-          { label: '👥 Friends', active: false,   toggle: () => {} },
-          { label: 'My',        active: myOnly,   toggle: () => { setMyOnly(v => !v); setGoingOnly(false) } },
-          { label: 'Past',      active: pastOnly, toggle: () => setPastOnly(v => !v) },
-        ].map(f => (
-          <Pressable
-            key={f.label}
-            style={[styles.filterChip, f.active && styles.filterChipActive]}
-            onPress={f.toggle}
-          >
-            <Text style={[styles.filterLabel, f.active && styles.filterLabelActive]}>{f.label}</Text>
-          </Pressable>
-        ))}
-      </ScrollView>
+          <Text style={styles.filterSectionLabel}>Distance</Text>
+          <View style={styles.filterRow}>
+            {RADIUS_OPTIONS.map(r => (
+              <Pressable
+                key={String(r.km)}
+                style={[styles.filterChip, radiusKm === r.km && styles.radiusChipActive]}
+                onPress={() => setRadiusKm(r.km)}
+              >
+                <Text style={[styles.filterLabel, radiusKm === r.km && styles.radiusLabelActive]}>{r.label}</Text>
+              </Pressable>
+            ))}
+          </View>
+
+          <Text style={styles.filterSectionLabel}>Show</Text>
+          <View style={styles.filterRow}>
+            {[
+              { label: 'Going',   active: goingOnly,   toggle: () => { setGoingOnly(v => !v); setFriendsOnly(false); setMyOnly(false) } },
+              { label: 'Friends', active: friendsOnly, toggle: () => { setFriendsOnly(v => !v); setGoingOnly(false); setMyOnly(false) } },
+              { label: 'My',      active: myOnly,      toggle: () => { setMyOnly(v => !v); setGoingOnly(false) } },
+              { label: 'Past',    active: pastOnly,    toggle: () => setPastOnly(v => !v) },
+            ].map(f => (
+              <Pressable key={f.label} style={[styles.filterChip, f.active && styles.filterChipActive]} onPress={f.toggle}>
+                <Text style={[styles.filterLabel, f.active && styles.filterLabelActive]}>{f.label}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      )}
 
       {loading && <ActivityIndicator color={palette.accent} style={{ paddingVertical: spacing.xl }} />}
       {!loading && events.length === 0 && (
@@ -533,7 +546,28 @@ const styles = StyleSheet.create({
   tabLabel:     { color: palette.textMuted, fontSize: 14, fontWeight: '700' },
   tabLabelActive: { color: '#031109' },
 
-  filterRow: { gap: 8 },
+  filterBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start',
+    backgroundColor: palette.panel, borderWidth: 1, borderColor: palette.line,
+    borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8,
+  },
+  filterBtnActive: { backgroundColor: palette.accent, borderColor: palette.accent },
+  filterBtnLabel: { color: palette.text, fontSize: 13, fontWeight: '700' },
+  filterBtnLabelActive: { color: '#031109' },
+  filterBadge: {
+    backgroundColor: '#031109', borderRadius: 999,
+    minWidth: 18, height: 18, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4,
+  },
+  filterBadgeText: { color: palette.accent, fontSize: 11, fontWeight: '800' },
+  filterDropdown: {
+    backgroundColor: palette.panelRaised, borderRadius: 18,
+    borderWidth: 1, borderColor: palette.line, padding: 14, gap: 8,
+  },
+  filterSectionLabel: {
+    color: palette.textMuted, fontSize: 11, fontWeight: '800',
+    textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 4,
+  },
+  filterRow: { gap: 8, flexDirection: 'row', flexWrap: 'wrap' },
   filterChip: {
     borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7,
     backgroundColor: palette.panel, borderWidth: 1, borderColor: palette.line,
