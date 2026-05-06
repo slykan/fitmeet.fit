@@ -32,10 +32,13 @@ export default function StravaCallbackPage() {
       return
     }
 
-    if (state === 'web-import') {
+    if (state === 'web-import' || state?.startsWith('web-import-edit-')) {
       // Web route import flow: need auth token
       const storedToken = token ?? JSON.parse(localStorage.getItem('fitmeet-auth') ?? '{}')?.state?.token
       if (!storedToken) { router.replace('/login'); return }
+
+      const editId = state?.startsWith('web-import-edit-') ? state.replace('web-import-edit-', '') : null
+      const returnPath = editId ? `/events/edit?id=${editId}` : '/events/create'
 
       api.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`
       api.post('/strava/routes', { code })
@@ -44,9 +47,9 @@ export default function StravaCallbackPage() {
             routes: data.data ?? [],
             importToken: data.import_token,
           }))
-          router.replace('/events/create')
+          router.replace(returnPath)
         })
-        .catch(() => router.replace('/events/create?strava_error=1'))
+        .catch(() => router.replace(returnPath + (returnPath.includes('?') ? '&' : '?') + 'strava_error=1'))
       return
     }
 
