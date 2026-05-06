@@ -80,9 +80,13 @@ function EventContent() {
 
     api.get(`/events/${id}`)
       .then(({ data }) => {
-        setEvent(data.data)
-        if (data.data.activity?.gpx_url) {
-          api.get(data.data.activity.gpx_url, { responseType: 'text' })
+        const loadedEvent = data.data as Event
+        setEvent(loadedEvent)
+        if (loadedEvent.location?.lat != null && loadedEvent.location?.lng != null) {
+          setWeatherCenter({ lat: loadedEvent.location.lat, lng: loadedEvent.location.lng })
+        }
+        if (loadedEvent.activity?.gpx_url) {
+          api.get(loadedEvent.activity.gpx_url, { responseType: 'text' })
             .then(r => setGpxResult(parseGpx(r.data)))
             .catch(() => {})
         }
@@ -96,11 +100,6 @@ function EventContent() {
       setActiveOffsets(offsets)
     }).catch(() => {})
   }, [id, token, router])
-
-  useEffect(() => {
-    if (!event?.location || event.location.lat == null || event.location.lng == null) return
-    setWeatherCenter({ lat: event.location.lat, lng: event.location.lng })
-  }, [event?.id, event?.location?.lat, event?.location?.lng])
 
   useEffect(() => {
     if (!event?.location || event.location.lat == null || event.location.lng == null) return
@@ -379,7 +378,14 @@ function EventContent() {
               <LocationPickerMap
                 lat={event.location.lat}
                 lng={event.location.lng}
-                onViewChange={(lat, lng) => setWeatherCenter({ lat, lng })}
+                onViewChange={(lat, lng) => {
+                  setWeatherCenter(prev => {
+                    if (prev && Math.abs(prev.lat - lat) < 0.00001 && Math.abs(prev.lng - lng) < 0.00001) {
+                      return prev
+                    }
+                    return { lat, lng }
+                  })
+                }}
                 onInteractionChange={setIsMapInteracting}
                 coloredSegments={gpxResult?.coloredSegments}
                 weather={weather}

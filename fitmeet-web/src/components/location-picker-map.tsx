@@ -425,7 +425,10 @@ export default function LocationPickerMap({
   showCloudOverlay = true,
 }: Props) {
   const hasPin      = lat != null && lng != null
-  const allCoords   = coloredSegments?.flatMap(s => s.coords) ?? track ?? []
+  const allCoords   = useMemo(
+    () => coloredSegments?.flatMap(s => s.coords) ?? track ?? [],
+    [coloredSegments, track],
+  )
   const hasTrack    = allCoords.length > 1
 
   const center: [number, number] = hasPin
