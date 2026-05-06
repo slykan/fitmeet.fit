@@ -1,11 +1,34 @@
 import { Stack } from 'expo-router'
+import { router } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
+import * as Linking from 'expo-linking'
 import { useEffect, useRef } from 'react'
 import { AppState } from 'react-native'
 
 import { setupPushNotificationRouting, syncPushToken } from '@/src/lib/push-notifications'
 import { useAuthStore } from '@/src/store/auth'
 import { palette } from '@/src/theme'
+
+function eventPathFromUrl(url: string | null) {
+  if (!url) return null
+
+  try {
+    const parsed = new URL(url)
+    const host = parsed.hostname.replace(/^www\./, '')
+
+    if (host === 'fitmeet.fit' && ['/events/share', '/events/view'].includes(parsed.pathname)) {
+      const id = parsed.searchParams.get('id')
+      return id ? `/event/${encodeURIComponent(id)}` : null
+    }
+
+    if (parsed.protocol === 'fitmeet:' && parsed.hostname === 'event') {
+      const id = parsed.pathname.split('/').filter(Boolean)[0]
+      return id ? `/event/${encodeURIComponent(id)}` : null
+    }
+  } catch {}
+
+  return null
+}
 
 export default function RootLayout() {
   const hydrate = useAuthStore((state) => state.hydrate)
@@ -14,6 +37,7 @@ export default function RootLayout() {
   const token = useAuthStore((state) => state.token)
   const user = useAuthStore((state) => state.user)
   const appState = useRef(AppState.currentState)
+  const lastDeepLink = useRef<string | null>(null)
 
   useEffect(() => {
     hydrate()
@@ -34,6 +58,19 @@ export default function RootLayout() {
   useEffect(() => {
     const cleanup = setupPushNotificationRouting()
     return cleanup
+  }, [])
+
+  useEffect(() => {
+    function openEventUrl(url: string | null) {
+      const path = eventPathFromUrl(url)
+      if (!path || path === lastDeepLink.current) return
+      lastDeepLink.current = path
+      router.push(path as never)
+    }
+
+    Linking.getInitialURL().then(openEventUrl).catch(() => {})
+    const sub = Linking.addEventListener('url', ({ url }) => openEventUrl(url))
+    return () => sub.remove()
   }, [])
 
   useEffect(() => {

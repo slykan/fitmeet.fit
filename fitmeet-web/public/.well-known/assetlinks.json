@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "app.fitmeet.fit",
+      "sha256_cert_fingerprints": [
+        "F4:04:51:40:79:F6:74:7E:B3:73:C7:C9:61:E5:50:27:31:B3:3F:88:89:4E:B9:CC:F1:23:07:49:1D:05:3A:A2"
+      ]
+    }
+  }
+]
