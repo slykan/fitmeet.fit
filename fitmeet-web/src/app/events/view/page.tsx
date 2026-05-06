@@ -270,20 +270,7 @@ function EventContent() {
               <p className="text-sm leading-relaxed mb-5" style={{ color: 'var(--text-muted)' }}>{event.description}</p>
             )}
 
-            {event.youtube_url && (() => {
-              const ytId = event.youtube_url!.match(/(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)([\w-]{11})/)?.[1]
-              return ytId ? (
-                <div className="mb-5 rounded-2xl overflow-hidden border" style={{ borderColor: 'var(--border)', aspectRatio: '16/9' }}>
-                  <iframe
-                    src={`https://www.youtube.com/embed/${ytId}?rel=0`}
-                    className="w-full h-full"
-                    allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    title="Event video"
-                  />
-                </div>
-              ) : null
-            })()}
+            <YouTubeEmbed url={event.youtube_url} />
 
             {event.status === 'cancelled' && (
               <div className="mb-5 rounded-xl border px-4 py-3 text-sm"
@@ -614,6 +601,23 @@ function EventContent() {
       </div>
     )}
     </>
+  )
+}
+
+function YouTubeEmbed({ url }: { url: string | null | undefined }) {
+  if (!url) return null
+  const ytId = url.match(/(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)([\w-]{11})/)?.[1]
+  if (!ytId) return null
+  return (
+    <div className="mb-5 rounded-2xl overflow-hidden border" style={{ borderColor: 'var(--border)', position: 'relative', paddingBottom: '56.25%', height: 0 }}>
+      <iframe
+        src={`https://www.youtube.com/embed/${ytId}?rel=0`}
+        style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 0 }}
+        allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowFullScreen
+        title="Event video"
+      />
+    </div>
   )
 }
 
