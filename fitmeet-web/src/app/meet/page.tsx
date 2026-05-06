@@ -41,6 +41,7 @@ interface EventItem {
   schedule: { start_at: string; timezone: string; duration_minutes: number | null }
   activity: { distance_km: number | null; elevation_gain: number | null }
   participants_count: number
+  views_count: number
   max_participants: number | null
   status: string
   is_full: boolean
@@ -572,6 +573,7 @@ function EventsTab() {
                 <Users size={11} />
                 {ev.participants_count} joined
                 {ev.max_participants ? ` · max ${ev.max_participants}` : ''}
+                {(ev.views_count ?? 0) > 0 && <span>· 👁 {ev.views_count} seen</span>}
               </div>
               {(ev.activity.distance_km || ev.activity.elevation_gain) && (
                 <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
