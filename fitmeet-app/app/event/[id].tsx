@@ -5,7 +5,6 @@ import {
   ActivityIndicator, Alert, Image, Modal, Pressable,
   Linking, ScrollView, Share, StyleSheet, Text, View, type StyleProp, type ViewStyle,
 } from 'react-native'
-import { WebView } from 'react-native-webview'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { WeatherBadge } from '@/src/components/WeatherBadge'
@@ -129,7 +128,6 @@ export default function EventDetailScreen() {
   const [showReminderModal, setShowReminderModal] = useState(false)
   const [settingReminders, setSettingReminders] = useState(false)
   const [showParticipants, setShowParticipants] = useState(false)
-  const [youtubeOpen, setYoutubeOpen] = useState(false)
   const [coloredSegments, setColoredSegments] = useState<TrackSegment[]>([])
   const [elevationProfile, setElevationProfile] = useState<ElevationPoint[]>([])
 
@@ -144,10 +142,6 @@ export default function EventDetailScreen() {
   }, [id])
 
   useFocusEffect(loadEvent)
-
-  useEffect(() => {
-    setYoutubeOpen(false)
-  }, [event?.id, event?.youtube_url])
 
   useEffect(() => {
     setColoredSegments([])
@@ -474,6 +468,31 @@ export default function EventDetailScreen() {
           </View>
         ) : null}
 
+        {/* YouTube */}
+        {event.youtube_url ? (
+          <View style={styles.card}>
+            <View style={styles.videoHeader}>
+              <Ionicons name="logo-youtube" size={18} color="#FF0000" />
+              <Text style={styles.cardLabel}>Video</Text>
+            </View>
+            {ytId ? (
+              <Pressable onPress={() => event.youtube_url && Linking.openURL(event.youtube_url)} style={styles.ytThumb}>
+                <Image
+                  source={{ uri: `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` }}
+                  style={StyleSheet.absoluteFillObject}
+                  resizeMode="cover"
+                />
+                <View style={styles.ytPlayBtn}>
+                  <Ionicons name="play" size={28} color="#fff" />
+                </View>
+              </Pressable>
+            ) : null}
+            <Pressable onPress={() => event.youtube_url && Linking.openURL(event.youtube_url)}>
+              <Text style={styles.ytLink}>Open on YouTube</Text>
+            </Pressable>
+          </View>
+        ) : null}
+
         {/* Organizer */}
         {event.organizer ? (
           <View style={styles.card}>
@@ -539,42 +558,6 @@ export default function EventDetailScreen() {
             </Pressable>
           </View>
         )}
-
-        {/* YouTube */}
-        {event.youtube_url ? (
-          <View style={styles.card}>
-            <View style={styles.videoHeader}>
-              <Ionicons name="logo-youtube" size={18} color="#FF0000" />
-              <Text style={styles.cardLabel}>Video</Text>
-            </View>
-            {ytId ? (
-              youtubeOpen ? (
-                <View style={styles.ytPlayer}>
-                  <WebView
-                    source={{ uri: `https://www.youtube.com/embed/${ytId}?autoplay=1&rel=0` }}
-                    javaScriptEnabled
-                    allowsFullscreenVideo
-                    style={{ flex: 1 }}
-                  />
-                </View>
-              ) : (
-                <Pressable onPress={() => setYoutubeOpen(true)} style={styles.ytThumb}>
-                  <Image
-                    source={{ uri: `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` }}
-                    style={StyleSheet.absoluteFillObject}
-                    resizeMode="cover"
-                  />
-                  <View style={styles.ytPlayBtn}>
-                    <Ionicons name="play" size={28} color="#fff" />
-                  </View>
-                </Pressable>
-              )
-            ) : null}
-            <Pressable onPress={() => event.youtube_url && Linking.openURL(event.youtube_url)}>
-              <Text style={styles.ytLink}>Open on YouTube</Text>
-            </Pressable>
-          </View>
-        ) : null}
 
         {/* Join / Leave + reminders */}
         {showActionRow && (
@@ -751,7 +734,6 @@ const styles = StyleSheet.create({
     height: 200, borderRadius: 14, overflow: 'hidden',
     backgroundColor: '#000', alignItems: 'center', justifyContent: 'center',
   },
-  ytPlayer: { height: 220, borderRadius: 14, overflow: 'hidden' },
   videoHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   ytPlayBtn: {
     width: 60, height: 60, borderRadius: 30,
