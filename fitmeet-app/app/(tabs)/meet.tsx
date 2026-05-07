@@ -62,6 +62,15 @@ const CATEGORY_EMOJI: Record<string, string> = Object.fromEntries(
   CATEGORIES.map(c => [c.value, c.emoji])
 )
 
+type SortKey = 'new' | 'views' | 'joined'
+type SortDirection = 'asc' | 'desc'
+
+const SORT_OPTIONS: Array<{ key: SortKey; label: string; icon: string }> = [
+  { key: 'new',    label: 'Novo',             icon: 'sparkles-outline' },
+  { key: 'views',  label: 'Najvise pregleda', icon: 'eye-outline' },
+  { key: 'joined', label: 'Najvise joined',   icon: 'people-outline' },
+]
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatDate(iso: string) {
@@ -93,6 +102,9 @@ function EventsTab() {
   const [pastOnly,    setPastOnly]    = useState(false)
   const [reminderIds, setReminderIds] = useState<Set<number>>(new Set())
   const [showFilter, setShowFilter] = useState(false)
+  const [showSort, setShowSort] = useState(false)
+  const [sortKey, setSortKey] = useState<SortKey>('new')
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
   const discoveryLat = user?.home?.lat ?? user?.location?.lat ?? null
   const discoveryLng = user?.home?.lng ?? user?.location?.lng ?? null
 
@@ -101,7 +113,7 @@ function EventsTab() {
     else setLoadingMore(true)
     try {
       let url = '/events'
-      const params: Record<string, unknown> = { page: pageNum }
+      const params: Record<string, unknown> = { page: pageNum, sort: sortKey, order: sortDirection }
       if (pastOnly) params.past = 1
       if (goingOnly) {
         url = '/events/joined'
@@ -124,7 +136,7 @@ function EventsTab() {
       setLastPage(data.meta?.last_page ?? 1)
     } catch {}
     finally { setLoading(false); setLoadingMore(false) }
-  }, [category, radiusKm, goingOnly, friendsOnly, myOnly, pastOnly, discoveryLat, discoveryLng])
+  }, [category, radiusKm, goingOnly, friendsOnly, myOnly, pastOnly, sortKey, sortDirection, discoveryLat, discoveryLng])
 
   useFocusEffect(useCallback(() => { load() }, [load]))
   useEffect(() => {
@@ -155,20 +167,47 @@ function EventsTab() {
     (category ? 1 : 0) + (radiusKm !== null ? 1 : 0) +
     (goingOnly ? 1 : 0) + (friendsOnly ? 1 : 0) + (myOnly ? 1 : 0) + (pastOnly ? 1 : 0)
 
+  const activeSort = SORT_OPTIONS.find(option => option.key === sortKey) ?? SORT_OPTIONS[0]
+
+  function handleSortPress(key: SortKey) {
+    if (sortKey === key) {
+      setSortDirection(direction => direction === 'desc' ? 'asc' : 'desc')
+      return
+    }
+
+    setSortKey(key)
+    setSortDirection('desc')
+  }
+
   return (
     <View style={{ gap: spacing.md }}>
-      <Pressable
-        style={[styles.filterBtn, activeFilterCount > 0 && styles.filterBtnActive]}
-        onPress={() => setShowFilter(v => !v)}
-      >
-        <Ionicons name="options-outline" size={15} color={activeFilterCount > 0 ? '#031109' : palette.text} />
-        <Text style={[styles.filterBtnLabel, activeFilterCount > 0 && styles.filterBtnLabelActive]}>Filter</Text>
-        {activeFilterCount > 0 && (
-          <View style={styles.filterBadge}>
-            <Text style={styles.filterBadgeText}>{activeFilterCount}</Text>
-          </View>
-        )}
-      </Pressable>
+      <View style={styles.filterToolbar}>
+        <Pressable
+          style={[styles.filterBtn, activeFilterCount > 0 && styles.filterBtnActive]}
+          onPress={() => { setShowFilter(v => !v); setShowSort(false) }}
+        >
+          <Ionicons name="options-outline" size={15} color={activeFilterCount > 0 ? '#031109' : palette.text} />
+          <Text style={[styles.filterBtnLabel, activeFilterCount > 0 && styles.filterBtnLabelActive]}>Filter</Text>
+          {activeFilterCount > 0 && (
+            <View style={styles.filterBadge}>
+              <Text style={styles.filterBadgeText}>{activeFilterCount}</Text>
+            </View>
+          )}
+        </Pressable>
+
+        <Pressable
+          style={[styles.filterBtn, styles.sortBtn, showSort && styles.sortBtnActive]}
+          onPress={() => { setShowSort(v => !v); setShowFilter(false) }}
+        >
+          <Ionicons name="swap-vertical-outline" size={15} color={showSort ? '#031109' : palette.text} />
+          <Text style={[styles.filterBtnLabel, showSort && styles.filterBtnLabelActive]}>Sort</Text>
+          <Ionicons
+            name={sortDirection === 'desc' ? 'arrow-down-outline' : 'arrow-up-outline'}
+            size={13}
+            color={showSort ? '#031109' : palette.accent}
+          />
+        </Pressable>
+      </View>
 
       {showFilter && (
         <View style={styles.filterDropdown}>
@@ -215,6 +254,40 @@ function EventsTab() {
                 <Text style={[styles.filterLabel, f.active && styles.filterLabelActive]}>{f.label}</Text>
               </Pressable>
             ))}
+          </View>
+        </View>
+      )}
+
+      {showSort && (
+        <View style={styles.filterDropdown}>
+          <Text style={styles.filterSectionLabel}>Sort</Text>
+          <View style={styles.sortList}>
+            {SORT_OPTIONS.map(option => {
+              const active = option.key === activeSort.key
+              return (
+                <Pressable
+                  key={option.key}
+                  style={[styles.sortOption, active && styles.sortOptionActive]}
+                  onPress={() => handleSortPress(option.key)}
+                >
+                  <Ionicons
+                    name={option.icon as keyof typeof Ionicons.glyphMap}
+                    size={15}
+                    color={active ? '#031109' : palette.textMuted}
+                  />
+                  <Text style={[styles.sortOptionText, active && styles.sortOptionTextActive]}>
+                    {option.label}
+                  </Text>
+                  {active && (
+                    <Ionicons
+                      name={sortDirection === 'desc' ? 'arrow-down-outline' : 'arrow-up-outline'}
+                      size={14}
+                      color="#031109"
+                    />
+                  )}
+                </Pressable>
+              )
+            })}
           </View>
         </View>
       )}
@@ -558,7 +631,15 @@ const styles = StyleSheet.create({
     backgroundColor: palette.panel, borderWidth: 1, borderColor: palette.line,
     borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8,
   },
+  filterToolbar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 10,
+  },
   filterBtnActive: { backgroundColor: palette.accent, borderColor: palette.accent },
+  sortBtn: { marginLeft: 'auto' },
+  sortBtnActive: { backgroundColor: palette.accent, borderColor: palette.accent },
   filterBtnLabel: { color: palette.text, fontSize: 13, fontWeight: '700' },
   filterBtnLabelActive: { color: '#031109' },
   filterBadge: {
@@ -584,6 +665,21 @@ const styles = StyleSheet.create({
   filterLabel: { color: palette.text, fontSize: 12, fontWeight: '700' },
   filterLabelActive: { color: '#031109' },
   radiusLabelActive: { color: '#58beff' },
+  sortList: { gap: 8 },
+  sortOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: palette.panel,
+    borderWidth: 1,
+    borderColor: palette.line,
+  },
+  sortOptionActive: { backgroundColor: palette.accent, borderColor: palette.accent },
+  sortOptionText: { color: palette.text, fontSize: 13, fontWeight: '800', flex: 1 },
+  sortOptionTextActive: { color: '#031109' },
 
   emptyText: { color: palette.textMuted, fontSize: 14, textAlign: 'center', paddingVertical: spacing.xl },
   loadMoreBtn: { alignItems: 'center', paddingVertical: 16, marginTop: 4 },

@@ -22,13 +22,42 @@ class EventController extends Controller
     private function applyTimeWindow(Request $request, $query)
     {
         if ($request->boolean('past')) {
-            return $query
+            $query = $query
                 ->whereIn('events.status', ['active', 'cancelled'])
-                ->where('events.start_at', '<=', now())
-                ->orderByDesc('events.start_at');
+                ->where('events.start_at', '<=', now());
+
+            return $this->applyEventSort($request, $query, 'start_at');
         }
 
-        return $query->upcoming()
+        $query = $query->upcoming();
+
+        return $this->applyEventSort($request, $query, 'created_at');
+    }
+
+    private function applyEventSort(Request $request, $query, string $defaultSort)
+    {
+        $sort = $request->string('sort')->toString();
+        $direction = strtolower($request->string('order', 'desc')->toString()) === 'asc' ? 'asc' : 'desc';
+
+        if ($sort === 'views') {
+            return $query->orderBy('events.views_count', $direction)
+                ->orderByDesc('events.created_at');
+        }
+
+        if ($sort === 'joined') {
+            return $query->orderBy('events.participants_count', $direction)
+                ->orderByDesc('events.created_at');
+        }
+
+        if ($sort === 'new') {
+            return $query->orderBy('events.created_at', $direction);
+        }
+
+        if ($defaultSort === 'start_at') {
+            return $query->orderByDesc('events.start_at');
+        }
+
+        return $query
             ->orderByRaw('CASE WHEN events.start_at <= NOW() AND DATE_ADD(events.start_at, INTERVAL COALESCE(events.duration_minutes, 60) MINUTE) >= NOW() THEN 0 ELSE 1 END ASC')
             ->orderByDesc('events.created_at');
     }
