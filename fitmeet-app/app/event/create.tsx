@@ -4,10 +4,11 @@ import * as DocumentPicker from 'expo-document-picker'
 import * as ImagePicker from 'expo-image-picker'
 import * as Location from 'expo-location'
 import { StravaRoutePicker } from '@/src/components/StravaRoutePicker'
+import { SupportFitMeetCard } from '@/src/components/SupportFitMeetCard'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
 import {
-  ActivityIndicator, Alert, Image, Pressable, ScrollView,
+  ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, Share,
   StyleSheet, Text, TextInput, View,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -206,6 +207,7 @@ export default function CreateEventScreen() {
 
   const [submitting,  setSubmitting]  = useState(false)
   const [prefilling,  setPrefilling]  = useState(false)
+  const [createdEvent, setCreatedEvent] = useState<{ id: number; title: string } | null>(null)
 
   const mapKey = `${lat}-${lng}-${gpxTrack.length}`
 
@@ -464,13 +466,37 @@ export default function CreateEventScreen() {
         await api.post(`/events/${data.data.id}/join`).catch(() => {})
       }
 
-      router.replace(`/event/${data.data.id}` as never)
+      if (editId) {
+        router.replace(`/event/${data.data.id}` as never)
+        return
+      }
+
+      setCreatedEvent({
+        id: data.data.id,
+        title: data.data.title ?? title.trim(),
+      })
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message
       Alert.alert('Error', msg ?? (editId ? 'Could not update event.' : 'Could not create event.'))
     } finally {
       setSubmitting(false)
     }
+  }
+
+  function openCreatedEvent() {
+    if (!createdEvent) return
+    router.replace(`/event/${createdEvent.id}` as never)
+  }
+
+  async function shareCreatedEvent() {
+    if (!createdEvent) return
+    await Share.share({
+      message: [
+        createdEvent.title,
+        '',
+        `Join on FitMeet 👉 https://fitmeet.fit/events/share?id=${createdEvent.id}`,
+      ].join('\n'),
+    }).catch(() => {})
   }
 
   // ─── Render ─────────────────────────────────────────────────────────────────
@@ -821,6 +847,46 @@ export default function CreateEventScreen() {
 
         <View style={{ height: spacing.xl }} />
       </ScrollView>
+
+      <Modal
+        visible={!!createdEvent}
+        transparent
+        animationType="slide"
+        onRequestClose={openCreatedEvent}
+      >
+        <Pressable style={styles.modalBackdrop} onPress={openCreatedEvent}>
+          <Pressable style={styles.successModal} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.successHero}>
+              <View style={styles.successIconWrap}>
+                <Ionicons name="checkmark" size={24} color="#041109" />
+              </View>
+              <Text style={styles.successTitle}>Event created</Text>
+              <Text style={styles.successText}>
+                {createdEvent
+                  ? `${createdEvent.title} is live. Share it now, or support FitMeet while the good mood is still fresh.`
+                  : ''}
+              </Text>
+            </View>
+
+            <View style={styles.successActions}>
+              <Pressable style={styles.successPrimary} onPress={shareCreatedEvent}>
+                <Ionicons name="share-social-outline" size={18} color="#041109" />
+                <Text style={styles.successPrimaryText}>Share event</Text>
+              </Pressable>
+
+              <Pressable style={styles.successSecondary} onPress={openCreatedEvent}>
+                <Text style={styles.successSecondaryText}>View event</Text>
+              </Pressable>
+            </View>
+
+            <SupportFitMeetCard />
+
+            <Pressable style={styles.successLater} onPress={openCreatedEvent}>
+              <Text style={styles.successLaterText}>Maybe later</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   )
 }
@@ -955,6 +1021,54 @@ const styles = StyleSheet.create({
   },
   heading: { flex: 1, color: palette.text, fontSize: 20, fontWeight: '800' },
   content: { padding: spacing.md, gap: spacing.md },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(4,9,18,0.72)',
+    justifyContent: 'flex-end',
+  },
+  successModal: {
+    gap: 16,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: spacing.lg,
+    backgroundColor: palette.bg,
+    borderTopWidth: 1,
+    borderColor: palette.line,
+  },
+  successHero: { gap: 8 },
+  successIconWrap: {
+    width: 46,
+    height: 46,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: palette.accent,
+  },
+  successTitle: { color: palette.text, fontSize: 24, fontWeight: '800' },
+  successText: { color: palette.textDim, fontSize: 14, lineHeight: 20 },
+  successActions: { gap: 10 },
+  successPrimary: {
+    height: 54,
+    borderRadius: 18,
+    backgroundColor: palette.accent,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  successPrimaryText: { color: '#041109', fontSize: 15, fontWeight: '800' },
+  successSecondary: {
+    height: 50,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: palette.line,
+    backgroundColor: palette.panel,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  successSecondaryText: { color: palette.text, fontSize: 14, fontWeight: '700' },
+  successLater: { alignItems: 'center', paddingVertical: 4 },
+  successLaterText: { color: palette.textMuted, fontSize: 13, fontWeight: '700' },
 
   fieldLabel: { color: palette.textMuted, fontSize: 13, fontWeight: '700' },
   row:        { flexDirection: 'row', gap: spacing.sm },

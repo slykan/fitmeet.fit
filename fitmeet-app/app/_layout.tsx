@@ -6,6 +6,7 @@ import { useEffect, useRef } from 'react'
 import { AppState } from 'react-native'
 
 import { setupPushNotificationRouting, syncPushToken } from '@/src/lib/push-notifications'
+import { setupRevenueCat } from '@/src/lib/revenuecat'
 import { useAuthStore } from '@/src/store/auth'
 import { palette } from '@/src/theme'
 
@@ -78,6 +79,11 @@ export default function RootLayout() {
 
     syncPushToken(user.push_notifications !== false).catch(() => {})
   }, [hasHydrated, token, user?.id, user?.push_notifications])
+
+  useEffect(() => {
+    if (!hasHydrated) return
+    setupRevenueCat(user?.id ?? null).catch(() => {})
+  }, [hasHydrated, user?.id])
 
   return (
     <>
