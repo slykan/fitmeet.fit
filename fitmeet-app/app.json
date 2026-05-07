@@ -54,7 +54,7 @@
     },
     "extra": {
       "apiUrl": "https://api.fitmeet.fit/api",
-      "revenueCatGoogleApiKey": "",
+      "revenueCatGoogleApiKey": "goog_bYVILzxmdRkZxGcbQtQoAUIsMxL",
       "revenueCatSupportProductIds": ["beer_small", "beer_medium", "beer_big"],
       "stravaClientId": "234864",
       "googleAndroidClientId": "206851995035-f0vleunetrb0nqog6dm24e1j1aq6tgqa.apps.googleusercontent.com",
