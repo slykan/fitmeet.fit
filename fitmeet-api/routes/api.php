@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\EventController;
+use App\Http\Controllers\Api\EventCommentController;
 use App\Http\Controllers\Api\FriendController;
 use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\UserController;
@@ -112,6 +113,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('events/joined', [EventController::class, 'joined']);
     Route::get('events/my-reminders', [EventController::class, 'myReminders']);
     Route::get('events/{event}/gpx', [EventController::class, 'gpx']);
+    Route::get('events/{event}/comments', [EventCommentController::class, 'index']);
+    Route::post('events/{event}/comments', [EventCommentController::class, 'store']);
+    Route::delete('events/{event}/comments/{comment}', [EventCommentController::class, 'destroy']);
     Route::post('events/{event}/join', [EventController::class, 'join']);
     Route::post('events/{event}/leave', [EventController::class, 'leave']);
     Route::post('events/{event}/remind', [EventController::class, 'setReminders']);

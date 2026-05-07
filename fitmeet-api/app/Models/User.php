@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Event;
+use App\Models\EventComment;
 use App\Models\Conversation;
 use App\Models\UserPushToken;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -84,6 +85,11 @@ class User extends Authenticatable
     public function events(): HasMany
     {
         return $this->hasMany(Event::class);
+    }
+
+    public function eventComments(): HasMany
+    {
+        return $this->hasMany(EventComment::class);
     }
 
     public function joinedEvents(): BelongsToMany

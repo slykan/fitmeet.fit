@@ -3,7 +3,7 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import {
   ActivityIndicator, Alert, Image, Modal, Pressable,
-  Linking, ScrollView, Share, StyleSheet, Text, View, type StyleProp, type ViewStyle,
+  Linking, ScrollView, Share, StyleSheet, Text, TextInput, View, type StyleProp, type ViewStyle,
 } from 'react-native'
 import { WebView } from 'react-native-webview'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -22,6 +22,15 @@ import { palette, spacing } from '@/src/theme'
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Participant { id: number; name: string; avatar: string | null }
+
+interface EventComment {
+  id: number
+  body: string
+  created_at: string
+  user: Participant
+  is_mine: boolean
+  can_delete: boolean
+}
 
 interface EventDetail {
   id: number
@@ -138,7 +147,7 @@ function Avatar({ user, size = 32 }: { user: Participant; size?: number }) {
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function EventDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>()
+  const { id, wall } = useLocalSearchParams<{ id: string; wall?: string }>()
   const me = useAuthStore(s => s.user)
 
   const [event,      setEvent]      = useState<EventDetail | null>(null)
@@ -154,6 +163,12 @@ export default function EventDetailScreen() {
   const [youtubeOpen, setYoutubeOpen] = useState(false)
   const [coloredSegments, setColoredSegments] = useState<TrackSegment[]>([])
   const [elevationProfile, setElevationProfile] = useState<ElevationPoint[]>([])
+  const [showWall, setShowWall] = useState(wall === '1')
+  const [comments, setComments] = useState<EventComment[]>([])
+  const [commentsLoading, setCommentsLoading] = useState(false)
+  const [commentDraft, setCommentDraft] = useState('')
+  const [commentSending, setCommentSending] = useState(false)
+  const [commentCount, setCommentCount] = useState(0)
 
   const loadEvent = useCallback(() => {
     if (!id) return
@@ -170,6 +185,10 @@ export default function EventDetailScreen() {
   useEffect(() => {
     setYoutubeOpen(false)
   }, [event?.id, event?.youtube_url])
+
+  useEffect(() => {
+    if (wall === '1') setShowWall(true)
+  }, [wall])
 
   useEffect(() => {
     setColoredSegments([])
@@ -203,6 +222,28 @@ export default function EventDetailScreen() {
         setSelectedOffsets(new Set())
       })
   }, [id])
+
+  const loadComments = useCallback(async () => {
+    if (!id || !event) return
+    if (!(event.is_joined || event.is_organizer || event.organizer?.id === me?.id)) return
+
+    setCommentsLoading(true)
+    try {
+      const { data } = await api.get(`/events/${id}/comments`)
+      setComments((data.data ?? []) as EventComment[])
+      setCommentCount(data.meta?.count ?? (data.data ?? []).length ?? 0)
+    } catch {
+      setComments([])
+      setCommentCount(0)
+    } finally {
+      setCommentsLoading(false)
+    }
+  }, [event, id, me?.id])
+
+  useEffect(() => {
+    if (!showWall) return
+    loadComments().catch(() => {})
+  }, [showWall, loadComments])
 
   async function join() {
     if (!event) return
@@ -324,6 +365,7 @@ export default function EventDetailScreen() {
   const past       = new Date(event.schedule.start_at).getTime() < Date.now()
   const emoji      = CATEGORY_EMOJI[event.category.value] ?? '📍'
   const isOrg      = event.is_organizer || event.organizer?.id === me?.id
+  const canAccessWall = event.is_joined || isOrg
 
   function shareEvent() {
     const d = new Date(event!.schedule.start_at)
@@ -340,6 +382,35 @@ export default function EventDetailScreen() {
         `Join on FitMeet 👉 https://fitmeet.fit/events/share?id=${event!.id}`,
       ].filter(Boolean).join('\n'),
     })
+  }
+
+  async function sendComment() {
+    if (!event || !canAccessWall || !commentDraft.trim() || commentSending) return
+    setCommentSending(true)
+    try {
+      const { data } = await api.post(`/events/${event.id}/comments`, { body: commentDraft.trim() })
+      const next = data.data as EventComment
+      setComments((prev) => [...prev, next])
+      setCommentCount((prev) => prev + 1)
+      setCommentDraft('')
+      setShowWall(true)
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Could not post comment.'
+      Alert.alert('Error', msg)
+    } finally {
+      setCommentSending(false)
+    }
+  }
+
+  async function deleteComment(commentId: number) {
+    if (!event) return
+    try {
+      await api.delete(`/events/${event.id}/comments/${commentId}`)
+      setComments((prev) => prev.filter((comment) => comment.id !== commentId))
+      setCommentCount((prev) => Math.max(0, prev - 1))
+    } catch {
+      Alert.alert('Error', 'Could not delete comment.')
+    }
   }
 
   // ─── Action button ──────────────────────────────────────────────────────
@@ -583,6 +654,78 @@ export default function EventDetailScreen() {
           </View>
         )}
 
+        <View style={styles.card}>
+          <Pressable style={styles.cardHeader} onPress={() => setShowWall((value) => !value)}>
+            <View style={styles.wallHeader}>
+              <Ionicons name="chatbubble-ellipses-outline" size={16} color={palette.accent} />
+              <Text style={styles.cardLabel}>Event Wall{commentCount > 0 ? ` (${commentCount})` : ''}</Text>
+            </View>
+            <Ionicons
+              name={showWall ? 'chevron-up' : 'chevron-down'}
+              size={16}
+              color={palette.textDim}
+            />
+          </Pressable>
+
+          {showWall && (
+            <View style={styles.wallBody}>
+              {!canAccessWall ? (
+                <Text style={styles.wallHint}>Join this event to unlock the Event Wall.</Text>
+              ) : (
+                <>
+                  {commentsLoading ? (
+                    <ActivityIndicator color={palette.accent} style={{ paddingVertical: 8 }} />
+                  ) : comments.length === 0 ? (
+                    <Text style={styles.wallHint}>No comments yet. Start the conversation.</Text>
+                  ) : (
+                    <View style={styles.commentList}>
+                      {comments.map((comment) => (
+                        <View key={comment.id} style={styles.commentRow}>
+                          <Avatar user={comment.user} size={34} />
+                          <View style={styles.commentBubble}>
+                            <View style={styles.commentMetaRow}>
+                              <Text style={styles.commentAuthor}>{comment.user.name}</Text>
+                              <Text style={styles.commentTime}>{formatTime(comment.created_at)}</Text>
+                            </View>
+                            <Text style={styles.commentBody}>{comment.body}</Text>
+                          </View>
+                          {comment.can_delete && (
+                            <Pressable onPress={() => deleteComment(comment.id)} hitSlop={8} style={styles.commentDeleteBtn}>
+                              <Ionicons name="trash-outline" size={15} color="#f87171" />
+                            </Pressable>
+                          )}
+                        </View>
+                      ))}
+                    </View>
+                  )}
+
+                  <View style={styles.commentComposer}>
+                    <TextInput
+                      style={styles.commentInput}
+                      value={commentDraft}
+                      onChangeText={setCommentDraft}
+                      placeholder="Write a comment..."
+                      placeholderTextColor={palette.textDim}
+                      multiline
+                      maxLength={1000}
+                    />
+                    <Pressable
+                      style={[styles.commentSendBtn, (!commentDraft.trim() || commentSending) && styles.disabledBtn]}
+                      onPress={sendComment}
+                      disabled={!commentDraft.trim() || commentSending}
+                    >
+                      {commentSending
+                        ? <ActivityIndicator size="small" color="#041109" />
+                        : <Ionicons name="send" size={16} color="#041109" />
+                      }
+                    </Pressable>
+                  </View>
+                </>
+              )}
+            </View>
+          )}
+        </View>
+
         {/* Organizer actions */}
         {isOrg && !cancelled && (
           <View style={{ gap: spacing.sm }}>
@@ -781,6 +924,7 @@ const styles = StyleSheet.create({
   },
   ytPlayer: { height: 220, borderRadius: 14, overflow: 'hidden', backgroundColor: '#000' },
   videoHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  wallHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   ytPlayBtn: {
     width: 60, height: 60, borderRadius: 30,
     backgroundColor: 'rgba(255,0,0,0.85)',
@@ -798,6 +942,54 @@ const styles = StyleSheet.create({
   participantName: { color: palette.textDim, fontSize: 10, fontWeight: '600', textAlign: 'center' },
   moreCircle:  { width: 40, height: 40, borderRadius: 20, backgroundColor: palette.panelRaised, borderWidth: 1, borderColor: palette.line, alignItems: 'center', justifyContent: 'center' },
   moreText:    { color: palette.textMuted, fontSize: 11, fontWeight: '700' },
+
+  wallBody: { gap: 12 },
+  wallHint: { color: palette.textMuted, fontSize: 13, lineHeight: 20 },
+  commentList: { gap: 10 },
+  commentRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  commentBubble: {
+    flex: 1,
+    backgroundColor: palette.panelRaised,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: palette.line,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 4,
+  },
+  commentMetaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  commentAuthor: { color: palette.text, fontSize: 13, fontWeight: '800', flex: 1 },
+  commentTime: { color: palette.textDim, fontSize: 11, fontWeight: '600' },
+  commentBody: { color: palette.textMuted, fontSize: 13, lineHeight: 20 },
+  commentDeleteBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  commentComposer: { flexDirection: 'row', alignItems: 'flex-end', gap: 10 },
+  commentInput: {
+    flex: 1,
+    minHeight: 48,
+    maxHeight: 110,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: palette.line,
+    backgroundColor: palette.panelRaised,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    color: palette.text,
+    fontSize: 14,
+  },
+  commentSendBtn: {
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    backgroundColor: palette.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 
   joinBtn: {
     height: 56, borderRadius: 18,

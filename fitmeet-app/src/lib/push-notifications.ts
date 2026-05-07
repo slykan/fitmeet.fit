@@ -27,6 +27,11 @@ function routeFromNotificationData(data: Record<string, unknown> | undefined) {
     return
   }
 
+  if (eventId && type === 'event_comment') {
+    router.push(`/event/${eventId}?wall=1` as never)
+    return
+  }
+
   if (type === 'new_message') {
     router.push('/(tabs)/messages' as never)
     return

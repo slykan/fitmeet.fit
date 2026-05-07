@@ -1,0 +1,141 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Http\Resources\EventCommentResource;
+use App\Models\Event;
+use App\Models\EventComment;
+use App\Models\EventNotification;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+
+class EventCommentController extends Controller
+{
+    public function index(Request $request, Event $event): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($this->canAccessWall($event, $user), 403, 'Only the organizer and joined participants can access the Event Wall.');
+
+        EventNotification::where('user_id', $user->id)
+            ->where('event_id', $event->id)
+            ->where('type', 'event_comment')
+            ->whereNull('read_at')
+            ->update(['read_at' => now()]);
+
+        $commentCount = EventComment::query()
+            ->where('event_id', $event->id)
+            ->count();
+
+        $comments = EventComment::query()
+            ->with(['user:id,name,avatar', 'event:id,user_id'])
+            ->where('event_id', $event->id)
+            ->latest()
+            ->limit(100)
+            ->get()
+            ->reverse()
+            ->values();
+
+        return response()->json([
+            'data' => EventCommentResource::collection($comments),
+            'meta' => [
+                'can_comment' => true,
+                'count' => $commentCount,
+            ],
+        ]);
+    }
+
+    public function store(Request $request, Event $event): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($this->canAccessWall($event, $user), 403, 'Only the organizer and joined participants can comment.');
+
+        $data = $request->validate([
+            'body' => ['required', 'string', 'max:1000'],
+        ]);
+
+        $body = trim($data['body']);
+        if ($body === '') {
+            return response()->json(['message' => 'Comment cannot be empty.'], 422);
+        }
+
+        $lastComment = EventComment::query()
+            ->where('event_id', $event->id)
+            ->where('user_id', $user->id)
+            ->latest('id')
+            ->first();
+
+        if ($lastComment && $lastComment->created_at?->gt(now()->subSeconds(15))) {
+            return response()->json(['message' => 'Please wait a few seconds before posting again.'], 429);
+        }
+
+        $comment = EventComment::create([
+            'event_id' => $event->id,
+            'user_id' => $user->id,
+            'body' => $body,
+        ]);
+
+        $comment->load(['user:id,name,avatar', 'event:id,user_id']);
+
+        $this->notifyRelevantUsers($event, $comment);
+
+        return response()->json([
+            'data' => new EventCommentResource($comment),
+        ], 201);
+    }
+
+    public function destroy(Request $request, Event $event, EventComment $comment): JsonResponse
+    {
+        abort_unless((int) $comment->event_id === (int) $event->id, 404);
+
+        $user = $request->user();
+        $canDelete = (int) $comment->user_id === (int) $user->id || (int) $event->user_id === (int) $user->id;
+        abort_unless($canDelete, 403);
+
+        $comment->delete();
+
+        return response()->json(['message' => 'Comment deleted.']);
+    }
+
+    private function canAccessWall(Event $event, $user): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        if ((int) $event->user_id === (int) $user->id) {
+            return true;
+        }
+
+        return $event->participants()
+            ->where('users.id', $user->id)
+            ->exists();
+    }
+
+    private function notifyRelevantUsers(Event $event, EventComment $comment): void
+    {
+        $recipientIds = EventComment::query()
+            ->where('event_id', $event->id)
+            ->where('user_id', '!=', $comment->user_id)
+            ->distinct()
+            ->pluck('user_id')
+            ->push($event->user_id)
+            ->filter(fn ($id) => (int) $id !== (int) $comment->user_id)
+            ->unique()
+            ->values();
+
+        foreach ($recipientIds as $recipientId) {
+            EventNotification::where('user_id', $recipientId)
+                ->where('event_id', $event->id)
+                ->where('type', 'event_comment')
+                ->delete();
+
+            EventNotification::create([
+                'user_id' => $recipientId,
+                'event_id' => $event->id,
+                'type' => 'event_comment',
+                'read_at' => null,
+            ]);
+        }
+    }
+}

@@ -158,8 +158,12 @@ class FriendController extends Controller
         $started = EventNotification::where('user_id', $me->id)->where('type', 'event_started')->where('created_at', '>=', now()->subHours(24))
             ->whereNull('read_at')
             ->whereHas('event', fn ($q) => $q->where('events.status', 'active'))->count();
+        $eventComments = EventNotification::where('user_id', $me->id)->where('type', 'event_comment')
+            ->whereNull('read_at')
+            ->where('created_at', '>=', now()->subDays(14))
+            ->count();
 
-        return response()->json(['count' => $pending + $accepted + $reminders + $newEvents + $cancelled + $started]);
+        return response()->json(['count' => $pending + $accepted + $reminders + $newEvents + $cancelled + $started + $eventComments]);
     }
 
     // GET /notifications
@@ -292,7 +296,38 @@ class FriendController extends Controller
                 'created_at' => $n->created_at->toDateTimeString(),
             ]);
 
-        return response()->json(['data' => $pending->concat($accepted)->concat($eventReminders)->concat($newEvents)->concat($cancelledEvents)->concat($startedEvents)->values()]);
+        $eventComments = EventNotification::with('event')
+            ->where('user_id', $me->id)
+            ->where('type', 'event_comment')
+            ->where('created_at', '>=', now()->subDays(14))
+            ->latest()
+            ->get()
+            ->map(fn ($n) => [
+                'id' => $n->id,
+                'type' => 'event_comment',
+                'unread' => $n->read_at === null,
+                'event' => [
+                    'id' => $n->event->id,
+                    'title' => $n->event->title,
+                    'start_at' => $n->event->start_at->toIso8601String(),
+                    'timezone' => $n->event->timezone ?? config('app.event_timezone'),
+                    'address' => $n->event->address,
+                    'category' => $n->event->category?->label() ?? 'Event',
+                ],
+                'created_at' => $n->created_at->toDateTimeString(),
+            ]);
+
+        return response()->json([
+            'data' => $pending
+                ->concat($accepted)
+                ->concat($eventReminders)
+                ->concat($newEvents)
+                ->concat($cancelledEvents)
+                ->concat($startedEvents)
+                ->concat($eventComments)
+                ->sortByDesc('created_at')
+                ->values(),
+        ]);
     }
 
     // DELETE /friends/{user}  — remove accepted friend

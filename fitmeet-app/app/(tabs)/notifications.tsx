@@ -24,6 +24,7 @@ type Notification =
   | { id: number; type: 'new_event';       event:   EventInfo; created_at: string; unread?: boolean }
   | { id: number; type: 'event_cancelled'; event:   EventInfo; created_at: string; unread?: boolean }
   | { id: number; type: 'event_started';   event:   EventInfo; created_at: string; unread?: boolean }
+  | { id: number; type: 'event_comment';   event:   EventInfo; created_at: string; unread?: boolean }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -298,6 +299,22 @@ export default function NotificationsScreen() {
                 subtitle={`${formatEventDate(n.event.start_at)}${n.event.address ? ' Â· ' + n.event.address : ''}`}
                 time={timeAgo(n.created_at)}
                 onPress={() => router.push(`/event/${n.event.id}` as never)}
+                unread={n.unread}
+              />
+            )
+          }
+
+          if (n.type === 'event_comment') {
+            return (
+              <GenericCard
+                key={`ew-${n.id}`}
+                icon="chatbubble-ellipses-outline"
+                iconColor="#58beff"
+                iconBg="rgba(0,168,255,0.1)"
+                title={<>New Event Wall activity: <Text style={styles.accent}>{n.event.title}</Text></>}
+                subtitle="Someone added a new comment."
+                time={timeAgo(n.created_at)}
+                onPress={() => router.push(`/event/${n.event.id}?wall=1` as never)}
                 unread={n.unread}
               />
             )

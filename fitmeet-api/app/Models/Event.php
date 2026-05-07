@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Event extends Model
 {
@@ -61,6 +62,11 @@ class Event extends Model
         return $this->belongsToMany(User::class, 'event_participants')
             ->withPivot('status', 'joined_at')
             ->wherePivot('status', 'joined');
+    }
+
+    public function comments(): HasMany
+    {
+        return $this->hasMany(EventComment::class);
     }
 
     public function isFull(): bool
