@@ -77,7 +77,11 @@ class EventCommentController extends Controller
 
         $comment->load(['user:id,name,avatar', 'event:id,user_id']);
 
-        $this->notifyRelevantUsers($event, $comment);
+        try {
+            $this->notifyRelevantUsers($event, $comment);
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
         return response()->json([
             'data' => new EventCommentResource($comment),

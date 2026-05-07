@@ -3,10 +3,10 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import {
   ActivityIndicator, Alert, Image, Modal, Pressable,
-  Linking, ScrollView, Share, StyleSheet, Text, TextInput, View, type StyleProp, type ViewStyle,
+  Keyboard, KeyboardAvoidingView, Linking, Platform, ScrollView, Share, StyleSheet, Text, TextInput, View, type StyleProp, type ViewStyle,
 } from 'react-native'
 import { WebView } from 'react-native-webview'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { WeatherBadge } from '@/src/components/WeatherBadge'
 import { EventMapCard } from '@/src/components/EventMapCard'
@@ -149,6 +149,7 @@ function Avatar({ user, size = 32 }: { user: Participant; size?: number }) {
 export default function EventDetailScreen() {
   const { id, wall } = useLocalSearchParams<{ id: string; wall?: string }>()
   const me = useAuthStore(s => s.user)
+  const insets = useSafeAreaInsets()
 
   const [event,      setEvent]      = useState<EventDetail | null>(null)
   const [loading,    setLoading]    = useState(true)
@@ -169,6 +170,7 @@ export default function EventDetailScreen() {
   const [commentDraft, setCommentDraft] = useState('')
   const [commentSending, setCommentSending] = useState(false)
   const [commentCount, setCommentCount] = useState(0)
+  const [keyboardHeight, setKeyboardHeight] = useState(0)
 
   const loadEvent = useCallback(() => {
     if (!id) return
@@ -189,6 +191,23 @@ export default function EventDetailScreen() {
   useEffect(() => {
     if (wall === '1') setShowWall(true)
   }, [wall])
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow'
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide'
+
+    const showSub = Keyboard.addListener(showEvent, (event) => {
+      setKeyboardHeight(event.endCoordinates.height)
+    })
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      setKeyboardHeight(0)
+    })
+
+    return () => {
+      showSub.remove()
+      hideSub.remove()
+    }
+  }, [])
 
   useEffect(() => {
     setColoredSegments([])
@@ -440,6 +459,11 @@ export default function EventDetailScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
+      <KeyboardAvoidingView
+        style={styles.safe}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={insets.top}
+      >
       {/* Full-screen image modal */}
       {event?.image_url && (
         <Modal visible={imageModal} transparent animationType="fade" onRequestClose={() => setImageModal(false)}>
@@ -452,7 +476,11 @@ export default function EventDetailScreen() {
         </Modal>
       )}
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={[styles.content, { paddingBottom: spacing.xl + keyboardHeight }]}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
 
         {/* Top bar */}
         <View style={styles.topBar}>
@@ -609,51 +637,6 @@ export default function EventDetailScreen() {
           </View>
         ) : null}
 
-        {/* Organizer */}
-        {event.organizer ? (
-          <View style={styles.card}>
-            <Text style={styles.cardLabel}>Organizer</Text>
-            <View style={styles.personRow}>
-              <Avatar user={event.organizer} size={36} />
-              <Text style={styles.personName}>{event.organizer.name}</Text>
-              {isOrg && (
-                <View style={styles.youBadge}><Text style={styles.youBadgeText}>You</Text></View>
-              )}
-            </View>
-          </View>
-        ) : null}
-
-        {/* Participants */}
-        {event.participants.length > 0 && (
-          <View style={styles.card}>
-            <Pressable style={styles.cardHeader} onPress={() => setShowParticipants(v => !v)}>
-              <Text style={styles.cardLabel}>Participants ({event.participants_count})</Text>
-              <Ionicons
-                name={showParticipants ? 'chevron-up' : 'chevron-down'}
-                size={16}
-                color={palette.textDim}
-              />
-            </Pressable>
-            {showParticipants && (
-              <View style={styles.participantGrid}>
-                {event.participants.slice(0, 12).map(p => (
-                  <View key={p.id} style={styles.participantItem}>
-                    <Avatar user={p} size={40} />
-                    <Text style={styles.participantName} numberOfLines={1}>{p.name.split(' ')[0]}</Text>
-                  </View>
-                ))}
-                {event.participants_count > 12 && (
-                  <View style={styles.participantItem}>
-                    <View style={[styles.moreCircle]}>
-                      <Text style={styles.moreText}>+{event.participants_count - 12}</Text>
-                    </View>
-                  </View>
-                )}
-              </View>
-            )}
-          </View>
-        )}
-
         <View style={styles.card}>
           <Pressable style={styles.cardHeader} onPress={() => setShowWall((value) => !value)}>
             <View style={styles.wallHeader}>
@@ -725,6 +708,51 @@ export default function EventDetailScreen() {
             </View>
           )}
         </View>
+
+        {/* Organizer */}
+        {event.organizer ? (
+          <View style={styles.card}>
+            <Text style={styles.cardLabel}>Organizer</Text>
+            <View style={styles.personRow}>
+              <Avatar user={event.organizer} size={36} />
+              <Text style={styles.personName}>{event.organizer.name}</Text>
+              {isOrg && (
+                <View style={styles.youBadge}><Text style={styles.youBadgeText}>You</Text></View>
+              )}
+            </View>
+          </View>
+        ) : null}
+
+        {/* Participants */}
+        {event.participants.length > 0 && (
+          <View style={styles.card}>
+            <Pressable style={styles.cardHeader} onPress={() => setShowParticipants(v => !v)}>
+              <Text style={styles.cardLabel}>Participants ({event.participants_count})</Text>
+              <Ionicons
+                name={showParticipants ? 'chevron-up' : 'chevron-down'}
+                size={16}
+                color={palette.textDim}
+              />
+            </Pressable>
+            {showParticipants && (
+              <View style={styles.participantGrid}>
+                {event.participants.slice(0, 12).map(p => (
+                  <View key={p.id} style={styles.participantItem}>
+                    <Avatar user={p} size={40} />
+                    <Text style={styles.participantName} numberOfLines={1}>{p.name.split(' ')[0]}</Text>
+                  </View>
+                ))}
+                {event.participants_count > 12 && (
+                  <View style={styles.participantItem}>
+                    <View style={[styles.moreCircle]}>
+                      <Text style={styles.moreText}>+{event.participants_count - 12}</Text>
+                    </View>
+                  </View>
+                )}
+              </View>
+            )}
+          </View>
+        )}
 
         {/* Organizer actions */}
         {isOrg && !cancelled && (
@@ -832,6 +860,7 @@ export default function EventDetailScreen() {
           </Pressable>
         </Pressable>
       </Modal>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   )
 }
