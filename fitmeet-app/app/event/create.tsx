@@ -16,6 +16,7 @@ import { WebView } from 'react-native-webview'
 import { CATEGORIES } from '@/src/lib/categories'
 import { api } from '@/src/lib/api'
 import { parseGpxText } from '@/src/lib/gpx'
+import { cloudLabel, EventWeather, fetchEventWeather, weatherIconName } from '@/src/lib/weather'
 import { palette, spacing } from '@/src/theme'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -200,6 +201,8 @@ export default function CreateEventScreen() {
 
   const [youtubeUrl,   setYoutubeUrl]   = useState('')
   const [joinOnCreate, setJoinOnCreate] = useState(true)
+  const [eventWeather, setEventWeather] = useState<EventWeather | null>(null)
+  const [weatherLoading, setWeatherLoading] = useState(false)
 
   const [submitting,  setSubmitting]  = useState(false)
   const [prefilling,  setPrefilling]  = useState(false)
@@ -250,6 +253,28 @@ export default function CreateEventScreen() {
   }, [editId])
 
   // ─── Handlers ───────────────────────────────────────────────────────────────
+
+  useEffect(() => {
+    if (lat === null || lng === null || !pickedDate) {
+      setEventWeather(null)
+      setWeatherLoading(false)
+      return
+    }
+
+    let alive = true
+    const isoDate = pickedDate.toISOString().slice(0, 10)
+
+    setWeatherLoading(true)
+    fetchEventWeather(lat, lng, isoDate, pickedDate.getHours())
+      .then((weather) => {
+        if (alive) setEventWeather(weather)
+      })
+      .finally(() => {
+        if (alive) setWeatherLoading(false)
+      })
+
+    return () => { alive = false }
+  }, [lat, lng, pickedDate])
 
   async function handleWebViewMessage(e: { nativeEvent: { data: string } }) {
     try {
@@ -560,6 +585,15 @@ export default function CreateEventScreen() {
           </Field>
         </View>
 
+        {pickedDate ? (
+          <WeatherPreviewCard
+            weather={eventWeather}
+            loading={weatherLoading}
+            hasLocation={lat !== null && lng !== null}
+            date={pickedDate}
+          />
+        ) : null}
+
         {showDatePicker && (
           <DateTimePicker
             mode="date"
@@ -820,6 +854,97 @@ function Field({ label, children, style }: { label: string; children: React.Reac
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
+function WeatherPreviewCard({
+  weather,
+  loading,
+  hasLocation,
+  date,
+}: {
+  weather: EventWeather | null
+  loading: boolean
+  hasLocation: boolean
+  date: Date
+}) {
+  if (!hasLocation) {
+    return (
+      <View style={styles.weatherPanel}>
+        <View style={styles.weatherPanelHeader}>
+          <Ionicons name="partly-sunny-outline" size={16} color={palette.textMuted} />
+          <Text style={styles.weatherPanelTitle}>Weather preview</Text>
+        </View>
+        <Text style={styles.weatherHint}>Pin a location to preview weather, wind, and UV for this time.</Text>
+      </View>
+    )
+  }
+
+  if (loading) {
+    return (
+      <View style={styles.weatherPanel}>
+        <View style={styles.weatherPanelHeader}>
+          <Ionicons name="partly-sunny-outline" size={16} color={palette.textMuted} />
+          <Text style={styles.weatherPanelTitle}>Weather preview</Text>
+        </View>
+        <View style={styles.weatherLoadingRow}>
+          <ActivityIndicator size="small" color={palette.accent} />
+          <Text style={styles.weatherHint}>
+            Checking forecast for {date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}...
+          </Text>
+        </View>
+      </View>
+    )
+  }
+
+  if (!weather) {
+    return (
+      <View style={styles.weatherPanel}>
+        <View style={styles.weatherPanelHeader}>
+          <Ionicons name="partly-sunny-outline" size={16} color={palette.textMuted} />
+          <Text style={styles.weatherPanelTitle}>Weather preview</Text>
+        </View>
+        <Text style={styles.weatherHint}>Forecast is not available for this date and time yet.</Text>
+      </View>
+    )
+  }
+
+  const weatherLabel = weather.precipitation > 0 ? `${weather.precipitation} mm` : cloudLabel(weather.cloudCover)
+
+  return (
+    <View style={styles.weatherPanel}>
+      <View style={styles.weatherPanelHeader}>
+        <View style={styles.weatherLead}>
+          <Ionicons name={weatherIconName(weather.code) as never} size={16} color={palette.accent} />
+          <Text style={styles.weatherPanelTitle}>Weather preview</Text>
+        </View>
+        <Text style={styles.weatherPanelTime}>
+          {date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+        </Text>
+      </View>
+
+      <View style={styles.weatherSummaryRow}>
+        <Text style={styles.weatherTemp}>{weather.temperature}°</Text>
+        <Text style={styles.weatherRange}>Low {weather.tempMin}°  High {weather.tempMax}°</Text>
+      </View>
+
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.weatherChipRow}>
+        <View style={styles.weatherChip}>
+          <View style={{ transform: [{ rotate: `${(weather.windDir + 180) % 360}deg` }] }}>
+            <Ionicons name="arrow-up-outline" size={13} color={palette.textMuted} />
+          </View>
+          <Text style={styles.weatherChipText}>{weather.windSpeed} km/h</Text>
+        </View>
+        <View style={styles.weatherChip}>
+          <Ionicons name="sunny-outline" size={13} color={palette.textMuted} />
+          <Text style={styles.weatherChipText}>UV {weather.uvIndex}</Text>
+        </View>
+        <View style={styles.weatherChip}>
+          <Ionicons name="cloudy-outline" size={13} color={palette.textMuted} />
+          <Text style={styles.weatherChipText}>{weatherLabel}</Text>
+        </View>
+      </ScrollView>
+    </View>
+  )
+}
+
 const styles = StyleSheet.create({
   safe:    { flex: 1, backgroundColor: palette.bg },
   topBar:  { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, padding: spacing.md, paddingBottom: 8 },
@@ -916,6 +1041,52 @@ const styles = StyleSheet.create({
   },
   pickerLabel:       { color: palette.textMuted, fontSize: 14, flex: 1 },
   pickerLabelActive: { color: palette.text },
+  weatherPanel: {
+    gap: 10,
+    marginTop: -2,
+    borderRadius: 16,
+    padding: 14,
+    backgroundColor: palette.panel,
+    borderWidth: 1,
+    borderColor: palette.line,
+  },
+  weatherPanelHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  weatherLead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+  },
+  weatherPanelTitle: { color: palette.text, fontSize: 14, fontWeight: '800' },
+  weatherPanelTime: { color: palette.textMuted, fontSize: 12, fontWeight: '700' },
+  weatherSummaryRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  weatherTemp: { color: palette.text, fontSize: 28, fontWeight: '800' },
+  weatherRange: { color: palette.textMuted, fontSize: 13, fontWeight: '600', flexShrink: 1 },
+  weatherChipRow: { flexDirection: 'row', gap: 8 },
+  weatherChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    borderRadius: 999,
+    paddingHorizontal: 11,
+    paddingVertical: 7,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  weatherChipText: { color: palette.text, fontSize: 12, fontWeight: '700' },
+  weatherHint: { color: palette.textMuted, fontSize: 13, lineHeight: 18 },
+  weatherLoadingRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
 
   locationBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,

@@ -1,9 +1,13 @@
 export type EventWeather = {
   code: number
+  temperature: number
   tempMin: number
   tempMax: number
   windSpeed: number
   windDir: number
+  uvIndex: number
+  cloudCover: number
+  precipitation: number
 }
 
 export type CurrentWeather = {
@@ -23,6 +27,9 @@ type OpenMeteoResponse = {
     weathercode: number[]
     windspeed_10m: number[]
     winddirection_10m: number[]
+    uv_index: number[]
+    cloudcover: number[]
+    precipitation: number[]
   }
   daily: {
     temperature_2m_max: number[]
@@ -58,7 +65,7 @@ export async function fetchEventWeather(
     const url =
       `https://api.open-meteo.com/v1/forecast` +
       `?latitude=${lat}&longitude=${lng}` +
-      `&hourly=temperature_2m,weathercode,windspeed_10m,winddirection_10m` +
+      `&hourly=temperature_2m,weathercode,windspeed_10m,winddirection_10m,uv_index,cloudcover,precipitation` +
       `&daily=temperature_2m_max,temperature_2m_min` +
       `&timezone=auto&start_date=${isoDate}&end_date=${isoDate}`
 
@@ -71,10 +78,14 @@ export async function fetchEventWeather(
 
     const result: EventWeather = {
       code: data.hourly.weathercode[idx],
+      temperature: Math.round(data.hourly.temperature_2m[idx]),
       tempMin: Math.round(data.daily.temperature_2m_min[0]),
       tempMax: Math.round(data.daily.temperature_2m_max[0]),
       windSpeed: Math.round(data.hourly.windspeed_10m[idx]),
       windDir: Math.round(data.hourly.winddirection_10m[idx]),
+      uvIndex: Math.round((data.hourly.uv_index[idx] ?? 0) * 10) / 10,
+      cloudCover: Math.round(data.hourly.cloudcover[idx] ?? 0),
+      precipitation: Math.round((data.hourly.precipitation[idx] ?? 0) * 10) / 10,
     }
 
     cache.set(key, result)
