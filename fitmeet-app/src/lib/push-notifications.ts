@@ -27,7 +27,7 @@ function routeFromNotificationData(data: Record<string, unknown> | undefined) {
     return
   }
 
-  if (eventId && type === 'event_comment') {
+  if (eventId && ['event_comment', 'event_comment_mention'].includes(type ?? '')) {
     router.push(`/event/${eventId}?wall=1` as never)
     return
   }

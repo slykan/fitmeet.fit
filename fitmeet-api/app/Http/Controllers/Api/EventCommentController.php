@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\EventCommentResource;
+use App\Jobs\SendPushNotification;
 use App\Models\Event;
 use App\Models\EventComment;
 use App\Models\EventNotification;
@@ -151,6 +152,18 @@ class EventCommentController extends Controller
                 'type' => $mentionIds->contains((int) $recipientId) ? 'event_comment_mention' : 'event_comment',
                 'read_at' => null,
             ]);
+        }
+
+        if ($mentionIds->isNotEmpty()) {
+            SendPushNotification::dispatch(
+                $mentionIds->all(),
+                'You were mentioned',
+                "{$comment->user->name} mentioned you in {$event->title}.",
+                [
+                    'type' => 'event_comment_mention',
+                    'event_id' => $event->id,
+                ],
+            );
         }
     }
 
