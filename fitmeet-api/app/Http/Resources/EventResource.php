@@ -61,6 +61,7 @@ class EventResource extends JsonResource
             ),
 
             'views_count'  => $this->views_count ?? 0,
+            'comments_count' => $this->comments_count ?? 0,
             'youtube_url'  => $this->youtube_url,
 
             // Auth-dependent fields

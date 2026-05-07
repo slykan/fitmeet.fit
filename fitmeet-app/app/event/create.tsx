@@ -11,7 +11,7 @@ import {
   ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, Share,
   StyleSheet, Text, TextInput, View,
 } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { WebView } from 'react-native-webview'
 
 import { CATEGORIES } from '@/src/lib/categories'
@@ -157,6 +157,7 @@ async function forwardGeocode(q: string): Promise<{ lat: number; lng: number; ad
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function CreateEventScreen() {
+  const insets = useSafeAreaInsets()
   const params = useLocalSearchParams<{ id?: string }>()
   const editId = typeof params.id === 'string' ? params.id : null
   const webViewRef = useRef<WebView>(null)
@@ -854,8 +855,17 @@ export default function CreateEventScreen() {
         animationType="slide"
         onRequestClose={openCreatedEvent}
       >
-        <Pressable style={styles.modalBackdrop} onPress={openCreatedEvent}>
+        <Pressable style={[styles.modalBackdrop, { paddingBottom: Math.max(insets.bottom, 16) + 24 }]} onPress={openCreatedEvent}>
           <Pressable style={styles.successModal} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.successTopRow}>
+              <View style={styles.successTopSpacer} />
+              <Pressable style={styles.successLater} onPress={openCreatedEvent}>
+                <Text style={styles.successLaterText}>Maybe later</Text>
+              </Pressable>
+            </View>
+
+            <SupportFitMeetCard />
+
             <View style={styles.successHero}>
               <View style={styles.successIconWrap}>
                 <Ionicons name="checkmark" size={24} color="#041109" />
@@ -878,12 +888,6 @@ export default function CreateEventScreen() {
                 <Text style={styles.successSecondaryText}>View event</Text>
               </Pressable>
             </View>
-
-            <SupportFitMeetCard />
-
-            <Pressable style={styles.successLater} onPress={openCreatedEvent}>
-              <Text style={styles.successLaterText}>Maybe later</Text>
-            </Pressable>
           </Pressable>
         </Pressable>
       </Modal>
@@ -1025,16 +1029,24 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(4,9,18,0.72)',
     justifyContent: 'flex-end',
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.xl,
   },
   successModal: {
     gap: 16,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderRadius: 24,
     padding: spacing.lg,
     backgroundColor: palette.bg,
-    borderTopWidth: 1,
+    borderWidth: 1,
     borderColor: palette.line,
   },
+  successTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: -4,
+  },
+  successTopSpacer: { width: 1, height: 1 },
   successHero: { gap: 8 },
   successIconWrap: {
     width: 46,
@@ -1067,7 +1079,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   successSecondaryText: { color: palette.text, fontSize: 14, fontWeight: '700' },
-  successLater: { alignItems: 'center', paddingVertical: 4 },
+  successLater: { alignItems: 'center', paddingVertical: 4, paddingHorizontal: 4 },
   successLaterText: { color: palette.textMuted, fontSize: 13, fontWeight: '700' },
 
   fieldLabel: { color: palette.textMuted, fontSize: 13, fontWeight: '700' },

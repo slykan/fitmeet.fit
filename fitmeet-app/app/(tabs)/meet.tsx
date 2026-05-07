@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
 import { EmptyEvents } from '@/src/components/EmptyEvents'
+import { EventCommentsPreview } from '@/src/components/EventCommentsPreview'
 import { InProgressBadge } from '@/src/components/InProgressBadge'
 import { router, useFocusEffect } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
@@ -35,6 +36,7 @@ interface EventItem {
   skill_level: string | null
   image_url: string | null
   views_count: number
+  comments_count: number
 }
 
 interface UserItem {
@@ -397,6 +399,7 @@ function EventsTab() {
                   <Text style={styles.detailText}>{ev.views_count} seen</Text>
                 </View>
               )}
+              <EventCommentsPreview eventId={ev.id} count={ev.comments_count ?? 0} />
             </View>
           </Pressable>
         )

@@ -80,7 +80,7 @@ class EventController extends Controller
     {
         $user = $request->user();
 
-        $query = Event::with('organizer');
+        $query = Event::with('organizer')->withCount('comments');
 
         $friendIds = FriendRequest::where(function ($q) use ($user) {
             $q->where('sender_id', $user->id)->orWhere('receiver_id', $user->id);
@@ -400,7 +400,8 @@ HTML;
     {
         $query = $request->user()
             ->events()
-            ->with('organizer');
+            ->with('organizer')
+            ->withCount('comments');
 
         $events = $this->applyTimeWindow($request, $query)
             ->get();
@@ -425,7 +426,8 @@ HTML;
     {
         $query = $request->user()
             ->joinedEvents()
-            ->with('organizer');
+            ->with('organizer')
+            ->withCount('comments');
 
         $events = $this->applyTimeWindow($request, $query)
             ->get();

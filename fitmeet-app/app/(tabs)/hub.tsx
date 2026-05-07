@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs'
 
 import { EmptyEvents } from '@/src/components/EmptyEvents'
+import { EventCommentsPreview } from '@/src/components/EventCommentsPreview'
 import { HubMapCard } from '@/src/components/HubMapCard'
 import { InProgressBadge } from '@/src/components/InProgressBadge'
 import { WeatherBadge } from '@/src/components/WeatherBadge'
@@ -30,6 +31,7 @@ interface EventItem {
   is_in_progress: boolean
   image_url: string | null
   views_count: number
+  comments_count: number
 }
 
 const RADIUS_OPTIONS = [
@@ -260,6 +262,7 @@ export default function HubScreen() {
               <Text style={styles.detailText}>{ev.views_count} seen</Text>
             </View>
           )}
+          <EventCommentsPreview eventId={ev.id} count={ev.comments_count ?? 0} />
         </View>
       </Pressable>
     )
