@@ -9,6 +9,7 @@ use App\Models\EventComment;
 use App\Models\EventNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 
 class EventCommentController extends Controller
 {
@@ -19,7 +20,7 @@ class EventCommentController extends Controller
 
         EventNotification::where('user_id', $user->id)
             ->where('event_id', $event->id)
-            ->where('type', 'event_comment')
+            ->whereIn('type', ['event_comment', 'event_comment_mention'])
             ->whereNull('read_at')
             ->update(['read_at' => now()]);
 
@@ -52,6 +53,8 @@ class EventCommentController extends Controller
 
         $data = $request->validate([
             'body' => ['required', 'string', 'max:1000'],
+            'mention_user_ids' => ['sometimes', 'array', 'max:20'],
+            'mention_user_ids.*' => ['integer', 'exists:users,id', 'distinct'],
         ]);
 
         $body = trim($data['body']);
@@ -77,8 +80,16 @@ class EventCommentController extends Controller
 
         $comment->load(['user:id,name,avatar', 'event:id,user_id']);
 
+        $allowedMentionIds = $this->eligibleWallUserIds($event)
+            ->filter(fn ($id) => (int) $id !== (int) $user->id);
+        $mentionIds = collect($data['mention_user_ids'] ?? [])
+            ->map(fn ($id) => (int) $id)
+            ->intersect($allowedMentionIds)
+            ->unique()
+            ->values();
+
         try {
-            $this->notifyRelevantUsers($event, $comment);
+            $this->notifyRelevantUsers($event, $comment, $mentionIds);
         } catch (\Throwable $e) {
             report($e);
         }
@@ -116,7 +127,7 @@ class EventCommentController extends Controller
             ->exists();
     }
 
-    private function notifyRelevantUsers(Event $event, EventComment $comment): void
+    private function notifyRelevantUsers(Event $event, EventComment $comment, Collection $mentionIds): void
     {
         $recipientIds = EventComment::query()
             ->where('event_id', $event->id)
@@ -131,15 +142,25 @@ class EventCommentController extends Controller
         foreach ($recipientIds as $recipientId) {
             EventNotification::where('user_id', $recipientId)
                 ->where('event_id', $event->id)
-                ->where('type', 'event_comment')
+                ->whereIn('type', ['event_comment', 'event_comment_mention'])
                 ->delete();
 
             EventNotification::create([
                 'user_id' => $recipientId,
                 'event_id' => $event->id,
-                'type' => 'event_comment',
+                'type' => $mentionIds->contains((int) $recipientId) ? 'event_comment_mention' : 'event_comment',
                 'read_at' => null,
             ]);
         }
+    }
+
+    private function eligibleWallUserIds(Event $event): Collection
+    {
+        return $event->participants()
+            ->pluck('users.id')
+            ->push($event->user_id)
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values();
     }
 }

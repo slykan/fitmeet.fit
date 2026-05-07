@@ -162,8 +162,12 @@ class FriendController extends Controller
             ->whereNull('read_at')
             ->where('created_at', '>=', now()->subDays(14))
             ->count();
+        $eventMentions = EventNotification::where('user_id', $me->id)->where('type', 'event_comment_mention')
+            ->whereNull('read_at')
+            ->where('created_at', '>=', now()->subDays(14))
+            ->count();
 
-        return response()->json(['count' => $pending + $accepted + $reminders + $newEvents + $cancelled + $started + $eventComments]);
+        return response()->json(['count' => $pending + $accepted + $reminders + $newEvents + $cancelled + $started + $eventComments + $eventMentions]);
     }
 
     // GET /notifications
@@ -317,6 +321,27 @@ class FriendController extends Controller
                 'created_at' => $n->created_at->toDateTimeString(),
             ]);
 
+        $eventMentions = EventNotification::with('event')
+            ->where('user_id', $me->id)
+            ->where('type', 'event_comment_mention')
+            ->where('created_at', '>=', now()->subDays(14))
+            ->latest()
+            ->get()
+            ->map(fn ($n) => [
+                'id' => $n->id,
+                'type' => 'event_comment_mention',
+                'unread' => $n->read_at === null,
+                'event' => [
+                    'id' => $n->event->id,
+                    'title' => $n->event->title,
+                    'start_at' => $n->event->start_at->toIso8601String(),
+                    'timezone' => $n->event->timezone ?? config('app.event_timezone'),
+                    'address' => $n->event->address,
+                    'category' => $n->event->category?->label() ?? 'Event',
+                ],
+                'created_at' => $n->created_at->toDateTimeString(),
+            ]);
+
         return response()->json([
             'data' => $pending
                 ->concat($accepted)
@@ -325,6 +350,7 @@ class FriendController extends Controller
                 ->concat($cancelledEvents)
                 ->concat($startedEvents)
                 ->concat($eventComments)
+                ->concat($eventMentions)
                 ->sortByDesc('created_at')
                 ->values(),
         ]);

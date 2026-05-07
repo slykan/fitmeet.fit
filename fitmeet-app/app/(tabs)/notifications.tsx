@@ -25,6 +25,7 @@ type Notification =
   | { id: number; type: 'event_cancelled'; event:   EventInfo; created_at: string; unread?: boolean }
   | { id: number; type: 'event_started';   event:   EventInfo; created_at: string; unread?: boolean }
   | { id: number; type: 'event_comment';   event:   EventInfo; created_at: string; unread?: boolean }
+  | { id: number; type: 'event_comment_mention'; event: EventInfo; created_at: string; unread?: boolean }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -313,6 +314,22 @@ export default function NotificationsScreen() {
                 iconBg="rgba(0,168,255,0.1)"
                 title={<>New Event Wall activity: <Text style={styles.accent}>{n.event.title}</Text></>}
                 subtitle="Someone added a new comment."
+                time={timeAgo(n.created_at)}
+                onPress={() => router.push(`/event/${n.event.id}?wall=1` as never)}
+                unread={n.unread}
+              />
+            )
+          }
+
+          if (n.type === 'event_comment_mention') {
+            return (
+              <GenericCard
+                key={`ewm-${n.id}`}
+                icon="at-outline"
+                iconColor={palette.accent}
+                iconBg="rgba(57,255,20,0.1)"
+                title={<>You were mentioned in <Text style={styles.accent}>{n.event.title}</Text></>}
+                subtitle="Open Event Wall to jump into the conversation."
                 time={timeAgo(n.created_at)}
                 onPress={() => router.push(`/event/${n.event.id}?wall=1` as never)}
                 unread={n.unread}

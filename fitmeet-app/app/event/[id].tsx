@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator, Alert, Image, Modal, Pressable,
   Keyboard, KeyboardAvoidingView, Linking, Platform, ScrollView, Share, StyleSheet, Text, TextInput, View, type StyleProp, type ViewStyle,
@@ -30,6 +30,11 @@ interface EventComment {
   user: Participant
   is_mine: boolean
   can_delete: boolean
+}
+
+interface MentionDraft {
+  id: number
+  name: string
 }
 
 interface EventDetail {
@@ -75,6 +80,35 @@ function formatDate(iso: string) {
 }
 function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+}
+
+function activeMentionAt(text: string, cursor: number) {
+  if (cursor < 1) return null
+
+  let tokenStart = cursor - 1
+  while (tokenStart >= 0) {
+    const char = text[tokenStart]
+    if (char === '@') break
+    if (/\s/.test(char)) return null
+    tokenStart -= 1
+  }
+
+  if (tokenStart < 0 || text[tokenStart] !== '@') return null
+
+  const query = text.slice(tokenStart + 1, cursor)
+  if (query.includes('@')) return null
+
+  return { start: tokenStart, end: cursor, query }
+}
+
+function matchesMention(name: string, query: string) {
+  const normalizedName = name.trim().toLowerCase()
+  const normalizedQuery = query.trim().toLowerCase()
+
+  if (!normalizedQuery) return true
+  if (normalizedName.includes(normalizedQuery)) return true
+
+  return normalizedName.split(/\s+/).some((part) => part.startsWith(normalizedQuery))
 }
 
 function youtubeVideoId(url: string | null | undefined) {
@@ -150,6 +184,7 @@ export default function EventDetailScreen() {
   const { id, wall } = useLocalSearchParams<{ id: string; wall?: string }>()
   const me = useAuthStore(s => s.user)
   const insets = useSafeAreaInsets()
+  const scrollRef = useRef<ScrollView | null>(null)
 
   const [event,      setEvent]      = useState<EventDetail | null>(null)
   const [loading,    setLoading]    = useState(true)
@@ -171,6 +206,8 @@ export default function EventDetailScreen() {
   const [commentSending, setCommentSending] = useState(false)
   const [commentCount, setCommentCount] = useState(0)
   const [keyboardHeight, setKeyboardHeight] = useState(0)
+  const [commentSelection, setCommentSelection] = useState({ start: 0, end: 0 })
+  const [selectedMentions, setSelectedMentions] = useState<MentionDraft[]>([])
 
   const loadEvent = useCallback(() => {
     if (!id) return
@@ -198,6 +235,7 @@ export default function EventDetailScreen() {
 
     const showSub = Keyboard.addListener(showEvent, (event) => {
       setKeyboardHeight(event.endCoordinates.height)
+      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80)
     })
     const hideSub = Keyboard.addListener(hideEvent, () => {
       setKeyboardHeight(0)
@@ -385,6 +423,17 @@ export default function EventDetailScreen() {
   const emoji      = CATEGORY_EMOJI[event.category.value] ?? '📍'
   const isOrg      = event.is_organizer || event.organizer?.id === me?.id
   const canAccessWall = event.is_joined || isOrg
+  const wallMembers = [
+    ...(event.organizer ? [event.organizer] : []),
+    ...event.participants,
+  ].filter((participant, index, arr) => arr.findIndex((entry) => entry.id === participant.id) === index)
+  const mentionState = activeMentionAt(commentDraft, commentSelection.start)
+  const mentionSuggestions = mentionState
+    ? wallMembers
+        .filter((participant) => participant.id !== me?.id)
+        .filter((participant) => matchesMention(participant.name, mentionState.query))
+        .slice(0, 6)
+    : []
 
   function shareEvent() {
     const d = new Date(event!.schedule.start_at)
@@ -407,11 +456,20 @@ export default function EventDetailScreen() {
     if (!event || !canAccessWall || !commentDraft.trim() || commentSending) return
     setCommentSending(true)
     try {
-      const { data } = await api.post(`/events/${event.id}/comments`, { body: commentDraft.trim() })
+      const activeMentionIds = selectedMentions
+        .filter((mention) => commentDraft.includes(`@${mention.name}`))
+        .map((mention) => mention.id)
+
+      const { data } = await api.post(`/events/${event.id}/comments`, {
+        body: commentDraft.trim(),
+        mention_user_ids: activeMentionIds,
+      })
       const next = data.data as EventComment
       setComments((prev) => [...prev, next])
       setCommentCount((prev) => prev + 1)
       setCommentDraft('')
+      setCommentSelection({ start: 0, end: 0 })
+      setSelectedMentions([])
       setShowWall(true)
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Could not post comment.'
@@ -430,6 +488,29 @@ export default function EventDetailScreen() {
     } catch {
       Alert.alert('Error', 'Could not delete comment.')
     }
+  }
+
+  function insertMention(participant: Participant) {
+    if (!mentionState) return
+
+    const inserted = `@${participant.name} `
+    const nextDraft =
+      commentDraft.slice(0, mentionState.start) +
+      inserted +
+      commentDraft.slice(mentionState.end)
+
+    const nextCursor = mentionState.start + inserted.length
+
+    setCommentDraft(nextDraft)
+    setCommentSelection({ start: nextCursor, end: nextCursor })
+    setSelectedMentions((prev) => {
+      const filtered = prev.filter((mention) => mention.id !== participant.id)
+      return [...filtered, { id: participant.id, name: participant.name }]
+    })
+
+    requestAnimationFrame(() => {
+      scrollRef.current?.scrollToEnd({ animated: true })
+    })
   }
 
   // ─── Action button ──────────────────────────────────────────────────────
@@ -477,6 +558,7 @@ export default function EventDetailScreen() {
       )}
 
       <ScrollView
+        ref={scrollRef}
         contentContainerStyle={[styles.content, { paddingBottom: spacing.xl + keyboardHeight }]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -683,15 +765,39 @@ export default function EventDetailScreen() {
                   )}
 
                   <View style={styles.commentComposer}>
-                    <TextInput
-                      style={styles.commentInput}
-                      value={commentDraft}
-                      onChangeText={setCommentDraft}
-                      placeholder="Write a comment..."
-                      placeholderTextColor={palette.textDim}
-                      multiline
-                      maxLength={1000}
-                    />
+                    <View style={styles.commentInputWrap}>
+                      {mentionSuggestions.length > 0 && (
+                        <View style={styles.mentionMenu}>
+                          {mentionSuggestions.map((participant) => (
+                            <Pressable
+                              key={participant.id}
+                              style={styles.mentionOption}
+                              onPress={() => insertMention(participant)}
+                            >
+                              <Avatar user={participant} size={28} />
+                              <View style={{ flex: 1 }}>
+                                <Text style={styles.mentionName}>{participant.name}</Text>
+                              </View>
+                            </Pressable>
+                          ))}
+                        </View>
+                      )}
+                      <TextInput
+                        style={styles.commentInput}
+                        value={commentDraft}
+                        onChangeText={(text) => {
+                          setCommentDraft(text)
+                          setSelectedMentions((prev) => prev.filter((mention) => text.includes(`@${mention.name}`)))
+                        }}
+                        onSelectionChange={(event) => setCommentSelection(event.nativeEvent.selection)}
+                        onFocus={() => setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80)}
+                        selection={commentSelection}
+                        placeholder="Write a comment..."
+                        placeholderTextColor={palette.textDim}
+                        multiline
+                        maxLength={1000}
+                      />
+                    </View>
                     <Pressable
                       style={[styles.commentSendBtn, (!commentDraft.trim() || commentSending) && styles.disabledBtn]}
                       onPress={sendComment}
@@ -998,6 +1104,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   commentComposer: { flexDirection: 'row', alignItems: 'flex-end', gap: 10 },
+  commentInputWrap: { flex: 1, gap: 8 },
   commentInput: {
     flex: 1,
     minHeight: 48,
@@ -1011,6 +1118,23 @@ const styles = StyleSheet.create({
     color: palette.text,
     fontSize: 14,
   },
+  mentionMenu: {
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: palette.line,
+    backgroundColor: palette.panelRaised,
+    overflow: 'hidden',
+  },
+  mentionOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: palette.line,
+  },
+  mentionName: { color: palette.text, fontSize: 13, fontWeight: '700' },
   commentSendBtn: {
     width: 46,
     height: 46,
