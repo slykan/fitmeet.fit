@@ -66,9 +66,9 @@ type SortKey = 'new' | 'views' | 'joined'
 type SortDirection = 'asc' | 'desc'
 
 const SORT_OPTIONS: Array<{ key: SortKey; label: string; icon: string }> = [
-  { key: 'new',    label: 'Novo',             icon: 'sparkles-outline' },
-  { key: 'views',  label: 'Najvise pregleda', icon: 'eye-outline' },
-  { key: 'joined', label: 'Najvise joined',   icon: 'people-outline' },
+  { key: 'new',    label: 'Newest',      icon: 'sparkles-outline' },
+  { key: 'views',  label: 'Most viewed', icon: 'eye-outline' },
+  { key: 'joined', label: 'Most joined', icon: 'people-outline' },
 ]
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
