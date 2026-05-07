@@ -107,8 +107,7 @@ class User extends Authenticatable
 
     public function isOnboardingComplete(): bool
     {
-        return filled($this->phone)
-            && filled($this->home_city)
+        return filled($this->home_city)
             && filled($this->home_country);
     }
 }
