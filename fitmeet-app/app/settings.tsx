@@ -102,6 +102,7 @@ export default function SettingsScreen() {
 
   async function handleSave() {
     if (!name.trim()) { Alert.alert('Missing', 'Name is required.'); return }
+    if (!phone.trim()) { Alert.alert('Missing', 'Phone is required.'); return }
     if (!city.trim() || !country.trim()) { Alert.alert('Missing', 'City and country/address are required.'); return }
     setSaving(true); setError(null); setSaved(false)
     try {
@@ -210,7 +211,7 @@ export default function SettingsScreen() {
             placeholder="Your name" placeholderTextColor={palette.textDim} />
         </Field>
 
-        <Field label="Phone">
+        <Field label="Phone *">
           <TextInput style={styles.input} value={phone} onChangeText={setPhone}
             placeholder="+385 91 234 5678" placeholderTextColor={palette.textDim}
             keyboardType="phone-pad" />
