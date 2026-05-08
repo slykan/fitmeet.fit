@@ -540,20 +540,35 @@ function EventsTab() {
             </div>
           )}
           <div className="w-full flex-1 min-w-0 py-1">
-            <div className="flex flex-wrap items-center gap-2 mb-1.5">
-              <span className="text-xs px-2 py-0.5 rounded-full border font-medium"
-                style={{ borderColor: 'var(--primary)', color: 'var(--primary)', background: 'rgba(57,255,20,0.08)' }}>
-                {CATEGORY_EMOJI[ev.category.value] ?? ''} {ev.category.label}
-              </span>
-              {inProgress && <span className="text-xs font-medium" style={{ color: 'var(--primary)' }}>In progress</span>}
-              {pastEvent && !inProgress && <span className="text-xs font-medium" style={{ color: 'var(--secondary)' }}>Past</span>}
-              {ev.status === 'cancelled' && <span className="text-xs text-red-400 font-medium">Cancelled</span>}
-              {ev.is_full && <span className="text-xs text-red-400 font-medium">Full</span>}
-              {ev.skill_level && (
-                <span className="text-xs capitalize" style={{ color: 'var(--text-muted)' }}>{ev.skill_level}</span>
+            <div className="flex items-start justify-between gap-3 mb-1.5">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                  <span className="text-xs px-2 py-0.5 rounded-full border font-medium"
+                    style={{ borderColor: 'var(--primary)', color: 'var(--primary)', background: 'rgba(57,255,20,0.08)' }}>
+                    {CATEGORY_EMOJI[ev.category.value] ?? ''} {ev.category.label}
+                  </span>
+                  {inProgress && <span className="text-xs font-medium" style={{ color: 'var(--primary)' }}>In progress</span>}
+                  {pastEvent && !inProgress && <span className="text-xs font-medium" style={{ color: 'var(--secondary)' }}>Past</span>}
+                  {ev.status === 'cancelled' && <span className="text-xs text-red-400 font-medium">Cancelled</span>}
+                  {ev.is_full && <span className="text-xs text-red-400 font-medium">Full</span>}
+                  {ev.skill_level && (
+                    <span className="text-xs capitalize" style={{ color: 'var(--text-muted)' }}>{ev.skill_level}</span>
+                  )}
+                </div>
+                <p className="font-semibold text-sm truncate">{ev.title}</p>
+              </div>
+              {ev.is_joined && (
+                <button
+                  onClick={e => openReminder(e, ev)}
+                  title="Set reminder"
+                  disabled={ev.status === 'cancelled' || pastEvent}
+                  className="mt-0.5 p-1.5 rounded-lg transition-colors hover:bg-[--border] flex-shrink-0"
+                  style={{ color: (reminderOffsets.get(ev.id)?.length ?? 0) > 0 ? 'var(--primary)' : '#fff' }}
+                >
+                  <Bell size={15} fill={(reminderOffsets.get(ev.id)?.length ?? 0) > 0 ? 'var(--primary)' : 'none'} />
+                </button>
               )}
             </div>
-            <p className="font-semibold text-sm truncate mb-1.5">{ev.title}</p>
             <div className="space-y-1">
               <div className="flex items-start gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
                 <Calendar size={11} style={{ marginTop: 2, flexShrink: 0 }} />
@@ -598,17 +613,6 @@ function EventsTab() {
             <EventCommentsPreview eventId={ev.id} count={ev.comments_count ?? 0} />
           </div>
           <div className="w-full sm:w-auto flex items-center justify-end gap-2 flex-shrink-0 mt-0.5 pt-1 sm:pt-0">
-            {ev.is_joined && (
-              <button
-                onClick={e => openReminder(e, ev)}
-                title="Set reminder"
-                disabled={ev.status === 'cancelled' || pastEvent}
-                className="p-1.5 rounded-lg transition-colors hover:bg-[--border]"
-                style={{ color: (reminderOffsets.get(ev.id)?.length ?? 0) > 0 ? 'var(--primary)' : '#fff' }}
-              >
-                <Bell size={15} fill={(reminderOffsets.get(ev.id)?.length ?? 0) > 0 ? 'var(--primary)' : 'none'} />
-              </button>
-            )}
             <ChevronRight size={16} style={{ color: 'var(--text-muted)' }} />
           </div>
         </div>
