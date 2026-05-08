@@ -3,7 +3,7 @@
     "name": "FitMeet",
     "slug": "fitmeet-app",
     "scheme": "fitmeet",
-    "version": "1.1.38",
+    "version": "1.1.39",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "icon": "./assets/icon.png",
@@ -55,7 +55,7 @@
     "extra": {
       "apiUrl": "https://api.fitmeet.fit/api",
       "revenueCatGoogleApiKey": "goog_bYVILzxmdRkZxGcbQtQoAUIsMxL",
-      "revenueCatSupportProductIds": ["beer_small", "beer_medium", "beer_big"],
+      "revenueCatSupportProductIds": ["beer_small", "beer_medium", "beer_large"],
       "stravaClientId": "234864",
       "googleAndroidClientId": "206851995035-f0vleunetrb0nqog6dm24e1j1aq6tgqa.apps.googleusercontent.com",
       "googleWebClientId": "206851995035-0cn2pik52tpaprm9hsshss7uhehab2h0.apps.googleusercontent.com"

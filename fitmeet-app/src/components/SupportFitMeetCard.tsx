@@ -20,7 +20,7 @@ type Props = {
 const PRODUCT_COPY: Record<string, { title: string; note: string }> = {
   beer_small: { title: 'Small beer', note: 'A small thank-you' },
   beer_medium: { title: 'Round for the team', note: 'Helps a lot' },
-  beer_big: { title: 'Legendary beer', note: 'Fuel for future features' },
+  beer_large: { title: 'Legendary beer', note: 'Fuel for future features' },
 }
 
 export function SupportFitMeetCard({

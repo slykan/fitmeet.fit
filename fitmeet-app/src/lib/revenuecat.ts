@@ -2,7 +2,7 @@ import Constants from 'expo-constants'
 import { Platform } from 'react-native'
 import Purchases, { LOG_LEVEL } from 'react-native-purchases'
 
-const DEFAULT_SUPPORT_PRODUCT_IDS = ['beer_small', 'beer_medium', 'beer_big'] as const
+const DEFAULT_SUPPORT_PRODUCT_IDS = ['beer_small', 'beer_medium', 'beer_large'] as const
 
 const RC_GOOGLE_API_KEY =
   typeof Constants.expoConfig?.extra?.revenueCatGoogleApiKey === 'string'
