@@ -10,6 +10,7 @@ import api from '@/lib/api'
 import { formatEventDateTime } from '@/lib/event-time'
 import { useAuthStore } from '@/store/auth'
 import { CATEGORIES, CATEGORY_EMOJI } from '@/lib/categories'
+import { EventCommentsPreview } from '@/components/event-comments-preview'
 import { WeatherBadge } from '@/components/WeatherBadge'
 import { fetchCurrentWeather, weatherConditionLabel, type EventWeather } from '@/lib/weather'
 import { WindOverlay } from '@/components/location-picker-map'
@@ -35,6 +36,7 @@ interface EventPin {
   schedule: { start_at: string; timezone: string; duration_minutes: number | null }
   activity: { distance_km: number | null; elevation_gain: number | null }
   participants_count: number
+  comments_count: number
   max_participants: number | null
   status: string
   is_full: boolean
@@ -968,15 +970,17 @@ export default function HubMap() {
             </button>
           </div>
 
-          <WeatherBadge
-            lat={selected.location.lat}
-            lng={selected.location.lng}
-            startAt={selected.schedule.start_at}
-            timezone={selected.schedule.timezone}
-          />
+            <WeatherBadge
+              lat={selected.location.lat}
+              lng={selected.location.lng}
+              startAt={selected.schedule.start_at}
+              timezone={selected.schedule.timezone}
+            />
 
-          <button
-            onClick={() => router.push(`/events/view?id=${selected.id}`)}
+            <EventCommentsPreview eventId={selected.id} count={selected.comments_count ?? 0} />
+
+            <button
+              onClick={() => router.push(`/events/view?id=${selected.id}`)}
             style={{
               width: '100%', padding: '12px',
               background: selected.status === 'cancelled' ? '#f87171' : '#39FF14', color: '#000',

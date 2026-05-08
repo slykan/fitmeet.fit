@@ -11,6 +11,7 @@ import {
 
 import { Navbar } from '@/components/navbar'
 import { WeatherBadge } from '@/components/WeatherBadge'
+import { EventCommentsPreview } from '@/components/event-comments-preview'
 import api from '@/lib/api'
 import { formatEventDateParts } from '@/lib/event-time'
 import { useAuthStore } from '@/store/auth'
@@ -42,6 +43,7 @@ interface EventItem {
   activity: { distance_km: number | null; elevation_gain: number | null }
   participants_count: number
   views_count: number
+  comments_count: number
   max_participants: number | null
   status: string
   is_full: boolean
@@ -585,15 +587,16 @@ function EventsTab() {
                 </div>
               )}
             </div>
-            {ev.location.lat != null && ev.location.lng != null && (
-              <WeatherBadge
-                lat={ev.location.lat}
-                lng={ev.location.lng}
-                startAt={ev.schedule.start_at}
-                timezone={ev.schedule.timezone}
-              />
-            )}
-          </div>
+              {ev.location.lat != null && ev.location.lng != null && (
+                <WeatherBadge
+                  lat={ev.location.lat}
+                  lng={ev.location.lng}
+                  startAt={ev.schedule.start_at}
+                  timezone={ev.schedule.timezone}
+                />
+              )}
+              <EventCommentsPreview eventId={ev.id} count={ev.comments_count ?? 0} />
+            </div>
           <div className="flex items-center gap-2 flex-shrink-0 mt-0.5">
             {ev.is_joined && (
               <button

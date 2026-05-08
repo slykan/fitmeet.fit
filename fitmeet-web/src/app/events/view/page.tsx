@@ -9,6 +9,7 @@ import { Calendar, MapPin, Users, Zap, ChevronLeft, Lock, Pencil, ChevronDown, C
 
 import { Navbar } from '@/components/navbar'
 import { WeatherBadge } from '@/components/WeatherBadge'
+import { EventWall } from '@/components/event-wall'
 import ElevationChart from '@/components/elevation-chart'
 import { shortAddress } from '@/lib/format-address'
 import { formatEventDateTime } from '@/lib/event-time'
@@ -39,6 +40,7 @@ interface Event {
   max_participants: number | null
   participants_count: number
   views_count: number
+  comments_count: number
   participants: Participant[]
   is_full: boolean
   is_private: boolean
@@ -54,6 +56,7 @@ function EventContent() {
   const { token }    = useAuthStore()
   const router       = useRouter()
   const id           = searchParams.get('id')
+  const wall         = searchParams.get('wall')
 
   const [event,    setEvent]    = useState<Event | null>(null)
   const [loading,  setLoading]  = useState(true)
@@ -466,6 +469,13 @@ function EventContent() {
           )}
 
           <YouTubeEmbed url={event.youtube_url} />
+
+          <EventWall
+            eventId={event.id}
+            initialCount={event.comments_count ?? 0}
+            canAccess={event.is_joined || event.is_organizer}
+            initiallyOpen={wall === '1'}
+          />
 
           {event.status === 'active' && (
             event.is_joined ? (
