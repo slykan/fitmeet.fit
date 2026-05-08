@@ -205,6 +205,7 @@ export default function EventDetailScreen() {
   const [commentDraft, setCommentDraft] = useState('')
   const [commentSending, setCommentSending] = useState(false)
   const [commentCount, setCommentCount] = useState(0)
+  const [pendingDeleteCommentId, setPendingDeleteCommentId] = useState<number | null>(null)
   const [keyboardHeight, setKeyboardHeight] = useState(0)
   const [commentSelection, setCommentSelection] = useState({ start: 0, end: 0 })
   const [selectedMentions, setSelectedMentions] = useState<MentionDraft[]>([])
@@ -485,6 +486,7 @@ export default function EventDetailScreen() {
       await api.delete(`/events/${event.id}/comments/${commentId}`)
       setComments((prev) => prev.filter((comment) => comment.id !== commentId))
       setCommentCount((prev) => Math.max(0, prev - 1))
+      setPendingDeleteCommentId((current) => current === commentId ? null : current)
     } catch {
       Alert.alert('Error', 'Could not delete comment.')
     }
@@ -744,24 +746,36 @@ export default function EventDetailScreen() {
                     <Text style={styles.wallHint}>No comments yet. Start the conversation.</Text>
                   ) : (
                     <View style={styles.commentList}>
-                      {comments.map((comment) => (
-                        <View key={comment.id} style={styles.commentRow}>
-                          <Avatar user={comment.user} size={34} />
-                          <View style={styles.commentBubble}>
+                        {comments.map((comment) => (
+                          <View key={comment.id} style={styles.commentRow}>
+                            <Avatar user={comment.user} size={34} />
+                            <View style={styles.commentBubble}>
                             <View style={styles.commentMetaRow}>
                               <Text style={styles.commentAuthor}>{comment.user.name}</Text>
                               <Text style={styles.commentTime}>{formatTime(comment.created_at)}</Text>
                             </View>
-                            <Text style={styles.commentBody}>{comment.body}</Text>
+                              <Text style={styles.commentBody}>{comment.body}</Text>
+                            </View>
+                            {comment.can_delete && (
+                              pendingDeleteCommentId === comment.id ? (
+                                <View style={styles.commentDeleteConfirm}>
+                                  <Text style={styles.commentDeleteConfirmText}>Delete?</Text>
+                                  <Pressable onPress={() => deleteComment(comment.id)} hitSlop={8} style={styles.commentDeleteConfirmBtn}>
+                                    <Text style={styles.commentDeleteConfirmBtnText}>Delete</Text>
+                                  </Pressable>
+                                  <Pressable onPress={() => setPendingDeleteCommentId(null)} hitSlop={8} style={styles.commentDeleteCancelBtn}>
+                                    <Text style={styles.commentDeleteCancelBtnText}>Cancel</Text>
+                                  </Pressable>
+                                </View>
+                              ) : (
+                                <Pressable onPress={() => setPendingDeleteCommentId(comment.id)} hitSlop={8} style={styles.commentDeleteBtn}>
+                                  <Ionicons name="trash-outline" size={15} color="#f87171" />
+                                </Pressable>
+                              )
+                            )}
                           </View>
-                          {comment.can_delete && (
-                            <Pressable onPress={() => deleteComment(comment.id)} hitSlop={8} style={styles.commentDeleteBtn}>
-                              <Ionicons name="trash-outline" size={15} color="#f87171" />
-                            </Pressable>
-                          )}
-                        </View>
-                      ))}
-                    </View>
+                        ))}
+                      </View>
                   )}
 
                   <View style={styles.commentComposer}>
@@ -1102,6 +1116,42 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  commentDeleteConfirm: {
+    gap: 6,
+    alignItems: 'flex-end',
+    paddingTop: 2,
+  },
+  commentDeleteConfirmText: {
+    color: palette.textDim,
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  commentDeleteConfirmBtn: {
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: 'rgba(248,113,113,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(248,113,113,0.28)',
+  },
+  commentDeleteConfirmBtnText: {
+    color: '#f87171',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  commentDeleteCancelBtn: {
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: palette.panelRaised,
+    borderWidth: 1,
+    borderColor: palette.line,
+  },
+  commentDeleteCancelBtnText: {
+    color: palette.textMuted,
+    fontSize: 11,
+    fontWeight: '700',
   },
   commentComposer: { flexDirection: 'row', alignItems: 'flex-end', gap: 10 },
   commentInputWrap: { flex: 1, gap: 8 },

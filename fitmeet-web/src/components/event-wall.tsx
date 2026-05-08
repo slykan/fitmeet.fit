@@ -38,6 +38,7 @@ export function EventWall({
   const [posting, setPosting] = useState(false)
   const [draft, setDraft] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [pendingDeleteCommentId, setPendingDeleteCommentId] = useState<number | null>(null)
 
   async function loadComments() {
     setLoading(true)
@@ -82,6 +83,7 @@ export function EventWall({
       await api.delete(`/events/${eventId}/comments/${commentId}`)
       setComments((prev) => prev.filter((comment) => comment.id !== commentId))
       setCount((prev) => Math.max(0, prev - 1))
+      setPendingDeleteCommentId((current) => current === commentId ? null : current)
     } catch {
       setError('Could not delete comment.')
     }
@@ -141,14 +143,40 @@ export function EventWall({
                         </p>
                       </div>
                       {comment.can_delete && (
-                        <button
-                          type="button"
-                          onClick={() => void handleDelete(comment.id)}
-                          className="mt-0.5 inline-flex h-8 w-8 items-center justify-center rounded-lg border transition-colors hover:bg-red-500/10"
-                          style={{ borderColor: 'rgba(248,113,113,0.3)', color: '#f87171' }}
-                        >
-                          <Trash2 size={14} />
-                        </button>
+                        pendingDeleteCommentId === comment.id ? (
+                          <div className="flex flex-col items-end gap-1">
+                            <span className="text-[11px] font-semibold" style={{ color: 'var(--text-muted)' }}>
+                              Delete?
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => void handleDelete(comment.id)}
+                                className="rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-opacity hover:opacity-80"
+                                style={{ borderColor: 'rgba(248,113,113,0.3)', color: '#f87171', background: 'rgba(248,113,113,0.08)' }}
+                              >
+                                Delete
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setPendingDeleteCommentId(null)}
+                                className="rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-colors hover:bg-[--border]"
+                                style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setPendingDeleteCommentId(comment.id)}
+                            className="mt-0.5 inline-flex h-8 w-8 items-center justify-center rounded-lg border transition-colors hover:bg-red-500/10"
+                            style={{ borderColor: 'rgba(248,113,113,0.3)', color: '#f87171' }}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )
                       )}
                     </div>
                   ))}
