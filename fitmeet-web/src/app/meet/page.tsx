@@ -519,7 +519,7 @@ function EventsTab() {
         return (
         <div key={ev.id}
           onClick={() => router.push(`/events/view?id=${ev.id}`)}
-          className="rounded-2xl border p-3 flex items-start justify-between gap-3 transition-opacity hover:opacity-80 cursor-pointer"
+          className="rounded-2xl border p-3 sm:p-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 transition-opacity hover:opacity-80 cursor-pointer"
           style={{
             background: 'var(--surface)',
             borderColor: ev.status === 'cancelled' ? 'rgba(248,113,113,0.35)' : 'var(--border)',
@@ -529,18 +529,18 @@ function EventsTab() {
             <Image
               src={ev.image_url}
               alt={ev.title}
-              width={96}
-              height={96}
-              className="w-24 h-24 rounded-xl object-cover flex-shrink-0"
+              width={640}
+              height={360}
+              className="w-full h-44 sm:w-24 sm:h-24 rounded-xl object-cover flex-shrink-0"
             />
           ) : (
-            <div className="w-24 h-24 rounded-xl flex-shrink-0 flex items-center justify-center text-3xl"
-              style={{ background: 'var(--background)', border: '1px solid var(--border)' }}>
+            <div className="w-full h-32 sm:w-24 sm:h-24 rounded-xl flex-shrink-0 flex items-center justify-center text-3xl"
+                style={{ background: 'var(--background)', border: '1px solid var(--border)' }}>
               {CATEGORY_EMOJI[ev.category.value] ?? '•'}
             </div>
           )}
-          <div className="flex-1 min-w-0 py-1">
-            <div className="flex items-center gap-2 mb-1.5">
+          <div className="w-full flex-1 min-w-0 py-1">
+            <div className="flex flex-wrap items-center gap-2 mb-1.5">
               <span className="text-xs px-2 py-0.5 rounded-full border font-medium"
                 style={{ borderColor: 'var(--primary)', color: 'var(--primary)', background: 'rgba(57,255,20,0.08)' }}>
                 {CATEGORY_EMOJI[ev.category.value] ?? ''} {ev.category.label}
@@ -587,17 +587,17 @@ function EventsTab() {
                 </div>
               )}
             </div>
-              {ev.location.lat != null && ev.location.lng != null && (
-                <WeatherBadge
-                  lat={ev.location.lat}
-                  lng={ev.location.lng}
-                  startAt={ev.schedule.start_at}
-                  timezone={ev.schedule.timezone}
-                />
-              )}
-              <EventCommentsPreview eventId={ev.id} count={ev.comments_count ?? 0} />
-            </div>
-          <div className="flex items-center gap-2 flex-shrink-0 mt-0.5">
+            {ev.location.lat != null && ev.location.lng != null && (
+              <WeatherBadge
+                lat={ev.location.lat}
+                lng={ev.location.lng}
+                startAt={ev.schedule.start_at}
+                timezone={ev.schedule.timezone}
+              />
+            )}
+            <EventCommentsPreview eventId={ev.id} count={ev.comments_count ?? 0} />
+          </div>
+          <div className="w-full sm:w-auto flex items-center justify-end gap-2 flex-shrink-0 mt-0.5 pt-1 sm:pt-0">
             {ev.is_joined && (
               <button
                 onClick={e => openReminder(e, ev)}
