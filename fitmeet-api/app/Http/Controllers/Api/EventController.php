@@ -192,6 +192,25 @@ class EventController extends Controller
         return response()->json(['data' => new PublicEventShareResource($event)]);
     }
 
+    // GET /api/events/public-latest
+    public function publicLatest(Request $request): JsonResponse
+    {
+        $limit = max(1, min(20, (int) $request->integer('limit', 10)));
+
+        $events = Event::query()
+            ->with('organizer')
+            ->withCount('comments')
+            ->where('is_private', false)
+            ->where('status', 'active')
+            ->orderByDesc('created_at')
+            ->limit($limit)
+            ->get();
+
+        return response()->json([
+            'data' => EventResource::collection($events),
+        ]);
+    }
+
     // GET /api/events/og?id=X  â€” OG meta HTML for social crawlers
     public function ogPage(Request $request): \Illuminate\Http\Response
     {

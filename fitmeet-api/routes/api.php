@@ -65,6 +65,7 @@ Route::get('turnstile', function () {
 // Public
 Route::get('categories', [CategoryController::class, 'index']);
 Route::get('events/public/{event}',   [EventController::class, 'publicShow']);
+Route::get('events/public-latest',    [EventController::class, 'publicLatest']);
 Route::post('auth/register-mobile',   [AuthController::class, 'registerMobile']);
 Route::post('auth/login-mobile',      [AuthController::class, 'loginMobile']);
 Route::post('auth/google-mobile',     [AuthController::class, 'googleMobile']);

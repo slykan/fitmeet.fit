@@ -16,7 +16,7 @@ import Image from 'next/image'
 
 import { Navbar } from '@/components/navbar'
 import { HeroMap } from '@/components/hero-map'
-import { BannerCarousel } from '@/components/banner-carousel'
+import { LatestEventsCarousel } from '@/components/latest-events-carousel'
 
 const categories = [
   'Running',
@@ -91,7 +91,42 @@ const steps = [
   },
 ]
 
-export default function HomePage() {
+type HomeEvent = {
+  id: number
+  title: string
+  image_url: string | null
+  category: { value: string; label: string }
+  location: { address: string | null }
+  schedule: { start_at: string; timezone: string; duration_minutes: number | null }
+  activity: { distance_km: number | null; elevation_gain: number | null }
+  participants_count: number
+  views_count: number
+  comments_count: number
+  status: string
+  organizer: { id: number; name: string } | null
+}
+
+async function getLatestEvents(): Promise<HomeEvent[]> {
+  const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.fitmeet.fit/api'
+
+  try {
+    const response = await fetch(`${apiBase}/events/public-latest?limit=10`, {
+      headers: { Accept: 'application/json' },
+      next: { revalidate: 300 },
+    })
+
+    if (!response.ok) return []
+
+    const payload = (await response.json()) as { data?: HomeEvent[] }
+    return payload.data ?? []
+  } catch {
+    return []
+  }
+}
+
+export default async function HomePage() {
+  const latestEvents = await getLatestEvents()
+
   return (
     <>
       <Navbar />
@@ -236,11 +271,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className="py-10 md:py-12 border-b" style={{ borderColor: 'var(--border)' }}>
-          <div className="max-w-6xl mx-auto px-4">
-            <BannerCarousel />
-          </div>
-        </section>
+        <LatestEventsCarousel events={latestEvents} />
 
         <section className="py-16 md:py-20 border-b" style={{ borderColor: 'var(--border)' }}>
           <div className="max-w-6xl mx-auto px-4">
