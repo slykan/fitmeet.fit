@@ -51,14 +51,14 @@ export default function WelcomeScreen() {
   return (
     <SafeAreaView style={styles.root}>
       <View style={styles.heroWrap}>
+        <Animated.Text style={[styles.logoText, { transform: [{ translateY: heroShift }] }]}>
+          FIT<Text style={styles.logoTextGreen}>MEET</Text>
+        </Animated.Text>
         <Animated.Image
           source={LOGO}
           style={[styles.logo, { transform: [{ translateY: heroShift }] }]}
           resizeMode="contain"
         />
-        <Animated.Text style={[styles.logoText, { transform: [{ translateY: heroShift }] }]}>
-          FIT<Text style={styles.logoTextGreen}>MEET</Text>
-        </Animated.Text>
       </View>
 
       <View pointerEvents="box-none" style={styles.safe}>
@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
     width: '34%',
     maxWidth: 150,
     aspectRatio: 439 / 448,
-    marginBottom: 10,
+    marginTop: 8,
   },
   safe: {
     ...StyleSheet.absoluteFillObject,
@@ -125,6 +125,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     letterSpacing: 1.5,
     textAlign: 'center',
+    marginBottom: 14,
   },
   logoTextGreen: { color: '#39FF14' },
   tagline: {
