@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { StyleSheet, View } from 'react-native'
+import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { WebView } from 'react-native-webview'
 import type { WebView as WebViewType } from 'react-native-webview'
 
@@ -191,6 +191,7 @@ export function EventMapCard({ lat, lng, emoji = '📍', coloredSegments }: Prop
   const webViewRef = useRef<WebViewType>(null)
   const [weather, setWeather] = useState<CurrentWeather | null>(null)
   const [center, setCenter] = useState({ lat, lng })
+  const [mapEnabled, setMapEnabled] = useState(false)
   const html = useMemo(
     () => buildHtml(lat, lng, { lat, lng }, emoji, null, coloredSegments ?? []),
     [lat, lng, emoji, coloredSegments],
@@ -198,6 +199,7 @@ export function EventMapCard({ lat, lng, emoji = '📍', coloredSegments }: Prop
 
   useEffect(() => {
     setCenter({ lat, lng })
+    setMapEnabled(false)
   }, [lat, lng])
 
   useEffect(() => {
@@ -220,6 +222,7 @@ export function EventMapCard({ lat, lng, emoji = '📍', coloredSegments }: Prop
         javaScriptEnabled
         domStorageEnabled
         scrollEnabled={false}
+        pointerEvents={mapEnabled ? 'auto' : 'none'}
         onLoadEnd={() => {
           if (weatherRef.current) {
             webViewRef.current?.postMessage(
@@ -243,6 +246,16 @@ export function EventMapCard({ lat, lng, emoji = '📍', coloredSegments }: Prop
         }}
         style={styles.webview}
       />
+      <View pointerEvents="box-none" style={styles.mapOverlay}>
+        <Pressable
+          onPress={() => setMapEnabled((current) => !current)}
+          style={[styles.mapModeBtn, mapEnabled && styles.mapModeBtnActive]}
+        >
+          <Text style={[styles.mapModeBtnText, mapEnabled && styles.mapModeBtnTextActive]}>
+            {mapEnabled ? 'Done' : 'Move map'}
+          </Text>
+        </Pressable>
+      </View>
     </View>
   )
 }
@@ -257,4 +270,30 @@ const styles = StyleSheet.create({
     backgroundColor: '#060c1a',
   },
   webview: { flex: 1, backgroundColor: 'transparent' },
+  mapOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'flex-end',
+    alignItems: 'flex-end',
+    padding: 12,
+  },
+  mapModeBtn: {
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(7,13,28,0.9)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+  },
+  mapModeBtnActive: {
+    backgroundColor: palette.accent,
+    borderColor: palette.accent,
+  },
+  mapModeBtnText: {
+    color: palette.text,
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  mapModeBtnTextActive: {
+    color: '#041109',
+  },
 })

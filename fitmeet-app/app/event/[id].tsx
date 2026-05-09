@@ -196,6 +196,7 @@ export default function EventDetailScreen() {
   const [showReminderModal, setShowReminderModal] = useState(false)
   const [settingReminders, setSettingReminders] = useState(false)
   const [showParticipants, setShowParticipants] = useState(false)
+  const [participantSectionY, setParticipantSectionY] = useState<number | null>(null)
   const [youtubeOpen, setYoutubeOpen] = useState(false)
   const [coloredSegments, setColoredSegments] = useState<TrackSegment[]>([])
   const [elevationProfile, setElevationProfile] = useState<ElevationPoint[]>([])
@@ -209,6 +210,7 @@ export default function EventDetailScreen() {
   const [keyboardHeight, setKeyboardHeight] = useState(0)
   const [commentSelection, setCommentSelection] = useState({ start: 0, end: 0 })
   const [selectedMentions, setSelectedMentions] = useState<MentionDraft[]>([])
+  const [zoomAvatar, setZoomAvatar] = useState<string | null>(null)
 
   const loadEvent = useCallback(() => {
     if (!id) return
@@ -516,6 +518,27 @@ export default function EventDetailScreen() {
   }
 
   // ─── Action button ──────────────────────────────────────────────────────
+  function openAvatarZoom(avatar: string | null) {
+    if (!avatar) return
+    setZoomAvatar(avatar)
+  }
+
+  function scrollToParticipants() {
+    if (!event) return
+    if (event.participants_count <= 0) return
+
+    setShowParticipants(true)
+
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        scrollRef.current?.scrollTo({
+          y: Math.max(0, (participantSectionY ?? 0) - spacing.md),
+          animated: true,
+        })
+      }, 80)
+    })
+  }
+
   let actionLabel = 'Join Event'
   let actionStyle: StyleProp<ViewStyle> = styles.joinBtn
   let actionLabelStyle = styles.actionLabel
@@ -558,6 +581,14 @@ export default function EventDetailScreen() {
           </Pressable>
         </Modal>
       )}
+      <Modal visible={!!zoomAvatar} transparent animationType="fade" onRequestClose={() => setZoomAvatar(null)}>
+        <Pressable style={styles.imgOverlay} onPress={() => setZoomAvatar(null)}>
+          {zoomAvatar ? <Image source={{ uri: zoomAvatar }} style={styles.imgFull} resizeMode="contain" /> : null}
+          <Pressable style={styles.imgClose} onPress={() => setZoomAvatar(null)}>
+            <Ionicons name="close" size={22} color="#fff" />
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       <ScrollView
         ref={scrollRef}
@@ -621,10 +652,12 @@ export default function EventDetailScreen() {
           {event.location.address ? (
             <DetailRow icon="location-outline" primary={event.location.address} />
           ) : null}
-          <DetailRow icon="people-outline" primary={
-            `${event.participants_count} joined` +
-            (event.max_participants ? ` · max ${event.max_participants}` : '')
-          } />
+          <Pressable disabled={event.participants_count <= 0} onPress={scrollToParticipants}>
+            <DetailRow icon="people-outline" primary={
+              `${event.participants_count} joined` +
+              (event.max_participants ? ` · max ${event.max_participants}` : '')
+            } />
+          </Pressable>
           {(event.activity.distance_km || event.activity.elevation_gain || event.activity.pace) ? (
             <DetailRow
               icon="flash-outline"
@@ -834,7 +867,9 @@ export default function EventDetailScreen() {
           <View style={styles.card}>
             <Text style={styles.cardLabel}>Organizer</Text>
             <View style={styles.personRow}>
-              <Avatar user={event.organizer} size={36} />
+              <Pressable onPress={() => openAvatarZoom(event.organizer?.avatar ?? null)} disabled={!event.organizer.avatar}>
+                <Avatar user={event.organizer} size={36} />
+              </Pressable>
               <Text style={styles.personName}>{event.organizer.name}</Text>
               {isOrg && (
                 <View style={styles.youBadge}><Text style={styles.youBadgeText}>You</Text></View>
@@ -845,7 +880,10 @@ export default function EventDetailScreen() {
 
         {/* Participants */}
         {event.participants.length > 0 && (
-          <View style={styles.card}>
+          <View
+            style={styles.card}
+            onLayout={(eventLayout) => setParticipantSectionY(eventLayout.nativeEvent.layout.y)}
+          >
             <Pressable style={styles.cardHeader} onPress={() => setShowParticipants(v => !v)}>
               <Text style={styles.cardLabel}>Participants ({event.participants_count})</Text>
               <Ionicons
@@ -858,7 +896,9 @@ export default function EventDetailScreen() {
               <View style={styles.participantGrid}>
                 {event.participants.slice(0, 12).map(p => (
                   <View key={p.id} style={styles.participantItem}>
-                    <Avatar user={p} size={40} />
+                    <Pressable onPress={() => openAvatarZoom(p.avatar)} disabled={!p.avatar}>
+                      <Avatar user={p} size={40} />
+                    </Pressable>
                     <Text style={styles.participantName} numberOfLines={1}>{p.name.split(' ')[0]}</Text>
                   </View>
                 ))}

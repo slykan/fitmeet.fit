@@ -5,7 +5,7 @@ import { InProgressBadge } from '@/src/components/InProgressBadge'
 import { router, useFocusEffect } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import {
-  ActivityIndicator, Image, Modal, Pressable, ScrollView, Share,
+  ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, Share,
   StyleSheet, Text, TextInput, View,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -464,12 +464,21 @@ function PeopleTab() {
   }
 
   async function handleRemove(userId: number) {
-    setActing(userId)
-    try {
-      await api.delete(`/friends/${userId}`)
-      setUsers(u => u.map(x => x.id === userId ? { ...x, friendship_status: null } : x))
-    } catch {}
-    finally { setActing(null) }
+    Alert.alert('Remove friend', 'Remove this person from your friends list?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Remove',
+        style: 'destructive',
+        onPress: async () => {
+          setActing(userId)
+          try {
+            await api.delete(`/friends/${userId}`)
+            setUsers(u => u.map(x => x.id === userId ? { ...x, friendship_status: null } : x))
+          } catch {}
+          finally { setActing(null) }
+        },
+      },
+    ])
   }
 
   return (
