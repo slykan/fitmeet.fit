@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\EventCommentController;
+use App\Http\Controllers\Api\EventWeatherController;
 use App\Http\Controllers\Api\FriendController;
 use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\UserController;
@@ -113,6 +114,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('events/my', [EventController::class, 'my']);
     Route::get('events/joined', [EventController::class, 'joined']);
     Route::get('events/my-reminders', [EventController::class, 'myReminders']);
+    Route::post('events/weather-snapshots', [EventWeatherController::class, 'snapshots']);
     Route::get('events/{event}/gpx', [EventController::class, 'gpx']);
     Route::get('events/{event}/comments', [EventCommentController::class, 'index']);
     Route::post('events/{event}/comments', [EventCommentController::class, 'store']);

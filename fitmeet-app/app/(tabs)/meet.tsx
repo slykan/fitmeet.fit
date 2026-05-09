@@ -16,6 +16,7 @@ import { CATEGORIES } from '@/src/lib/categories'
 import { WeatherBadge } from '@/src/components/WeatherBadge'
 import { useAuthStore } from '@/src/store/auth'
 import { palette, spacing } from '@/src/theme'
+import { fetchEventWeatherSnapshots, type EventWeatherSnapshot } from '@/src/lib/event-weather-snapshots'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -107,6 +108,7 @@ function EventsTab() {
   const [showSort, setShowSort] = useState(false)
   const [sortKey, setSortKey] = useState<SortKey>('new')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
+  const [weatherSnapshots, setWeatherSnapshots] = useState<Record<number, EventWeatherSnapshot | null>>({})
   const discoveryLat = user?.home?.lat ?? user?.location?.lat ?? null
   const discoveryLng = user?.home?.lng ?? user?.location?.lng ?? null
 
@@ -147,6 +149,31 @@ function EventsTab() {
       setReminderIds(ids)
     }).catch(() => {})
   }, [])
+
+  useEffect(() => {
+    const weatherEligibleIds = events
+      .filter((event) => event.location.lat != null && event.location.lng != null)
+      .map((event) => event.id)
+
+    if (weatherEligibleIds.length === 0) {
+      setWeatherSnapshots({})
+      return
+    }
+
+    let cancelled = false
+
+    fetchEventWeatherSnapshots(weatherEligibleIds)
+      .then((data) => {
+        if (!cancelled) setWeatherSnapshots(data)
+      })
+      .catch(() => {
+        if (!cancelled) setWeatherSnapshots({})
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [events])
 
   function shareEvent(ev: EventItem) {
     const d = new Date(ev.schedule.start_at)
@@ -364,6 +391,7 @@ function EventsTab() {
                   lng={ev.location.lng}
                   isoDate={ev.schedule.start_at.slice(0, 10)}
                   hour={new Date(ev.schedule.start_at).getHours()}
+                  weather={weatherSnapshots[ev.id] ?? null}
                 />
               )}
               {ev.location.address ? (

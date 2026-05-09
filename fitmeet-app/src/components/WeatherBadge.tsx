@@ -10,27 +10,34 @@ type Props = {
   lng: number
   isoDate: string
   hour: number
+  weather?: EventWeather | null
 }
 
-export function WeatherBadge({ lat, lng, isoDate, hour }: Props) {
+export function WeatherBadge({ lat, lng, isoDate, hour, weather: weatherProp }: Props) {
   const [weather, setWeather] = useState<EventWeather | null>(null)
 
   useEffect(() => {
-    fetchEventWeather(lat, lng, isoDate, hour).then(setWeather)
-  }, [lat, lng, isoDate, hour])
+    if (weatherProp) {
+      setWeather(weatherProp)
+      return
+    }
 
-  if (!weather) return null
+    fetchEventWeather(lat, lng, isoDate, hour).then(setWeather)
+  }, [lat, lng, isoDate, hour, weatherProp])
+
+  const resolvedWeather = weatherProp ?? weather
+  if (!resolvedWeather) return null
 
   return (
     <View style={styles.row}>
-      <Ionicons name={weatherIconName(weather.code) as any} size={13} color={palette.textDim} />
+      <Ionicons name={weatherIconName(resolvedWeather.code) as never} size={13} color={palette.textDim} />
       <Text style={styles.temp}>
-        {weather.tempMin}°/{weather.tempMax}°
+        {resolvedWeather.tempMin}°/{resolvedWeather.tempMax}°
       </Text>
       <View style={styles.divider} />
       <Ionicons name="speedometer-outline" size={13} color={palette.textDim} />
-      <Text style={styles.wind}>{weather.windSpeed} km/h</Text>
-      <View style={{ transform: [{ rotate: `${(weather.windDir + 180) % 360}deg` }] }}>
+      <Text style={styles.wind}>{resolvedWeather.windSpeed} km/h</Text>
+      <View style={{ transform: [{ rotate: `${(resolvedWeather.windDir + 180) % 360}deg` }] }}>
         <Ionicons name="arrow-up-outline" size={13} color={palette.textDim} />
       </View>
     </View>

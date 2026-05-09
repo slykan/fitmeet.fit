@@ -12,6 +12,7 @@ import { InProgressBadge } from '@/src/components/InProgressBadge'
 import { WeatherBadge } from '@/src/components/WeatherBadge'
 import { CATEGORIES } from '@/src/lib/categories'
 import { api } from '@/src/lib/api'
+import { fetchEventWeatherSnapshots, type EventWeatherSnapshot } from '@/src/lib/event-weather-snapshots'
 import { cloudLabel, CurrentWeather, fetchCurrentWeather } from '@/src/lib/weather'
 import { useAuthStore } from '@/src/store/auth'
 import { palette, spacing } from '@/src/theme'
@@ -78,6 +79,7 @@ export default function HubScreen() {
   const [mapTouching, setMapTouching] = useState(false)
   const [weatherCenter, setWeatherCenter] = useState<{ lat: number; lng: number } | null>(null)
   const [mapWasMoved, setMapWasMoved] = useState(false)
+  const [weatherSnapshots, setWeatherSnapshots] = useState<Record<number, EventWeatherSnapshot | null>>({})
 
   const discoveryCenter = useMemo(() => {
     const lat = user?.home?.lat ?? user?.location?.lat
@@ -157,6 +159,31 @@ export default function HubScreen() {
     fetchCurrentWeather(effectiveWeatherCenter.lat, effectiveWeatherCenter.lng).then(setWeather).catch(() => setWeather(null))
   }, [effectiveWeatherCenter.lat, effectiveWeatherCenter.lng])
 
+  useEffect(() => {
+    const weatherEligibleIds = events
+      .filter((event) => event.location.lat != null && event.location.lng != null)
+      .map((event) => event.id)
+
+    if (weatherEligibleIds.length === 0) {
+      setWeatherSnapshots({})
+      return
+    }
+
+    let cancelled = false
+
+    fetchEventWeatherSnapshots(weatherEligibleIds)
+      .then((data) => {
+        if (!cancelled) setWeatherSnapshots(data)
+      })
+      .catch(() => {
+        if (!cancelled) setWeatherSnapshots({})
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [events])
+
   function toggleCategory(value: string) {
     setCategories((prev) => {
       const next = new Set(prev)
@@ -232,6 +259,7 @@ export default function HubScreen() {
             lng={ev.location.lng}
             isoDate={ev.schedule.start_at.slice(0, 10)}
             hour={new Date(ev.schedule.start_at).getHours()}
+            weather={weatherSnapshots[ev.id] ?? null}
           />
           {ev.location.address ? (
             <View style={styles.detailRow}>
