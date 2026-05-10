@@ -211,6 +211,7 @@ export default function EventDetailScreen() {
   const [commentSelection, setCommentSelection] = useState({ start: 0, end: 0 })
   const [selectedMentions, setSelectedMentions] = useState<MentionDraft[]>([])
   const [zoomAvatar, setZoomAvatar] = useState<string | null>(null)
+  const [mapEnabled, setMapEnabled] = useState(false)
 
   const loadEvent = useCallback(() => {
     if (!id) return
@@ -592,6 +593,7 @@ export default function EventDetailScreen() {
 
       <ScrollView
         ref={scrollRef}
+        scrollEnabled={!mapEnabled}
         contentContainerStyle={[styles.content, { paddingBottom: spacing.xl + keyboardHeight }]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -694,6 +696,7 @@ export default function EventDetailScreen() {
             lng={event.location.lng}
             emoji={CATEGORY_EMOJI[event.category.value] ?? '📍'}
             coloredSegments={coloredSegments.length > 0 ? coloredSegments : undefined}
+            onMapEnabledChange={setMapEnabled}
           />
         )}
 

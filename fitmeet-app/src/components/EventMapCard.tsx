@@ -14,6 +14,7 @@ type Props = {
   lng: number
   emoji?: string
   coloredSegments?: TrackSegment[]
+  onMapEnabledChange?: (enabled: boolean) => void
 }
 
 const WIND_CSS = `
@@ -187,7 +188,7 @@ function buildHtml(
 </html>`
 }
 
-export function EventMapCard({ lat, lng, emoji = '📍', coloredSegments }: Props) {
+export function EventMapCard({ lat, lng, emoji = '📍', coloredSegments, onMapEnabledChange }: Props) {
   const webViewRef = useRef<WebViewType>(null)
   const [weather, setWeather] = useState<CurrentWeather | null>(null)
   const [center, setCenter] = useState({ lat, lng })
@@ -201,6 +202,10 @@ export function EventMapCard({ lat, lng, emoji = '📍', coloredSegments }: Prop
     setCenter({ lat, lng })
     setMapEnabled(false)
   }, [lat, lng])
+
+  useEffect(() => {
+    onMapEnabledChange?.(mapEnabled)
+  }, [mapEnabled, onMapEnabledChange])
 
   useEffect(() => {
     fetchCurrentWeather(center.lat, center.lng).then(setWeather).catch(() => {})
@@ -272,8 +277,8 @@ const styles = StyleSheet.create({
   webview: { flex: 1, backgroundColor: 'transparent' },
   mapOverlay: {
     ...StyleSheet.absoluteFillObject,
-    justifyContent: 'flex-end',
-    alignItems: 'flex-end',
+    justifyContent: 'flex-start',
+    alignItems: 'flex-start',
     padding: 12,
   },
   mapModeBtn: {
