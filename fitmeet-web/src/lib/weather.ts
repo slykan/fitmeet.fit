@@ -228,6 +228,10 @@ export function windDirectionLabel(degrees: number): string {
   return labels[index]
 }
 
+export function windFlowDirectionLabel(degrees: number): string {
+  return windDirectionLabel(degrees + 180)
+}
+
 export function windFlowRotation(degrees: number): number {
   return (((degrees + 90) % 360) + 360) % 360
 }
