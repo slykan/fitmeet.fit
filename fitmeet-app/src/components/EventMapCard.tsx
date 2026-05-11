@@ -25,14 +25,14 @@ const WIND_CSS = `
   .wo.interacting *{animation-play-state:paused!important;}
   .ws {
     position:absolute; border-radius:999px;
-    background:linear-gradient(90deg,rgba(255,255,255,0),rgba(168,255,214,0.88),rgba(118,212,142,1),rgba(255,255,255,0));
-    box-shadow:0 0 7px rgba(118,212,142,0.28);
+    background:linear-gradient(90deg,rgba(255,255,255,0),rgba(255,126,126,0.88),rgba(255,59,59,1),rgba(255,255,255,0));
+    box-shadow:0 0 7px rgba(255,59,59,0.3);
     transform-origin:center;
     animation:wm linear infinite; opacity:0;
   }
   .wp {
     position:absolute;width:3px;height:3px;border-radius:999px;
-    background:rgba(200,255,230,0.86);box-shadow:0 0 7px rgba(168,255,214,0.22);
+    background:rgba(255,186,186,0.9);box-shadow:0 0 7px rgba(255,92,92,0.26);
     transform-origin:center;
     animation:wm linear infinite;opacity:0;
   }
@@ -193,6 +193,7 @@ export function EventMapCard({ lat, lng, emoji = '📍', coloredSegments, onMapE
   const [weather, setWeather] = useState<CurrentWeather | null>(null)
   const [center, setCenter] = useState({ lat, lng })
   const [mapEnabled, setMapEnabled] = useState(false)
+  const [weatherRefreshTick, setWeatherRefreshTick] = useState(0)
   const html = useMemo(
     () => buildHtml(lat, lng, { lat, lng }, emoji, null, coloredSegments ?? []),
     [lat, lng, emoji, coloredSegments],
@@ -208,8 +209,13 @@ export function EventMapCard({ lat, lng, emoji = '📍', coloredSegments, onMapE
   }, [mapEnabled, onMapEnabledChange])
 
   useEffect(() => {
+    const id = setInterval(() => setWeatherRefreshTick((current) => current + 1), 15 * 60 * 1000)
+    return () => clearInterval(id)
+  }, [])
+
+  useEffect(() => {
     fetchCurrentWeather(center.lat, center.lng).then(setWeather).catch(() => {})
-  }, [center.lat, center.lng])
+  }, [center.lat, center.lng, weatherRefreshTick])
 
   const weatherRef = useRef<CurrentWeather | null>(null)
   weatherRef.current = weather

@@ -80,6 +80,7 @@ export default function HubScreen() {
   const [weatherCenter, setWeatherCenter] = useState<{ lat: number; lng: number } | null>(null)
   const [mapWasMoved, setMapWasMoved] = useState(false)
   const [weatherSnapshots, setWeatherSnapshots] = useState<Record<number, EventWeatherSnapshot | null>>({})
+  const [weatherRefreshTick, setWeatherRefreshTick] = useState(0)
 
   const discoveryCenter = useMemo(() => {
     const lat = user?.home?.lat ?? user?.location?.lat
@@ -156,8 +157,13 @@ export default function HubScreen() {
   }, [mapCenter.lat, mapCenter.lng, mapWasMoved])
 
   useEffect(() => {
+    const id = setInterval(() => setWeatherRefreshTick((current) => current + 1), 15 * 60 * 1000)
+    return () => clearInterval(id)
+  }, [])
+
+  useEffect(() => {
     fetchCurrentWeather(effectiveWeatherCenter.lat, effectiveWeatherCenter.lng).then(setWeather).catch(() => setWeather(null))
-  }, [effectiveWeatherCenter.lat, effectiveWeatherCenter.lng])
+  }, [effectiveWeatherCenter.lat, effectiveWeatherCenter.lng, weatherRefreshTick])
 
   useEffect(() => {
     const weatherEligibleIds = events

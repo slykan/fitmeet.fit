@@ -49,8 +49,16 @@ type OpenMeteoCurrentResponse = {
   }
 }
 
-const cache = new Map<string, EventWeather>()
-const currentCache = new Map<string, CurrentWeather>()
+type CacheEntry<T> = {
+  value: T
+  fetchedAt: number
+}
+
+const EVENT_WEATHER_TTL_MS = 15 * 60 * 1000
+const CURRENT_WEATHER_TTL_MS = 15 * 60 * 1000
+
+const cache = new Map<string, CacheEntry<EventWeather>>()
+const currentCache = new Map<string, CacheEntry<CurrentWeather>>()
 
 export async function fetchEventWeather(
   lat: number,
@@ -59,7 +67,8 @@ export async function fetchEventWeather(
   hour: number,
 ): Promise<EventWeather | null> {
   const key = `${lat},${lng},${isoDate},${hour}`
-  if (cache.has(key)) return cache.get(key)!
+  const cached = cache.get(key)
+  if (cached && Date.now() - cached.fetchedAt <= EVENT_WEATHER_TTL_MS) return cached.value
 
   try {
     const url =
@@ -88,7 +97,7 @@ export async function fetchEventWeather(
       precipitation: Math.round((data.hourly.precipitation[idx] ?? 0) * 10) / 10,
     }
 
-    cache.set(key, result)
+    cache.set(key, { value: result, fetchedAt: Date.now() })
     return result
   } catch {
     return null
@@ -100,7 +109,8 @@ export async function fetchCurrentWeather(
   lng: number,
 ): Promise<CurrentWeather | null> {
   const key = `${lat.toFixed(3)},${lng.toFixed(3)}`
-  if (currentCache.has(key)) return currentCache.get(key)!
+  const cached = currentCache.get(key)
+  if (cached && Date.now() - cached.fetchedAt <= CURRENT_WEATHER_TTL_MS) return cached.value
 
   try {
     const url =
@@ -124,7 +134,7 @@ export async function fetchCurrentWeather(
       precipitation: Math.round((current.precipitation ?? 0) * 10) / 10,
     }
 
-    currentCache.set(key, result)
+    currentCache.set(key, { value: result, fetchedAt: Date.now() })
     return result
   } catch {
     return null

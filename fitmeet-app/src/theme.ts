@@ -4,8 +4,8 @@ export const palette = {
   panelRaised: '#12192d',
   line: '#1b2440',
   text: '#f5f7ff',
-  textMuted: '#9ca7c4',
-  textDim: '#7380a3',
+  textMuted: '#b3bdd7',
+  textDim: '#8f9bbd',
   accent: '#6cff2f',
 } as const
 

@@ -74,14 +74,14 @@ function buildMapHtml(
     }
     .wind-stream {
       position:absolute; border-radius:999px;
-      background:linear-gradient(90deg,rgba(255,255,255,0),rgba(168,255,214,0.92),rgba(118,212,142,1),rgba(255,255,255,0));
-      box-shadow:0 0 8px rgba(118,212,142,0.3);
+      background:linear-gradient(90deg,rgba(255,255,255,0),rgba(255,126,126,0.92),rgba(255,59,59,1),rgba(255,255,255,0));
+      box-shadow:0 0 8px rgba(255,59,59,0.32);
       transform-origin:center;
       animation:windMove linear infinite; opacity:0;
     }
     .wind-particle {
       position:absolute; width:3px; height:3px; border-radius:999px;
-      background:rgba(200,255,230,0.86); box-shadow:0 0 8px rgba(168,255,214,0.24);
+      background:rgba(255,186,186,0.9); box-shadow:0 0 8px rgba(255,92,92,0.28);
       transform-origin:center;
       animation:windMove linear infinite; opacity:0;
     }
