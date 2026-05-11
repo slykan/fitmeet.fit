@@ -125,11 +125,9 @@ export function WindOverlay({
 
   if (!weather || (!showWind && !showClouds)) return null
 
-  const animationBearing = isHub
-    ? (((weather.windDir - 90) % 360) + 360) % 360
-    : (weather.windDir + 180) % 360
-  const windTransformAngle = animationBearing
-  const windGradientAngle = animationBearing
+  const visualBearing = (weather.windDir + 180) % 360
+  const windTransformAngle = (((visualBearing - 90) % 360) + 360) % 360
+  const windGradientAngle = visualBearing
   const effectiveWind = Math.max(8, weather.windSpeed)
   const isCloudy = showClouds && weather.code > 0 && weather.code <= 48
   const isRainy = showClouds && ((weather.code >= 51 && weather.code <= 67) || (weather.code >= 80 && weather.code <= 82))
