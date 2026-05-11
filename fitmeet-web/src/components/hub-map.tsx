@@ -318,11 +318,11 @@ export default function HubMap() {
 
   useEffect(() => {
     const params: Record<string, unknown> = {}
-    const hasCoords = Boolean(lat && lng)
+    const hasCoords = Boolean(lat && lng && radiusKm !== null)
     if (hasCoords) {
       params.lat = lat
       params.lng = lng
-      params.radius_km = 500
+      params.radius_km = radiusKm
     }
     if (friendsOnly) {
       params.friends_only = 1
@@ -333,7 +333,7 @@ export default function HubMap() {
       })
       .catch(() => {})
       .finally(() => setReady(true))
-  }, [lat, lng, friendsOnly])
+  }, [lat, lng, radiusKm, friendsOnly])
 
   useEffect(() => {
     if (selected?.location?.lat != null && selected.location.lng != null) {
