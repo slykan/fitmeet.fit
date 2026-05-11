@@ -5,7 +5,7 @@ import { MapContainer, TileLayer, Marker, Polyline, useMapEvents, useMap } from 
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import type { TrackSegment } from '@/lib/parse-gpx'
-import { weatherCloudStrength, weatherRainStrength, windFlowDirectionLabel, windFlowRotation, type EventWeather } from '@/lib/weather'
+import { weatherCloudStrength, weatherRainStrength, windDirectionLabel, windDirectionRotation, type EventWeather } from '@/lib/weather'
 
 // Fix Leaflet default marker icons (broken in bundlers)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -125,8 +125,8 @@ export function WindOverlay({
 
   if (!weather || (!showWind && !showClouds)) return null
 
-  const flowAngle = (weather.windDir + 180) % 360
-  const flowTransformAngle = windFlowRotation(weather.windDir)
+  const windTransformAngle = windDirectionRotation(weather.windDir)
+  const windGradientAngle = windTransformAngle
   const effectiveWind = Math.max(8, weather.windSpeed)
   const isCloudy = showClouds && weather.code > 0 && weather.code <= 48
   const isRainy = showClouds && ((weather.code >= 51 && weather.code <= 67) || (weather.code >= 80 && weather.code <= 82))
@@ -172,7 +172,7 @@ export function WindOverlay({
           overflow: 'hidden',
           zIndex: 500,
           background: showWind
-            ? `linear-gradient(${flowAngle}deg, rgba(${isHub ? '28,66,38' : '32,72,42'},${glowBaseOpacity * 0.64}), rgba(255,255,255,0.01), rgba(${isHub ? '110,182,134' : '122,194,144'},${Math.min((glowBaseOpacity + (isHub ? (isMobile ? 0.14 : 0.1) : (isMobile ? 0.1 : 0.06))) * 0.66, isHub ? (isMobile ? 0.28 : 0.2) : (isMobile ? 0.24 : 0.16))}))`
+            ? `linear-gradient(${windGradientAngle}deg, rgba(${isHub ? '28,66,38' : '32,72,42'},${glowBaseOpacity * 0.64}), rgba(255,255,255,0.01), rgba(${isHub ? '110,182,134' : '122,194,144'},${Math.min((glowBaseOpacity + (isHub ? (isMobile ? 0.14 : 0.1) : (isMobile ? 0.1 : 0.06))) * 0.66, isHub ? (isMobile ? 0.28 : 0.2) : (isMobile ? 0.24 : 0.16))}))`
             : 'transparent',
         }}
       >
@@ -237,7 +237,7 @@ export function WindOverlay({
               inset: 0,
               background: isHub
                 ? `linear-gradient(180deg, rgba(186,206,228,${Math.min(rainOpacity * 0.44, 0.44)}), rgba(186,206,228,${Math.min(rainOpacity * 0.24, 0.24)}))`
-                : `repeating-linear-gradient(${flowAngle + 18}deg, rgba(84,152,214,0) 0px, rgba(84,152,214,0) 8px, rgba(84,152,214,${Math.min(rainOpacity * 0.96, 0.96)}) 10px, rgba(84,152,214,0) 14px)`,
+                : `repeating-linear-gradient(${windGradientAngle + 18}deg, rgba(84,152,214,0) 0px, rgba(84,152,214,0) 8px, rgba(84,152,214,${Math.min(rainOpacity * 0.96, 0.96)}) 10px, rgba(84,152,214,0) 14px)`,
               opacity: isHub ? 0.9 : 0.42,
               animation: isHub ? 'none' : 'fitmeet-rain-shift 7s linear infinite',
             }}
@@ -249,7 +249,7 @@ export function WindOverlay({
             style={{
               position: 'absolute',
               inset: 0,
-              background: `repeating-linear-gradient(${flowAngle}deg, rgba(185,40,40,0) 0px, rgba(185,40,40,0) 12px, rgba(255,94,94,${Math.min(streamOpacity * (isHub ? (isMobile ? 0.11 : 0.085) : (isMobile ? 0.075 : 0.055)), isHub ? (isMobile ? 0.11 : 0.085) : (isMobile ? 0.06 : 0.04))}) 13px, rgba(185,40,40,0) 18px)`,
+              background: `repeating-linear-gradient(${windGradientAngle}deg, rgba(185,40,40,0) 0px, rgba(185,40,40,0) 12px, rgba(255,94,94,${Math.min(streamOpacity * (isHub ? (isMobile ? 0.11 : 0.085) : (isMobile ? 0.075 : 0.055)), isHub ? (isMobile ? 0.11 : 0.085) : (isMobile ? 0.06 : 0.04))}) 13px, rgba(185,40,40,0) 18px)`,
               opacity: windFieldOpacity,
             }}
           />
@@ -262,7 +262,7 @@ export function WindOverlay({
               position: 'absolute',
               left: `${stream.left}%`,
               top: `${stream.top}%`,
-              transform: `rotate(${flowTransformAngle}deg)`,
+              transform: `rotate(${windTransformAngle}deg)`,
               transformOrigin: 'left center',
             }}
           >
@@ -294,7 +294,7 @@ export function WindOverlay({
               position: 'absolute',
               left: `${particle.left}%`,
               top: `${particle.top}%`,
-              transform: `rotate(${flowTransformAngle}deg)`,
+              transform: `rotate(${windTransformAngle}deg)`,
             }}
           >
             <span
@@ -356,7 +356,7 @@ export function WindOverlay({
               fontWeight: 700,
             }}
           >
-            {windFlowDirectionLabel(weather.windDir)}
+            {windDirectionLabel(weather.windDir)}
           </span>
           <span>{weather.windSpeed} km/h</span>
         </div>
