@@ -5,7 +5,7 @@ import { MapContainer, TileLayer, Marker, Polyline, useMapEvents, useMap } from 
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import type { TrackSegment } from '@/lib/parse-gpx'
-import { weatherCloudStrength, weatherRainStrength, windDirectionLabel, windDirectionRotation, type EventWeather } from '@/lib/weather'
+import { weatherCloudStrength, weatherRainStrength, windDirectionLabel, type EventWeather } from '@/lib/weather'
 
 // Fix Leaflet default marker icons (broken in bundlers)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -125,8 +125,9 @@ export function WindOverlay({
 
   if (!weather || (!showWind && !showClouds)) return null
 
-  const windTransformAngle = windDirectionRotation(weather.windDir)
-  const windGradientAngle = windTransformAngle
+  const flowBearing = (weather.windDir + 180) % 360
+  const windTransformAngle = flowBearing
+  const windGradientAngle = flowBearing
   const effectiveWind = Math.max(8, weather.windSpeed)
   const isCloudy = showClouds && weather.code > 0 && weather.code <= 48
   const isRainy = showClouds && ((weather.code >= 51 && weather.code <= 67) || (weather.code >= 80 && weather.code <= 82))
