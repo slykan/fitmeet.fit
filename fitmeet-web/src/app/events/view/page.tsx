@@ -13,7 +13,7 @@ import { EventWall } from '@/components/event-wall'
 import ElevationChart from '@/components/elevation-chart'
 import { shortAddress } from '@/lib/format-address'
 import { formatEventDateTime } from '@/lib/event-time'
-import { fetchEventWeather, weatherSlot, windDirectionLabel, type EventWeather } from '@/lib/weather'
+import { fetchRelevantEventWeather, windDirectionLabel, type EventWeather } from '@/lib/weather'
 import api from '@/lib/api'
 import { parseGpx, GpxResult } from '@/lib/parse-gpx'
 import { useAuthStore } from '@/store/auth'
@@ -108,8 +108,12 @@ function EventContent() {
   useEffect(() => {
     if (!event?.location || event.location.lat == null || event.location.lng == null) return
     if (!weatherCenter) return
-    const { isoDate, hour } = weatherSlot(event.schedule.start_at, event.schedule.timezone)
-    fetchEventWeather(weatherCenter.lat, weatherCenter.lng, isoDate, hour)
+    fetchRelevantEventWeather(
+      weatherCenter.lat,
+      weatherCenter.lng,
+      event.schedule.start_at,
+      event.schedule.timezone,
+    )
       .then(setWeather)
       .catch(() => setWeather(null))
   }, [event?.id, event?.schedule?.start_at, event?.schedule?.timezone, weatherCenter, weatherRefreshTick])

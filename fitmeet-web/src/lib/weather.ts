@@ -9,6 +9,8 @@ export type EventWeather = {
   precipitation?: number
 }
 
+import { eventWeatherSlot, resolveEventTimeZone } from '@/lib/event-time'
+
 export { eventWeatherSlot as weatherSlot } from '@/lib/event-time'
 
 type OpenMeteoResponse = {
@@ -42,6 +44,7 @@ type CacheEntry = {
 
 const EVENT_WEATHER_TTL_MS = 15 * 60 * 1000
 const CURRENT_WEATHER_TTL_MS = 15 * 60 * 1000
+const LIVE_EVENT_WINDOW_HOURS = 6
 
 const cache = new Map<string, CacheEntry>()
 
@@ -158,6 +161,48 @@ export async function fetchCurrentWeather(
     cache.set(key, { value: null, fetchedAt: Date.now() })
     return null
   }
+}
+
+function getZonedNowParts(timezone?: string | null) {
+  const resolvedTimezone = resolveEventTimeZone(timezone)
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: resolvedTimezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    hour12: false,
+  }).formatToParts(new Date())
+
+  const map = Object.fromEntries(
+    parts
+      .filter((part) => part.type !== 'literal')
+      .map((part) => [part.type, part.value]),
+  ) as Record<'year' | 'month' | 'day' | 'hour', string>
+
+  return {
+    isoDate: `${map.year}-${map.month}-${map.day}`,
+    hour: Number.parseInt(map.hour, 10),
+  }
+}
+
+export async function fetchRelevantEventWeather(
+  lat: number,
+  lng: number,
+  startAt: string,
+  timezone?: string | null,
+): Promise<EventWeather | null> {
+  const eventSlot = eventWeatherSlot(startAt, timezone)
+  const nowSlot = getZonedNowParts(timezone)
+  const eventStartMs = new Date(startAt).getTime()
+  const diffHours = Math.abs(eventStartMs - Date.now()) / 3_600_000
+  const shouldUseCurrent = eventSlot.isoDate === nowSlot.isoDate && diffHours <= LIVE_EVENT_WINDOW_HOURS
+
+  if (shouldUseCurrent) {
+    return fetchCurrentWeather(lat, lng)
+  }
+
+  return fetchEventWeather(lat, lng, eventSlot.isoDate, eventSlot.hour)
 }
 
 export function weatherIcon(code: number): string {

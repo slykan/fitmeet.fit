@@ -5,7 +5,7 @@ import {
   Sun, CloudSun, Cloud, CloudRain, CloudSnow, CloudLightning,
   Wind,
 } from 'lucide-react'
-import { fetchEventWeather, weatherIcon, weatherSlot, windDirectionLabel, EventWeather } from '@/lib/weather'
+import { fetchRelevantEventWeather, weatherIcon, windDirectionLabel, EventWeather } from '@/lib/weather'
 
 // CSS keyframe injected once — animation-delay handles the 2s hold with fill-mode:both
 const REVEAL_CSS = `@keyframes fm-weather-in{from{opacity:0}to{opacity:1}}`
@@ -47,10 +47,9 @@ export function WeatherBadge({ lat, lng, startAt, timezone, inline = false, mapO
   useEffect(() => {
     setWeather(null)
     let cancelled = false
-    const { isoDate, hour } = weatherSlot(startAt, timezone)
     const p = providedWeather
       ? Promise.resolve(providedWeather)
-      : fetchEventWeather(lat, lng, isoDate, hour)
+      : fetchRelevantEventWeather(lat, lng, startAt, timezone)
     p.then(w => { if (!cancelled && w) setWeather(w) })
     return () => { cancelled = true }
   }, [lat, lng, startAt, timezone, providedWeather, refreshTick])

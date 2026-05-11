@@ -12,7 +12,7 @@ import { useAuthStore } from '@/store/auth'
 import { CATEGORIES, CATEGORY_EMOJI } from '@/lib/categories'
 import { EventCommentsPreview } from '@/components/event-comments-preview'
 import { WeatherBadge } from '@/components/WeatherBadge'
-import { fetchCurrentWeather, weatherConditionLabel, windDirectionLabel, type EventWeather } from '@/lib/weather'
+import { fetchCurrentWeather, fetchRelevantEventWeather, weatherConditionLabel, windDirectionLabel, type EventWeather } from '@/lib/weather'
 import { WindOverlay } from '@/components/location-picker-map'
 
 const openWeatherTileKey =
@@ -336,6 +336,30 @@ export default function HubMap() {
   }, [lat, lng, friendsOnly])
 
   useEffect(() => {
+    if (selected?.location?.lat != null && selected.location.lng != null) {
+      weatherRequestId.current += 1
+      const requestId = weatherRequestId.current
+      let cancelled = false
+
+      fetchRelevantEventWeather(
+        selected.location.lat,
+        selected.location.lng,
+        selected.schedule.start_at,
+        selected.schedule.timezone,
+      )
+        .then((weather) => {
+          if (cancelled || requestId !== weatherRequestId.current) return
+          setHubWeather(weather)
+        })
+        .catch(() => {
+          if (!cancelled && requestId === weatherRequestId.current) setHubWeather(null)
+        })
+
+      return () => {
+        cancelled = true
+      }
+    }
+
     if (!weatherCenter) {
       setHubWeather(null)
       return
@@ -357,7 +381,15 @@ export default function HubMap() {
     return () => {
       cancelled = true
     }
-  }, [weatherCenter, weatherRefreshTick])
+  }, [
+    selected?.id,
+    selected?.location?.lat,
+    selected?.location?.lng,
+    selected?.schedule?.start_at,
+    selected?.schedule?.timezone,
+    weatherCenter,
+    weatherRefreshTick,
+  ])
 
   useEffect(() => {
     api.get('/events/joined')
