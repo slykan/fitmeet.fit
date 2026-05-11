@@ -273,6 +273,13 @@ export function windDirectionLabel(degrees: number): string {
   return labels[index]
 }
 
+export function windDirectionLabelDetailed(degrees: number): string {
+  const labels = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW']
+  const normalized = ((degrees % 360) + 360) % 360
+  const index = Math.round(normalized / 22.5) % labels.length
+  return labels[index]
+}
+
 export function windDirectionRotation(degrees: number): number {
   return (((degrees - 90) % 360) + 360) % 360
 }

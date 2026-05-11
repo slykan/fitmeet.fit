@@ -12,7 +12,7 @@ import { useAuthStore } from '@/store/auth'
 import { CATEGORIES, CATEGORY_EMOJI } from '@/lib/categories'
 import { EventCommentsPreview } from '@/components/event-comments-preview'
 import { WeatherBadge } from '@/components/WeatherBadge'
-import { fetchCurrentWeather, fetchRelevantEventWeather, weatherConditionLabel, windDirectionLabel, type EventWeather } from '@/lib/weather'
+import { fetchCurrentWeather, fetchRelevantEventWeather, weatherConditionLabel, windDirectionLabelDetailed, type EventWeather } from '@/lib/weather'
 import { WindOverlay } from '@/components/location-picker-map'
 
 const openWeatherTileKey =
@@ -807,7 +807,7 @@ export default function HubMap() {
                   }}
                 >
                   <span>{hubWeather.windSpeed} km/h</span>
-                  <span style={{ color: '#58beff' }}>{windDirectionLabel(hubWeather.windDir)}</span>
+                  <span style={{ color: '#58beff' }}>{windDirectionLabelDetailed(hubWeather.windDir)}</span>
                 </span>
                 <span
                   style={{
