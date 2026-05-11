@@ -318,6 +318,7 @@ export default function HubMap() {
 
   useEffect(() => {
     const params: Record<string, unknown> = {}
+    params.per_page = 100
     const hasCoords = Boolean(lat && lng && radiusKm !== null)
     if (hasCoords) {
       params.lat = lat
