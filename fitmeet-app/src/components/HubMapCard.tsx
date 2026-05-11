@@ -131,13 +131,6 @@ function buildMapHtml(
     L.control.zoom({ position:'bottomright' }).addTo(map);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:18 }).addTo(map);
 
-    if (showWind) {
-      L.tileLayer(
-        'https://tile.openweathermap.org/map/wind_new/{z}/{x}/{y}.png?appid=' + OW_KEY,
-        { maxZoom:18, opacity:1.0, zIndex:219 }
-      ).addTo(map);
-    }
-
     if (showClouds) {
       L.tileLayer(
         'https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=' + OW_KEY,

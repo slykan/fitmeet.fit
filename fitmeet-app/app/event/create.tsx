@@ -81,7 +81,6 @@ function buildPickerMapHtml(lat: number | null, lng: number | null, track: [numb
       .setView([initLat,initLng],initZoom);
     L.control.zoom({position:'bottomright'}).addTo(map);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18}).addTo(map);
-    L.tileLayer('https://tile.openweathermap.org/map/wind_new/{z}/{x}/{y}.png?appid=${OW_KEY}',{maxZoom:18,opacity:0.7,zIndex:219}).addTo(map);
     L.tileLayer('https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=${OW_KEY}',{maxZoom:18,opacity:0.7,zIndex:220}).addTo(map);
 
     let marker = null;
