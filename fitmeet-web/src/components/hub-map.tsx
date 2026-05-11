@@ -532,13 +532,6 @@ export default function HubMap() {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         />
-        {showWeatherLayers && showWindOverlay && hasWeatherTiles && (
-          <TileLayer
-            url={`https://tile.openweathermap.org/map/wind_new/{z}/{x}/{y}.png?appid=${openWeatherTileKey}`}
-            opacity={1}
-            zIndex={219}
-          />
-        )}
         {showWeatherLayers && showCloudOverlay && openWeatherTileKey && (
           <>
             <TileLayer
