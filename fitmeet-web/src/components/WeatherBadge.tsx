@@ -34,6 +34,15 @@ const revealAnim = 'fm-weather-in 0.45s ease 1.8s both'
 
 export function WeatherBadge({ lat, lng, startAt, timezone, inline = false, mapOverlay = false, weather: providedWeather }: Props) {
   const [weather, setWeather] = useState<EventWeather | null>(null)
+  const [refreshTick, setRefreshTick] = useState(0)
+
+  useEffect(() => {
+    if (providedWeather) return
+    const interval = window.setInterval(() => {
+      setRefreshTick((tick) => tick + 1)
+    }, 15 * 60 * 1000)
+    return () => window.clearInterval(interval)
+  }, [providedWeather])
 
   useEffect(() => {
     setWeather(null)
@@ -44,7 +53,7 @@ export function WeatherBadge({ lat, lng, startAt, timezone, inline = false, mapO
       : fetchEventWeather(lat, lng, isoDate, hour)
     p.then(w => { if (!cancelled && w) setWeather(w) })
     return () => { cancelled = true }
-  }, [lat, lng, startAt, timezone, providedWeather])
+  }, [lat, lng, startAt, timezone, providedWeather, refreshTick])
 
   if (!weather) return null
 

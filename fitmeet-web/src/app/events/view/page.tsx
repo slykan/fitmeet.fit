@@ -76,6 +76,7 @@ function EventContent() {
   const [showCloudOverlay, setShowCloudOverlay] = useState(true)
   const [isMapInteracting, setIsMapInteracting] = useState(false)
   const [weatherCenter, setWeatherCenter] = useState<{ lat: number; lng: number } | null>(null)
+  const [weatherRefreshTick, setWeatherRefreshTick] = useState(0)
 
   useEffect(() => {
     if (!token) { router.replace('/login'); return }
@@ -111,7 +112,14 @@ function EventContent() {
     fetchEventWeather(weatherCenter.lat, weatherCenter.lng, isoDate, hour)
       .then(setWeather)
       .catch(() => setWeather(null))
-  }, [event?.id, event?.schedule?.start_at, event?.schedule?.timezone, weatherCenter])
+  }, [event?.id, event?.schedule?.start_at, event?.schedule?.timezone, weatherCenter, weatherRefreshTick])
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setWeatherRefreshTick((tick) => tick + 1)
+    }, 15 * 60 * 1000)
+    return () => window.clearInterval(interval)
+  }, [])
 
   async function handleJoin() {
     if (!event) return

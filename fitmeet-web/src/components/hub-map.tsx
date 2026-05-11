@@ -284,6 +284,7 @@ export default function HubMap() {
   const [showWindOverlay, setShowWindOverlay] = useState(true)
   const [showCloudOverlay, setShowCloudOverlay] = useState(true)
   const [isMapInteracting, setIsMapInteracting] = useState(false)
+  const [weatherRefreshTick, setWeatherRefreshTick] = useState(0)
   const weatherRequestId = useRef(0)
 
   const lat      = (user?.location?.lat  || user?.home?.lat  || null)
@@ -307,6 +308,13 @@ export default function HubMap() {
       setWeatherCenter({ lat, lng })
     }
   }, [lat, lng])
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setWeatherRefreshTick((tick) => tick + 1)
+    }, 15 * 60 * 1000)
+    return () => window.clearInterval(interval)
+  }, [])
 
   useEffect(() => {
     const params: Record<string, unknown> = {}
@@ -349,7 +357,7 @@ export default function HubMap() {
     return () => {
       cancelled = true
     }
-  }, [weatherCenter])
+  }, [weatherCenter, weatherRefreshTick])
 
   useEffect(() => {
     api.get('/events/joined')
