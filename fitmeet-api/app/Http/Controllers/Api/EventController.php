@@ -176,6 +176,7 @@ class EventController extends Controller
     {
         $event->increment('views_count');
         $event->load('organizer', 'participants');
+        $event->loadCount('comments');
 
         return response()->json(['data' => new EventResource($event)]);
     }
