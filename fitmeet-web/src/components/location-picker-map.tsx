@@ -5,7 +5,7 @@ import { MapContainer, TileLayer, Marker, Polyline, useMapEvents, useMap } from 
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import type { TrackSegment } from '@/lib/parse-gpx'
-import { weatherCloudStrength, weatherRainStrength, type EventWeather } from '@/lib/weather'
+import { weatherCloudStrength, weatherRainStrength, windDirectionLabel, windFlowRotation, type EventWeather } from '@/lib/weather'
 
 // Fix Leaflet default marker icons (broken in bundlers)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -125,10 +125,8 @@ export function WindOverlay({
 
   if (!weather || (!showWind && !showClouds)) return null
 
-  const sourceAngle = weather.windDir
   const flowAngle = (weather.windDir + 180) % 360
-  const flowTransformAngle = flowAngle - 90
-  const badgeAngle = sourceAngle + 90
+  const flowTransformAngle = windFlowRotation(weather.windDir)
   const effectiveWind = Math.max(8, weather.windSpeed)
   const isCloudy = showClouds && weather.code > 0 && weather.code <= 48
   const isRainy = showClouds && ((weather.code >= 51 && weather.code <= 67) || (weather.code >= 80 && weather.code <= 82))
@@ -353,14 +351,12 @@ export function WindOverlay({
           />
           <span
             style={{
-              display: 'inline-block',
-              transform: `rotate(${badgeAngle}deg)`,
               color: '#58beff',
-              lineHeight: 1,
-              fontSize: 14,
+              fontSize: 12,
+              fontWeight: 700,
             }}
           >
-            {'\u2192'}
+            {windDirectionLabel(weather.windDir)}
           </span>
           <span>{weather.windSpeed} km/h</span>
         </div>

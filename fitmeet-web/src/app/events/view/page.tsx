@@ -13,7 +13,7 @@ import { EventWall } from '@/components/event-wall'
 import ElevationChart from '@/components/elevation-chart'
 import { shortAddress } from '@/lib/format-address'
 import { formatEventDateTime } from '@/lib/event-time'
-import { fetchEventWeather, weatherSlot, type EventWeather } from '@/lib/weather'
+import { fetchEventWeather, weatherSlot, windDirectionLabel, type EventWeather } from '@/lib/weather'
 import api from '@/lib/api'
 import { parseGpx, GpxResult } from '@/lib/parse-gpx'
 import { useAuthStore } from '@/store/auth'
@@ -447,18 +447,8 @@ function EventContent() {
                   >
                     <span>{weather.tempCurrent ?? weather.tempMax}°</span>
                     <span style={{ width: 1, height: 12, background: 'rgba(255,255,255,0.16)', display: 'inline-block' }} />
-                    <span
-                      style={{
-                        display: 'inline-block',
-                        transform: `rotate(${weather.windDir + 90}deg)`,
-                        color: '#58beff',
-                        lineHeight: 1,
-                        fontSize: 14,
-                      }}
-                    >
-                      {'\u2192'}
-                    </span>
                     <span>{weather.windSpeed} km/h</span>
+                    <span style={{ color: '#58beff', fontWeight: 700 }}>{windDirectionLabel(weather.windDir)}</span>
                   </div>
                 )}
               </div>

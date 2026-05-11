@@ -5,7 +5,7 @@ import {
   Sun, CloudSun, Cloud, CloudRain, CloudSnow, CloudLightning,
   Wind,
 } from 'lucide-react'
-import { fetchEventWeather, weatherIcon, weatherSlot, EventWeather } from '@/lib/weather'
+import { fetchEventWeather, weatherIcon, weatherSlot, windDirectionLabel, EventWeather } from '@/lib/weather'
 
 // CSS keyframe injected once — animation-delay handles the 2s hold with fill-mode:both
 const REVEAL_CSS = `@keyframes fm-weather-in{from{opacity:0}to{opacity:1}}`
@@ -78,7 +78,7 @@ export function WeatherBadge({ lat, lng, startAt, timezone, inline = false, mapO
           <span style={{ width: 1, height: 10, background: 'rgba(255,255,255,0.2)', display: 'inline-block', margin: '0 2px' }} />
           <Wind size={12} />
           <span>{weather.windSpeed} km/h</span>
-          <span style={{ display: 'inline-block', transform: `rotate(${weather.windDir + 90}deg)`, lineHeight: 1, color: '#58beff' }}>→</span>
+          <span style={{ color: '#58beff', fontWeight: 700 }}>{windDirectionLabel(weather.windDir)}</span>
         </div>
       </>
     )
@@ -102,7 +102,7 @@ export function WeatherBadge({ lat, lng, startAt, timezone, inline = false, mapO
           <span style={{ width: 1, height: 10, background: 'var(--border)', display: 'inline-block', margin: '0 2px' }} />
           <Wind size={12} />
           <span>{weather.windSpeed} km/h</span>
-          <span style={{ display: 'inline-block', transform: `rotate(${weather.windDir + 90}deg)`, lineHeight: 1, color: '#58beff' }}>→</span>
+          <span style={{ color: '#58beff', fontWeight: 700 }}>{windDirectionLabel(weather.windDir)}</span>
         </span>
       </>
     )
@@ -122,7 +122,7 @@ export function WeatherBadge({ lat, lng, startAt, timezone, inline = false, mapO
         <span style={{ width: 1, height: 9, background: 'var(--border)', display: 'inline-block', margin: '0 1px' }} />
         <Wind size={11} />
         <span>{weather.windSpeed} km/h</span>
-        <span style={{ display: 'inline-block', transform: `rotate(${weather.windDir + 90}deg)`, lineHeight: 1, color: '#58beff' }}>→</span>
+        <span style={{ color: '#58beff', fontWeight: 700 }}>{windDirectionLabel(weather.windDir)}</span>
       </div>
     </>
   )

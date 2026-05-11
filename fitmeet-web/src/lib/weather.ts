@@ -220,3 +220,14 @@ export function weatherConditionLabel(code: number, precipitation?: number): str
   if (code >= 95) return 'Thunderstorm'
   return 'Clouds active'
 }
+
+export function windDirectionLabel(degrees: number): string {
+  const labels = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']
+  const normalized = ((degrees % 360) + 360) % 360
+  const index = Math.round(normalized / 45) % labels.length
+  return labels[index]
+}
+
+export function windFlowRotation(degrees: number): number {
+  return (((degrees + 90) % 360) + 360) % 360
+}
