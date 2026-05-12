@@ -17,6 +17,7 @@ import { formatEventDateParts } from '@/lib/event-time'
 import { useAuthStore } from '@/store/auth'
 import { shortAddress } from '@/lib/format-address'
 import { CATEGORIES, CATEGORY_EMOJI, FILTER_FEATURED } from '@/lib/categories'
+import { sortEventsBySchedule } from '@/lib/event-order'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -398,14 +399,14 @@ function EventsTab() {
     setLoading(true)
     if (goingOnly) {
       api.get('/events/joined', { params: pastOnly ? { past: 1 } : {} })
-        .then(({ data }) => setEvents(applyFriendsFilter(data.data ?? [])))
+        .then(({ data }) => setEvents(sortEventsBySchedule(applyFriendsFilter(data.data ?? []), pastOnly)))
         .catch(() => setEvents([]))
         .finally(() => setLoading(false))
       return
     }
     if (myOnly) {
       api.get('/events/my', { params: pastOnly ? { past: 1 } : {} })
-        .then(({ data }) => setEvents(applyFriendsFilter(data.data ?? [])))
+        .then(({ data }) => setEvents(sortEventsBySchedule(applyFriendsFilter(data.data ?? []), pastOnly)))
         .catch(() => setEvents([]))
         .finally(() => setLoading(false))
       return
@@ -424,7 +425,7 @@ function EventsTab() {
       params.radius_km = radiusKm
     }
     api.get('/events', { params })
-      .then(({ data }) => setEvents(applyFriendsFilter(data.data ?? [])))
+      .then(({ data }) => setEvents(sortEventsBySchedule(applyFriendsFilter(data.data ?? []), pastOnly)))
       .finally(() => setLoading(false))
   }, [category, radiusKm, goingOnly, friendsOnly, myOnly, pastOnly, friendIds, user])
 

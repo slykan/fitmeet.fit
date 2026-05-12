@@ -14,6 +14,7 @@ import { EventCommentsPreview } from '@/components/event-comments-preview'
 import { WeatherBadge } from '@/components/WeatherBadge'
 import { fetchCurrentWeather, fetchRelevantEventWeather, weatherConditionLabel, windDirectionLabelDetailed, type EventWeather } from '@/lib/weather'
 import { WindOverlay } from '@/components/location-picker-map'
+import { sortEventsBySchedule } from '@/lib/event-order'
 
 const openWeatherTileKey =
   process.env.NEXT_PUBLIC_OPENWEATHER_TILE_KEY ??
@@ -429,7 +430,7 @@ export default function HubMap() {
   const visibleEvents = useMemo(() => {
     const specialMode = goingOnly || friendsOnly || myOnly
     const source = myOnly ? myEvents : goingOnly ? joinedEvents : events
-    return source.filter(ev => {
+    const filtered = source.filter(ev => {
       if (friendsOnly && (!ev.organizer?.id || !friendIds.has(ev.organizer.id))) return false
       if (specialMode) return true
       if (selectedCategories.size > 0 && !selectedCategories.has(ev.category.value)) return false
@@ -438,6 +439,7 @@ export default function HubMap() {
       }
       return true
     })
+    return sortEventsBySchedule(filtered)
   }, [events, joinedEvents, myEvents, goingOnly, friendsOnly, myOnly, friendIds, selectedCategories, radiusKm, lat, lng])
 
   const markerDisplays = useMemo<MarkerDisplay[]>(() => {
