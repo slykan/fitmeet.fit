@@ -17,6 +17,7 @@ import { WeatherBadge } from '@/src/components/WeatherBadge'
 import { useAuthStore } from '@/src/store/auth'
 import { palette, spacing } from '@/src/theme'
 import { fetchEventWeatherSnapshots, type EventWeatherSnapshot } from '@/src/lib/event-weather-snapshots'
+import { sortEventsBySchedule } from '@/src/lib/event-order'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -65,11 +66,11 @@ const CATEGORY_EMOJI: Record<string, string> = Object.fromEntries(
   CATEGORIES.map(c => [c.value, c.emoji])
 )
 
-type SortKey = 'new' | 'views' | 'joined'
+type SortKey = 'soonest' | 'views' | 'joined'
 type SortDirection = 'asc' | 'desc'
 
 const SORT_OPTIONS: Array<{ key: SortKey; label: string; icon: string }> = [
-  { key: 'new',    label: 'Newest',      icon: 'sparkles-outline' },
+  { key: 'soonest', label: 'Soonest',     icon: 'time-outline' },
   { key: 'views',  label: 'Most viewed', icon: 'eye-outline' },
   { key: 'joined', label: 'Most joined', icon: 'people-outline' },
 ]
@@ -106,8 +107,8 @@ function EventsTab() {
   const [reminderIds, setReminderIds] = useState<Set<number>>(new Set())
   const [showFilter, setShowFilter] = useState(false)
   const [showSort, setShowSort] = useState(false)
-  const [sortKey, setSortKey] = useState<SortKey>('new')
-  const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
+  const [sortKey, setSortKey] = useState<SortKey>('soonest')
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
   const [weatherSnapshots, setWeatherSnapshots] = useState<Record<number, EventWeatherSnapshot | null>>({})
   const discoveryLat = user?.home?.lat ?? user?.location?.lat ?? null
   const discoveryLng = user?.home?.lng ?? user?.location?.lng ?? null
@@ -117,7 +118,11 @@ function EventsTab() {
     else setLoadingMore(true)
     try {
       let url = '/events'
-      const params: Record<string, unknown> = { page: pageNum, sort: sortKey, order: sortDirection }
+      const params: Record<string, unknown> = { page: pageNum, per_page: 100 }
+      if (sortKey !== 'soonest') {
+        params.sort = sortKey
+        params.order = sortDirection
+      }
       if (pastOnly) params.past = 1
       if (goingOnly) {
         url = '/events/joined'
@@ -135,7 +140,13 @@ function EventsTab() {
         if (friendsOnly) params.friends_only = 1
       }
       const { data } = await api.get(url, { params })
-      setEvents(prev => pageNum === 1 ? (data.data ?? []) : [...prev, ...(data.data ?? [])])
+      const incoming: EventItem[] = data.data ?? []
+      setEvents(prev => {
+        const merged = pageNum === 1 ? incoming : [...prev, ...incoming]
+        return sortKey === 'soonest'
+          ? sortEventsBySchedule(merged, { pastOnly, direction: sortDirection })
+          : merged
+      })
       setPage(pageNum)
       setLastPage(data.meta?.last_page ?? 1)
     } catch {}
@@ -205,7 +216,7 @@ function EventsTab() {
     }
 
     setSortKey(key)
-    setSortDirection('desc')
+    setSortDirection(key === 'soonest' ? 'asc' : 'desc')
   }
 
   return (

@@ -13,6 +13,7 @@ import { WeatherBadge } from '@/src/components/WeatherBadge'
 import { CATEGORIES } from '@/src/lib/categories'
 import { api } from '@/src/lib/api'
 import { fetchEventWeatherSnapshots, type EventWeatherSnapshot } from '@/src/lib/event-weather-snapshots'
+import { sortEventsBySchedule } from '@/src/lib/event-order'
 import { cloudLabel, CurrentWeather, fetchCurrentWeather } from '@/src/lib/weather'
 import { useAuthStore } from '@/src/store/auth'
 import { palette, spacing } from '@/src/theme'
@@ -111,7 +112,7 @@ export default function HubScreen() {
     if (pageNum === 1) setLoading(true)
     else setLoadingMore(true)
     try {
-      const params: Record<string, unknown> = { page: pageNum }
+      const params: Record<string, unknown> = { page: pageNum, per_page: 100 }
       const radius = RADIUS_OPTIONS[radiusIdx]?.km
       if (radius) {
         params.radius_km = radius
@@ -132,7 +133,7 @@ export default function HubScreen() {
       const filtered = categories.size > 0 && !goingOnly && !myOnly && !friendsOnly
         ? all.filter((ev) => categories.has(ev.category.value))
         : all
-      setEvents(prev => pageNum === 1 ? filtered : [...prev, ...filtered])
+      setEvents(prev => sortEventsBySchedule(pageNum === 1 ? filtered : [...prev, ...filtered], { pastOnly }))
       setPage(pageNum)
       setLastPage(data.meta?.last_page ?? 1)
     } catch {
