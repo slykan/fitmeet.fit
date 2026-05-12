@@ -70,7 +70,7 @@ type SortKey = 'soonest' | 'views' | 'joined'
 type SortDirection = 'asc' | 'desc'
 
 const SORT_OPTIONS: Array<{ key: SortKey; label: string; icon: string }> = [
-  { key: 'soonest', label: 'Soonest',     icon: 'time-outline' },
+  { key: 'soonest', label: 'Event date',  icon: 'calendar-outline' },
   { key: 'views',  label: 'Most viewed', icon: 'eye-outline' },
   { key: 'joined', label: 'Most joined', icon: 'people-outline' },
 ]
