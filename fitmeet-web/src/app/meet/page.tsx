@@ -412,6 +412,7 @@ function EventsTab() {
       return
     }
     const params: Record<string, unknown> = {}
+    params.per_page = 100
     if (pastOnly) params.past = 1
     if (category) params.category = category
     if (friendsOnly) params.friends_only = 1
