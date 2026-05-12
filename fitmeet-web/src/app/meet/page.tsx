@@ -130,6 +130,7 @@ function PeopleTab() {
   const [search,   setSearch]   = useState('')
   const [loading,  setLoading]  = useState(true)
   const [acting,   setActing]   = useState<number | null>(null)
+  const [confirmRemoveId, setConfirmRemoveId] = useState<number | null>(null)
   const [addError, setAddError] = useState<string | null>(null)
 
   const load = useCallback((q: string) => {
@@ -170,7 +171,10 @@ function PeopleTab() {
       await api.delete(`/friends/${userId}`)
       setUsers(u => u.map(x => x.id === userId ? { ...x, friendship_status: null } : x))
     } catch {}
-    finally { setActing(null) }
+    finally {
+      setActing(null)
+      setConfirmRemoveId(current => current === userId ? null : current)
+    }
   }
 
   useEffect(() => { load('') }, [load])
@@ -228,10 +232,35 @@ function PeopleTab() {
                 )}
               </div>
               {u.friendship_status === 'friends' ? (
-                <FriendButton
-                  acting={acting === u.id}
-                  onRemove={() => handleRemove(u.id)}
-                />
+                confirmRemoveId === u.id ? (
+                  <div className="flex-shrink-0 flex items-center gap-1.5">
+                    <button
+                      onClick={() => handleRemove(u.id)}
+                      disabled={acting === u.id}
+                      className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors disabled:opacity-50"
+                      style={{
+                        borderColor: '#f87171',
+                        color: '#f87171',
+                        background: 'rgba(248,113,113,0.08)',
+                      }}
+                    >
+                      {acting === u.id ? '…' : <><UserMinus size={13} /> Delete</>}
+                    </button>
+                    <button
+                      onClick={() => setConfirmRemoveId(null)}
+                      disabled={acting === u.id}
+                      className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors disabled:opacity-50"
+                      style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <FriendButton
+                    acting={acting === u.id}
+                    onRemove={() => setConfirmRemoveId(u.id)}
+                  />
+                )
               ) : u.friendship_status === 'pending_sent' ? (
                 <button
                   onClick={() => handleCancel(u.id)}
