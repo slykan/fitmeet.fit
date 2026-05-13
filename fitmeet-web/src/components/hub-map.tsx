@@ -713,6 +713,16 @@ export default function HubMap() {
             </div>
           </div>
         </div>
+
+        <button
+          type="button"
+          onClick={() => router.push('/events/create')}
+          className="pointer-events-auto self-start flex items-center gap-1.5 font-semibold transition-opacity hover:opacity-80"
+          style={{ background: 'var(--primary)', color: '#000', whiteSpace: 'nowrap', flexShrink: 0, borderRadius: 12, padding: '6px 10px', fontSize: 13 }}
+        >
+          <span style={{ fontSize: 16, lineHeight: 1 }}>+</span>
+          <span className="hidden md:inline">New Event</span>
+        </button>
       </div>
 
       <div

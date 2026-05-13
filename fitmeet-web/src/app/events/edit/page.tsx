@@ -514,11 +514,10 @@ function EditContent() {
                       borderRadius: 999,
                       fontSize: 12,
                       fontWeight: 800,
-                      border: '1px solid',
+                      border: mapEnabled ? '1px solid #39ff14' : '1px solid rgba(255,255,255,0.18)',
                       cursor: 'pointer',
                       backdropFilter: 'blur(8px)',
-                      borderColor: mapEnabled ? 'var(--primary)' : 'rgba(255,255,255,0.18)',
-                      background: mapEnabled ? 'var(--primary)' : 'rgba(7,13,28,0.85)',
+                      background: mapEnabled ? '#39ff14' : 'rgba(7,13,28,0.85)',
                       color: mapEnabled ? '#041109' : '#fff',
                     }}
                   >
