@@ -330,8 +330,7 @@ export default function HubScreen() {
               )}
             </Pressable>
             <Pressable style={styles.createBtn} onPress={() => router.push('/event/create' as never)}>
-              <Ionicons name="add" size={18} color="#031109" />
-              <Text style={styles.createBtnLabel}>New Event</Text>
+              <Ionicons name="add" size={22} color="#041109" />
             </Pressable>
           </View>
         </View>
@@ -512,11 +511,13 @@ const styles = StyleSheet.create({
   filterBtnLabel: { color: palette.text, fontSize: 13, fontWeight: '700' },
   filterBtnLabelActive: { color: '#031109' },
   createBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: palette.accent, borderRadius: 999,
-    paddingHorizontal: 12, paddingVertical: 8,
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    backgroundColor: palette.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  createBtnLabel: { color: '#031109', fontSize: 13, fontWeight: '800' },
   filterBadge: {
     backgroundColor: '#031109', borderRadius: 999,
     minWidth: 18, height: 18, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4,
