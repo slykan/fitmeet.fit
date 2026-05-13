@@ -329,9 +329,9 @@ export default function HubScreen() {
                 </View>
               )}
             </Pressable>
-            <Pressable style={styles.refreshChip} onPress={() => fetchEvents()}>
-              <Ionicons name="refresh-outline" size={16} color={palette.accent} />
-              <Text style={styles.refreshLabel}>Refresh</Text>
+            <Pressable style={styles.createBtn} onPress={() => router.push('/event/create' as never)}>
+              <Ionicons name="add" size={18} color="#031109" />
+              <Text style={styles.createBtnLabel}>New Event</Text>
             </Pressable>
           </View>
         </View>
@@ -489,7 +489,7 @@ const styles = StyleSheet.create({
 
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
   eyebrow: { color: palette.accent, fontSize: 13, fontWeight: '700', textTransform: 'uppercase' },
-  title: { color: palette.text, fontSize: 30, fontWeight: '800' },
+  title: { color: palette.text, fontSize: 22, fontWeight: '800' },
   refreshChip: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -511,6 +511,12 @@ const styles = StyleSheet.create({
   filterBtnActive: { backgroundColor: palette.accent, borderColor: palette.accent },
   filterBtnLabel: { color: palette.text, fontSize: 13, fontWeight: '700' },
   filterBtnLabelActive: { color: '#031109' },
+  createBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: palette.accent, borderRadius: 999,
+    paddingHorizontal: 12, paddingVertical: 8,
+  },
+  createBtnLabel: { color: '#031109', fontSize: 13, fontWeight: '800' },
   filterBadge: {
     backgroundColor: '#031109', borderRadius: 999,
     minWidth: 18, height: 18, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4,

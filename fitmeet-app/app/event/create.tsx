@@ -160,6 +160,7 @@ export default function CreateEventScreen() {
   const params = useLocalSearchParams<{ id?: string }>()
   const editId = typeof params.id === 'string' ? params.id : null
   const webViewRef = useRef<WebView>(null)
+  const [mapEnabled, setMapEnabled] = useState(false)
 
   // Basic
   const [title,       setTitle]       = useState('')
@@ -685,9 +686,23 @@ export default function CreateEventScreen() {
               domStorageEnabled
               geolocationEnabled
               scrollEnabled={false}
+              pointerEvents={mapEnabled ? 'auto' : 'none'}
               onMessage={handleWebViewMessage}
               style={styles.mapWebView}
             />
+            {!mapEnabled && (
+              <View style={StyleSheet.absoluteFillObject} pointerEvents="box-only" />
+            )}
+            <View pointerEvents="box-none" style={styles.mapOverlay}>
+              <Pressable
+                onPress={() => setMapEnabled(v => !v)}
+                style={[styles.mapModeBtn, mapEnabled && styles.mapModeBtnActive]}
+              >
+                <Text style={[styles.mapModeBtnText, mapEnabled && styles.mapModeBtnTextActive]}>
+                  {mapEnabled ? 'Done' : 'Move map'}
+                </Text>
+              </Pressable>
+            </View>
           </View>
           {lat !== null && (
             <Text style={styles.coordsLabel}>
@@ -1132,6 +1147,20 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: palette.line,
   },
   mapWebView: { flex: 1, backgroundColor: 'transparent' },
+  mapOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'flex-start',
+    alignItems: 'flex-start',
+    padding: 10,
+  },
+  mapModeBtn: {
+    borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7,
+    backgroundColor: 'rgba(7,13,28,0.88)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)',
+  },
+  mapModeBtnActive: { backgroundColor: palette.accent, borderColor: palette.accent },
+  mapModeBtnText: { color: '#fff', fontSize: 12, fontWeight: '800' },
+  mapModeBtnTextActive: { color: '#041109' },
   coordsLabel: { color: palette.textMuted, fontSize: 12, marginTop: 4 },
 
   searchBtn: {
