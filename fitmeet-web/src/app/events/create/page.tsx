@@ -78,6 +78,7 @@ export default function CreateEventPage() {
   const [saving,   setSaving]   = useState(false)
   const [error,    setError]    = useState<string | null>(null)
   const [locating, setLocating] = useState(false)
+  const [mapEnabled, setMapEnabled] = useState(false)
   const [eventTimezone, setEventTimezone] = useState(
     () => resolveEventTimeZone(Intl.DateTimeFormat().resolvedOptions().timeZone),
   )
@@ -471,12 +472,42 @@ export default function CreateEventPage() {
                   control={control}
                   rules={{ required: 'Pick a location on the map' }}
                   render={() => (
-                    <LocationPickerMap
-                      lat={watchedLat}
-                      lng={watchedLng}
-                      onChange={handleMapChange}
-                      coloredSegments={gpxResult?.coloredSegments}
-                    />
+                    <div style={{ position: 'relative' }}>
+                      <LocationPickerMap
+                        lat={watchedLat}
+                        lng={watchedLng}
+                        onChange={mapEnabled ? handleMapChange : undefined}
+                        coloredSegments={gpxResult?.coloredSegments}
+                      />
+                      {!mapEnabled && (
+                        <div
+                          style={{ position: 'absolute', inset: 0, zIndex: 800, borderRadius: 12 }}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setMapEnabled(v => !v)}
+                        style={{
+                          position: 'absolute',
+                          top: 10,
+                          left: 10,
+                          zIndex: 900,
+                          padding: '6px 12px',
+                          borderRadius: 999,
+                          fontSize: 12,
+                          fontWeight: 800,
+                          border: '1px solid',
+                          cursor: 'pointer',
+                          backdropFilter: 'blur(8px)',
+                          borderColor: mapEnabled ? 'var(--primary)' : 'rgba(255,255,255,0.18)',
+                          background: mapEnabled ? 'var(--primary)' : 'rgba(7,13,28,0.85)',
+                          color: mapEnabled ? '#041109' : '#fff',
+                        }}
+                      >
+                        {mapEnabled ? 'Done' : 'Move map'}
+                      </button>
+                    </div>
                   )}
                 />
                 {watchedLat !== null && watchedLng !== null && (
