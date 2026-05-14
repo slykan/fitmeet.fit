@@ -59,6 +59,7 @@ interface EventDetail {
   is_full: boolean
   is_joined: boolean
   is_organizer: boolean
+  notify_on_join: boolean
   is_private: boolean
   image_url: string | null
   youtube_url: string | null
@@ -198,6 +199,7 @@ export default function EventDetailScreen() {
   const [settingReminders, setSettingReminders] = useState(false)
   const [showSupportModal, setShowSupportModal] = useState(false)
   const joinedJustNow = useRef(false)
+  const [notifyOnJoin, setNotifyOnJoin] = useState(false)
   const [showParticipants, setShowParticipants] = useState(false)
   const [participantSectionY, setParticipantSectionY] = useState<number | null>(null)
   const [youtubeOpen, setYoutubeOpen] = useState(false)
@@ -286,6 +288,10 @@ export default function EventDetailScreen() {
         setSelectedOffsets(new Set())
       })
   }, [id])
+
+  useEffect(() => {
+    if (event?.is_joined) setNotifyOnJoin(event.notify_on_join)
+  }, [event?.notify_on_join, event?.is_joined])
 
   const loadComments = useCallback(async () => {
     if (!id || !event) return
@@ -380,6 +386,17 @@ export default function EventDetailScreen() {
       Alert.alert('Error', msg)
     } finally {
       setSettingReminders(false)
+    }
+  }
+
+  async function toggleNotifyOnJoin() {
+    if (!event) return
+    const next = !notifyOnJoin
+    setNotifyOnJoin(next)
+    try {
+      await api.post(`/events/${event.id}/join-notifications`, { enabled: next })
+    } catch {
+      setNotifyOnJoin(!next)
     }
   }
 
@@ -1020,6 +1037,18 @@ export default function EventDetailScreen() {
               })}
             </View>
 
+            {event?.is_joined && (
+              <Pressable style={styles.notifyJoinRow} onPress={toggleNotifyOnJoin}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.notifyJoinLabel}>Notify me when others join</Text>
+                  <Text style={styles.notifyJoinSub}>Get a push when a new participant joins this event.</Text>
+                </View>
+                <View style={[styles.toggle, notifyOnJoin && styles.toggleOn]}>
+                  <View style={[styles.toggleThumb, notifyOnJoin && styles.toggleThumbOn]} />
+                </View>
+              </Pressable>
+            )}
+
             <View style={styles.modalActions}>
               <Pressable style={styles.modalSecondary} onPress={closeReminderModal}>
                 <Text style={styles.modalSecondaryText}>Skip</Text>
@@ -1393,4 +1422,35 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   modalPrimaryText: { color: '#041109', fontSize: 14, fontWeight: '800' },
+  notifyJoinRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.07)',
+  },
+  notifyJoinLabel: { color: palette.text, fontSize: 14, fontWeight: '700', marginBottom: 2 },
+  notifyJoinSub: { color: palette.textMuted, fontSize: 12, lineHeight: 16 },
+  toggle: {
+    width: 44,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    padding: 3,
+    justifyContent: 'center',
+  },
+  toggleOn: { backgroundColor: palette.accent },
+  toggleThumb: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: palette.textMuted,
+    alignSelf: 'flex-start',
+  },
+  toggleThumbOn: {
+    backgroundColor: '#041109',
+    alignSelf: 'flex-end',
+  },
 })

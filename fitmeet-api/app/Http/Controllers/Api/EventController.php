@@ -383,12 +383,49 @@ HTML;
         }
 
         $event->increment('participants_count');
+
+        // Notify participants who opted in
+        $notifyIds = \DB::table('event_participants')
+            ->where('event_id', $event->id)
+            ->where('status', 'joined')
+            ->where('notify_on_join', true)
+            ->where('user_id', '!=', $user->id)
+            ->pluck('user_id')
+            ->toArray();
+
+        if (!empty($notifyIds)) {
+            dispatch(new \App\Jobs\SendPushNotification(
+                $notifyIds,
+                "{$user->name} joined!",
+                $event->title,
+                ['event_id' => (string) $event->id, 'type' => 'join_notification'],
+            ));
+        }
+
         $event->load('organizer', 'participants');
 
         return response()->json([
             'message' => 'Joined successfully.',
             'data' => new EventResource($event),
         ]);
+    }
+
+    // POST /api/events/{event}/join-notifications
+    public function setJoinNotifications(Request $request, Event $event): JsonResponse
+    {
+        $data = $request->validate(['enabled' => ['required', 'boolean']]);
+
+        $updated = \DB::table('event_participants')
+            ->where('event_id', $event->id)
+            ->where('user_id', $request->user()->id)
+            ->where('status', 'joined')
+            ->update(['notify_on_join' => $data['enabled']]);
+
+        if (!$updated) {
+            return response()->json(['message' => 'You are not a participant of this event.'], 422);
+        }
+
+        return response()->json(['notify_on_join' => $data['enabled']]);
     }
 
     // POST /api/events/{event}/leave

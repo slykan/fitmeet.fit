@@ -69,6 +69,9 @@ class EventResource extends JsonResource
             'is_joined'    => $user ? $this->participants->contains(
                 fn ($participant) => $participant->id === $user->id && $participant->pivot?->status === 'joined'
             ) : false,
+            'notify_on_join' => $user ? (bool) ($this->participants->first(
+                fn ($p) => $p->id === $user->id
+            )?->pivot?->notify_on_join ?? false) : false,
 
             // Distance from user (set by scopeNearby)
             'distance_km' => isset($this->distance_from_user)

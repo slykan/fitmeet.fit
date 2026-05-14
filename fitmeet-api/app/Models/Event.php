@@ -60,7 +60,7 @@ class Event extends Model
     public function participants(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'event_participants')
-            ->withPivot('status', 'joined_at')
+            ->withPivot('status', 'joined_at', 'notify_on_join')
             ->wherePivot('status', 'joined');
     }
 

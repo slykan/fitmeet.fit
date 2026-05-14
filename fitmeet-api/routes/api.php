@@ -124,5 +124,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('events/{event}/join', [EventController::class, 'join']);
     Route::post('events/{event}/leave', [EventController::class, 'leave']);
     Route::post('events/{event}/remind', [EventController::class, 'setReminders']);
+    Route::post('events/{event}/join-notifications', [EventController::class, 'setJoinNotifications']);
     Route::apiResource('events', EventController::class);
 });
