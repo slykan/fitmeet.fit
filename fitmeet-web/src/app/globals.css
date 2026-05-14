@@ -54,3 +54,25 @@ body {
 * {
   border-color: var(--border);
 }
+
+@keyframes users-ticker {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.users-ticker {
+  animation: users-ticker 20s linear infinite;
+  width: max-content;
+}
+
+.users-ticker:hover {
+  animation-play-state: paused;
+}
+
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}

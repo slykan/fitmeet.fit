@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateProfileRequest;
 use App\Http\Resources\UserResource;
+use App\Models\Event;
+use App\Models\EventComment;
 use App\Models\FriendRequest;
 use App\Models\User;
 use App\Models\UserPushToken;
@@ -15,6 +17,31 @@ use Illuminate\Support\Str;
 
 class UserController extends Controller
 {
+    public function publicLatest(): JsonResponse
+    {
+        $users = User::latest()->limit(10)->get(['id', 'name', 'avatar']);
+
+        return response()->json([
+            'data' => $users->map(fn ($u) => [
+                'id'     => $u->id,
+                'name'   => $u->name,
+                'avatar' => $u->avatar,
+            ]),
+        ]);
+    }
+
+    public function publicStats(): JsonResponse
+    {
+        $lastUser = User::latest()->first(['name']);
+
+        return response()->json([
+            'users_count'    => User::count(),
+            'last_user_name' => $lastUser?->name,
+            'events_count'   => Event::count(),
+            'comments_count' => EventComment::count(),
+        ]);
+    }
+
     public function index(Request $request): JsonResponse
     {
         $me    = $request->user();
