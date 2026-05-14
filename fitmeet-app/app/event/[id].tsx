@@ -18,6 +18,7 @@ import { parseGpxText } from '@/src/lib/gpx'
 import type { TrackSegment } from '@/src/lib/gpx'
 import { useAuthStore } from '@/src/store/auth'
 import { palette, spacing } from '@/src/theme'
+import { SupportFitMeetCard } from '@/src/components/SupportFitMeetCard'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -195,6 +196,8 @@ export default function EventDetailScreen() {
   const [selectedOffsets, setSelectedOffsets] = useState<Set<ReminderOffset>>(new Set())
   const [showReminderModal, setShowReminderModal] = useState(false)
   const [settingReminders, setSettingReminders] = useState(false)
+  const [showSupportModal, setShowSupportModal] = useState(false)
+  const joinedJustNow = useRef(false)
   const [showParticipants, setShowParticipants] = useState(false)
   const [participantSectionY, setParticipantSectionY] = useState<number | null>(null)
   const [youtubeOpen, setYoutubeOpen] = useState(false)
@@ -306,6 +309,14 @@ export default function EventDetailScreen() {
     loadComments().catch(() => {})
   }, [showWall, loadComments])
 
+  function closeReminderModal() {
+    setShowReminderModal(false)
+    if (joinedJustNow.current) {
+      joinedJustNow.current = false
+      setTimeout(() => setShowSupportModal(true), 350)
+    }
+  }
+
   async function join() {
     if (!event) return
     setActing(true)
@@ -317,6 +328,7 @@ export default function EventDetailScreen() {
         setEvent(fresh.data.data)
       }
       setSelectedOffsets(new Set(activeOffsets))
+      joinedJustNow.current = true
       setShowReminderModal(true)
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Could not join.'
@@ -362,7 +374,7 @@ export default function EventDetailScreen() {
       const offsets = Array.from(selectedOffsets)
       await api.post(`/events/${event.id}/remind`, { offsets })
       setActiveOffsets(offsets)
-      setShowReminderModal(false)
+      closeReminderModal()
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Could not save reminders.'
       Alert.alert('Error', msg)
@@ -970,8 +982,8 @@ export default function EventDetailScreen() {
 
         <View style={{ height: spacing.xl }} />
       </ScrollView>
-      <Modal visible={showReminderModal} transparent animationType="slide" onRequestClose={() => setShowReminderModal(false)}>
-        <Pressable style={styles.modalBackdrop} onPress={() => setShowReminderModal(false)}>
+      <Modal visible={showReminderModal} transparent animationType="slide" onRequestClose={closeReminderModal}>
+        <Pressable style={styles.modalBackdrop} onPress={closeReminderModal}>
           <Pressable style={styles.reminderModal} onPress={(e) => e.stopPropagation()}>
             <View style={styles.modalHeader}>
               <View style={styles.modalIcon}>
@@ -981,7 +993,7 @@ export default function EventDetailScreen() {
                 <Text style={styles.modalTitle}>{event?.is_joined ? 'Event reminder' : 'Successfully joined!'}</Text>
                 <Text style={styles.modalSubtitle}>Want a reminder before it starts?</Text>
               </View>
-              <Pressable style={styles.modalClose} onPress={() => setShowReminderModal(false)}>
+              <Pressable style={styles.modalClose} onPress={closeReminderModal}>
                 <Ionicons name="close" size={20} color={palette.textMuted} />
               </Pressable>
             </View>
@@ -1009,7 +1021,7 @@ export default function EventDetailScreen() {
             </View>
 
             <View style={styles.modalActions}>
-              <Pressable style={styles.modalSecondary} onPress={() => setShowReminderModal(false)}>
+              <Pressable style={styles.modalSecondary} onPress={closeReminderModal}>
                 <Text style={styles.modalSecondaryText}>Skip</Text>
               </Pressable>
               <Pressable style={[styles.modalPrimary, settingReminders && styles.disabledBtn]} onPress={saveReminders} disabled={settingReminders}>
@@ -1023,6 +1035,31 @@ export default function EventDetailScreen() {
           </Pressable>
         </Pressable>
       </Modal>
+
+      <Modal visible={showSupportModal} transparent animationType="fade" onRequestClose={() => setShowSupportModal(false)}>
+        <Pressable style={styles.modalBackdrop} onPress={() => setShowSupportModal(false)}>
+          <Pressable style={styles.reminderModal} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.modalHeader}>
+              <View style={[styles.modalIcon, { backgroundColor: 'rgba(246,198,91,0.12)', borderColor: 'rgba(246,198,91,0.28)' }]}>
+                <Ionicons name="beer-outline" size={22} color="#f6c65b" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.modalTitle}>You're in! 🎉</Text>
+                <Text style={styles.modalSubtitle}>FitMeet stays free — support it if you feel like it.</Text>
+              </View>
+              <Pressable style={styles.modalClose} onPress={() => setShowSupportModal(false)}>
+                <Ionicons name="close" size={20} color={palette.textMuted} />
+              </Pressable>
+            </View>
+            <SupportFitMeetCard
+              title="Buy me a beer"
+              subtitle="Every coffee or beer helps keep this app running and improving."
+              onPurchased={() => setShowSupportModal(false)}
+            />
+          </Pressable>
+        </Pressable>
+      </Modal>
+
       </KeyboardAvoidingView>
     </SafeAreaView>
   )
