@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BeerDonationController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\EventCommentController;
@@ -65,6 +66,7 @@ Route::get('turnstile', function () {
 
 // Public
 Route::get('categories', [CategoryController::class, 'index']);
+Route::get('beer-donations', [BeerDonationController::class, 'index']);
 Route::get('users/public-latest', [UserController::class, 'publicLatest']);
 Route::get('users/public-stats',  [UserController::class, 'publicStats']);
 Route::get('events/public/{event}',   [EventController::class, 'publicShow']);
@@ -98,6 +100,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('friends/cancel/{user}',          [FriendController::class, 'cancel']);
     Route::delete('friends/{user}',                 [FriendController::class, 'remove']);
     Route::post('logout', [AuthController::class, 'logout']);
+    Route::post('beer-donations', [BeerDonationController::class, 'store']);
 
     // Messages
     Route::get('messages/unread-count',  [MessageController::class, 'unreadCount']);

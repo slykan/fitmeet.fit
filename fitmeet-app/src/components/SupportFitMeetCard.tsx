@@ -8,6 +8,7 @@ import Purchases, {
   type PurchasesStoreProduct,
 } from 'react-native-purchases'
 
+import { api } from '@/src/lib/api'
 import { revenueCatKeyStatus, SUPPORT_PRODUCT_IDS } from '@/src/lib/revenuecat'
 import { palette, spacing } from '@/src/theme'
 
@@ -67,6 +68,7 @@ export function SupportFitMeetCard({
     setPurchasingId(product.identifier)
     try {
       await Purchases.purchaseProduct(product.identifier, undefined, PURCHASE_TYPE.INAPP)
+      api.post('/beer-donations', { product_id: product.identifier }).catch(() => {})
       setThanksMessage(`Thanks for supporting FitMeet with ${product.priceString}.`)
       onPurchased?.(product.identifier)
     } catch (error) {

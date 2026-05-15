@@ -5,6 +5,7 @@ import * as Linking from 'expo-linking'
 import { useEffect, useRef } from 'react'
 import { AppState } from 'react-native'
 
+import { BeerTickerBanner } from '@/src/components/BeerTickerBanner'
 import { setupPushNotificationRouting, syncPushToken } from '@/src/lib/push-notifications'
 import { setupRevenueCat } from '@/src/lib/revenuecat'
 import { useAuthStore } from '@/src/store/auth'
@@ -95,6 +96,7 @@ export default function RootLayout() {
           animation: 'fade',
         }}
       />
+      <BeerTickerBanner />
     </>
   )
 }
