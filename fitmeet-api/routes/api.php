@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BeerDonationController;
+use App\Http\Controllers\Api\PaypalController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\EventCommentController;
@@ -101,6 +102,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('friends/{user}',                 [FriendController::class, 'remove']);
     Route::post('logout', [AuthController::class, 'logout']);
     Route::post('beer-donations', [BeerDonationController::class, 'store']);
+    Route::post('paypal/create-order', [PaypalController::class, 'createOrder']);
+    Route::post('paypal/capture-order', [PaypalController::class, 'captureOrder']);
 
     // Messages
     Route::get('messages/unread-count',  [MessageController::class, 'unreadCount']);

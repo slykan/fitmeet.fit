@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Space_Grotesk } from 'next/font/google'
+import { BeerTicker } from '@/components/beer-ticker'
 import { Providers } from '@/components/providers'
 import { Footer } from '@/components/footer'
 import './globals.css'
@@ -33,7 +34,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="min-h-full flex flex-col bg-[--background] text-[--text-primary]">
-        <Providers>{children}</Providers>
+        <Providers>
+          <BeerTicker />
+          {children}
+        </Providers>
         <Footer />
       </body>
     </html>

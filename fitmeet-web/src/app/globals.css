@@ -69,6 +69,20 @@ body {
   animation-play-state: paused;
 }
 
+@keyframes beer-ticker {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.beer-ticker {
+  animation: beer-ticker 25s linear infinite;
+  width: max-content;
+}
+
+.beer-ticker:hover {
+  animation-play-state: paused;
+}
+
 .scrollbar-hide {
   scrollbar-width: none;
   -ms-overflow-style: none;
