@@ -123,6 +123,7 @@ function SupportersModal({
   )
 }
 
+export const BEER_TICKER_HEIGHT = 28
 const STATUS_BAR_HEIGHT = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 24) : 0
 
 function Label() {
