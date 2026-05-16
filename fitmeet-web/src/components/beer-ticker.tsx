@@ -2,7 +2,7 @@
 
 import { PayPalButtons, PayPalScriptProvider } from '@paypal/react-paypal-js'
 import { X } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import api from '@/lib/api'
 import { useAuthStore } from '@/store/auth'
 
@@ -48,10 +48,10 @@ function DonorRow({ donor, rank }: { donor: Donor; rank: number }) {
   )
 }
 
-function PayPalTierButton({ productId, onSuccess, onPaying }: {
+function PayPalTierButton({ productId, onSuccess, payingRef }: {
   productId: string
   onSuccess: () => void
-  onPaying: (v: boolean) => void
+  payingRef: React.MutableRefObject<boolean>
 }) {
   const tier = TIERS[productId]
   if (!tier) return null
@@ -75,16 +75,16 @@ function PayPalTierButton({ productId, onSuccess, onPaying }: {
         <PayPalButtons
           style={{ layout: 'horizontal', height: 35, tagline: false, label: 'pay' }}
           createOrder={() => {
-            onPaying(true)
+            payingRef.current = true
             return api.post('/paypal/create-order', { product_id: productId })
               .then(r => r.data.order_id)
           }}
           onApprove={(data) =>
             api.post('/paypal/capture-order', { order_id: data.orderID, product_id: productId })
-              .then(() => { onPaying(false); onSuccess() })
+              .then(() => { payingRef.current = false; onSuccess() })
           }
-          onCancel={() => onPaying(false)}
-          onError={() => onPaying(false)}
+          onCancel={() => { payingRef.current = false }}
+          onError={() => { payingRef.current = false }}
         />
       </div>
     </div>
@@ -97,13 +97,13 @@ function SupportersModal({ onClose, donors, onPurchased }: {
   onPurchased: () => void
 }) {
   const { token } = useAuthStore()
-  const [paying, setPaying] = useState(false)
+  const payingRef = useRef(false)
 
   return (
     <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center">
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={() => { if (!paying) onClose() }}
+        onClick={() => { if (!payingRef.current) onClose() }}
       />
       <div
         className="relative w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl border overflow-hidden flex flex-col max-h-[85vh]"
@@ -125,14 +125,6 @@ function SupportersModal({ onClose, donors, onPurchased }: {
         </div>
 
         <div className="overflow-y-auto flex-1 p-4 flex flex-col gap-3">
-          {donors.length > 0 && (
-            <div className="flex flex-col gap-2">
-              {donors.map((d, i) => <DonorRow key={i} donor={d} rank={i + 1} />)}
-            </div>
-          )}
-
-          <div className="border-t my-1" style={{ borderColor: 'rgba(255,255,255,0.08)' }} />
-
           {!token ? (
             <div
               className="rounded-xl p-4 text-center border"
@@ -151,7 +143,7 @@ function SupportersModal({ onClose, donors, onPurchased }: {
                   <PayPalTierButton
                     key={id}
                     productId={id}
-                    onPaying={setPaying}
+                    payingRef={payingRef}
                     onSuccess={onPurchased}
                   />
                 ))}
