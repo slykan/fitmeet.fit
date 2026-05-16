@@ -73,7 +73,7 @@ export function SupportersClient({ initialDonors }: { initialDonors: Donor[] }) 
           ))}
         </div>
       ) : (
-        <p className="text-center opacity-40 mb-10">Još nema supportera. Budi prvi! 🍺</p>
+        <p className="text-center opacity-40 mb-10">No supporters yet. Be the first! 🍺</p>
       )}
 
       {/* Divider */}
@@ -83,8 +83,8 @@ export function SupportersClient({ initialDonors }: { initialDonors: Donor[] }) 
       {purchased ? (
         <div className="text-center py-8">
           <p className="text-3xl mb-3">🙏</p>
-          <p className="font-bold text-xl mb-1">Hvala ti!</p>
-          <p className="opacity-60 text-sm">Tvoje ime se uskoro pojavljuje na svakom screenu.</p>
+          <p className="font-bold text-xl mb-1">Thank you!</p>
+          <p className="opacity-60 text-sm">Your name will appear on every screen shortly.</p>
         </div>
       ) : (
         <>

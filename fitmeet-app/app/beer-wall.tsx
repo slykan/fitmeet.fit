@@ -84,9 +84,9 @@ export default function BeerWallScreen() {
   function handleShare() {
     Share.share({
       message:
-        'FitMeet ostaje besplatan zahvaljujući ovim ljudima 🍺\n' +
-        'Pridruži se Wall of Fame — kupi pivo, pojavi se na svakom screenu!\n' +
-        'https://fitmeet.fit',
+        'FitMeet stays free thanks to these people 🍺\n' +
+        'Join the Wall of Fame — buy a beer, appear on every screen!\n' +
+        'https://fitmeet.fit/supporters',
     })
   }
 
@@ -114,7 +114,7 @@ export default function BeerWallScreen() {
         {loading ? (
           <ActivityIndicator color={palette.accent} style={{ marginTop: 40 }} />
         ) : donors.length === 0 ? (
-          <Text style={styles.empty}>Još nema supportera. Budi prvi! 🍺</Text>
+          <Text style={styles.empty}>No supporters yet. Be the first! 🍺</Text>
         ) : (
           <View style={styles.list}>
             {donors.map((d, i) => (
