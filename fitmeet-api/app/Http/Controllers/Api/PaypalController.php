@@ -35,9 +35,9 @@ class PaypalController extends Controller
         ]);
 
         $amounts = [
-            'beer_small'  => '1.00',
-            'beer_medium' => '3.00',
-            'beer_large'  => '5.00',
+            'beer_small'  => '3.00',
+            'beer_medium' => '6.00',
+            'beer_large'  => '12.00',
         ];
 
         $token = $this->accessToken();

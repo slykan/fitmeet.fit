@@ -11,9 +11,9 @@ type Donor = { name: string; product_id: string }
 const PAYPAL_CLIENT_ID = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID ?? ''
 
 const TIERS: Record<string, { label: string; note: string; amount: string; icons: number; crate?: boolean }> = {
-  beer_small:  { label: 'Small beer',      note: 'A small thank-you',        amount: '1.00', icons: 1 },
-  beer_medium: { label: 'Round for team',  note: 'Helps a lot',              amount: '3.00', icons: 3 },
-  beer_large:  { label: 'Full crate',      note: 'Fuel for future features', amount: '5.00', icons: 1, crate: true },
+  beer_small:  { label: 'Small beer',      note: 'A small thank-you',        amount: '3.00', icons: 1 },
+  beer_medium: { label: 'Round for team',  note: 'Helps a lot',              amount: '6.00', icons: 3 },
+  beer_large:  { label: 'Full crate',      note: 'Fuel for future features', amount: '12.00', icons: 1, crate: true },
 }
 
 function MedalIcons({ productId }: { productId: string }) {
