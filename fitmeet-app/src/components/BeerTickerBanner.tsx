@@ -155,17 +155,18 @@ export function BeerTickerBanner() {
   }, [])
 
   function tryStart() {
-    if (!layoutsReady.current.container || !layoutsReady.current.content) return
-    if (!containerWidth.current || !contentWidth.current) return
+    if (!layoutsReady.current.content) return
+    if (!contentWidth.current) return
 
     animRef.current?.stop()
-    translateX.setValue(containerWidth.current)
+    translateX.setValue(0)
 
-    const totalDist = containerWidth.current + contentWidth.current
+    // contentWidth is the full doubled content — animate exactly half for seamless loop
+    const halfWidth = contentWidth.current / 2
     animRef.current = Animated.loop(
       Animated.timing(translateX, {
-        toValue: -contentWidth.current,
-        duration: totalDist * 18,
+        toValue: -halfWidth,
+        duration: halfWidth * 18,
         easing: Easing.linear,
         useNativeDriver: true,
       })
@@ -202,7 +203,7 @@ export function BeerTickerBanner() {
               tryStart()
             }}
           >
-            {donors.map((donor, i) => (
+            {[...donors, ...donors].map((donor, i) => (
               <TickerItem key={i} donor={donor} />
             ))}
           </Animated.View>
