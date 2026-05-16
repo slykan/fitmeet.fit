@@ -142,9 +142,8 @@ export function BeerTickerBanner() {
   const [modalVisible, setModalVisible] = useState(false)
   const translateX = useRef(new Animated.Value(0)).current
   const animRef = useRef<Animated.CompositeAnimation | null>(null)
-  const containerWidth = useRef(0)
   const contentWidth = useRef(0)
-  const layoutsReady = useRef({ container: false, content: false })
+  const started = useRef(false)
 
   function loadDonors() {
     api.get('/beer-donations').then(r => setDonors(r.data)).catch(() => {})
@@ -155,13 +154,12 @@ export function BeerTickerBanner() {
   }, [])
 
   function tryStart() {
-    if (!layoutsReady.current.content) return
+    if (started.current) return
     if (!contentWidth.current) return
 
-    animRef.current?.stop()
+    started.current = true
     translateX.setValue(0)
 
-    // contentWidth is the full doubled content — animate exactly half for seamless loop
     const halfWidth = contentWidth.current / 2
     animRef.current = Animated.loop(
       Animated.timing(translateX, {
@@ -187,14 +185,7 @@ export function BeerTickerBanner() {
         onPress={() => setModalVisible(true)}
       >
         <Label />
-        <View
-          style={styles.inner}
-          onLayout={e => {
-            containerWidth.current = e.nativeEvent.layout.width
-            layoutsReady.current.container = true
-            tryStart()
-          }}
-        >
+        <View style={styles.inner}>
           <Animated.View
             style={[styles.row, { transform: [{ translateX }] }]}
             onLayout={e => {
