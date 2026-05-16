@@ -190,7 +190,6 @@ export function BeerTickerBanner() {
             style={[styles.row, { transform: [{ translateX }] }]}
             onLayout={e => {
               contentWidth.current = e.nativeEvent.layout.width
-              layoutsReady.current.content = true
               tryStart()
             }}
           >
