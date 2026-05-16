@@ -48,7 +48,11 @@ function DonorRow({ donor, rank }: { donor: Donor; rank: number }) {
   )
 }
 
-function PayPalTierButton({ productId, onSuccess }: { productId: string; onSuccess: () => void }) {
+function PayPalTierButton({ productId, onSuccess, onPaying }: {
+  productId: string
+  onSuccess: () => void
+  onPaying: (v: boolean) => void
+}) {
   const tier = TIERS[productId]
   if (!tier) return null
 
@@ -70,14 +74,17 @@ function PayPalTierButton({ productId, onSuccess }: { productId: string; onSucce
       <div className="px-3 py-2" style={{ background: 'rgba(0,0,0,0.2)' }}>
         <PayPalButtons
           style={{ layout: 'horizontal', height: 35, tagline: false, label: 'pay' }}
-          createOrder={() =>
-            api.post('/paypal/create-order', { product_id: productId })
+          createOrder={() => {
+            onPaying(true)
+            return api.post('/paypal/create-order', { product_id: productId })
               .then(r => r.data.order_id)
-          }
+          }}
           onApprove={(data) =>
             api.post('/paypal/capture-order', { order_id: data.orderID, product_id: productId })
-              .then(onSuccess)
+              .then(() => { onPaying(false); onSuccess() })
           }
+          onCancel={() => onPaying(false)}
+          onError={() => onPaying(false)}
         />
       </div>
     </div>
@@ -90,18 +97,20 @@ function SupportersModal({ onClose, donors, onPurchased }: {
   onPurchased: () => void
 }) {
   const { token } = useAuthStore()
+  const [paying, setPaying] = useState(false)
 
   return (
     <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onClick={() => { if (!paying) onClose() }}
+      />
       <div
         className="relative w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl border overflow-hidden flex flex-col max-h-[85vh]"
         style={{ background: '#0c0a14', borderColor: 'rgba(246,198,91,0.25)' }}
       >
-        {/* Handle */}
         <div className="w-10 h-1 rounded-full mx-auto mt-3 sm:hidden" style={{ background: 'rgba(255,255,255,0.15)' }} />
 
-        {/* Header */}
         <div
           className="flex items-center justify-between px-5 py-4 border-b shrink-0"
           style={{ borderColor: 'rgba(255,255,255,0.08)' }}
@@ -116,17 +125,14 @@ function SupportersModal({ onClose, donors, onPurchased }: {
         </div>
 
         <div className="overflow-y-auto flex-1 p-4 flex flex-col gap-3">
-          {/* Donors list */}
           {donors.length > 0 && (
             <div className="flex flex-col gap-2">
               {donors.map((d, i) => <DonorRow key={i} donor={d} rank={i + 1} />)}
             </div>
           )}
 
-          {/* Divider */}
           <div className="border-t my-1" style={{ borderColor: 'rgba(255,255,255,0.08)' }} />
 
-          {/* Buy section */}
           {!token ? (
             <div
               className="rounded-xl p-4 text-center border"
@@ -135,22 +141,22 @@ function SupportersModal({ onClose, donors, onPurchased }: {
               <p className="font-bold text-sm mb-1">Want to join the wall of fame?</p>
               <p className="text-xs opacity-60">Log in to buy a beer and get your name on every screen.</p>
             </div>
-          ) : !PAYPAL_CLIENT_ID ? (
-            <div className="text-center text-xs opacity-40 py-2">PayPal not configured.</div>
           ) : (
-            <PayPalScriptProvider options={{ clientId: PAYPAL_CLIENT_ID, currency: 'EUR', intent: 'capture' }}>
-              <p
-                className="text-xs font-bold uppercase tracking-widest mb-1"
-                style={{ color: 'rgba(246,198,91,0.6)' }}
-              >
+            <>
+              <p className="text-xs font-bold uppercase tracking-widest" style={{ color: 'rgba(246,198,91,0.6)' }}>
                 Join the wall of fame
               </p>
               <div className="flex flex-col gap-2">
                 {Object.keys(TIERS).map(id => (
-                  <PayPalTierButton key={id} productId={id} onSuccess={onPurchased} />
+                  <PayPalTierButton
+                    key={id}
+                    productId={id}
+                    onPaying={setPaying}
+                    onSuccess={onPurchased}
+                  />
                 ))}
               </div>
-            </PayPalScriptProvider>
+            </>
           )}
         </div>
       </div>
@@ -158,7 +164,7 @@ function SupportersModal({ onClose, donors, onPurchased }: {
   )
 }
 
-export function BeerTicker() {
+function BeerTickerInner() {
   const [donors, setDonors] = useState<Donor[]>([])
   const [open, setOpen] = useState(false)
   const loaded = useRef(false)
@@ -232,5 +238,14 @@ export function BeerTicker() {
         />
       )}
     </>
+  )
+}
+
+export function BeerTicker() {
+  if (!PAYPAL_CLIENT_ID) return <BeerTickerInner />
+  return (
+    <PayPalScriptProvider options={{ clientId: PAYPAL_CLIENT_ID, currency: 'EUR', intent: 'capture' }}>
+      <BeerTickerInner />
+    </PayPalScriptProvider>
   )
 }
