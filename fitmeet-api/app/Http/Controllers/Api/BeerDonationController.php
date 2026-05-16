@@ -10,11 +10,13 @@ use Illuminate\Http\Response;
 
 class BeerDonationController extends Controller
 {
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
+        $limit = min((int) $request->query('limit', 10), 200);
+
         $donors = BeerDonation::with('user:id,name')
             ->latest()
-            ->take(10)
+            ->take($limit)
             ->get()
             ->map(fn($d) => [
                 'name'       => $d->user->name,

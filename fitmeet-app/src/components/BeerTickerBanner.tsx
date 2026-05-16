@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons'
+import { router } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
 import {
   Animated,
@@ -107,10 +108,17 @@ function SupportersModal({
           <SupportFitMeetCard
             title="Join the wall of fame"
             subtitle="Buy a beer and your name scrolls across every screen."
-            onPurchased={() => {
-              onPurchased()
-            }}
+            onPurchased={() => { onPurchased() }}
           />
+
+          <TouchableOpacity
+            style={styles.seeAllBtn}
+            onPress={() => { onClose(); router.push('/beer-wall') }}
+          >
+            <Ionicons name="trophy-outline" size={15} color="#f6c65b" />
+            <Text style={styles.seeAllText}>See all supporters</Text>
+            <Ionicons name="chevron-forward" size={14} color="rgba(246,198,91,0.5)" />
+          </TouchableOpacity>
         </ScrollView>
       </View>
     </Modal>
@@ -381,5 +389,22 @@ const styles = StyleSheet.create({
     height: StyleSheet.hairlineWidth,
     backgroundColor: 'rgba(255,255,255,0.08)',
     marginVertical: 8,
+  },
+  seeAllBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 12,
+    paddingVertical: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(246,198,91,0.2)',
+    backgroundColor: 'rgba(246,198,91,0.05)',
+  },
+  seeAllText: {
+    color: '#f6c65b',
+    fontSize: 14,
+    fontWeight: '700',
   },
 })
