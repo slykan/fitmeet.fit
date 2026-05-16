@@ -1,7 +1,36 @@
 'use client'
 
+import { Share2, Check } from 'lucide-react'
 import { useState } from 'react'
 import { BuySection } from './buy-section'
+
+function ShareButton() {
+  const [copied, setCopied] = useState(false)
+
+  async function handleShare() {
+    const url = 'https://fitmeet.fit/supporters'
+    const text = 'FitMeet stays free thanks to these people 🍺 Join the Wall of Fame — buy a beer, appear on every screen!'
+
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      navigator.share({ title: 'Beer Wall of Fame — FitMeet', text, url }).catch(() => {})
+    } else {
+      await navigator.clipboard.writeText(`${text}\n${url}`)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
+
+  return (
+    <button
+      onClick={handleShare}
+      className="flex items-center gap-2 px-4 py-2 rounded-xl border font-bold text-sm transition-opacity hover:opacity-80"
+      style={{ borderColor: 'rgba(246,198,91,0.25)', background: 'rgba(246,198,91,0.07)', color: '#f6c65b' }}
+    >
+      {copied ? <Check size={15} /> : <Share2 size={15} />}
+      {copied ? 'Copied!' : 'Share'}
+    </button>
+  )
+}
 
 type Donor = { name: string; product_id: string }
 
@@ -60,9 +89,12 @@ export function SupportersClient({ initialDonors }: { initialDonors: Donor[] }) 
       <div className="text-center mb-10">
         <div className="text-5xl mb-4">🍺</div>
         <h1 className="text-3xl font-black mb-2">Beer Wall of Fame</h1>
-        <p className="opacity-60 text-sm max-w-xs mx-auto">
+        <p className="opacity-60 text-sm max-w-xs mx-auto mb-4">
           These people keep FitMeet free. Buy a beer and get your name on every screen.
         </p>
+        <div className="flex justify-center">
+          <ShareButton />
+        </div>
       </div>
 
       {/* Donors list */}
