@@ -163,11 +163,10 @@ export function BeerTickerBanner() {
 
     // contentWidth is the full doubled content — animate exactly half for seamless loop
     const halfWidth = contentWidth.current / 2
-    const duration = Math.max(halfWidth * 30, 30000) // min 30s per loop
     animRef.current = Animated.loop(
       Animated.timing(translateX, {
         toValue: -halfWidth,
-        duration,
+        duration: halfWidth * 30,
         easing: Easing.linear,
         useNativeDriver: true,
       })
