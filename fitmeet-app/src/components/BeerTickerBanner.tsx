@@ -127,6 +127,8 @@ function SupportersModal({
 
 export const BEER_TICKER_HEIGHT = 28
 const STATUS_BAR_HEIGHT = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 24) : 0
+const TICKER_SPEED_MS_PER_PIXEL = 40
+const MIN_TICKER_DURATION_MS = 30000
 
 function Label() {
   return (
@@ -142,11 +144,11 @@ export function BeerTickerBanner() {
   const [modalVisible, setModalVisible] = useState(false)
   const translateX = useRef(new Animated.Value(0)).current
   const animRef = useRef<Animated.CompositeAnimation | null>(null)
-  const contentWidth = useRef(0)
+  const sequenceWidth = useRef(0)
   const started = useRef(false)
 
   function loadDonors() {
-    api.get('/beer-donations').then(r => setDonors(r.data)).catch(() => {})
+    api.get('/beer-donations?limit=10').then(r => setDonors(r.data)).catch(() => {})
   }
 
   useEffect(() => {
@@ -155,21 +157,31 @@ export function BeerTickerBanner() {
 
   function tryStart() {
     if (started.current) return
-    if (!contentWidth.current) return
+    if (!sequenceWidth.current) return
 
     started.current = true
     translateX.setValue(0)
 
-    const halfWidth = contentWidth.current / 2
+    const distance = sequenceWidth.current
     animRef.current = Animated.loop(
       Animated.timing(translateX, {
-        toValue: -halfWidth,
-        duration: halfWidth * 30,
+        toValue: -distance,
+        duration: Math.max(distance * TICKER_SPEED_MS_PER_PIXEL, MIN_TICKER_DURATION_MS),
         easing: Easing.linear,
         useNativeDriver: true,
       })
     )
     animRef.current.start()
+  }
+
+  function handleSequenceLayout(width: number) {
+    if (!width) return
+    if (started.current && Math.abs(sequenceWidth.current - width) < 1) return
+
+    animRef.current?.stop()
+    started.current = false
+    sequenceWidth.current = width
+    tryStart()
   }
 
   useEffect(() => {
@@ -188,14 +200,20 @@ export function BeerTickerBanner() {
         <View style={styles.inner}>
           <Animated.View
             style={[styles.row, { transform: [{ translateX }] }]}
-            onLayout={e => {
-              contentWidth.current = e.nativeEvent.layout.width
-              tryStart()
-            }}
           >
-            {[...donors, ...donors].map((donor, i) => (
-              <TickerItem key={i} donor={donor} />
-            ))}
+            <View
+              style={styles.sequence}
+              onLayout={e => handleSequenceLayout(e.nativeEvent.layout.width)}
+            >
+              {donors.map((donor, i) => (
+                <TickerItem key={`a-${i}`} donor={donor} />
+              ))}
+            </View>
+            <View style={styles.sequence}>
+              {donors.map((donor, i) => (
+                <TickerItem key={`b-${i}`} donor={donor} />
+              ))}
+            </View>
           </Animated.View>
         </View>
         <View style={styles.tapHint}>
@@ -257,6 +275,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     height: 28,
+  },
+  sequence: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   item: {
     flexDirection: 'row',
