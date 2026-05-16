@@ -125,6 +125,17 @@ function SupportersModal({ onClose, donors, onPurchased }: {
         </div>
 
         <div className="overflow-y-auto flex-1 p-4 flex flex-col gap-3">
+          <a
+            href="/supporters"
+            onClick={onClose}
+            className="flex items-center justify-center gap-2 py-3 rounded-xl border font-bold text-sm transition-opacity hover:opacity-80"
+            style={{ borderColor: 'rgba(246,198,91,0.2)', background: 'rgba(246,198,91,0.05)', color: '#f6c65b' }}
+          >
+            <span>🏆</span>
+            See all supporters
+            <span className="opacity-50">→</span>
+          </a>
+
           {!token ? (
             <div
               className="rounded-xl p-4 text-center border"
