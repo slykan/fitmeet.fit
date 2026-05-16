@@ -104,12 +104,6 @@ function SupportersModal({
           contentContainerStyle={styles.donorListContent}
           showsVerticalScrollIndicator={false}
         >
-          {donors.map((donor, i) => (
-            <DonorRow key={i} donor={donor} index={i} />
-          ))}
-
-          <View style={styles.divider} />
-
           <SupportFitMeetCard
             title="Join the wall of fame"
             subtitle="Buy a beer and your name scrolls across every screen."
