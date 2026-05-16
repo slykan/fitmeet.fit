@@ -12,7 +12,17 @@ expo-run.log
 App.tsx
 google-services.json
 apk-*.log
+aab-build*.log
+expo-smoke*.log
 .android-home/
 .gradle-local/
+.sandbox-home*/
 google-services (1).json
 fitmeet-493512-af893efc47a2.json
+client_secret_*.json
+android/..aab-build*.log
+android/app/fitmeet-release.keystore
+android/app/src/main/assets/
+app image.png
+build-aab.bat
+start-web-preview.cmd

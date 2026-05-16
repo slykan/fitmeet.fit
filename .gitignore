@@ -1,4 +1,5 @@
 images/
+.claude/scheduled_tasks.lock
 fitmeet-app/node_modules/
 fitmeet-app/.expo/
 fitmeet-app/dist/

@@ -202,7 +202,8 @@ export default function CreateEventScreen() {
   const [showStrava,  setShowStrava]  = useState(false)
 
   const [youtubeUrl,   setYoutubeUrl]   = useState('')
-  const [joinOnCreate, setJoinOnCreate] = useState(true)
+  const [joinOnCreate,  setJoinOnCreate]  = useState(true)
+  const [notifyOnJoin,  setNotifyOnJoin]  = useState(true)
   const [eventWeather, setEventWeather] = useState<EventWeather | null>(null)
   const [weatherLoading, setWeatherLoading] = useState(false)
 
@@ -465,6 +466,9 @@ export default function CreateEventScreen() {
 
       if (!editId && joinOnCreate) {
         await api.post(`/events/${data.data.id}/join`).catch(() => {})
+        if (notifyOnJoin) {
+          await api.post(`/events/${data.data.id}/join-notifications`, { enabled: true }).catch(() => {})
+        }
       }
 
       if (editId) {
@@ -841,12 +845,22 @@ export default function CreateEventScreen() {
 
         {/* ── Submit ── */}
         {!editId && (
-          <Pressable style={styles.joinToggle} onPress={() => setJoinOnCreate(v => !v)}>
-            <View style={[styles.checkbox, joinOnCreate && styles.checkboxActive]}>
-              {joinOnCreate && <Ionicons name="checkmark" size={14} color="#041109" />}
-            </View>
-            <Text style={styles.joinToggleLabel}>Join this event automatically</Text>
-          </Pressable>
+          <>
+            <Pressable style={styles.joinToggle} onPress={() => setJoinOnCreate(v => !v)}>
+              <View style={[styles.checkbox, joinOnCreate && styles.checkboxActive]}>
+                {joinOnCreate && <Ionicons name="checkmark" size={14} color="#041109" />}
+              </View>
+              <Text style={styles.joinToggleLabel}>Join this event automatically</Text>
+            </Pressable>
+            {joinOnCreate && (
+              <Pressable style={[styles.joinToggle, { marginTop: 8, marginLeft: 4 }]} onPress={() => setNotifyOnJoin(v => !v)}>
+                <View style={[styles.checkbox, notifyOnJoin && styles.checkboxActive]}>
+                  {notifyOnJoin && <Ionicons name="checkmark" size={14} color="#041109" />}
+                </View>
+                <Text style={styles.joinToggleLabel}>Notify me when someone joins</Text>
+              </Pressable>
+            )}
+          </>
         )}
 
         <Pressable
