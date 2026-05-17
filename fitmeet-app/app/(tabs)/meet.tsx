@@ -914,7 +914,7 @@ const styles = StyleSheet.create({
   beerBadgeCount: { color: '#f6c65b', fontSize: 9, fontWeight: '800', marginLeft: 2 },
   inviteBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    paddingVertical: 12, borderRadius: 14,
+    paddingVertical: 12, paddingHorizontal: 16, borderRadius: 14,
     borderWidth: 1, borderColor: 'rgba(108,255,47,0.25)',
     backgroundColor: 'rgba(108,255,47,0.06)',
   },
