@@ -71,7 +71,7 @@ class UserController extends Controller
         $dir       = $direction === 'asc' ? 'asc' : 'desc';
 
         if ($sort === 'beer') {
-            $query->orderByRaw("(SELECT COUNT(*) FROM beer_donations WHERE user_id = users.id) " . ($dir === 'asc' ? 'ASC' : 'DESC'))
+            $query->orderByRaw("(SELECT COALESCE(SUM(CASE product_id WHEN 'beer_large' THEN 3 WHEN 'beer_medium' THEN 2 ELSE 1 END), 0) FROM beer_donations WHERE user_id = users.id) " . ($dir === 'asc' ? 'ASC' : 'DESC'))
                   ->orderByDesc('created_at');
         } elseif ($sort === 'name') {
             $query->orderBy('name', $dir);
@@ -110,17 +110,17 @@ class UserController extends Controller
             ->select('user_id', 'product_id')
             ->get()
             ->groupBy('user_id');
-        $tierRank = ['beer_small' => 1, 'beer_medium' => 2, 'beer_large' => 3];
+        $tierWeight = ['beer_small' => 1, 'beer_medium' => 2, 'beer_large' => 3];
 
-        $data = collect($users->items())->map(function ($user) use ($statusMap, $beerByUser, $tierRank, $request) {
+        $data = collect($users->items())->map(function ($user) use ($statusMap, $beerByUser, $tierWeight, $request) {
             $resource = (new UserResource($user))->toArray($request);
             $resource['friendship_status'] = $statusMap[$user->id] ?? null;
             $resource['events_count'] = $user->events_count ?? 0;
 
             $donations = $beerByUser[$user->id] ?? collect();
-            $resource['beer_count'] = $donations->count();
+            $resource['beer_score'] = $donations->sum(fn ($d) => $tierWeight[$d->product_id] ?? 1);
             $resource['beer_top_tier'] = $donations->isEmpty() ? null
-                : $donations->sortByDesc(fn ($d) => $tierRank[$d->product_id] ?? 0)->first()->product_id;
+                : $donations->sortByDesc(fn ($d) => $tierWeight[$d->product_id] ?? 0)->first()->product_id;
 
             return $resource;
         });

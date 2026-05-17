@@ -33,7 +33,7 @@ interface UserItem {
   friendship_status: 'friends' | 'pending_sent' | 'pending_received' | null
   events_count: number
   created_at?: string | null
-  beer_count?: number
+  beer_score?: number
   beer_top_tier?: string | null
 }
 
@@ -278,13 +278,12 @@ function PeopleTab() {
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="font-semibold text-sm truncate">{u.name}</p>
-                  {(u.beer_count ?? 0) > 0 && (
+                  {(u.beer_score ?? 0) > 0 && (
                     <span
                       className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md border text-[10px] font-black"
                       style={{ borderColor: 'rgba(246,198,91,0.3)', background: 'rgba(246,198,91,0.08)', color: '#f6c65b' }}
                     >
-                      {u.beer_top_tier === 'beer_large' ? '📦📦📦' : u.beer_top_tier === 'beer_medium' ? '🍺🍺🍺' : '🍺'}
-                      {(u.beer_count ?? 0) > 1 && ` ×${u.beer_count}`}
+                      🍺 ×{u.beer_score}
                     </span>
                   )}
                   {index === 0 && (

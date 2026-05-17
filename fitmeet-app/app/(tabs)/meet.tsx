@@ -52,7 +52,7 @@ interface UserItem {
   friendship_status: 'friends' | 'pending_sent' | 'pending_received' | null
   events_count: number
   created_at?: string | null
-  beer_count?: number
+  beer_score?: number
   beer_top_tier?: string | null
 }
 
@@ -636,16 +636,10 @@ function PeopleTab() {
           <View style={{ flex: 1, gap: 2 }}>
             <View style={styles.userNameRow}>
               <Text style={styles.userName} numberOfLines={1}>{u.name}</Text>
-              {(u.beer_count ?? 0) > 0 && (
+              {(u.beer_score ?? 0) > 0 && (
                 <View style={styles.beerBadge}>
-                  {u.beer_top_tier === 'beer_large' ? (
-                    <><Ionicons name="cube" size={9} color="#f6c65b" /><Ionicons name="cube" size={9} color="#f6c65b" /><Ionicons name="cube" size={9} color="#f6c65b" /></>
-                  ) : u.beer_top_tier === 'beer_medium' ? (
-                    <><Ionicons name="beer-outline" size={9} color="#f6c65b" /><Ionicons name="beer-outline" size={9} color="#f6c65b" /><Ionicons name="beer-outline" size={9} color="#f6c65b" /></>
-                  ) : (
-                    <Ionicons name="beer-outline" size={9} color="#f6c65b" />
-                  )}
-                  {(u.beer_count ?? 0) > 1 && <Text style={styles.beerBadgeCount}>×{u.beer_count}</Text>}
+                  <Ionicons name="beer-outline" size={9} color="#f6c65b" />
+                  <Text style={styles.beerBadgeCount}>×{u.beer_score}</Text>
                 </View>
               )}
               {index === 0 && (
