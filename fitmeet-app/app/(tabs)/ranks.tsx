@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useEffect, useState } from 'react'
 import {
-  ActivityIndicator, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View,
+  ActivityIndicator, Image, Pressable, ScrollView, Share, StyleSheet, Text, TouchableOpacity, View,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
@@ -105,10 +105,19 @@ export default function RanksScreen() {
       .finally(() => setLoading(false))
   }, [])
 
+  function handleShare() {
+    Share.share({
+      message: 'Check out the FitMeet Community Badges — who\'s on top? 🏆 https://fitmeet.fit/ranks',
+    })
+  }
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>🏆 Community Badges</Text>
+        <Pressable onPress={handleShare} hitSlop={12}>
+          <Ionicons name="share-social-outline" size={20} color={palette.accent} />
+        </Pressable>
       </View>
 
       {loading ? (
@@ -127,6 +136,7 @@ export default function RanksScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: palette.bg },
   header: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
     paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,

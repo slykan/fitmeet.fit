@@ -5,7 +5,7 @@ import { useTheme } from 'next-themes'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Moon, Sun, Plus, LogOut, User, CalendarDays, Bell, Users, MessageSquare, Settings } from 'lucide-react'
+import { Moon, Sun, Plus, LogOut, User, CalendarDays, Bell, Users, MessageSquare, Settings, Trophy } from 'lucide-react'
 import { Button } from './ui/button'
 import api from '@/lib/api'
 import { useEffect, useRef, useState } from 'react'
@@ -115,6 +115,14 @@ export function Navbar() {
                 title="Meet"
               >
                 <CalendarDays size={18} />
+              </Link>
+
+              <Link
+                href="/ranks"
+                className="p-2 rounded-lg text-[--text-muted] hover:text-[--text-primary] transition-colors"
+                title="Community Badges"
+              >
+                <Trophy size={18} />
               </Link>
 
               <Link
