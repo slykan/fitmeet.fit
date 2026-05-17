@@ -131,16 +131,26 @@ function buildMapHtml(
     L.control.zoom({ position:'bottomright' }).addTo(map);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:18 }).addTo(map);
 
-    if (showClouds) {
-      L.tileLayer(
-        'https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=' + OW_KEY,
-        { maxZoom:18, opacity:0.9, zIndex:220 }
-      ).addTo(map);
-      L.tileLayer(
-        'https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=' + OW_KEY,
-        { maxZoom:18, opacity:0.8, zIndex:221 }
-      ).addTo(map);
+    let cloudTileLayer = null;
+    let precipTileLayer = null;
+
+    function updateCloudTiles(show) {
+      if (show) {
+        if (!cloudTileLayer) cloudTileLayer = L.tileLayer(
+          'https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=' + OW_KEY,
+          { maxZoom:18, opacity:0.9, zIndex:220 }
+        ).addTo(map);
+        if (!precipTileLayer) precipTileLayer = L.tileLayer(
+          'https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=' + OW_KEY,
+          { maxZoom:18, opacity:0.8, zIndex:221 }
+        ).addTo(map);
+      } else {
+        if (cloudTileLayer)  { cloudTileLayer.remove();  cloudTileLayer  = null; }
+        if (precipTileLayer) { precipTileLayer.remove(); precipTileLayer = null; }
+      }
     }
+
+    updateCloudTiles(showClouds);
 
     const bounds = [];
     events.forEach((ev) => {
@@ -188,6 +198,7 @@ function buildMapHtml(
     map.on('moveend zoomend dragend', movementEnded);
 
     function renderWeather(nextWeather, nextShowWind, nextShowClouds) {
+      updateCloudTiles(nextShowClouds);
       overlay.classList.remove('ready', 'interacting');
       overlay.innerHTML = '';
       if (!nextWeather) return;
