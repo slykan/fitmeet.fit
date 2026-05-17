@@ -6,7 +6,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import api from '@/lib/api'
 import { useAuthStore } from '@/store/auth'
 
-type Donor = { name: string; product_id: string }
+type Donor = { name: string; beer_score: number; beer_top_tier: string }
 
 const PAYPAL_CLIENT_ID = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID ?? ''
 
@@ -19,33 +19,8 @@ const TIERS: Record<string, { label: string; note: string; amount: string; icons
 function MedalIcons({ productId }: { productId: string }) {
   const tier = TIERS[productId]
   if (!tier) return null
-  if (tier.crate) {
-    return <span className="text-sm">📦📦📦</span>
-  }
+  if (tier.crate) return <span className="text-sm">📦📦📦</span>
   return <span className="text-sm">{'🍺'.repeat(tier.icons)}</span>
-}
-
-function DonorRow({ donor, rank }: { donor: Donor; rank: number }) {
-  return (
-    <div
-      className="flex items-center gap-3 px-4 py-3 rounded-xl border"
-      style={{ background: 'rgba(246,198,91,0.03)', borderColor: 'rgba(246,198,91,0.12)' }}
-    >
-      <span
-        className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-black shrink-0"
-        style={{ background: 'rgba(246,198,91,0.12)', color: '#f6c65b' }}
-      >
-        {rank}
-      </span>
-      <MedalIcons productId={donor.product_id} />
-      <div className="flex-1 min-w-0">
-        <p className="font-bold text-sm truncate">{donor.name}</p>
-        <p className="text-xs" style={{ color: '#f6c65b', opacity: 0.7 }}>
-          {TIERS[donor.product_id]?.label ?? donor.product_id}
-        </p>
-      </div>
-    </div>
-  )
 }
 
 function PayPalTierButton({ productId, onSuccess, payingRef }: {
@@ -217,7 +192,7 @@ function BeerTickerInner() {
           <div className="beer-ticker flex items-center gap-0">
             {doubled.map((d, i) => (
               <div key={i} className="flex items-center gap-1.5 px-4">
-                <MedalIcons productId={d.product_id} />
+                <MedalIcons productId={d.beer_top_tier} />
                 <span className="text-[12px] font-bold whitespace-nowrap" style={{ color: 'rgba(255,255,255,0.9)' }}>
                   {d.name}
                 </span>

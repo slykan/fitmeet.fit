@@ -32,7 +32,7 @@ function ShareButton() {
   )
 }
 
-type Donor = { name: string; product_id: string }
+type Donor = { name: string; beer_score: number; beer_top_tier: string }
 
 const MEDAL_LABEL: Record<string, string> = {
   beer_small:  '🍺 Small beer',
@@ -64,7 +64,7 @@ function DonorRow({ donor, rank }: { donor: Donor; rank: number }) {
       <div className="flex-1 min-w-0">
         <p className="font-bold text-base truncate">{donor.name}</p>
         <p className="text-sm" style={{ color: 'rgba(246,198,91,0.7)' }}>
-          {MEDAL_LABEL[donor.product_id] ?? donor.product_id}
+          {MEDAL_LABEL[donor.beer_top_tier] ?? donor.beer_top_tier} · ×{donor.beer_score}
         </p>
       </div>
     </div>

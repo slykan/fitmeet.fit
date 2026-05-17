@@ -16,7 +16,7 @@ import { SupportFitMeetCard } from '@/src/components/SupportFitMeetCard'
 import { api } from '@/src/lib/api'
 import { palette, spacing } from '@/src/theme'
 
-type Donor = { name: string; product_id: string }
+type Donor = { name: string; beer_score: number; beer_top_tier: string }
 
 const MEDAL: Record<string, { label: string; icons: number; crate?: boolean }> = {
   beer_small:  { label: 'Small beer',   icons: 1 },
@@ -57,15 +57,15 @@ function RankBadge({ rank }: { rank: number }) {
 }
 
 function DonorRow({ donor, rank }: { donor: Donor; rank: number }) {
-  const m = MEDAL[donor.product_id]
+  const m = MEDAL[donor.beer_top_tier]
   return (
     <View style={styles.donorRow}>
       <RankBadge rank={rank} />
       <View style={styles.donorInfo}>
         <Text style={styles.donorName}>{donor.name}</Text>
-        <Text style={styles.donorLevel}>{m?.label ?? donor.product_id}</Text>
+        <Text style={styles.donorLevel}>{m?.label ?? donor.beer_top_tier} · ×{donor.beer_score}</Text>
       </View>
-      <MedalIcons productId={donor.product_id} />
+      <MedalIcons productId={donor.beer_top_tier} />
     </View>
   )
 }

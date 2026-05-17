@@ -19,7 +19,7 @@ import {
 import { SupportFitMeetCard } from '@/src/components/SupportFitMeetCard'
 import { api } from '@/src/lib/api'
 
-type Donor = { name: string; product_id: string }
+type Donor = { name: string; beer_score: number; beer_top_tier: string }
 
 const MEDAL_LABEL: Record<string, string> = {
   beer_small: 'Small beer',
@@ -50,7 +50,7 @@ function MedalIcons({ productId, size = 10 }: { productId: string; size?: number
 function TickerItem({ donor, onLayout }: { donor: Donor; onLayout?: (event: LayoutChangeEvent) => void }) {
   return (
     <View style={styles.item} onLayout={onLayout}>
-      <MedalIcons productId={donor.product_id} />
+      <MedalIcons productId={donor.beer_top_tier} />
       <Text style={styles.name}>{donor.name}</Text>
       <Text style={styles.separator}>·</Text>
     </View>
@@ -64,11 +64,11 @@ function DonorRow({ donor, index }: { donor: Donor; index: number }) {
         <Text style={styles.donorIndexText}>{index + 1}</Text>
       </View>
       <View style={styles.donorMedal}>
-        <MedalIcons productId={donor.product_id} size={14} />
+        <MedalIcons productId={donor.beer_top_tier} size={14} />
       </View>
       <View style={styles.donorInfo}>
         <Text style={styles.donorName}>{donor.name}</Text>
-        <Text style={styles.donorLevel}>{MEDAL_LABEL[donor.product_id] ?? donor.product_id}</Text>
+        <Text style={styles.donorLevel}>{MEDAL_LABEL[donor.beer_top_tier] ?? donor.beer_top_tier} · ×{donor.beer_score}</Text>
       </View>
     </View>
   )
