@@ -32,10 +32,10 @@
               <div style="font-size:48px;line-height:1;text-align:center;margin-bottom:22px;">▶</div>
 
               <h1 style="margin:0 0 6px;font-size:20px;font-weight:700;color:#ffffff;text-align:center;">
-                Your event just started
+                Your event starts soon
               </h1>
               <p style="margin:0 0 28px;font-size:14px;color:#8888aa;text-align:center;line-height:1.5;">
-                You're joined to this event. Time to move.
+                You're joined to this event. It starts in about 10 minutes.
               </p>
 
               <table width="100%" cellpadding="0" cellspacing="0"

@@ -19,7 +19,7 @@ class EventStartedMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: "Your event just started: {$this->event->title}",
+            subject: "Your event starts soon: {$this->event->title}",
         );
     }
 

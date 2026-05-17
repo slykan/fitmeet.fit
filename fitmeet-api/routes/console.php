@@ -56,8 +56,8 @@ Schedule::command('reminders:send')->everyFifteenMinutes();
 Artisan::command('events:send-started', function () {
     $events = Event::query()
         ->where('status', 'active')
-        ->where('start_at', '<=', now())
-        ->where('start_at', '>=', now()->subMinutes(5))
+        ->where('start_at', '<=', now()->addMinutes(10))
+        ->where('start_at', '>=', now()->addMinutes(5))
         ->whereDoesntHave('participants', function ($query) {
             $query->whereExists(function ($subquery) {
                 $subquery->selectRaw('1')
@@ -73,7 +73,7 @@ Artisan::command('events:send-started', function () {
         SendStartedEventNotifications::dispatchSync($event);
     }
 
-    $this->info("Checked {$events->count()} started event(s).");
-})->purpose('Send notifications when joined events start');
+    $this->info("Checked {$events->count()} event(s) starting soon.");
+})->purpose('Send notifications before joined events start');
 
 Schedule::command('events:send-started')->everyMinute();
