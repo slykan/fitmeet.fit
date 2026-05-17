@@ -15,6 +15,7 @@ export const badgeEvents = {
 const tabIcon: Record<string, keyof typeof Ionicons.glyphMap> = {
   hub:           'radio-outline',
   meet:          'calendar-outline',
+  ranks:         'trophy-outline',
   notifications: 'notifications-outline',
   messages:      'chatbubble-ellipses-outline',
   profile:       'person-outline',
@@ -34,11 +35,13 @@ export default function TabsLayout() {
     const tabPaths = new Set([
       '/hub',
       '/meet',
+      '/ranks',
       '/notifications',
       '/messages',
       '/profile',
       '/(tabs)/hub',
       '/(tabs)/meet',
+      '/(tabs)/ranks',
       '/(tabs)/notifications',
       '/(tabs)/messages',
       '/(tabs)/profile',
@@ -116,6 +119,7 @@ export default function TabsLayout() {
     >
       <Tabs.Screen name="hub"           options={{ title: 'Hub' }} />
       <Tabs.Screen name="meet"          options={{ title: 'Meet' }} />
+      <Tabs.Screen name="ranks"         options={{ title: 'Ranks' }} />
       <Tabs.Screen name="notifications" options={{ title: 'Alerts', tabBarBadge: notifCount > 0 ? notifCount : undefined }} />
       <Tabs.Screen name="messages"      options={{ title: 'Chat',   tabBarBadge: msgCount   > 0 ? msgCount   : undefined }} />
       <Tabs.Screen name="profile"       options={{ title: 'Profile' }} />
