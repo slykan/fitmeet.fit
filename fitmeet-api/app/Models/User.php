@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\BeerDonation;
 use App\Models\Event;
 use App\Models\EventComment;
 use App\Models\Conversation;
@@ -109,6 +110,11 @@ class User extends Authenticatable
     public function pushTokens(): HasMany
     {
         return $this->hasMany(UserPushToken::class);
+    }
+
+    public function beerDonations(): HasMany
+    {
+        return $this->hasMany(BeerDonation::class);
     }
 
     public function isOnboardingComplete(): bool

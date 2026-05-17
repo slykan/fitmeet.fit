@@ -52,6 +52,22 @@ interface UserItem {
   friendship_status: 'friends' | 'pending_sent' | 'pending_received' | null
   events_count: number
   created_at?: string | null
+  beer_count?: number
+  beer_top_tier?: string | null
+}
+
+type PeopleSort = 'latest' | 'name' | 'beer'
+
+const PEOPLE_SORT_OPTIONS: { key: PeopleSort; label: string }[] = [
+  { key: 'latest', label: 'New' },
+  { key: 'name',   label: 'Name' },
+  { key: 'beer',   label: 'Beer' },
+]
+
+const PEOPLE_SORT_DEFAULT_DIR: Record<PeopleSort, 'asc' | 'desc'> = {
+  latest: 'desc',
+  name:   'asc',
+  beer:   'desc',
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -469,21 +485,35 @@ function PeopleTab() {
   const [loading,      setLoading]      = useState(true)
   const [acting,       setActing]       = useState<number | null>(null)
   const [zoomAvatar,   setZoomAvatar]   = useState<string | null>(null)
+  const [sort,         setSort]         = useState<PeopleSort>('latest')
+  const [direction,    setDirection]    = useState<'asc' | 'desc'>('desc')
+  const [showSort,     setShowSort]     = useState(false)
 
-  const load = useCallback((q: string) => {
+  const load = useCallback((q: string, s: PeopleSort, d: 'asc' | 'desc') => {
     setLoading(true)
-    const params: Record<string, string> = { sort: 'latest' }
+    const params: Record<string, string> = { sort: s, direction: d }
     if (q) params.search = q
     api.get('/users', { params })
       .then(({ data }) => setUsers(data.data ?? []))
       .finally(() => setLoading(false))
   }, [])
 
-  useEffect(() => { load('') }, [load])
+  useEffect(() => { load('', sort, direction) }, [load])
   useEffect(() => {
-    const t = setTimeout(() => load(search), 400)
+    const t = setTimeout(() => load(search, sort, direction), 400)
     return () => clearTimeout(t)
-  }, [search, load])
+  }, [search, sort, direction, load])
+
+  function handleSortSelect(key: PeopleSort) {
+    if (key === sort) {
+      const newDir = direction === 'desc' ? 'asc' : 'desc'
+      setDirection(newDir)
+    } else {
+      setSort(key)
+      setDirection(PEOPLE_SORT_DEFAULT_DIR[key])
+    }
+    setShowSort(false)
+  }
 
   async function handleAdd(userId: number) {
     setActing(userId)
@@ -521,19 +551,59 @@ function PeopleTab() {
     ])
   }
 
+  const activeSortLabel = PEOPLE_SORT_OPTIONS.find(o => o.key === sort)?.label ?? 'New'
+
   return (
     <View style={{ gap: spacing.md }}>
-      <View style={styles.searchBar}>
-        <Ionicons name="search-outline" size={16} color={palette.textDim} />
-        <TextInput
-          style={styles.searchInput}
-          value={search}
-          onChangeText={setSearch}
-          placeholder="Search by name…"
-          placeholderTextColor={palette.textDim}
-          autoCapitalize="none"
-        />
+      <View style={styles.peopleSearchRow}>
+        <View style={[styles.searchBar, { flex: 1 }]}>
+          <Ionicons name="search-outline" size={16} color={palette.textDim} />
+          <TextInput
+            style={styles.searchInput}
+            value={search}
+            onChangeText={setSearch}
+            placeholder="Search by name…"
+            placeholderTextColor={palette.textDim}
+            autoCapitalize="none"
+          />
+        </View>
+        <Pressable
+          style={[styles.filterBtn, styles.sortBtn, showSort && styles.sortBtnActive]}
+          onPress={() => setShowSort(v => !v)}
+        >
+          <Ionicons name="swap-vertical-outline" size={15} color={showSort ? '#031109' : palette.text} />
+          <Text style={[styles.filterBtnLabel, showSort && styles.filterBtnLabelActive]}>{activeSortLabel}</Text>
+          <Ionicons
+            name={direction === 'desc' ? 'arrow-down-outline' : 'arrow-up-outline'}
+            size={13}
+            color={showSort ? '#031109' : palette.accent}
+          />
+        </Pressable>
       </View>
+
+      {showSort && (
+        <View style={styles.sortList}>
+          {PEOPLE_SORT_OPTIONS.map(opt => {
+            const active = opt.key === sort
+            return (
+              <Pressable
+                key={opt.key}
+                style={[styles.sortOption, active && styles.sortOptionActive]}
+                onPress={() => handleSortSelect(opt.key)}
+              >
+                <Text style={[styles.sortOptionText, active && styles.sortOptionTextActive]}>{opt.label}</Text>
+                {active && (
+                  <Ionicons
+                    name={direction === 'desc' ? 'arrow-down-outline' : 'arrow-up-outline'}
+                    size={13}
+                    color="#031109"
+                  />
+                )}
+              </Pressable>
+            )
+          })}
+        </View>
+      )}
 
       {loading && <ActivityIndicator color={palette.accent} style={{ paddingVertical: spacing.xl }} />}
       {!loading && users.length === 0 && (
@@ -564,6 +634,18 @@ function PeopleTab() {
           <View style={{ flex: 1, gap: 2 }}>
             <View style={styles.userNameRow}>
               <Text style={styles.userName} numberOfLines={1}>{u.name}</Text>
+              {(u.beer_count ?? 0) > 0 && (
+                <View style={styles.beerBadge}>
+                  {u.beer_top_tier === 'beer_large' ? (
+                    <><Ionicons name="cube" size={9} color="#f6c65b" /><Ionicons name="cube" size={9} color="#f6c65b" /><Ionicons name="cube" size={9} color="#f6c65b" /></>
+                  ) : u.beer_top_tier === 'beer_medium' ? (
+                    <><Ionicons name="beer-outline" size={9} color="#f6c65b" /><Ionicons name="beer-outline" size={9} color="#f6c65b" /><Ionicons name="beer-outline" size={9} color="#f6c65b" /></>
+                  ) : (
+                    <Ionicons name="beer-outline" size={9} color="#f6c65b" />
+                  )}
+                  {(u.beer_count ?? 0) > 1 && <Text style={styles.beerBadgeCount}>×{u.beer_count}</Text>}
+                </View>
+              )}
               {index === 0 && (
                 <View style={styles.newUserBadge}>
                   <Text style={styles.newUserBadgeText}>Just landed</Text>
@@ -814,6 +896,14 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   newUserBadgeText: { color: palette.accent, fontSize: 9, fontWeight: '900', textTransform: 'uppercase' },
+  beerBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 1,
+    paddingHorizontal: 5, paddingVertical: 2, borderRadius: 6,
+    backgroundColor: 'rgba(246,198,91,0.1)',
+    borderWidth: 1, borderColor: 'rgba(246,198,91,0.25)',
+  },
+  beerBadgeCount: { color: '#f6c65b', fontSize: 9, fontWeight: '800', marginLeft: 2 },
+  peopleSearchRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   userLocation:   { color: palette.textMuted, fontSize: 12 },
   userEvents:     { color: palette.textMuted, fontSize: 12 },
   userCategories: { fontSize: 14, marginTop: 2 },

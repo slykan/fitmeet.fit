@@ -66,13 +66,20 @@ class UserController extends Controller
             $query->whereIn('id', $friendIds);
         }
 
-        $users = $query->withCount('events')
-            ->when(
-                $request->input('sort') === 'latest',
-                fn ($query) => $query->orderByDesc('created_at')->orderByDesc('id'),
-                fn ($query) => $query->orderBy('name'),
-            )
-            ->paginate(30);
+        $sort      = $request->input('sort', 'latest');
+        $direction = $request->input('direction', $sort === 'name' ? 'asc' : 'desc');
+        $dir       = $direction === 'asc' ? 'asc' : 'desc';
+
+        if ($sort === 'beer') {
+            $query->orderByRaw("(SELECT COUNT(*) FROM beer_donations WHERE user_id = users.id) " . ($dir === 'asc' ? 'ASC' : 'DESC'))
+                  ->orderByDesc('created_at');
+        } elseif ($sort === 'name') {
+            $query->orderBy('name', $dir);
+        } else {
+            $query->orderBy('created_at', $dir)->orderBy('id', $dir);
+        }
+
+        $users = $query->withCount('events')->paginate(30);
 
         // Build a map of userId → friendship status for the current user
         $statusMap = [];
@@ -96,10 +103,23 @@ class UserController extends Controller
             // friend_requests table may not exist yet — degrade gracefully
         }
 
-        $data = collect($users->items())->map(function ($user) use ($statusMap, $request) {
+        $userIds    = collect($users->items())->pluck('id');
+        $beerByUser = \App\Models\BeerDonation::whereIn('user_id', $userIds)
+            ->select('user_id', 'product_id')
+            ->get()
+            ->groupBy('user_id');
+        $tierRank = ['beer_small' => 1, 'beer_medium' => 2, 'beer_large' => 3];
+
+        $data = collect($users->items())->map(function ($user) use ($statusMap, $beerByUser, $tierRank, $request) {
             $resource = (new UserResource($user))->toArray($request);
             $resource['friendship_status'] = $statusMap[$user->id] ?? null;
             $resource['events_count'] = $user->events_count ?? 0;
+
+            $donations = $beerByUser[$user->id] ?? collect();
+            $resource['beer_count'] = $donations->count();
+            $resource['beer_top_tier'] = $donations->isEmpty() ? null
+                : $donations->sortByDesc(fn ($d) => $tierRank[$d->product_id] ?? 0)->first()->product_id;
+
             return $resource;
         });
 

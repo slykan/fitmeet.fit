@@ -6,7 +6,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import {
   Search, Phone, UserPlus, UserCheck, UserMinus, Calendar, MapPin, Users, Zap, ChevronRight,
-  Bell, Check, X,
+  Bell, Check, X, ArrowUpDown, ChevronUp, ChevronDown,
 } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
@@ -33,7 +33,17 @@ interface UserItem {
   friendship_status: 'friends' | 'pending_sent' | 'pending_received' | null
   events_count: number
   created_at?: string | null
+  beer_count?: number
+  beer_top_tier?: string | null
 }
+
+type PeopleSort = 'latest' | 'name' | 'beer'
+const PEOPLE_SORT_OPTIONS: { key: PeopleSort; label: string }[] = [
+  { key: 'latest', label: 'New' },
+  { key: 'name',   label: 'Name' },
+  { key: 'beer',   label: 'Beer' },
+]
+const PEOPLE_SORT_DEFAULT_DIR: Record<PeopleSort, 'asc' | 'desc'> = { latest: 'desc', name: 'asc', beer: 'desc' }
 
 interface EventItem {
   id: number
@@ -134,15 +144,28 @@ function PeopleTab() {
   const [acting,   setActing]   = useState<number | null>(null)
   const [confirmRemoveId, setConfirmRemoveId] = useState<number | null>(null)
   const [addError, setAddError] = useState<string | null>(null)
+  const [sort,      setSort]      = useState<PeopleSort>('latest')
+  const [direction, setDirection] = useState<'asc' | 'desc'>('desc')
+  const [showSort,  setShowSort]  = useState(false)
 
-  const load = useCallback((q: string) => {
+  const load = useCallback((q: string, s: PeopleSort, d: 'asc' | 'desc') => {
     setLoading(true)
-    const params: Record<string, string> = { sort: 'latest' }
+    const params: Record<string, string> = { sort: s, direction: d }
     if (q) params.search = q
     api.get('/users', { params })
       .then(({ data }) => setUsers(data.data ?? []))
       .finally(() => setLoading(false))
   }, [])
+
+  function handleSortSelect(key: PeopleSort) {
+    if (key === sort) {
+      setDirection(d => d === 'desc' ? 'asc' : 'desc')
+    } else {
+      setSort(key)
+      setDirection(PEOPLE_SORT_DEFAULT_DIR[key])
+    }
+    setShowSort(false)
+  }
 
   async function handleAdd(userId: number) {
     setActing(userId)
@@ -179,25 +202,56 @@ function PeopleTab() {
     }
   }
 
-  useEffect(() => { load('') }, [load])
+  useEffect(() => { load('', sort, direction) }, [load])
 
   useEffect(() => {
-    const t = setTimeout(() => load(search), 350)
+    const t = setTimeout(() => load(search, sort, direction), 350)
     return () => clearTimeout(t)
-  }, [search, load])
+  }, [search, sort, direction, load])
+
+  const activeSortLabel = PEOPLE_SORT_OPTIONS.find(o => o.key === sort)?.label ?? 'New'
 
   return (
     <div className="space-y-3">
-      {/* Search */}
-      <div className="relative">
-        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
-        <input
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Search by name…"
-          className="w-full rounded-xl border pl-9 pr-4 py-2.5 text-sm outline-none focus:border-[--primary] transition-colors"
-          style={{ background: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
-        />
+      {/* Search + Sort */}
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search by name…"
+            className="w-full rounded-xl border pl-9 pr-4 py-2.5 text-sm outline-none focus:border-[--primary] transition-colors"
+            style={{ background: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+          />
+        </div>
+        <div className="relative">
+          <button
+            onClick={() => setShowSort(v => !v)}
+            className="h-full px-3 rounded-xl border flex items-center gap-1.5 text-sm font-bold whitespace-nowrap"
+            style={{ background: showSort ? 'var(--primary)' : 'var(--surface)', borderColor: showSort ? 'var(--primary)' : 'var(--border)', color: showSort ? '#000' : 'var(--text-primary)' }}
+          >
+            <ArrowUpDown size={13} />
+            {activeSortLabel}
+            {direction === 'desc' ? <ChevronDown size={12} /> : <ChevronUp size={12} />}
+          </button>
+          {showSort && (
+            <div className="absolute right-0 top-full mt-1 w-32 rounded-xl border z-10 overflow-hidden shadow-lg"
+              style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
+              {PEOPLE_SORT_OPTIONS.map(opt => (
+                <button
+                  key={opt.key}
+                  onClick={() => handleSortSelect(opt.key)}
+                  className="w-full px-4 py-2.5 text-left text-sm font-semibold flex items-center justify-between hover:opacity-70 transition-opacity"
+                  style={{ color: sort === opt.key ? 'var(--primary)' : 'var(--text-primary)' }}
+                >
+                  {opt.label}
+                  {sort === opt.key && (direction === 'desc' ? <ChevronDown size={12} /> : <ChevronUp size={12} />)}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {addError && (
@@ -223,6 +277,15 @@ function PeopleTab() {
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="font-semibold text-sm truncate">{u.name}</p>
+                  {(u.beer_count ?? 0) > 0 && (
+                    <span
+                      className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md border text-[10px] font-black"
+                      style={{ borderColor: 'rgba(246,198,91,0.3)', background: 'rgba(246,198,91,0.08)', color: '#f6c65b' }}
+                    >
+                      {u.beer_top_tier === 'beer_large' ? '📦📦📦' : u.beer_top_tier === 'beer_medium' ? '🍺🍺🍺' : '🍺'}
+                      {(u.beer_count ?? 0) > 1 && ` ×${u.beer_count}`}
+                    </span>
+                  )}
                   {index === 0 && (
                     <span
                       className="text-[10px] px-2 py-0.5 rounded-full border font-black uppercase tracking-wide"
