@@ -210,10 +210,32 @@ function PeopleTab() {
     return () => clearTimeout(t)
   }, [search, sort, direction, load])
 
+  async function handleInvite() {
+    api.post('/me/invite-tap').catch(() => {})
+    const text = 'Join me on FitMeet — find sports events and active people near you! 💪'
+    const url  = 'https://fitmeet.fit'
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      navigator.share({ title: 'FitMeet', text, url }).catch(() => {})
+    } else {
+      navigator.clipboard.writeText(`${text} ${url}`).catch(() => {})
+    }
+  }
+
   const activeSortLabel = PEOPLE_SORT_OPTIONS.find(o => o.key === sort)?.label ?? 'New'
 
   return (
     <div className="space-y-3">
+      {/* Invite */}
+      <button
+        onClick={handleInvite}
+        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border font-bold text-sm transition-opacity hover:opacity-80"
+        style={{ borderColor: 'rgba(57,255,20,0.25)', background: 'rgba(57,255,20,0.06)', color: 'var(--primary)' }}
+      >
+        <UserPlus size={15} />
+        Invite friends to FitMeet
+        <Share2 size={14} />
+      </button>
+
       {/* Search + Sort */}
       <div className="flex gap-2">
         <div className="relative flex-1">

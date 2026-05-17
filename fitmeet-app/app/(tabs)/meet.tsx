@@ -555,8 +555,21 @@ function PeopleTab() {
 
   const activeSortLabel = PEOPLE_SORT_OPTIONS.find(o => o.key === sort)?.label ?? 'New'
 
+  async function handleInvite() {
+    api.post('/me/invite-tap').catch(() => {})
+    Share.share({
+      message: 'Join me on FitMeet — find sports events and active people near you! 💪 https://fitmeet.fit',
+    })
+  }
+
   return (
     <View style={{ gap: spacing.md }}>
+      <Pressable style={styles.inviteBtn} onPress={handleInvite}>
+        <Ionicons name="person-add-outline" size={16} color={palette.accent} />
+        <Text style={styles.inviteBtnText}>Invite friends to FitMeet</Text>
+        <Ionicons name="share-outline" size={15} color={palette.accent} />
+      </Pressable>
+
       <View style={styles.peopleSearchRow}>
         <View style={[styles.searchBar, { flex: 1 }]}>
           <Ionicons name="search-outline" size={16} color={palette.textDim} />
@@ -899,6 +912,13 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(246,198,91,0.25)',
   },
   beerBadgeCount: { color: '#f6c65b', fontSize: 9, fontWeight: '800', marginLeft: 2 },
+  inviteBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    paddingVertical: 12, borderRadius: 14,
+    borderWidth: 1, borderColor: 'rgba(108,255,47,0.25)',
+    backgroundColor: 'rgba(108,255,47,0.06)',
+  },
+  inviteBtnText: { color: palette.accent, fontSize: 14, fontWeight: '700', flex: 1, textAlign: 'center' },
   peopleSearchRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   userLocation:   { color: palette.textMuted, fontSize: 12 },
   userEvents:     { color: palette.textMuted, fontSize: 12 },

@@ -84,6 +84,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('me',       [AuthController::class, 'destroyAccount']);
     Route::post('me/avatar',  [UserController::class, 'updateAvatar']);
     Route::post('me/push-token', [UserController::class, 'upsertPushToken']);
+    Route::post('me/invite-tap', [UserController::class, 'recordInviteTap']);
     Route::delete('me/push-token', [UserController::class, 'destroyPushToken']);
     Route::get('users', [UserController::class, 'index']);
 

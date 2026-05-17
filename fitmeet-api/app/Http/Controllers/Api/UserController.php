@@ -219,6 +219,12 @@ class UserController extends Controller
         return response()->json(['message' => 'Push token removed.']);
     }
 
+    public function recordInviteTap(Request $request): \Illuminate\Http\Response
+    {
+        $request->user()->increment('invite_taps');
+        return response()->noContent();
+    }
+
     private function deleteStoredAvatar(?string $avatarUrl): void
     {
         if (! $avatarUrl) {
