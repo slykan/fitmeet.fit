@@ -56,18 +56,20 @@ interface UserItem {
   beer_top_tier?: string | null
 }
 
-type PeopleSort = 'latest' | 'name' | 'beer'
+type PeopleSort = 'latest' | 'name' | 'beer' | 'events'
 
 const PEOPLE_SORT_OPTIONS: { key: PeopleSort; label: string }[] = [
   { key: 'latest', label: 'New' },
   { key: 'name',   label: 'Name' },
   { key: 'beer',   label: 'Beer' },
+  { key: 'events', label: 'Events' },
 ]
 
 const PEOPLE_SORT_DEFAULT_DIR: Record<PeopleSort, 'asc' | 'desc'> = {
   latest: 'desc',
   name:   'asc',
   beer:   'desc',
+  events: 'desc',
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────

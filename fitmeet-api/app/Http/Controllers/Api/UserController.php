@@ -75,6 +75,8 @@ class UserController extends Controller
                   ->orderByDesc('created_at');
         } elseif ($sort === 'name') {
             $query->orderBy('name', $dir);
+        } elseif ($sort === 'events') {
+            $query->withCount('events')->orderBy('events_count', $dir)->orderByDesc('created_at');
         } else {
             $query->orderBy('created_at', $dir)->orderBy('id', $dir);
         }
