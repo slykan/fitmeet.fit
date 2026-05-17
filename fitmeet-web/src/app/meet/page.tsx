@@ -6,7 +6,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import {
   Search, Phone, UserPlus, UserCheck, UserMinus, Calendar, MapPin, Users, Zap, ChevronRight,
-  Bell, Check, X, ArrowUpDown, ChevronUp, ChevronDown,
+  Bell, Check, X, ArrowUpDown, ChevronUp, ChevronDown, Share2,
 } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
