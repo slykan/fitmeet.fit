@@ -1,13 +1,16 @@
 import { router } from 'expo-router'
 import { LinearGradient } from 'expo-linear-gradient'
-import { useEffect, useRef } from 'react'
+import { Ionicons } from '@expo/vector-icons'
+import { useEffect, useRef, useState } from 'react'
 import { Animated, Easing, Image, Pressable, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
+import { api } from '@/src/lib/api'
 import { useAuthStore } from '@/src/store/auth'
 
 const LOGO = require('../assets/logo-c.png')
 const FEATURES = ['Nearby events', 'Create & join', 'Check in & chat']
+type Donor = { name: string; product_id: string }
 
 export default function WelcomeScreen() {
   const hasHydrated = useAuthStore((s) => s.hasHydrated)
@@ -16,6 +19,7 @@ export default function WelcomeScreen() {
   const heroShift = useRef(new Animated.Value(0)).current
   const ctaOpacity = useRef(new Animated.Value(0)).current
   const ctaShift = useRef(new Animated.Value(34)).current
+  const [donors, setDonors] = useState<Donor[]>([])
 
   useEffect(() => {
     if (!hasHydrated || !token) return
@@ -48,6 +52,14 @@ export default function WelcomeScreen() {
 
     return () => clearTimeout(timer)
   }, [ctaOpacity, ctaShift, heroShift])
+
+  useEffect(() => {
+    api.get('/beer-donations?limit=3')
+      .then(r => setDonors(Array.isArray(r.data) ? r.data : []))
+      .catch(() => {})
+  }, [])
+
+  const donorNames = donors.map(donor => donor.name).join(' · ')
 
   return (
     <SafeAreaView style={styles.root}>
@@ -84,6 +96,19 @@ export default function WelcomeScreen() {
               </View>
             ))}
           </View>
+
+          {donors.length > 0 && (
+            <Pressable style={styles.beerCard} onPress={() => router.push('/beer-wall')}>
+              <View style={styles.beerIcon}>
+                <Ionicons name="beer-outline" size={16} color="#f6c65b" />
+              </View>
+              <View style={styles.beerCopy}>
+                <Text style={styles.beerTitle}>Beer Wall of Fame</Text>
+                <Text style={styles.beerNames} numberOfLines={1}>{donorNames}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={14} color="rgba(246,198,91,0.58)" />
+            </Pressable>
+          )}
 
           <Pressable style={styles.primaryBtn} onPress={() => router.push('/register')}>
             <LinearGradient
@@ -175,6 +200,40 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.78)',
     fontSize: 11,
     fontWeight: '700',
+  },
+  beerCard: {
+    minHeight: 54,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(246,198,91,0.22)',
+    backgroundColor: 'rgba(246,198,91,0.06)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 11,
+    paddingHorizontal: 13,
+    paddingVertical: 10,
+  },
+  beerIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(246,198,91,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  beerCopy: {
+    flex: 1,
+    gap: 2,
+  },
+  beerTitle: {
+    color: '#f6c65b',
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  beerNames: {
+    color: 'rgba(255,255,255,0.66)',
+    fontSize: 12,
+    fontWeight: '600',
   },
   primaryBtn: { width: '100%', borderRadius: 18, overflow: 'hidden' },
   primaryBtnGrad: { height: 56, alignItems: 'center', justifyContent: 'center' },
