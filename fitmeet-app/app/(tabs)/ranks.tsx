@@ -114,7 +114,10 @@ export default function RanksScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>🏆 Community Badges</Text>
+        <View style={{ gap: 2 }}>
+          <Text style={styles.headerTitle}>🏆 Community Badges</Text>
+          <Text style={styles.headerSub}>Last 30 days</Text>
+        </View>
         <Pressable onPress={handleShare} hitSlop={12}>
           <Ionicons name="share-social-outline" size={20} color={palette.accent} />
         </Pressable>
@@ -143,6 +146,7 @@ const styles = StyleSheet.create({
     borderBottomColor: 'rgba(255,255,255,0.08)',
   },
   headerTitle: { color: palette.text, fontSize: 20, fontWeight: '900' },
+  headerSub:   { color: palette.textDim, fontSize: 12, fontWeight: '600' },
   scroll: { padding: spacing.md, gap: 10, paddingBottom: 40 },
 
   section: {

@@ -108,7 +108,7 @@ export default function RanksPage() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-2xl font-black">🏆 Community Badges</h1>
-            <p className="text-sm opacity-50 mt-1">Top 5 in each category</p>
+            <p className="text-sm opacity-50 mt-1">Top 5 · Last 30 days</p>
           </div>
           <button
             onClick={handleShare}
