@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import {
   Animated,
   Easing,
+  LayoutChangeEvent,
   Modal,
   Platform,
   Pressable,
@@ -46,9 +47,9 @@ function MedalIcons({ productId, size = 10 }: { productId: string; size?: number
   )
 }
 
-function TickerItem({ donor }: { donor: Donor }) {
+function TickerItem({ donor, onLayout }: { donor: Donor; onLayout?: (event: LayoutChangeEvent) => void }) {
   return (
-    <View style={styles.item}>
+    <View style={styles.item} onLayout={onLayout}>
       <MedalIcons productId={donor.product_id} />
       <Text style={styles.name}>{donor.name}</Text>
       <Text style={styles.separator}>·</Text>
@@ -145,10 +146,24 @@ export function BeerTickerBanner() {
   const translateX = useRef(new Animated.Value(0)).current
   const animRef = useRef<Animated.CompositeAnimation | null>(null)
   const sequenceWidth = useRef(0)
+  const itemWidths = useRef<number[]>([])
   const started = useRef(false)
 
+  function resetTickerMeasurements() {
+    animRef.current?.stop()
+    itemWidths.current = []
+    sequenceWidth.current = 0
+    started.current = false
+    translateX.setValue(0)
+  }
+
   function loadDonors() {
-    api.get('/beer-donations?limit=10').then(r => setDonors(r.data)).catch(() => {})
+    api.get('/beer-donations?limit=10')
+      .then(r => {
+        resetTickerMeasurements()
+        setDonors(r.data)
+      })
+      .catch(() => {})
   }
 
   useEffect(() => {
@@ -174,7 +189,7 @@ export function BeerTickerBanner() {
     animRef.current.start()
   }
 
-  function handleSequenceLayout(width: number) {
+  function setMeasuredSequenceWidth(width: number) {
     if (!width) return
     if (started.current && Math.abs(sequenceWidth.current - width) < 1) return
 
@@ -182,6 +197,16 @@ export function BeerTickerBanner() {
     started.current = false
     sequenceWidth.current = width
     tryStart()
+  }
+
+  function handleItemLayout(index: number, width: number) {
+    if (!width) return
+
+    itemWidths.current[index] = width
+    const measured = itemWidths.current.slice(0, donors.length)
+    if (measured.length !== donors.length || measured.some(itemWidth => !itemWidth)) return
+
+    setMeasuredSequenceWidth(measured.reduce((sum, itemWidth) => sum + itemWidth, 0))
   }
 
   useEffect(() => {
@@ -203,10 +228,13 @@ export function BeerTickerBanner() {
           >
             <View
               style={styles.sequence}
-              onLayout={e => handleSequenceLayout(e.nativeEvent.layout.width)}
             >
               {donors.map((donor, i) => (
-                <TickerItem key={`a-${i}`} donor={donor} />
+                <TickerItem
+                  key={`a-${i}`}
+                  donor={donor}
+                  onLayout={e => handleItemLayout(i, e.nativeEvent.layout.width)}
+                />
               ))}
             </View>
             <View style={styles.sequence}>
