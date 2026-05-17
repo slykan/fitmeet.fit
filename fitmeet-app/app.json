@@ -3,7 +3,7 @@
     "name": "FitMeet",
     "slug": "fitmeet-app",
     "scheme": "fitmeet",
-    "version": "1.1.65",
+    "version": "1.1.66",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "icon": "./assets/icon.png",
