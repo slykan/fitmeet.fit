@@ -195,7 +195,10 @@ export default function NotificationsScreen() {
         }
       >
         <View style={styles.header}>
-          <Text style={styles.title}>Notifications</Text>
+          <View>
+            <Text style={styles.eyebrow}>Alerts</Text>
+            <Text style={styles.title}>What changed</Text>
+          </View>
           {notifications.length > 0 && (
             <Pressable onPress={clearAll} style={styles.clearBtn}>
               <Text style={styles.clearBtnText}>Clear all</Text>
@@ -352,7 +355,8 @@ const styles = StyleSheet.create({
   content: { padding: spacing.lg, gap: spacing.md },
 
   header: { marginBottom: 4, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  title:  { color: palette.text, fontSize: 30, fontWeight: '800' },
+  eyebrow: { color: palette.accent, fontSize: 13, fontWeight: '700', textTransform: 'uppercase' },
+  title:  { color: palette.text, fontSize: 20, fontWeight: '800' },
   clearBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: palette.line },
   clearBtnText: { color: palette.textDim, fontSize: 12, fontWeight: '700' },
 

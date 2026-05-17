@@ -881,7 +881,10 @@ export default function MessagesScreen() {
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: tabBarHeight + 8 }]} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <Text style={styles.title}>Messages</Text>
+          <View>
+            <Text style={styles.eyebrow}>Chat</Text>
+            <Text style={styles.title}>Conversations</Text>
+          </View>
           <Pressable style={styles.newBtn} onPress={() => setShowCompose(true)}>
             <Ionicons name="add" size={22} color="#041109" />
           </Pressable>
@@ -992,7 +995,8 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: palette.bg },
   content: { padding: spacing.lg, gap: spacing.md },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  title: { color: palette.text, fontSize: 28, fontWeight: '900' },
+  eyebrow: { color: palette.accent, fontSize: 13, fontWeight: '700', textTransform: 'uppercase' },
+  title: { color: palette.text, fontSize: 20, fontWeight: '800' },
   newBtn: { width: 44, height: 44, borderRadius: 16, backgroundColor: palette.accent, alignItems: 'center', justifyContent: 'center' },
   searchWrap: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: palette.panel, borderWidth: 1, borderColor: palette.line, borderRadius: 16, paddingHorizontal: 14, height: 48 },
   searchInput: { flex: 1, color: palette.text, fontSize: 14 },

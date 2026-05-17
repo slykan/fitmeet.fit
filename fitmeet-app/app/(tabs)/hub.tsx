@@ -488,7 +488,7 @@ const styles = StyleSheet.create({
 
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
   eyebrow: { color: palette.accent, fontSize: 13, fontWeight: '700', textTransform: 'uppercase' },
-  title: { color: palette.text, fontSize: 22, fontWeight: '800' },
+  title: { color: palette.text, fontSize: 20, fontWeight: '800' },
   refreshChip: {
     flexDirection: 'row',
     alignItems: 'center',

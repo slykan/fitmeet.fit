@@ -625,7 +625,10 @@ export default function MeetScreen() {
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: tabBarHeight + 8 }]} showsVerticalScrollIndicator={false}>
 
         <View style={styles.header}>
-          <Text style={styles.title}>Meet</Text>
+          <View>
+            <Text style={styles.eyebrow}>Meet</Text>
+            <Text style={styles.title}>New events</Text>
+          </View>
           <Pressable style={styles.createBtn} onPress={() => router.push('/event/create' as never)}>
             <Ionicons name="add" size={22} color="#041109" />
           </Pressable>
@@ -660,7 +663,8 @@ const styles = StyleSheet.create({
   content:  { padding: spacing.lg, gap: spacing.md },
 
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  title:  { color: palette.text, fontSize: 30, fontWeight: '800' },
+  eyebrow: { color: palette.accent, fontSize: 13, fontWeight: '700', textTransform: 'uppercase' },
+  title:  { color: palette.text, fontSize: 20, fontWeight: '800' },
   createBtn: {
     width: 42, height: 42, borderRadius: 14,
     backgroundColor: palette.accent,

@@ -297,7 +297,7 @@ const styles = StyleSheet.create({
 
   header:  { gap: 2 },
   eyebrow: { color: palette.accent, fontSize: 13, fontWeight: '700', textTransform: 'uppercase' },
-  title:   { color: palette.text, fontSize: 30, fontWeight: '800' },
+  title:   { color: palette.text, fontSize: 20, fontWeight: '800' },
 
   card: {
     backgroundColor: palette.panel,
