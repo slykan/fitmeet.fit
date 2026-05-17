@@ -7,6 +7,10 @@ import { api } from '@/src/lib/api'
 
 export const PUSH_TOKEN_STORAGE_KEY = 'fitmeet-mobile-push-token-v1'
 
+const EVENT_STARTED_CATEGORY_ID = 'event_started'
+const CHECK_IN_ACTION_ID = 'check_in'
+const OPEN_EVENT_ACTION_ID = 'open_event'
+
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldPlaySound: true,
@@ -42,6 +46,38 @@ function routeFromNotificationData(data: Record<string, unknown> | undefined) {
   }
 }
 
+async function registerNotificationCategories() {
+  await Notifications.setNotificationCategoryAsync(EVENT_STARTED_CATEGORY_ID, [
+    {
+      identifier: CHECK_IN_ACTION_ID,
+      buttonTitle: 'Check in',
+      options: { opensAppToForeground: true },
+    },
+    {
+      identifier: OPEN_EVENT_ACTION_ID,
+      buttonTitle: 'Open',
+      options: { opensAppToForeground: true },
+    },
+  ]).catch(() => {})
+}
+
+async function handleNotificationResponse(response: Notifications.NotificationResponse | null | undefined) {
+  const data = response?.notification.request.content.data as Record<string, unknown> | undefined
+  const actionIdentifier = response?.actionIdentifier
+  const eventId = data?.event_id != null ? String(data.event_id) : null
+
+  if (eventId && actionIdentifier === CHECK_IN_ACTION_ID) {
+    try {
+      await api.post(`/events/${eventId}/check-in`)
+    } catch {}
+
+    router.push(`/event/${eventId}` as never)
+    return
+  }
+
+  routeFromNotificationData(data)
+}
+
 export async function syncPushToken(pushEnabled: boolean) {
   if (!pushEnabled) {
     await unregisterPushToken()
@@ -56,6 +92,8 @@ export async function syncPushToken(pushEnabled: boolean) {
       lightColor: '#39FF14',
     })
   }
+
+  await registerNotificationCategories()
 
   const existingPermissions = await Notifications.getPermissionsAsync()
   let finalStatus = existingPermissions.status
@@ -98,16 +136,14 @@ export async function unregisterPushToken() {
 }
 
 export function setupPushNotificationRouting() {
+  registerNotificationCategories()
+
   Notifications.getLastNotificationResponseAsync()
-    .then((response) => {
-      if (response?.notification.request.content.data) {
-        routeFromNotificationData(response.notification.request.content.data as Record<string, unknown>)
-      }
-    })
+    .then((response) => handleNotificationResponse(response))
     .catch(() => {})
 
   const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
-    routeFromNotificationData(response.notification.request.content.data as Record<string, unknown>)
+    handleNotificationResponse(response)
   })
 
   return () => subscription.remove()
