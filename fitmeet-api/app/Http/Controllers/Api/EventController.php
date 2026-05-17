@@ -374,7 +374,7 @@ HTML;
             \DB::table('event_participants')
                 ->where('event_id', $event->id)
                 ->where('user_id', $user->id)
-                ->update(['status' => 'joined', 'joined_at' => now()]);
+                ->update(['status' => 'joined', 'joined_at' => now(), 'checked_in_at' => null]);
         } else {
             $event->participants()->attach($user->id, [
                 'status'    => 'joined',
@@ -428,6 +428,60 @@ HTML;
         return response()->json(['notify_on_join' => $data['enabled']]);
     }
 
+    // POST /api/events/{event}/check-in
+    public function checkIn(Request $request, Event $event): JsonResponse
+    {
+        $user = $request->user();
+
+        if ($event->status !== 'active') {
+            return response()->json(['message' => 'Event is not active.'], 422);
+        }
+
+        $participant = \DB::table('event_participants')
+            ->where('event_id', $event->id)
+            ->where('user_id', $user->id)
+            ->where('status', 'joined')
+            ->first();
+
+        if (! $participant) {
+            return response()->json(['message' => 'You are not a participant of this event.'], 422);
+        }
+
+        if ($participant->checked_in_at) {
+            $event->load('organizer', 'participants');
+
+            return response()->json([
+                'checked_in_at' => $participant->checked_in_at,
+                'data' => new EventResource($event),
+            ]);
+        }
+
+        $start = $event->start_at;
+        $opensAt = $start->copy()->subMinutes(30);
+        $closesAt = $start->copy()->addMinutes($event->duration_minutes ?? 60)->addHours(2);
+
+        if (now()->lt($opensAt) || now()->gt($closesAt)) {
+            return response()->json([
+                'message' => 'Check-in is not available for this event right now.',
+            ], 422);
+        }
+
+        $checkedInAt = now();
+
+        \DB::table('event_participants')
+            ->where('event_id', $event->id)
+            ->where('user_id', $user->id)
+            ->where('status', 'joined')
+            ->update(['checked_in_at' => $checkedInAt]);
+
+        $event->load('organizer', 'participants');
+
+        return response()->json([
+            'checked_in_at' => $checkedInAt->toIso8601String(),
+            'data' => new EventResource($event),
+        ]);
+    }
+
     // POST /api/events/{event}/leave
     public function leave(Request $request, Event $event): JsonResponse
     {
@@ -439,7 +493,7 @@ HTML;
             return response()->json(['message' => 'You are not in this event.'], 422);
         }
 
-        $event->participants()->updateExistingPivot($user->id, ['status' => 'cancelled']);
+        $event->participants()->updateExistingPivot($user->id, ['status' => 'cancelled', 'checked_in_at' => null]);
         $event->decrement('participants_count');
         EventReminder::where('user_id', $user->id)
             ->where('event_id', $event->id)

@@ -4,12 +4,21 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Carbon;
 
 class EventResource extends JsonResource
 {
+    private function isoDate(mixed $value): ?string
+    {
+        return $value ? Carbon::parse($value)->toIso8601String() : null;
+    }
+
     public function toArray(Request $request): array
     {
         $user = $request->user();
+        $currentParticipant = $user
+            ? $this->participants->first(fn ($p) => $p->id === $user->id)
+            : null;
 
         return [
             'id'          => $this->id,
@@ -56,8 +65,18 @@ class EventResource extends JsonResource
             'participants' => $this->whenLoaded('participants', fn () =>
                 $this->participants
                     ->filter(fn ($p) => $p->pivot->status === 'joined')
-                    ->map(fn ($p) => ['id' => $p->id, 'name' => $p->name, 'avatar' => $p->avatar])
+                    ->map(fn ($p) => [
+                        'id' => $p->id,
+                        'name' => $p->name,
+                        'avatar' => $p->avatar,
+                        'checked_in_at' => $this->isoDate($p->pivot?->checked_in_at),
+                    ])
                     ->values()
+            ),
+            'checked_in_count' => $this->whenLoaded('participants', fn () =>
+                $this->participants
+                    ->filter(fn ($p) => $p->pivot->status === 'joined' && $p->pivot?->checked_in_at)
+                    ->count()
             ),
 
             'views_count'  => $this->views_count ?? 0,
@@ -69,9 +88,8 @@ class EventResource extends JsonResource
             'is_joined'    => $user ? $this->participants->contains(
                 fn ($participant) => $participant->id === $user->id && $participant->pivot?->status === 'joined'
             ) : false,
-            'notify_on_join' => $user ? (bool) ($this->participants->first(
-                fn ($p) => $p->id === $user->id
-            )?->pivot?->notify_on_join ?? false) : false,
+            'notify_on_join' => $user ? (bool) ($currentParticipant?->pivot?->notify_on_join ?? false) : false,
+            'checked_in_at' => $user ? $this->isoDate($currentParticipant?->pivot?->checked_in_at) : null,
 
             // Distance from user (set by scopeNearby)
             'distance_km' => isset($this->distance_from_user)

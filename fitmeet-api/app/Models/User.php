@@ -95,7 +95,7 @@ class User extends Authenticatable
     public function joinedEvents(): BelongsToMany
     {
         return $this->belongsToMany(Event::class, 'event_participants')
-            ->withPivot('status', 'joined_at')
+            ->withPivot('status', 'joined_at', 'checked_in_at')
             ->wherePivot('status', 'joined');
     }
 

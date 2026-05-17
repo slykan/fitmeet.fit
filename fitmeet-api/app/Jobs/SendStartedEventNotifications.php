@@ -51,6 +51,7 @@ class SendStartedEventNotifications implements ShouldQueue
                 [
                     'type' => 'event_started',
                     'event_id' => $event->id,
+                    'action' => 'check_in',
                 ],
             );
         }

@@ -22,7 +22,7 @@ function routeFromNotificationData(data: Record<string, unknown> | undefined) {
   const type = typeof data.type === 'string' ? data.type : null
   const eventId = data.event_id != null ? String(data.event_id) : null
 
-  if (eventId && ['new_event', 'event_reminder', 'event_cancelled'].includes(type ?? '')) {
+  if (eventId && ['new_event', 'event_reminder', 'event_cancelled', 'event_started'].includes(type ?? '')) {
     router.push(`/event/${eventId}` as never)
     return
   }

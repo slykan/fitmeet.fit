@@ -22,7 +22,7 @@ import { SupportFitMeetCard } from '@/src/components/SupportFitMeetCard'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface Participant { id: number; name: string; avatar: string | null }
+interface Participant { id: number; name: string; avatar: string | null; checked_in_at?: string | null }
 
 interface EventComment {
   id: number
@@ -60,6 +60,8 @@ interface EventDetail {
   is_joined: boolean
   is_organizer: boolean
   notify_on_join: boolean
+  checked_in_at: string | null
+  checked_in_count?: number
   is_private: boolean
   image_url: string | null
   youtube_url: string | null
@@ -82,6 +84,21 @@ function formatDate(iso: string) {
 }
 function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+}
+
+function checkInWindow(event: EventDetail) {
+  const start = new Date(event.schedule.start_at).getTime()
+  const durationMs = (event.schedule.duration_minutes ?? 60) * 60 * 1000
+  return {
+    opensAt: start - 30 * 60 * 1000,
+    closesAt: start + durationMs + 2 * 60 * 60 * 1000,
+  }
+}
+
+function canCheckInNow(event: EventDetail) {
+  const now = Date.now()
+  const { opensAt, closesAt } = checkInWindow(event)
+  return event.status === 'active' && event.is_joined && !event.checked_in_at && now >= opensAt && now <= closesAt
 }
 
 function activeMentionAt(text: string, cursor: number) {
@@ -198,6 +215,7 @@ export default function EventDetailScreen() {
   const [showReminderModal, setShowReminderModal] = useState(false)
   const [settingReminders, setSettingReminders] = useState(false)
   const [showSupportModal, setShowSupportModal] = useState(false)
+  const [checkingIn, setCheckingIn] = useState(false)
   const joinedJustNow = useRef(false)
   const [notifyOnJoin, setNotifyOnJoin] = useState(false)
   const [showParticipants, setShowParticipants] = useState(false)
@@ -400,6 +418,25 @@ export default function EventDetailScreen() {
     }
   }
 
+  async function checkIn() {
+    if (!event || checkingIn) return
+
+    setCheckingIn(true)
+    try {
+      const { data } = await api.post(`/events/${event.id}/check-in`)
+      if (data.data) setEvent(data.data)
+      else {
+        const fresh = await api.get(`/events/${event.id}`)
+        setEvent(fresh.data.data)
+      }
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Could not check in.'
+      Alert.alert('Error', msg)
+    } finally {
+      setCheckingIn(false)
+    }
+  }
+
   function toggleReminder(offset: ReminderOffset) {
     setSelectedOffsets((prev) => {
       const next = new Set(prev)
@@ -455,6 +492,8 @@ export default function EventDetailScreen() {
   const past       = new Date(event.schedule.start_at).getTime() < Date.now()
   const emoji      = CATEGORY_EMOJI[event.category.value] ?? '📍'
   const isOrg      = event.is_organizer || event.organizer?.id === me?.id
+  const checkedInCount = event.checked_in_count ?? event.participants.filter(p => p.checked_in_at).length
+  const checkInAvailable = canCheckInNow(event)
   const canAccessWall = event.is_joined || isOrg
   const wallMembers = [
     ...(event.organizer ? [event.organizer] : []),
@@ -917,7 +956,7 @@ export default function EventDetailScreen() {
             onLayout={(eventLayout) => setParticipantSectionY(eventLayout.nativeEvent.layout.y)}
           >
             <Pressable style={styles.cardHeader} onPress={() => setShowParticipants(v => !v)}>
-              <Text style={styles.cardLabel}>Participants ({event.participants_count})</Text>
+              <Text style={styles.cardLabel}>Checked in {checkedInCount}/{event.participants_count}</Text>
               <Ionicons
                 name={showParticipants ? 'chevron-up' : 'chevron-down'}
                 size={16}
@@ -925,23 +964,47 @@ export default function EventDetailScreen() {
               />
             </Pressable>
             {showParticipants && (
-              <View style={styles.participantGrid}>
-                {event.participants.slice(0, 12).map(p => (
-                  <View key={p.id} style={styles.participantItem}>
+              <View style={styles.participantList}>
+                {event.participants.map(p => (
+                  <View key={p.id} style={styles.participantRow}>
                     <Pressable onPress={() => openAvatarZoom(p.avatar)} disabled={!p.avatar}>
-                      <Avatar user={p} size={40} />
+                      <Avatar user={p} size={34} />
                     </Pressable>
-                    <Text style={styles.participantName} numberOfLines={1}>{p.name.split(' ')[0]}</Text>
-                  </View>
-                ))}
-                {event.participants_count > 12 && (
-                  <View style={styles.participantItem}>
-                    <View style={[styles.moreCircle]}>
-                      <Text style={styles.moreText}>+{event.participants_count - 12}</Text>
+                    <View style={styles.participantInfo}>
+                      <Text style={styles.participantName} numberOfLines={1}>{p.name}</Text>
+                      <Text style={p.checked_in_at ? styles.participantChecked : styles.participantWaiting}>
+                        {p.checked_in_at ? `Checked in · ${formatTime(p.checked_in_at)}` : 'Waiting'}
+                      </Text>
                     </View>
                   </View>
-                )}
+                ))}
               </View>
+            )}
+          </View>
+        )}
+
+        {/* Check-in */}
+        {event.is_joined && !cancelled && (checkInAvailable || event.checked_in_at) && (
+          <View style={styles.checkInCard}>
+            <View style={styles.checkInCopy}>
+              <Text style={styles.checkInTitle}>{event.checked_in_at ? 'Checked in' : 'Ready to check in?'}</Text>
+              <Text style={styles.checkInSub}>
+                {event.checked_in_at ? `You checked in at ${formatTime(event.checked_in_at)}.` : 'Mark that you made it to this event.'}
+              </Text>
+            </View>
+            {event.checked_in_at ? (
+              <View style={styles.checkedChip}>
+                <Ionicons name="checkmark-circle" size={16} color={palette.accent} />
+                <Text style={styles.checkedChipText}>Done</Text>
+              </View>
+            ) : (
+              <Pressable style={[styles.checkInBtn, checkingIn && styles.disabledBtn]} onPress={checkIn} disabled={checkingIn}>
+                {checkingIn ? (
+                  <ActivityIndicator size="small" color="#041109" />
+                ) : (
+                  <Text style={styles.checkInBtnText}>Check in</Text>
+                )}
+              </Pressable>
             )}
           </View>
         )}
@@ -1195,11 +1258,12 @@ const styles = StyleSheet.create({
   youBadge:    { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2, backgroundColor: 'rgba(57,255,20,0.1)', borderWidth: 1, borderColor: palette.accent },
   youBadgeText:{ color: palette.accent, fontSize: 11, fontWeight: '700' },
 
-  participantGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  participantItem: { alignItems: 'center', gap: 4, width: 48 },
-  participantName: { color: palette.textDim, fontSize: 10, fontWeight: '600', textAlign: 'center' },
-  moreCircle:  { width: 40, height: 40, borderRadius: 20, backgroundColor: palette.panelRaised, borderWidth: 1, borderColor: palette.line, alignItems: 'center', justifyContent: 'center' },
-  moreText:    { color: palette.textMuted, fontSize: 11, fontWeight: '700' },
+  participantList: { gap: 10 },
+  participantRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  participantInfo: { flex: 1, gap: 2 },
+  participantName: { color: palette.text, fontSize: 13, fontWeight: '700' },
+  participantChecked: { color: palette.accent, fontSize: 12, fontWeight: '700' },
+  participantWaiting: { color: palette.textDim, fontSize: 12, fontWeight: '600' },
 
   wallBody: { gap: 12 },
   wallHint: { color: palette.textMuted, fontSize: 13, lineHeight: 20 },
@@ -1333,6 +1397,43 @@ const styles = StyleSheet.create({
   disabledBtn: { opacity: 0.45 },
   actionLabel: { color: '#041109', fontSize: 16, fontWeight: '800' },
   leaveActionLabel: { color: '#f87171', fontSize: 16, fontWeight: '800' },
+
+  checkInCard: {
+    marginHorizontal: spacing.md,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(57,255,20,0.28)',
+    backgroundColor: 'rgba(57,255,20,0.07)',
+    padding: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  checkInCopy: { flex: 1, gap: 3 },
+  checkInTitle: { color: palette.text, fontSize: 15, fontWeight: '800' },
+  checkInSub: { color: palette.textMuted, fontSize: 12, lineHeight: 17 },
+  checkInBtn: {
+    minWidth: 92,
+    height: 42,
+    borderRadius: 14,
+    backgroundColor: palette.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+  },
+  checkInBtnText: { color: '#041109', fontSize: 13, fontWeight: '800' },
+  checkedChip: {
+    height: 34,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(57,255,20,0.35)',
+    backgroundColor: 'rgba(57,255,20,0.1)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+  },
+  checkedChipText: { color: palette.accent, fontSize: 12, fontWeight: '800' },
 
   editBtn: {
     marginHorizontal: spacing.md,
