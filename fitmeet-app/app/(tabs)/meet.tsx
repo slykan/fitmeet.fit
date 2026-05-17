@@ -51,6 +51,7 @@ interface UserItem {
   home: { city: string | null; country: string | null }
   friendship_status: 'friends' | 'pending_sent' | 'pending_received' | null
   events_count: number
+  created_at?: string | null
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -471,7 +472,7 @@ function PeopleTab() {
 
   const load = useCallback((q: string) => {
     setLoading(true)
-    const params: Record<string, string> = {}
+    const params: Record<string, string> = { sort: 'latest' }
     if (q) params.search = q
     api.get('/users', { params })
       .then(({ data }) => setUsers(data.data ?? []))
@@ -548,7 +549,7 @@ function PeopleTab() {
         </Pressable>
       </Modal>
 
-      {!loading && users.map(u => (
+      {!loading && users.map((u, index) => (
         <View key={u.id} style={styles.userCard}>
           <Pressable
             style={styles.userAvatar}
@@ -561,7 +562,14 @@ function PeopleTab() {
             }
           </Pressable>
           <View style={{ flex: 1, gap: 2 }}>
-            <Text style={styles.userName}>{u.name}</Text>
+            <View style={styles.userNameRow}>
+              <Text style={styles.userName} numberOfLines={1}>{u.name}</Text>
+              {index === 0 && (
+                <View style={styles.newUserBadge}>
+                  <Text style={styles.newUserBadgeText}>Just landed</Text>
+                </View>
+              )}
+            </View>
             {(u.home.city || u.home.country) && (
               <Text style={styles.userLocation}>
                 {[u.home.city, u.home.country].filter(Boolean).join(', ')}
@@ -795,7 +803,17 @@ const styles = StyleSheet.create({
   userAvatarText: { color: '#031109', fontSize: 18, fontWeight: '800' },
   avatarZoomOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', alignItems: 'center', justifyContent: 'center' },
   avatarZoomImg:     { width: 280, height: 280, borderRadius: 140 },
+  userNameRow:    { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
   userName:       { color: palette.text, fontSize: 15, fontWeight: '700' },
+  newUserBadge: {
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(108,255,47,0.36)',
+    backgroundColor: 'rgba(108,255,47,0.09)',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+  },
+  newUserBadgeText: { color: palette.accent, fontSize: 9, fontWeight: '900', textTransform: 'uppercase' },
   userLocation:   { color: palette.textMuted, fontSize: 12 },
   userEvents:     { color: palette.textMuted, fontSize: 12 },
   userCategories: { fontSize: 14, marginTop: 2 },

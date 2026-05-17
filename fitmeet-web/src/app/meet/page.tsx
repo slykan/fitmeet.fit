@@ -32,6 +32,7 @@ interface UserItem {
   home: { city: string | null; country: string | null }
   friendship_status: 'friends' | 'pending_sent' | 'pending_received' | null
   events_count: number
+  created_at?: string | null
 }
 
 interface EventItem {
@@ -136,7 +137,7 @@ function PeopleTab() {
 
   const load = useCallback((q: string) => {
     setLoading(true)
-    const params: Record<string, string> = {}
+    const params: Record<string, string> = { sort: 'latest' }
     if (q) params.search = q
     api.get('/users', { params })
       .then(({ data }) => setUsers(data.data ?? []))
@@ -213,14 +214,24 @@ function PeopleTab() {
         <div className="text-center py-12 text-sm" style={{ color: 'var(--text-muted)' }}>No people found.</div>
       )}
 
-      {!loading && users.map(u => (
+      {!loading && users.map((u, index) => (
         <div key={u.id} className="rounded-2xl border p-4 flex items-start gap-3"
           style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
           <Avatar user={u} />
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <p className="font-semibold text-sm truncate">{u.name}</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="font-semibold text-sm truncate">{u.name}</p>
+                  {index === 0 && (
+                    <span
+                      className="text-[10px] px-2 py-0.5 rounded-full border font-black uppercase tracking-wide"
+                      style={{ borderColor: 'rgba(57,255,20,0.35)', color: 'var(--primary)', background: 'rgba(57,255,20,0.08)' }}
+                    >
+                      Just landed
+                    </span>
+                  )}
+                </div>
                 {(u.home.city || u.home.country) && (
                   <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
                     {[u.home.city, u.home.country].filter(Boolean).join(', ')}

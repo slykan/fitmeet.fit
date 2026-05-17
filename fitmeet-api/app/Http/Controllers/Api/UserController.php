@@ -66,7 +66,13 @@ class UserController extends Controller
             $query->whereIn('id', $friendIds);
         }
 
-        $users = $query->withCount('events')->orderBy('name')->paginate(30);
+        $users = $query->withCount('events')
+            ->when(
+                $request->input('sort') === 'latest',
+                fn ($query) => $query->orderByDesc('created_at')->orderByDesc('id'),
+                fn ($query) => $query->orderBy('name'),
+            )
+            ->paginate(30);
 
         // Build a map of userId → friendship status for the current user
         $statusMap = [];
