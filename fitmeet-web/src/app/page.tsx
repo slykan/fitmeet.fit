@@ -56,19 +56,19 @@ const highlights = [
 
 const latestFeatures = [
   {
-    icon: Route,
-    title: 'Strava GPX import',
-    description: 'Bring in saved Strava routes and attach them to events with distance and elevation.',
+    icon: CheckCircle2,
+    title: 'Event check-ins',
+    description: 'Check in when you arrive and see who is already there before the activity starts.',
   },
   {
     icon: MessageSquareText,
-    title: 'Group messages',
-    description: 'Create group chats, add people later, share images and keep event plans in one place.',
+    title: 'Comments and chat',
+    description: 'Share updates, coordinate details and keep participants connected around every event.',
   },
   {
     icon: Bell,
     title: 'Smarter alerts',
-    description: 'Event reminders, cancellation notices and fresh notifications are easier to spot.',
+    description: 'Get reminders, join updates and local activity notifications when they matter.',
   },
 ]
 
@@ -215,8 +215,8 @@ export default async function HomePage() {
                 </h1>
 
                 <p className="text-lg max-w-xl leading-relaxed mb-8" style={{ color: 'var(--text-muted)' }}>
-                  Discover events nearby, create your own, invite friends, share routes and keep everyone in sync from
-                  the first idea to the start line.
+                  Discover events nearby, create your own, meet new people and keep every activity in sync from
+                  the first idea to check-in.
                 </p>
 
                 <div className="flex gap-3 flex-wrap mb-8">
@@ -247,7 +247,7 @@ export default async function HomePage() {
                       New in FitMeet
                     </p>
                     <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                      Routes, alerts, chat
+                      Check-ins, alerts, chat
                     </span>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-3">

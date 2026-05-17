@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { useAuthStore } from '@/src/store/auth'
 
 const LOGO = require('../assets/logo-c.png')
+const FEATURES = ['Nearby events', 'Create & join', 'Check in & chat']
 
 export default function WelcomeScreen() {
   const hasHydrated = useAuthStore((s) => s.hasHydrated)
@@ -72,6 +73,17 @@ export default function WelcomeScreen() {
           ]}
         >
           <Text style={styles.tagline}>Find your people. Move together.</Text>
+          <Text style={styles.subtitle}>
+            Discover local events, meet new people and keep every activity in sync.
+          </Text>
+
+          <View style={styles.featureRow}>
+            {FEATURES.map((feature) => (
+              <View key={feature} style={styles.featurePill}>
+                <Text style={styles.featureText}>{feature}</Text>
+              </View>
+            ))}
+          </View>
 
           <Pressable style={styles.primaryBtn} onPress={() => router.push('/register')}>
             <LinearGradient
@@ -134,6 +146,35 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     marginTop: -6,
+  },
+  subtitle: {
+    color: 'rgba(255,255,255,0.52)',
+    textAlign: 'center',
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: '500',
+    paddingHorizontal: 8,
+    marginTop: -4,
+  },
+  featureRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 8,
+    marginBottom: 2,
+  },
+  featurePill: {
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(57,255,20,0.24)',
+    backgroundColor: 'rgba(57,255,20,0.07)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  featureText: {
+    color: 'rgba(255,255,255,0.78)',
+    fontSize: 11,
+    fontWeight: '700',
   },
   primaryBtn: { width: '100%', borderRadius: 18, overflow: 'hidden' },
   primaryBtnGrad: { height: 56, alignItems: 'center', justifyContent: 'center' },
