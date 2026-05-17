@@ -5,7 +5,7 @@ import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Calendar, MapPin, Users, Zap, ChevronLeft, Lock, Pencil, ChevronDown, ChevronUp, Bell, Check, X, Share2, XCircle, Download, Wind, Cloud, Eye } from 'lucide-react'
+import { Calendar, MapPin, Users, Zap, ChevronLeft, Lock, Pencil, ChevronDown, ChevronUp, Bell, Check, X, Share2, XCircle, Download, Wind, Cloud, Eye, CheckCircle2 } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
 import { WeatherBadge } from '@/components/WeatherBadge'
@@ -25,6 +25,7 @@ interface Participant {
   id: number
   name: string
   avatar: string | null
+  checked_in_at?: string | null
 }
 
 interface Event {
@@ -47,8 +48,29 @@ interface Event {
   status: string
   is_organizer: boolean
   is_joined: boolean
+  checked_in_at: string | null
+  checked_in_count?: number
   youtube_url: string | null
   organizer: { id: number; name: string; avatar: string | null }
+}
+
+function formatCheckInTime(iso: string) {
+  return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+}
+
+function checkInWindow(event: Event) {
+  const start = new Date(event.schedule.start_at).getTime()
+  const durationMs = (event.schedule.duration_minutes ?? 60) * 60 * 1000
+  return {
+    opensAt: start - 30 * 60 * 1000,
+    closesAt: start + durationMs + 2 * 60 * 60 * 1000,
+  }
+}
+
+function canCheckInNow(event: Event) {
+  const now = Date.now()
+  const { opensAt, closesAt } = checkInWindow(event)
+  return event.status === 'active' && event.is_joined && !event.checked_in_at && now >= opensAt && now <= closesAt
 }
 
 function EventContent() {
@@ -61,6 +83,7 @@ function EventContent() {
   const [event,    setEvent]    = useState<Event | null>(null)
   const [loading,  setLoading]  = useState(true)
   const [joining,  setJoining]  = useState(false)
+  const [checkingIn, setCheckingIn] = useState(false)
   const [error,    setError]    = useState<string | null>(null)
   const [gpxResult, setGpxResult] = useState<GpxResult | null>(null)
   const [showParticipants, setShowParticipants] = useState(false)
@@ -177,6 +200,26 @@ function EventContent() {
     }
   }
 
+  async function handleCheckIn() {
+    if (!event || checkingIn) return
+    setCheckingIn(true)
+    setError(null)
+    try {
+      const { data } = await api.post(`/events/${event.id}/check-in`)
+      if (data.data) {
+        setEvent(data.data)
+      } else {
+        const fresh = await api.get(`/events/${event.id}`)
+        setEvent(fresh.data.data)
+      }
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Could not check in.'
+      setError(msg)
+    } finally {
+      setCheckingIn(false)
+    }
+  }
+
   async function handleShare() {
     if (!event || typeof window === 'undefined') return
     const version = encodeURIComponent(`${event.schedule.start_at}-${event.schedule.timezone}`)
@@ -212,6 +255,12 @@ function EventContent() {
       setCancelling(false)
     }
   }
+
+  const cancelled = event?.status === 'cancelled'
+  const checkInAvailable = event ? canCheckInNow(event) : false
+  const checkedInCount = event
+    ? event.checked_in_count ?? event.participants.filter(p => p.checked_in_at).length
+    : 0
 
   return (
     <>
@@ -308,7 +357,7 @@ function EventContent() {
                 <div className="flex items-center gap-2.5">
                   <Users size={15} style={{ color: 'var(--primary)', flexShrink: 0 }} />
                   <span>
-                    {event.participants_count} joined
+                    {checkedInCount > 0 ? `Checked in ${checkedInCount}/${event.participants_count}` : `${event.participants_count} joined`}
                     {event.max_participants ? ` · max ${event.max_participants}` : ''}
                     {event.is_full && <span className="ml-2 text-red-400">· Full</span>}
                   </span>
@@ -329,19 +378,24 @@ function EventContent() {
                   </div>
                 )}
                 {showParticipants && event.participants?.length > 0 && (
-                  <div className="mt-2 ml-6 flex flex-wrap gap-2">
+                  <div className="mt-2 ml-6 grid gap-2 sm:grid-cols-2">
                     {event.participants.map(p => (
-                      <div key={p.id} className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border"
+                      <div key={p.id} className="flex items-center gap-2 text-xs px-2.5 py-2 rounded-xl border"
                         style={{ borderColor: 'var(--border)', background: 'var(--background)', color: 'var(--text-primary)' }}>
                         {p.avatar ? (
-                          <Image src={p.avatar} alt={p.name} width={18} height={18} className="rounded-full object-cover" />
+                          <Image src={p.avatar} alt={p.name} width={28} height={28} className="rounded-full object-cover flex-shrink-0" />
                         ) : (
-                          <div className="w-[18px] h-[18px] rounded-full flex items-center justify-center font-bold text-[9px] text-black flex-shrink-0"
+                          <div className="w-7 h-7 rounded-full flex items-center justify-center font-bold text-[11px] text-black flex-shrink-0"
                             style={{ background: 'var(--primary)' }}>
                             {p.name.charAt(0).toUpperCase()}
                           </div>
                         )}
-                        {p.name}
+                        <div className="min-w-0">
+                          <div className="truncate font-medium">{p.name}</div>
+                          <div style={{ color: p.checked_in_at ? 'var(--primary)' : 'var(--text-muted)' }}>
+                            {p.checked_in_at ? `Checked in · ${formatCheckInTime(p.checked_in_at)}` : 'Waiting'}
+                          </div>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -478,6 +532,28 @@ function EventContent() {
             canAccess={event.is_joined || event.is_organizer}
             initiallyOpen={wall === '1'}
           />
+
+          {event.is_joined && !cancelled && (checkInAvailable || event.checked_in_at) && (
+            <div className="rounded-2xl border p-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+              style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
+              <div>
+                <div className="font-bold text-base">{event.checked_in_at ? 'Checked in' : 'Ready to check in?'}</div>
+                <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
+                  {event.checked_in_at ? `You checked in at ${formatCheckInTime(event.checked_in_at)}.` : 'Mark that you made it to this event.'}
+                </p>
+              </div>
+              {event.checked_in_at ? (
+                <div className="inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-2 text-sm font-bold"
+                  style={{ borderColor: 'rgba(57,255,20,0.4)', color: 'var(--primary)', background: 'rgba(57,255,20,0.08)' }}>
+                  <CheckCircle2 size={17} /> Done
+                </div>
+              ) : (
+                <Button size="lg" loading={checkingIn} onClick={handleCheckIn} className="sm:min-w-36">
+                  Check in
+                </Button>
+              )}
+            </div>
+          )}
 
           {event.status === 'active' && (
             event.is_joined ? (
