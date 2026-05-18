@@ -16,19 +16,17 @@ class MomentsController extends Controller
 
         $moments = Event::query()
             ->where('is_private', false)
-            ->whereNotNull('image_path')
+            ->whereNotNull('moment_image_path')
             ->where('start_at', '<', now())
             ->orderByDesc('start_at')
-            ->select('id', 'title', 'image_path', 'category', 'start_at', 'user_id')
+            ->select('id', 'title', 'moment_image_path', 'category', 'start_at', 'user_id')
             ->paginate($perPage, ['*'], 'page', $page);
-
-        $storageUrl = config('app.url') . '/storage/';
 
         return response()->json([
             'data' => $moments->map(fn ($e) => [
                 'id'        => $e->id,
                 'title'     => $e->title,
-                'image_url' => $storageUrl . $e->image_path,
+                'image_url' => url('/storage/' . $e->moment_image_path),
                 'category'  => $e->category?->value,
                 'start_at'  => $e->start_at->toIso8601String(),
             ]),

@@ -329,6 +329,36 @@ HTML;
         return response()->json(['data' => new EventResource($event)]);
     }
 
+    // POST /api/events/{event}/moment
+    public function storeMoment(Request $request, Event $event): JsonResponse
+    {
+        if (! $event->isOrganizer($request->user())) {
+            return response()->json(['message' => 'Only the organizer can add a moment.'], 403);
+        }
+
+        if ($event->start_at->isFuture()) {
+            return response()->json(['message' => 'Event has not ended yet.'], 422);
+        }
+
+        $endedAt = $event->start_at->copy()->addMinutes($event->duration_minutes ?? 60);
+        if ($endedAt->diffInHours(now()) > 48) {
+            return response()->json(['message' => 'Upload window has closed (48 hours after event end).'], 422);
+        }
+
+        $request->validate(['image' => 'required|file|mimes:jpeg,jpg,png,webp|max:10240']);
+
+        if ($event->moment_image_path) {
+            Storage::disk('public')->delete($event->moment_image_path);
+        }
+
+        $path = $request->file('image')->store('moments', 'public');
+        $event->update(['moment_image_path' => $path]);
+
+        return response()->json([
+            'moment_image_url' => url('/storage/' . $path),
+        ]);
+    }
+
     // DELETE /api/events/{event}
     public function destroy(Request $request, Event $event): JsonResponse
     {

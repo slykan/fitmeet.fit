@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router'
+import * as ImagePicker from 'expo-image-picker'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator, Alert, Image, Modal, Pressable,
@@ -64,6 +65,7 @@ interface EventDetail {
   checked_in_count?: number
   is_private: boolean
   image_url: string | null
+  moment_image_url: string | null
   youtube_url: string | null
   organizer: Participant | null
   participants: Participant[]
@@ -235,6 +237,7 @@ export default function EventDetailScreen() {
   const [selectedMentions, setSelectedMentions] = useState<MentionDraft[]>([])
   const [zoomAvatar, setZoomAvatar] = useState<string | null>(null)
   const [mapEnabled, setMapEnabled] = useState(false)
+  const [momentUploading, setMomentUploading] = useState(false)
 
   const loadEvent = useCallback(() => {
     if (!id) return
@@ -247,6 +250,38 @@ export default function EventDetailScreen() {
   }, [id])
 
   useFocusEffect(loadEvent)
+
+  async function pickAndUploadMoment() {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync()
+    if (!perm.granted) {
+      Alert.alert('Permission needed', 'Allow photo library access to upload a moment.')
+      return
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      quality: 0.8,
+      allowsEditing: true,
+      aspect: [4, 3],
+    })
+    if (result.canceled || !result.assets[0]) return
+
+    const asset = result.assets[0]
+    const form = new FormData()
+    form.append('image', { uri: asset.uri, name: 'moment.jpg', type: 'image/jpeg' } as never)
+
+    setMomentUploading(true)
+    try {
+      const { data } = await api.post(`/events/${id}/moment`, form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      setEvent(prev => prev ? { ...prev, moment_image_url: data.moment_image_url } : prev)
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message
+      Alert.alert('Error', msg ?? 'Could not upload moment.')
+    } finally {
+      setMomentUploading(false)
+    }
+  }
 
   useEffect(() => {
     setYoutubeOpen(false)
@@ -687,6 +722,40 @@ export default function EventDetailScreen() {
             <Text style={{ fontSize: 56 }}>{emoji}</Text>
           </View>
         )}
+
+        {/* Moment image or upload button */}
+        {(() => {
+          const endedAt = new Date(event.schedule.start_at).getTime() + (event.schedule.duration_minutes ?? 60) * 60000
+          const withinWindow = past && (Date.now() - endedAt) < 48 * 3600000
+          if (event.moment_image_url) {
+            return (
+              <View style={styles.momentSection}>
+                <Text style={styles.momentLabel}>📸 Moment</Text>
+                <Image source={{ uri: event.moment_image_url }} style={styles.momentImage} resizeMode="cover" />
+                {isOrg && withinWindow && (
+                  <Pressable style={styles.momentReplaceBtn} onPress={pickAndUploadMoment} disabled={momentUploading}>
+                    <Ionicons name="camera-outline" size={14} color={palette.textDim} />
+                    <Text style={styles.momentReplaceText}>{momentUploading ? 'Uploading…' : 'Replace'}</Text>
+                  </Pressable>
+                )}
+              </View>
+            )
+          }
+          if (isOrg && withinWindow) {
+            return (
+              <Pressable style={styles.momentUploadBtn} onPress={pickAndUploadMoment} disabled={momentUploading}>
+                {momentUploading
+                  ? <ActivityIndicator size="small" color={palette.accent} />
+                  : <>
+                      <Ionicons name="camera-outline" size={20} color={palette.accent} />
+                      <Text style={styles.momentUploadText}>Add Moment</Text>
+                    </>
+                }
+              </Pressable>
+            )
+          }
+          return null
+        })()}
 
         {/* Header */}
         <View style={styles.section}>
@@ -1196,6 +1265,25 @@ const styles = StyleSheet.create({
     backgroundColor: palette.panel,
     alignItems: 'center', justifyContent: 'center',
   },
+
+  momentSection: { marginHorizontal: spacing.md, marginTop: 8 },
+  momentLabel: { color: palette.textDim, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', marginBottom: 6 },
+  momentImage: { width: '100%', height: 200, borderRadius: 14 },
+  momentReplaceBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    alignSelf: 'flex-end', marginTop: 6, paddingVertical: 4, paddingHorizontal: 8,
+    borderRadius: 8, borderWidth: 1, borderColor: palette.line,
+  },
+  momentReplaceText: { color: palette.textDim, fontSize: 11 },
+  momentUploadBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    marginHorizontal: spacing.md, marginTop: 8,
+    paddingVertical: 14, borderRadius: 14,
+    borderWidth: 1.5, borderColor: 'rgba(108,255,47,0.3)',
+    borderStyle: 'dashed',
+    backgroundColor: 'rgba(108,255,47,0.05)',
+  },
+  momentUploadText: { color: palette.accent, fontSize: 14, fontWeight: '700' },
 
   coverImage: { width: '100%', height: 220 },
   imgOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.92)', alignItems: 'center', justifyContent: 'center' },

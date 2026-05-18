@@ -77,3 +77,34 @@ Artisan::command('events:send-started', function () {
 })->purpose('Send notifications before joined events start');
 
 Schedule::command('events:send-started')->everyMinute();
+
+Artisan::command('moments:send-reminders', function () {
+    $window = now()->subMinutes(15);
+
+    $events = Event::query()
+        ->where('status', 'active')
+        ->where('is_private', false)
+        ->whereNull('moment_image_path')
+        ->whereRaw("DATE_ADD(start_at, INTERVAL COALESCE(duration_minutes, 60) MINUTE) <= NOW()")
+        ->whereRaw("DATE_ADD(start_at, INTERVAL COALESCE(duration_minutes, 60) MINUTE) > ?", [$window])
+        ->with('organizer')
+        ->get();
+
+    foreach ($events as $event) {
+        if (! $event->organizer) continue;
+
+        SendPushNotification::dispatch(
+            [$event->user_id],
+            '📸 Add your Moment!',
+            "How did {$event->title} go? Upload a photo to Moments.",
+            [
+                'type'     => 'moment_reminder',
+                'event_id' => $event->id,
+            ],
+        );
+    }
+
+    $this->info("Sent moment reminders for {$events->count()} event(s).");
+})->purpose('Send moment upload reminders to organizers after events end');
+
+Schedule::command('moments:send-reminders')->everyFifteenMinutes();
