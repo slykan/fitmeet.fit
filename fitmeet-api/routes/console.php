@@ -85,19 +85,21 @@ Artisan::command('moments:send-reminders', function () {
         ->where('status', 'active')
         ->where('is_private', false)
         ->whereNull('moment_image_path')
-        ->whereRaw("DATE_ADD(start_at, INTERVAL COALESCE(duration_minutes, 60) MINUTE) <= NOW()")
-        ->whereRaw("DATE_ADD(start_at, INTERVAL COALESCE(duration_minutes, 60) MINUTE) > ?", [$window])
+        ->whereRaw("DATE_ADD(start_at, INTERVAL COALESCE(duration_minutes, 120) MINUTE) <= NOW()")
+        ->whereRaw("DATE_ADD(start_at, INTERVAL COALESCE(duration_minutes, 120) MINUTE) > ?", [$window])
         ->with('organizer')
         ->get();
 
     foreach ($events as $event) {
         if (! $event->organizer) continue;
 
-        \App\Models\EventNotification::firstOrCreate([
+        $notification = \App\Models\EventNotification::firstOrCreate([
             'user_id'  => $event->user_id,
             'event_id' => $event->id,
             'type'     => 'moment_reminder',
         ]);
+
+        if (! $notification->wasRecentlyCreated) continue;
 
         SendPushNotification::dispatch(
             [$event->user_id],
