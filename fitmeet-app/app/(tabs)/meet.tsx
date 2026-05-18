@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs'
 
 import { api } from '@/src/lib/api'
+import { CalendarModal } from '@/src/components/CalendarModal'
 import { CATEGORIES } from '@/src/lib/categories'
 import { WeatherBadge } from '@/src/components/WeatherBadge'
 import { useAuthStore } from '@/src/store/auth'
@@ -718,6 +719,7 @@ function PeopleTab() {
 export default function MeetScreen() {
   const tabBarHeight = useBottomTabBarHeight()
   const [tab, setTab] = useState<'events' | 'people'>('events')
+  const [showCalendar, setShowCalendar] = useState(false)
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -728,10 +730,17 @@ export default function MeetScreen() {
             <Text style={styles.eyebrow}>Meet</Text>
             <Text style={styles.title}>New events</Text>
           </View>
-          <Pressable style={styles.createBtn} onPress={() => router.push('/event/create' as never)}>
-            <Ionicons name="add" size={22} color="#041109" />
-          </Pressable>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <Pressable style={styles.calendarBtn} onPress={() => setShowCalendar(true)}>
+              <Ionicons name="calendar-outline" size={18} color={palette.accent} />
+            </Pressable>
+            <Pressable style={styles.createBtn} onPress={() => router.push('/event/create' as never)}>
+              <Ionicons name="add" size={22} color="#041109" />
+            </Pressable>
+          </View>
         </View>
+
+        <CalendarModal visible={showCalendar} onClose={() => setShowCalendar(false)} />
 
         {/* Tab switcher */}
         <View style={styles.tabBar}>
@@ -767,6 +776,12 @@ const styles = StyleSheet.create({
   createBtn: {
     width: 42, height: 42, borderRadius: 14,
     backgroundColor: palette.accent,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  calendarBtn: {
+    width: 42, height: 42, borderRadius: 14,
+    backgroundColor: 'rgba(108,255,47,0.1)',
+    borderWidth: 1, borderColor: 'rgba(108,255,47,0.25)',
     alignItems: 'center', justifyContent: 'center',
   },
 
