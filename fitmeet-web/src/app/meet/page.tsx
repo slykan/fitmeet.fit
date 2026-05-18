@@ -984,21 +984,21 @@ export default function MeetPage() {
                 className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-xl font-semibold transition-opacity hover:opacity-80"
                 style={{ background: 'rgba(57,255,20,0.08)', border: '1px solid rgba(57,255,20,0.25)', color: 'var(--primary)' }}
               >
-                <Calendar size={15} /> Schedule
+                <Calendar size={15} /> <span className="hidden sm:inline">Schedule</span>
               </button>
               <a
                 href="/moments"
                 className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-xl font-semibold transition-opacity hover:opacity-80"
                 style={{ background: 'rgba(57,255,20,0.08)', border: '1px solid rgba(57,255,20,0.25)', color: 'var(--primary)' }}
               >
-                <Images size={15} /> Moments
+                <Images size={15} /> <span className="hidden sm:inline">Moments</span>
               </a>
               <button
                 onClick={() => router.push('/events/create')}
-                className="flex items-center gap-2 text-sm px-4 py-2 rounded-xl font-semibold transition-opacity hover:opacity-80"
+                className="flex items-center gap-2 text-sm px-3 py-2 rounded-xl font-semibold transition-opacity hover:opacity-80"
                 style={{ background: 'var(--primary)', color: '#000' }}
               >
-                <span className="text-base leading-none">+</span> New Event
+                <span className="text-base leading-none">+</span> <span className="hidden sm:inline">New Event</span>
               </button>
             </div>
           </div>
