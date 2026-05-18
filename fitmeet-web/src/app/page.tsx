@@ -2,6 +2,7 @@ import {
   ArrowRight,
   Bell,
   CalendarPlus,
+  Camera,
   CheckCircle2,
   Compass,
   MessageSquareText,
@@ -79,16 +80,19 @@ const latestFeatures = [
     icon: CheckCircle2,
     title: 'Event check-ins',
     description: 'Check in when you arrive and see who is already there before the activity starts.',
+    href: null,
   },
   {
     icon: MessageSquareText,
     title: 'Comments and chat',
     description: 'Share updates, coordinate details and keep participants connected around every event.',
+    href: null,
   },
   {
-    icon: Bell,
-    title: 'Smarter alerts',
-    description: 'Get reminders, join updates and local activity notifications when they matter.',
+    icon: Camera,
+    title: 'Moments',
+    description: 'After every event, organizers upload one photo. Real people, real events — all in one gallery.',
+    href: '/moments',
   },
 ]
 
@@ -277,11 +281,11 @@ export default async function HomePage() {
                       New in FitMeet
                     </p>
                     <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                      Check-ins, alerts, chat
+                      Check-ins, Moments, chat
                     </span>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-3">
-                    {latestFeatures.map(({ icon: Icon, title, description }) => (
+                    {latestFeatures.map(({ icon: Icon, title, description, href }) => (
                       <div key={title} className="flex gap-3 sm:block">
                         <div
                           className="w-9 h-9 shrink-0 rounded-xl flex items-center justify-center sm:mb-3"
@@ -290,7 +294,13 @@ export default async function HomePage() {
                           <Icon size={17} style={{ color: 'var(--primary)' }} />
                         </div>
                         <div>
-                          <p className="text-sm font-bold mb-1">{title}</p>
+                          {href ? (
+                            <Link href={href} className="text-sm font-bold mb-1 hover:underline underline-offset-2 inline-flex items-center gap-1">
+                              {title} <ArrowRight size={11} />
+                            </Link>
+                          ) : (
+                            <p className="text-sm font-bold mb-1">{title}</p>
+                          )}
                           <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
                             {description}
                           </p>
