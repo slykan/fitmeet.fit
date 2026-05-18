@@ -1,10 +1,11 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useEffect, useState } from 'react'
 import {
-  ActivityIndicator, Image, Pressable, ScrollView, Share, StyleSheet, Text, TouchableOpacity, View,
+  ActivityIndicator, Image, Modal, Pressable, ScrollView, Share, StyleSheet, Text, TouchableOpacity, View,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
+import { SupportFitMeetCard } from '@/src/components/SupportFitMeetCard'
 import { api } from '@/src/lib/api'
 import { palette, spacing } from '@/src/theme'
 
@@ -61,7 +62,7 @@ function EntryRow({ entry, rank, unit }: { entry: Entry; rank: number; unit: str
   )
 }
 
-function Section({ section, data }: { section: typeof SECTIONS[0]; data: Entry[] }) {
+function Section({ section, data, onBuyBeer }: { section: typeof SECTIONS[0]; data: Entry[]; onBuyBeer?: () => void }) {
   const [open, setOpen] = useState(false)
 
   return (
@@ -88,6 +89,11 @@ function Section({ section, data }: { section: typeof SECTIONS[0]; data: Entry[]
               <EntryRow key={entry.id} entry={entry} rank={i + 1} unit={section.unit} />
             ))
           )}
+          {onBuyBeer && (
+            <Pressable style={styles.buyBeerBtn} onPress={onBuyBeer}>
+              <Text style={styles.buyBeerText}>🍺 Buy a Beer</Text>
+            </Pressable>
+          )}
         </View>
       )}
     </View>
@@ -97,6 +103,7 @@ function Section({ section, data }: { section: typeof SECTIONS[0]; data: Entry[]
 export default function RanksScreen() {
   const [data,    setData]    = useState<Data | null>(null)
   const [loading, setLoading] = useState(true)
+  const [showBeer, setShowBeer] = useState(false)
 
   useEffect(() => {
     api.get('/leaderboard')
@@ -128,10 +135,39 @@ export default function RanksScreen() {
       ) : (
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           {SECTIONS.map(s => (
-            <Section key={s.key} section={s} data={data?.[s.key] ?? []} />
+            <Section
+              key={s.key}
+              section={s}
+              data={data?.[s.key] ?? []}
+              onBuyBeer={s.key === 'beer' ? () => setShowBeer(true) : undefined}
+            />
           ))}
         </ScrollView>
       )}
+      <Modal visible={showBeer} transparent animationType="fade" onRequestClose={() => setShowBeer(false)}>
+        <Pressable style={styles.modalBackdrop} onPress={() => setShowBeer(false)}>
+          <Pressable style={styles.modalSheet} onPress={e => e.stopPropagation()}>
+            <View style={styles.modalHeader}>
+              <View style={styles.modalIcon}>
+                <Ionicons name="beer-outline" size={22} color="#f6c65b" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.modalTitle}>Buy me a Beer 🍺</Text>
+                <Text style={styles.modalSub}>Support FitMeet and get on the leaderboard!</Text>
+              </View>
+              <Pressable hitSlop={12} onPress={() => setShowBeer(false)}>
+                <Ionicons name="close" size={20} color={palette.textDim} />
+              </Pressable>
+            </View>
+            <SupportFitMeetCard
+              title="Buy me a beer"
+              subtitle="Every beer helps keep this app running and improving."
+              onPurchased={() => setShowBeer(false)}
+            />
+          </Pressable>
+        </Pressable>
+      </Modal>
+
     </SafeAreaView>
   )
 }
@@ -205,4 +241,34 @@ const styles = StyleSheet.create({
   },
   countText: { color: palette.accent, fontSize: 11, fontWeight: '800' },
   empty: { color: palette.textDim, fontSize: 13, textAlign: 'center', padding: 16 },
+
+  buyBeerBtn: {
+    margin: 12, marginTop: 8, paddingVertical: 12, borderRadius: 14,
+    alignItems: 'center',
+    backgroundColor: 'rgba(246,198,91,0.1)',
+    borderWidth: 1, borderColor: 'rgba(246,198,91,0.3)',
+  },
+  buyBeerText: { color: '#f6c65b', fontSize: 14, fontWeight: '800' },
+
+  modalBackdrop: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    backgroundColor: palette.panel,
+    borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)',
+    padding: spacing.md, paddingBottom: 32,
+  },
+  modalHeader: {
+    flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16,
+  },
+  modalIcon: {
+    width: 44, height: 44, borderRadius: 14,
+    backgroundColor: 'rgba(246,198,91,0.12)',
+    borderWidth: 1, borderColor: 'rgba(246,198,91,0.28)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  modalTitle: { color: palette.text, fontSize: 16, fontWeight: '800' },
+  modalSub:   { color: palette.textDim, fontSize: 12, marginTop: 2 },
 })
