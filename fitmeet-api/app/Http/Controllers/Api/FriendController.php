@@ -166,8 +166,12 @@ class FriendController extends Controller
             ->whereNull('read_at')
             ->where('created_at', '>=', now()->subDays(14))
             ->count();
+        $momentReminders = EventNotification::where('user_id', $me->id)->where('type', 'moment_reminder')
+            ->whereNull('read_at')
+            ->where('created_at', '>=', now()->subHours(48))
+            ->count();
 
-        return response()->json(['count' => $pending + $accepted + $reminders + $newEvents + $cancelled + $started + $eventComments + $eventMentions]);
+        return response()->json(['count' => $pending + $accepted + $reminders + $newEvents + $cancelled + $started + $eventComments + $eventMentions + $momentReminders]);
     }
 
     // GET /notifications
@@ -342,6 +346,27 @@ class FriendController extends Controller
                 'created_at' => $n->created_at->toDateTimeString(),
             ]);
 
+        $momentReminders = EventNotification::with('event')
+            ->where('user_id', $me->id)
+            ->where('type', 'moment_reminder')
+            ->where('created_at', '>=', now()->subHours(48))
+            ->latest()
+            ->get()
+            ->map(fn ($n) => [
+                'id'   => $n->id,
+                'type' => 'moment_reminder',
+                'unread' => $n->read_at === null,
+                'event' => [
+                    'id'       => $n->event->id,
+                    'title'    => $n->event->title,
+                    'start_at' => $n->event->start_at->toIso8601String(),
+                    'timezone' => $n->event->timezone ?? config('app.event_timezone'),
+                    'address'  => $n->event->address,
+                    'category' => $n->event->category?->label() ?? 'Event',
+                ],
+                'created_at' => $n->created_at->toDateTimeString(),
+            ]);
+
         return response()->json([
             'data' => $pending
                 ->concat($accepted)
@@ -351,6 +376,7 @@ class FriendController extends Controller
                 ->concat($startedEvents)
                 ->concat($eventComments)
                 ->concat($eventMentions)
+                ->concat($momentReminders)
                 ->sortByDesc('created_at')
                 ->values(),
         ]);

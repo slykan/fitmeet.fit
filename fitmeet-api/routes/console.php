@@ -93,6 +93,12 @@ Artisan::command('moments:send-reminders', function () {
     foreach ($events as $event) {
         if (! $event->organizer) continue;
 
+        \App\Models\EventNotification::firstOrCreate([
+            'user_id'  => $event->user_id,
+            'event_id' => $event->id,
+            'type'     => 'moment_reminder',
+        ]);
+
         SendPushNotification::dispatch(
             [$event->user_id],
             '📸 Add your Moment!',

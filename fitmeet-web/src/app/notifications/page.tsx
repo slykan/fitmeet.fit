@@ -111,6 +111,14 @@ interface EventCommentNotif {
   created_at: string
 }
 
+interface MomentReminderNotif {
+  id: number
+  type: 'moment_reminder'
+  unread?: boolean
+  event: { id: number; title: string; start_at: string; timezone: string; address: string | null; category: string }
+  created_at: string
+}
+
 type Notif =
   | FriendRequestNotif
   | FriendAcceptedNotif
@@ -119,6 +127,7 @@ type Notif =
   | EventCancelledNotif
   | EventStartedNotif
   | EventCommentNotif
+  | MomentReminderNotif
 
 function timeAgo(iso: string) {
   const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000)
@@ -431,7 +440,23 @@ export default function NotificationsPage() {
                   </p>
                 </div>
               </div>
-              ) : null
+            ) : n.type === 'moment_reminder' ? (
+              <a key={n.id} href={`/events/view?id=${n.event.id}`}
+                className="rounded-2xl border p-4 flex items-start gap-3 transition-opacity hover:opacity-80 cursor-pointer block"
+                style={{ background: n.unread ? 'rgba(246,198,91,0.05)' : 'var(--surface)', borderColor: n.unread ? 'rgba(246,198,91,0.3)' : 'var(--border)' }}>
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-lg"
+                  style={{ background: 'rgba(246,198,91,0.12)' }}>
+                  📸
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold">Add a Moment</p>
+                  <p className="text-sm truncate" style={{ color: 'var(--text-muted)' }}>{n.event.title}</p>
+                  <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+                    Upload one photo — it will appear in the Moments gallery · {timeAgo(n.created_at)}
+                  </p>
+                </div>
+              </a>
+            ) : null
             ))}
           </div>
 

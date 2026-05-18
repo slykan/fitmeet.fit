@@ -26,6 +26,7 @@ type Notification =
   | { id: number; type: 'event_started';   event:   EventInfo; created_at: string; unread?: boolean }
   | { id: number; type: 'event_comment';   event:   EventInfo; created_at: string; unread?: boolean }
   | { id: number; type: 'event_comment_mention'; event: EventInfo; created_at: string; unread?: boolean }
+  | { id: number; type: 'moment_reminder'; event:   EventInfo; created_at: string; unread?: boolean }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -335,6 +336,22 @@ export default function NotificationsScreen() {
                 subtitle="Open Event Wall to jump into the conversation."
                 time={timeAgo(n.created_at)}
                 onPress={() => router.push(`/event/${n.event.id}?wall=1` as never)}
+                unread={n.unread}
+              />
+            )
+          }
+
+          if (n.type === 'moment_reminder') {
+            return (
+              <GenericCard
+                key={`mr-${n.id}`}
+                icon="camera-outline"
+                iconColor="#f6c65b"
+                iconBg="rgba(246,198,91,0.12)"
+                title={<>📸 Add a Moment: <Text style={styles.accent}>{n.event.title}</Text></>}
+                subtitle="Upload one photo to your event — it will appear in the Moments gallery."
+                time={timeAgo(n.created_at)}
+                onPress={() => router.push(`/event/${n.event.id}` as never)}
                 unread={n.unread}
               />
             )
