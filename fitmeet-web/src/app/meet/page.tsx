@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -133,6 +133,155 @@ function FriendButton({ acting, onRemove }: { acting: boolean; onRemove: () => v
         : <><UserCheck size={13} /> Friends</>
       }
     </button>
+  )
+}
+
+// ─── Calendar Modal ────────────────────────────────────────────────────────────
+
+const CAT_EMOJI: Record<string, string> = {
+  running:'🏃', cycling:'🚴', hiking:'🥾', swimming:'🏊', football:'⚽',
+  basketball:'🏀', tennis:'🎾', volleyball:'🏐', yoga:'🧘', fitness:'💪',
+  martial_arts:'🥊', climbing:'🧗', skiing:'⛷️', skating:'⛸️', surfing:'🏄',
+  golf:'⛳', rugby:'🏉', baseball:'⚾', rowing:'🚣', dance:'💃',
+  social:'🎉', other:'📅',
+}
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
+const WEEKDAYS = ['Mo','Tu','We','Th','Fr','Sa','Su']
+
+interface CalEvent { id: number; title: string; category: { value: string }; schedule: { start_at: string } }
+
+function buildGrid(year: number, month: number): (number | null)[] {
+  const firstDay = new Date(year, month, 1).getDay()
+  const offset = firstDay === 0 ? 6 : firstDay - 1
+  const days = new Date(year, month + 1, 0).getDate()
+  const grid: (number | null)[] = Array(offset).fill(null)
+  for (let d = 1; d <= days; d++) grid.push(d)
+  while (grid.length % 7 !== 0) grid.push(null)
+  return grid
+}
+
+function dateKey(y: number, m: number, d: number) {
+  return `${y}-${String(m + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`
+}
+
+function CalendarModal({ onClose }: { onClose: () => void }) {
+  const router = useRouter()
+  const today = new Date()
+  const [year,  setYear]  = useState(today.getFullYear())
+  const [month, setMonth] = useState(today.getMonth())
+  const [events, setEvents] = useState<CalEvent[]>([])
+  const [selected, setSelected] = useState<string | null>(null)
+
+  useEffect(() => {
+    api.get('/events/joined').then(r => setEvents(r.data.data ?? [])).catch(() => {})
+  }, [])
+
+  const byDate = useMemo(() => {
+    const map: Record<string, CalEvent[]> = {}
+    events.forEach(ev => {
+      const k = ev.schedule.start_at.slice(0, 10)
+      if (!map[k]) map[k] = []
+      map[k].push(ev)
+    })
+    return map
+  }, [events])
+
+  const grid = useMemo(() => buildGrid(year, month), [year, month])
+
+  function prevMonth() { if (month === 0) { setYear(y => y-1); setMonth(11) } else setMonth(m => m-1); setSelected(null) }
+  function nextMonth() { if (month === 11) { setYear(y => y+1); setMonth(0) } else setMonth(m => m+1); setSelected(null) }
+
+  function handleDay(day: number) {
+    const k = dateKey(year, month, day)
+    const evs = byDate[k]
+    if (evs?.length === 1) { onClose(); router.push(`/events/view?id=${evs[0].id}`) }
+    else if (evs?.length > 1) setSelected(selected === k ? null : k)
+    else { onClose(); router.push('/events/create') }
+  }
+
+  const isToday = (d: number) => today.getFullYear()===year && today.getMonth()===month && today.getDate()===d
+
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl border overflow-hidden flex flex-col max-h-[85vh]"
+        style={{ background: '#0c0a14', borderColor: 'rgba(255,255,255,0.08)' }}>
+
+        {/* Handle */}
+        <div className="w-10 h-1 rounded-full mx-auto mt-3 sm:hidden" style={{ background: 'rgba(255,255,255,0.15)' }} />
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b shrink-0" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
+          <div>
+            <p className="font-black text-lg">My Schedule</p>
+            <p className="text-xs opacity-50">Tap a day to view or create events</p>
+          </div>
+          <button onClick={onClose} className="opacity-50 hover:opacity-100 transition-opacity"><X size={20} /></button>
+        </div>
+
+        <div className="overflow-y-auto flex-1 p-4">
+          {/* Month nav */}
+          <div className="flex items-center justify-between mb-4">
+            <button onClick={prevMonth} className="p-1.5 rounded-lg hover:opacity-70 transition-opacity" style={{ background: 'var(--surface)' }}>
+              <ChevronUp size={16} className="rotate-[-90deg]" />
+            </button>
+            <span className="font-black text-base">{MONTHS[month]} {year}</span>
+            <button onClick={nextMonth} className="p-1.5 rounded-lg hover:opacity-70 transition-opacity" style={{ background: 'var(--surface)' }}>
+              <ChevronUp size={16} className="rotate-90" />
+            </button>
+          </div>
+
+          {/* Weekdays */}
+          <div className="grid grid-cols-7 mb-1">
+            {WEEKDAYS.map(d => <div key={d} className="text-center text-[11px] font-bold opacity-40 py-1">{d}</div>)}
+          </div>
+
+          {/* Days */}
+          <div className="grid grid-cols-7 gap-1">
+            {grid.map((day, i) => {
+              if (!day) return <div key={i} />
+              const k = dateKey(year, month, day)
+              const evs = byDate[k] ?? []
+              const hasEv = evs.length > 0
+              const isSel = selected === k
+              const isTod = isToday(day)
+              return (
+                <button key={i} onClick={() => handleDay(day)}
+                  className="flex flex-col items-center justify-center rounded-xl py-1.5 min-h-[48px] transition-all hover:opacity-80"
+                  style={{
+                    background: isSel ? 'rgba(57,255,20,0.2)' : hasEv ? 'rgba(57,255,20,0.07)' : 'transparent',
+                    border: hasEv ? '1px solid rgba(57,255,20,0.25)' : isTod ? '1px solid rgba(255,255,255,0.2)' : '1px solid transparent',
+                  }}
+                >
+                  <span className="text-xs font-bold" style={{ color: isTod ? 'var(--primary)' : hasEv ? '#fff' : 'var(--text-muted)' }}>{day}</span>
+                  {hasEv && <span className="text-sm leading-none">{CAT_EMOJI[evs[0].category.value] ?? '📅'}</span>}
+                  {hasEv && evs.length > 1 && <span className="text-[9px] font-black" style={{ color: 'var(--primary)' }}>+{evs.length-1}</span>}
+                  {!hasEv && <div className="w-1 h-1 rounded-full mt-0.5 opacity-20" style={{ background: 'var(--text-muted)' }} />}
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Selected events */}
+          {selected && (byDate[selected] ?? []).length > 1 && (
+            <div className="mt-4 rounded-xl border overflow-hidden" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
+              <p className="text-xs font-black px-4 py-2.5" style={{ color: 'var(--primary)', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+                {new Date(`${selected}T12:00:00`).toLocaleDateString('en', { weekday:'long', month:'long', day:'numeric' })}
+              </p>
+              {(byDate[selected] ?? []).map(ev => (
+                <button key={ev.id} onClick={() => { onClose(); router.push(`/events/view?id=${ev.id}`) }}
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:opacity-70 transition-opacity text-left border-t"
+                  style={{ borderColor: 'rgba(255,255,255,0.07)' }}>
+                  <span className="text-lg">{CAT_EMOJI[ev.category.value] ?? '📅'}</span>
+                  <span className="flex-1 text-sm font-semibold truncate">{ev.title}</span>
+                  <ChevronRight size={14} className="opacity-40" />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -813,6 +962,7 @@ export default function MeetPage() {
   const { token } = useAuthStore()
   const router    = useRouter()
   const [tab, setTab] = useState<'people' | 'events'>('events')
+  const [showCalendar, setShowCalendar] = useState(false)
 
   useEffect(() => {
     if (!token) router.replace('/login')
@@ -828,14 +978,25 @@ export default function MeetPage() {
 
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-2xl font-bold">Meet</h1>
-            <button
-              onClick={() => router.push('/events/create')}
-              className="flex items-center gap-2 text-sm px-4 py-2 rounded-xl font-semibold transition-opacity hover:opacity-80"
-              style={{ background: 'var(--primary)', color: '#000' }}
-            >
-              <span className="text-base leading-none">+</span> New Event
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowCalendar(true)}
+                className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-xl font-semibold transition-opacity hover:opacity-80"
+                style={{ background: 'rgba(57,255,20,0.08)', border: '1px solid rgba(57,255,20,0.25)', color: 'var(--primary)' }}
+              >
+                <Calendar size={15} /> Schedule
+              </button>
+              <button
+                onClick={() => router.push('/events/create')}
+                className="flex items-center gap-2 text-sm px-4 py-2 rounded-xl font-semibold transition-opacity hover:opacity-80"
+                style={{ background: 'var(--primary)', color: '#000' }}
+              >
+                <span className="text-base leading-none">+</span> New Event
+              </button>
+            </div>
           </div>
+
+          {showCalendar && <CalendarModal onClose={() => setShowCalendar(false)} />}
 
           {/* Tabs */}
           <div className="flex gap-1 p-1 rounded-xl mb-6" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
