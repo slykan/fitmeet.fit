@@ -1,10 +1,74 @@
 'use client'
 
-import { ChevronDown, ChevronUp, Share2 } from 'lucide-react'
+import { PayPalButtons, PayPalScriptProvider } from '@paypal/react-paypal-js'
+import { ChevronDown, ChevronUp, Share2, X } from 'lucide-react'
 import Image from 'next/image'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Navbar } from '@/components/navbar'
 import api from '@/lib/api'
+
+const PAYPAL_CLIENT_ID = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID ?? ''
+
+const TIERS: Record<string, { label: string; note: string; amount: string; emoji: string }> = {
+  beer_small:  { label: 'Small beer',     note: 'A small thank-you',        amount: '3.00',  emoji: '🍺' },
+  beer_medium: { label: 'Round for team', note: 'Helps a lot',              amount: '6.00',  emoji: '🍺🍺🍺' },
+  beer_large:  { label: 'Full crate',     note: 'Fuel for future features', amount: '12.00', emoji: '📦📦📦' },
+}
+
+function BeerModal({ onClose, onPurchased }: { onClose: () => void; onPurchased: () => void }) {
+  const payingRef = useRef(false)
+
+  return (
+    <PayPalScriptProvider options={{ clientId: PAYPAL_CLIENT_ID, currency: 'EUR', intent: 'capture' }}>
+      <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center">
+        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => { if (!payingRef.current) onClose() }} />
+        <div className="relative w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl border overflow-hidden flex flex-col max-h-[85vh]"
+          style={{ background: '#0c0a14', borderColor: 'rgba(246,198,91,0.25)' }}>
+          <div className="w-10 h-1 rounded-full mx-auto mt-3 sm:hidden" style={{ background: 'rgba(255,255,255,0.15)' }} />
+          <div className="flex items-center justify-between px-5 py-4 border-b shrink-0" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
+            <div className="flex items-center gap-2">
+              <span className="text-lg">🍺</span>
+              <h2 className="font-black text-lg">Buy me a Beer</h2>
+            </div>
+            <button onClick={onClose} className="opacity-50 hover:opacity-100 transition-opacity"><X size={20} /></button>
+          </div>
+          <div className="overflow-y-auto p-5 flex flex-col gap-3">
+            <p className="text-sm opacity-60 mb-1">Support FitMeet and get on the Beer Sponsor leaderboard!</p>
+            {Object.entries(TIERS).map(([productId, tier]) => (
+              <div key={productId} className="rounded-xl border overflow-hidden" style={{ borderColor: 'rgba(246,198,91,0.18)' }}>
+                <div className="px-4 py-3 flex items-center justify-between" style={{ background: 'rgba(246,198,91,0.05)' }}>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">{tier.emoji}</span>
+                    <div>
+                      <p className="font-bold text-sm">{tier.label}</p>
+                      <p className="text-xs opacity-60">{tier.note}</p>
+                    </div>
+                  </div>
+                  <span className="font-black text-sm" style={{ color: '#f6c65b' }}>€{tier.amount}</span>
+                </div>
+                <div className="px-3 py-2" style={{ background: 'rgba(0,0,0,0.2)' }}>
+                  <PayPalButtons
+                    style={{ layout: 'horizontal', height: 35, tagline: false, label: 'pay' }}
+                    createOrder={() => {
+                      payingRef.current = true
+                      return api.post('/paypal/create-order', { product_id: productId }).then(r => r.data.order_id)
+                    }}
+                    onApprove={(data) =>
+                      api.post('/paypal/capture-order', { order_id: data.orderID, product_id: productId })
+                        .then(() => { payingRef.current = false; onPurchased() })
+                    }
+                    onCancel={() => { payingRef.current = false }}
+                    onError={() => { payingRef.current = false }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </PayPalScriptProvider>
+  )
+}
 
 interface Entry { id: number; name: string; avatar: string | null; count: number }
 interface Data {
@@ -50,7 +114,7 @@ function EntryRow({ entry, rank }: { entry: Entry; rank: number; unit: string })
   )
 }
 
-function Section({ section, data }: { section: typeof SECTIONS[0]; data: Entry[] }) {
+function Section({ section, data, onBuyBeer }: { section: typeof SECTIONS[0]; data: Entry[]; onBuyBeer?: () => void }) {
   const [open, setOpen] = useState(false)
 
   return (
@@ -74,6 +138,17 @@ function Section({ section, data }: { section: typeof SECTIONS[0]; data: Entry[]
           ) : (
             data.map((entry, i) => <EntryRow key={entry.id} entry={entry} rank={i + 1} unit={section.unit} />)
           )}
+          {onBuyBeer && (
+            <div className="p-3 pt-2">
+              <button
+                onClick={onBuyBeer}
+                className="w-full py-3 rounded-xl text-sm font-bold transition-opacity hover:opacity-80"
+                style={{ background: 'rgba(246,198,91,0.1)', border: '1px solid rgba(246,198,91,0.3)', color: '#f6c65b' }}
+              >
+                🍺 Buy a Beer
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -81,9 +156,10 @@ function Section({ section, data }: { section: typeof SECTIONS[0]; data: Entry[]
 }
 
 export default function RanksPage() {
-  const [data,    setData]    = useState<Data | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [copied,  setCopied]  = useState(false)
+  const [data,     setData]     = useState<Data | null>(null)
+  const [loading,  setLoading]  = useState(true)
+  const [copied,   setCopied]   = useState(false)
+  const [showBeer, setShowBeer] = useState(false)
 
   useEffect(() => {
     api.get('/leaderboard').then(r => setData(r.data)).catch(() => {}).finally(() => setLoading(false))
@@ -125,11 +201,23 @@ export default function RanksPage() {
         ) : (
           <div className="flex flex-col gap-3">
             {SECTIONS.map(s => (
-              <Section key={s.key} section={s} data={data?.[s.key] ?? []} />
+              <Section
+                key={s.key}
+                section={s}
+                data={data?.[s.key] ?? []}
+                onBuyBeer={s.key === 'beer' ? () => setShowBeer(true) : undefined}
+              />
             ))}
           </div>
         )}
       </main>
+
+      {showBeer && (
+        <BeerModal
+          onClose={() => setShowBeer(false)}
+          onPurchased={() => { setShowBeer(false); api.get('/leaderboard').then(r => setData(r.data)).catch(() => {}) }}
+        />
+      )}
     </>
   )
 }
