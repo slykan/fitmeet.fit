@@ -540,12 +540,12 @@ HTML;
     // GET /api/events/my
     public function my(Request $request): JsonResponse
     {
-        $query = $request->user()
+        $events = $request->user()
             ->events()
             ->with('organizer')
-            ->withCount('comments');
-
-        $events = $this->applyTimeWindow($request, $query)
+            ->withCount('comments')
+            ->whereIn('events.status', ['active', 'cancelled'])
+            ->orderByDesc('events.start_at')
             ->get();
 
         return response()->json(['data' => EventResource::collection($events)]);
