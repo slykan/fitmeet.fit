@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
 import {
-  Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View,
+  Dimensions, Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View,
 } from 'react-native'
 
 import { api } from '@/src/lib/api'
@@ -196,7 +196,8 @@ export function CalendarModal({ visible, onClose }: { visible: boolean; onClose:
   )
 }
 
-const CELL_SIZE = 44
+const SCREEN_W = Dimensions.get('window').width
+const CELL_SIZE = Math.floor((SCREEN_W - spacing.md * 2 - 4 * 6) / 7)
 
 const styles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)' },
@@ -242,9 +243,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md, gap: 4,
   },
   cell: {
-    width: (CELL_SIZE),
-    flex: 1,
-    minHeight: CELL_SIZE,
+    width: CELL_SIZE,
+    height: CELL_SIZE,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 10,
