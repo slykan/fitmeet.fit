@@ -734,6 +734,9 @@ export default function MeetScreen() {
             <Pressable style={styles.calendarBtn} onPress={() => setShowCalendar(true)}>
               <Ionicons name="calendar-outline" size={18} color={palette.accent} />
             </Pressable>
+            <Pressable style={styles.calendarBtn} onPress={() => router.push('/moments' as never)}>
+              <Ionicons name="images-outline" size={18} color={palette.accent} />
+            </Pressable>
             <Pressable style={styles.createBtn} onPress={() => router.push('/event/create' as never)}>
               <Ionicons name="add" size={22} color="#041109" />
             </Pressable>

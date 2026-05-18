@@ -6,7 +6,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import {
   Search, Phone, UserPlus, UserCheck, UserMinus, Calendar, MapPin, Users, Zap, ChevronRight,
-  Bell, Check, X, ArrowUpDown, ChevronUp, ChevronDown, Share2,
+  Bell, Check, X, ArrowUpDown, ChevronUp, ChevronDown, Share2, Images,
 } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
@@ -986,6 +986,13 @@ export default function MeetPage() {
               >
                 <Calendar size={15} /> Schedule
               </button>
+              <a
+                href="/moments"
+                className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-xl font-semibold transition-opacity hover:opacity-80"
+                style={{ background: 'rgba(57,255,20,0.08)', border: '1px solid rgba(57,255,20,0.25)', color: 'var(--primary)' }}
+              >
+                <Images size={15} /> Moments
+              </a>
               <button
                 onClick={() => router.push('/events/create')}
                 className="flex items-center gap-2 text-sm px-4 py-2 rounded-xl font-semibold transition-opacity hover:opacity-80"

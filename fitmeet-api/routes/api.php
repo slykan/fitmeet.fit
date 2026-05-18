@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BeerDonationController;
 use App\Http\Controllers\Api\LeaderboardController;
+use App\Http\Controllers\Api\MomentsController;
 use App\Http\Controllers\Api\PaypalController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\EventController;
@@ -70,6 +71,7 @@ Route::get('turnstile', function () {
 Route::get('categories', [CategoryController::class, 'index']);
 Route::get('beer-donations', [BeerDonationController::class, 'index']);
 Route::get('leaderboard', [LeaderboardController::class, 'index']);
+Route::get('moments',    [MomentsController::class,   'index']);
 Route::get('users/public-latest', [UserController::class, 'publicLatest']);
 Route::get('users/public-stats',  [UserController::class, 'publicStats']);
 Route::get('events/public/{event}',   [EventController::class, 'publicShow']);

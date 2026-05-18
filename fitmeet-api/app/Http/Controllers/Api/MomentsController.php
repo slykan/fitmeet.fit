@@ -1,0 +1,36 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Models\Event;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+
+class MomentsController extends Controller
+{
+    public function index(Request $request): JsonResponse
+    {
+        $page    = max(1, (int) $request->query('page', 1));
+        $perPage = 12;
+
+        $moments = Event::query()
+            ->where('is_private', false)
+            ->whereNotNull('image_url')
+            ->where('start_at', '<', now())
+            ->orderByDesc('start_at')
+            ->select('id', 'title', 'image_url', 'category', 'start_at', 'user_id')
+            ->paginate($perPage, ['*'], 'page', $page);
+
+        return response()->json([
+            'data' => $moments->map(fn ($e) => [
+                'id'        => $e->id,
+                'title'     => $e->title,
+                'image_url' => $e->image_url,
+                'category'  => $e->category?->value,
+                'start_at'  => $e->start_at->toIso8601String(),
+            ]),
+            'has_more' => $moments->hasMorePages(),
+        ]);
+    }
+}
