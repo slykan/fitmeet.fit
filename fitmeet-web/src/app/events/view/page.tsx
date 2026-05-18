@@ -1,11 +1,11 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { useEffect, useState, Suspense } from 'react'
+import { useEffect, useState, useRef, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Calendar, MapPin, Users, Zap, ChevronLeft, Lock, Pencil, ChevronDown, ChevronUp, Bell, Check, X, Share2, XCircle, Download, Wind, Cloud, Eye, CheckCircle2 } from 'lucide-react'
+import { Calendar, MapPin, Users, Zap, ChevronLeft, Lock, Pencil, ChevronDown, ChevronUp, Bell, Check, X, Share2, XCircle, Download, Wind, Cloud, Eye, CheckCircle2, Camera } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
 import { WeatherBadge } from '@/components/WeatherBadge'
@@ -50,6 +50,7 @@ interface Event {
   is_joined: boolean
   checked_in_at: string | null
   checked_in_count?: number
+  moment_image_url: string | null
   youtube_url: string | null
   organizer: { id: number; name: string; avatar: string | null }
 }
@@ -100,6 +101,8 @@ function EventContent() {
   const [isMapInteracting, setIsMapInteracting] = useState(false)
   const [weatherCenter, setWeatherCenter] = useState<{ lat: number; lng: number } | null>(null)
   const [weatherRefreshTick, setWeatherRefreshTick] = useState(0)
+  const [momentUploading, setMomentUploading] = useState(false)
+  const momentInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (!token) { router.replace('/login'); return }
@@ -256,6 +259,24 @@ function EventContent() {
     }
   }
 
+  async function handleMomentUpload(file: File) {
+    if (!event) return
+    const form = new FormData()
+    form.append('image', file)
+    setMomentUploading(true)
+    try {
+      const { data } = await api.post(`/events/${event.id}/moment`, form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      setEvent(cur => cur ? { ...cur, moment_image_url: data.moment_image_url } : cur)
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Upload failed.'
+      alert(msg)
+    } finally {
+      setMomentUploading(false)
+    }
+  }
+
   const cancelled = event?.status === 'cancelled'
   const checkInAvailable = event ? canCheckInNow(event) : false
   const checkedInCount = event
@@ -329,6 +350,55 @@ function EventContent() {
                 />
               </button>
             )}
+
+            {/* Moment */}
+            {(() => {
+              const endedAt = new Date(event.schedule.start_at).getTime() + (event.schedule.duration_minutes ?? 60) * 60000
+              const past = new Date(event.schedule.start_at).getTime() < Date.now()
+              const withinWindow = past && (Date.now() - endedAt) < 48 * 3600000
+              if (event.moment_image_url) {
+                return (
+                  <div className="mb-5">
+                    <p className="text-xs font-bold uppercase mb-2" style={{ color: 'var(--text-muted)' }}>📸 Moment</p>
+                    <div className="relative overflow-hidden rounded-2xl" style={{ border: '1px solid var(--border)' }}>
+                      <img src={event.moment_image_url} alt="Moment" className="w-full object-cover" style={{ aspectRatio: '4/3' }} />
+                      {event.is_organizer && withinWindow && (
+                        <>
+                          <input ref={momentInputRef} type="file" accept="image/*" className="hidden"
+                            onChange={e => { const f = e.target.files?.[0]; if (f) handleMomentUpload(f) }} />
+                          <button
+                            onClick={() => momentInputRef.current?.click()}
+                            disabled={momentUploading}
+                            className="absolute bottom-2 right-2 flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-semibold"
+                            style={{ background: 'rgba(0,0,0,0.7)', color: '#fff' }}
+                          >
+                            <Camera size={12} /> {momentUploading ? 'Uploading…' : 'Replace'}
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )
+              }
+              if (event.is_organizer && withinWindow) {
+                return (
+                  <div className="mb-5">
+                    <input ref={momentInputRef} type="file" accept="image/*" className="hidden"
+                      onChange={e => { const f = e.target.files?.[0]; if (f) handleMomentUpload(f) }} />
+                    <button
+                      onClick={() => momentInputRef.current?.click()}
+                      disabled={momentUploading}
+                      className="flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-sm font-bold transition-opacity hover:opacity-80"
+                      style={{ border: '1.5px dashed rgba(57,255,20,0.35)', background: 'rgba(57,255,20,0.04)', color: 'var(--primary)' }}
+                    >
+                      <Camera size={16} />
+                      {momentUploading ? 'Uploading…' : 'Add Moment'}
+                    </button>
+                  </div>
+                )
+              }
+              return null
+            })()}
 
             {event.description && (
               <p className="text-sm leading-relaxed mb-5" style={{ color: 'var(--text-muted)' }}>{event.description}</p>
