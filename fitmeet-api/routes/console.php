@@ -86,7 +86,7 @@ Artisan::command('moments:send-reminders', function () {
         ->where('status', 'active')
         ->where('is_private', false)
         ->whereNull('moment_image_path')
-        ->whereRaw("DATE_ADD(start_at, INTERVAL COALESCE(NULLIF(duration_minutes, 0), 120) MINUTE) <= NOW()")
+        ->whereRaw("DATE_ADD(start_at, INTERVAL COALESCE(NULLIF(duration_minutes, 0), 120) MINUTE) <= UTC_TIMESTAMP()")
         ->whereRaw("DATE_ADD(start_at, INTERVAL COALESCE(NULLIF(duration_minutes, 0), 120) MINUTE) > ?", [$window])
         ->with('organizer')
         ->get();
