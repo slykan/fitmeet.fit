@@ -11,29 +11,12 @@ export const metadata: Metadata = {
   },
 }
 
-export const revalidate = 60
-
-async function getDonors() {
-  try {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL ?? 'https://api.fitmeet.fit/api'}/beer-donations?limit=200`,
-      { cache: 'no-store' }
-    )
-    if (!res.ok) return []
-    return res.json()
-  } catch {
-    return []
-  }
-}
-
-export default async function SupportersPage() {
-  const donors = await getDonors()
-
+export default function SupportersPage() {
   return (
     <>
       <Navbar />
       <main className="min-h-screen">
-        <SupportersClient initialDonors={donors} />
+        <SupportersClient />
       </main>
     </>
   )

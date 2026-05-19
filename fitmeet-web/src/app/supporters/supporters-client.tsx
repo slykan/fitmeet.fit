@@ -105,12 +105,13 @@ function fetchDonors() {
   return fetch(`${API_URL}/beer-donations?limit=200`, { cache: 'no-store' }).then(r => r.json())
 }
 
-export function SupportersClient({ initialDonors }: { initialDonors: Donor[] }) {
-  const [donors, setDonors] = useState<Donor[]>(initialDonors)
+export function SupportersClient() {
+  const [donors, setDonors] = useState<Donor[]>([])
+  const [loading, setLoading] = useState(true)
   const [purchased, setPurchased] = useState(false)
 
   useEffect(() => {
-    fetchDonors().then(setDonors).catch(() => {})
+    fetchDonors().then(setDonors).catch(() => {}).finally(() => setLoading(false))
   }, [])
 
   function handlePurchased() {
@@ -135,8 +136,15 @@ export function SupportersClient({ initialDonors }: { initialDonors: Donor[] }) 
         </div>
       </div>
 
+      {/* Loading */}
+      {loading && (
+        <div className="flex justify-center py-12">
+          <div className="w-7 h-7 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: 'rgba(246,198,91,0.6)', borderTopColor: 'transparent' }} />
+        </div>
+      )}
+
       {/* Recent donors — last 30 days */}
-      {recent.length > 0 ? (
+      {!loading && recent.length > 0 ? (
         <>
           <p className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: 'rgba(246,198,91,0.55)' }}>
             🔥 Last 30 days
@@ -152,7 +160,7 @@ export function SupportersClient({ initialDonors }: { initialDonors: Donor[] }) 
       )}
 
       {/* Older donors */}
-      {older.length > 0 && (
+      {!loading && older.length > 0 && (
         <>
           <p className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: 'rgba(255,255,255,0.2)' }}>
             Past supporters
