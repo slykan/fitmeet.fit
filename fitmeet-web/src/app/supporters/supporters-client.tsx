@@ -46,6 +46,12 @@ function isRecent(d: Donor) {
   return Date.now() - new Date(d.last_donation_at).getTime() < THIRTY_DAYS_MS
 }
 
+function splitDonors(all: Donor[]) {
+  const recent = all.filter(isRecent).slice(0, 5)
+  const older  = all.filter(d => !isRecent(d)).slice(0, 5)
+  return { recent, older }
+}
+
 function RankBadge({ rank }: { rank: number }) {
   if (rank === 1) return <span className="text-3xl">🏆</span>
   if (rank === 2) return <span className="text-3xl">🥈</span>
@@ -112,8 +118,7 @@ export function SupportersClient({ initialDonors }: { initialDonors: Donor[] }) 
     fetchDonors().then(setDonors).catch(() => {})
   }
 
-  const recent = donors.filter(isRecent)
-  const older  = donors.filter(d => !isRecent(d))
+  const { recent, older } = splitDonors(donors)
 
   return (
     <div className="max-w-xl mx-auto px-4 py-12">

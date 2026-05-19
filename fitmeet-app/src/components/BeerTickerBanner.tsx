@@ -25,6 +25,12 @@ const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000
 function isRecent(d: Donor) {
   return Date.now() - new Date(d.last_donation_at).getTime() < THIRTY_DAYS_MS
 }
+function top5(all: Donor[]): Donor[] {
+  const recent = all.filter(isRecent).slice(0, 5)
+  if (recent.length >= 5) return recent
+  const older = all.filter(d => !isRecent(d)).slice(0, 5 - recent.length)
+  return [...recent, ...older]
+}
 
 const MEDAL_LABEL: Record<string, string> = {
   beer_small: 'Small beer',
@@ -90,8 +96,8 @@ function SupportersModal({
   onClose: () => void
   onPurchased: () => void
 }) {
-  const recent = donors.filter(isRecent)
-  const older  = donors.filter(d => !isRecent(d))
+  const recent = donors.filter(isRecent).slice(0, 5)
+  const older  = donors.filter(d => !isRecent(d)).slice(0, 5)
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -242,8 +248,7 @@ export function BeerTickerBanner() {
     return () => { animRef.current?.stop() }
   }, [])
 
-  const recent = donors.filter(isRecent)
-  const tickerDonors = recent.length > 0 ? recent : donors
+  const tickerDonors = top5(donors)
 
   if (!donors.length) return null
 

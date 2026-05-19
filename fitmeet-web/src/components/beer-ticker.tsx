@@ -12,6 +12,12 @@ const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000
 function isRecent(d: Donor) {
   return Date.now() - new Date(d.last_donation_at).getTime() < THIRTY_DAYS_MS
 }
+function top5(all: Donor[]): Donor[] {
+  const recent = all.filter(isRecent).slice(0, 5)
+  if (recent.length >= 5) return recent
+  const older = all.filter(d => !isRecent(d)).slice(0, 5 - recent.length)
+  return [...recent, ...older]
+}
 
 const PAYPAL_CLIENT_ID = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID ?? ''
 
@@ -79,8 +85,8 @@ function SupportersModal({ onClose, donors, onPurchased }: {
   const { token } = useAuthStore()
   const payingRef = useRef(false)
 
-  const recent = donors.filter(isRecent)
-  const older  = donors.filter(d => !isRecent(d))
+  const recent = donors.filter(isRecent).slice(0, 5)
+  const older  = donors.filter(d => !isRecent(d)).slice(0, 5)
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center">
@@ -203,11 +209,9 @@ function BeerTickerInner() {
     return () => { root.style.removeProperty('--beer-ticker-h') }
   }, [donors.length])
 
-  const recent = donors.filter(isRecent)
-
   if (!donors.length) return null
 
-  const tickerDonors = recent.length > 0 ? recent : donors
+  const tickerDonors = top5(donors)
   const doubled = [...tickerDonors, ...tickerDonors]
 
   return (

@@ -22,6 +22,12 @@ const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000
 function isRecent(d: Donor) {
   return Date.now() - new Date(d.last_donation_at).getTime() < THIRTY_DAYS_MS
 }
+function splitDonors(all: Donor[]) {
+  return {
+    recent: all.filter(isRecent).slice(0, 5),
+    older:  all.filter(d => !isRecent(d)).slice(0, 5),
+  }
+}
 
 const MEDAL: Record<string, { label: string; icons: number; crate?: boolean }> = {
   beer_small:  { label: 'Small beer',   icons: 1 },
@@ -142,8 +148,7 @@ export default function BeerWallScreen() {
         ) : donors.length === 0 ? (
           <Text style={styles.empty}>No supporters yet. Be the first! 🍺</Text>
         ) : (() => {
-          const recent = donors.filter(isRecent)
-          const older  = donors.filter(d => !isRecent(d))
+          const { recent, older } = splitDonors(donors)
           return (
             <>
               {recent.length > 0 && (
