@@ -167,7 +167,7 @@ export default function MomentsPage() {
               </p>
             </div>
             <Link
-              href={`/events/${lightbox.id}`}
+              href={`/events/view?id=${lightbox.id}`}
               onClick={() => setLightbox(null)}
               className="p-2 rounded-full transition-opacity hover:opacity-80 shrink-0"
               style={{ color: 'var(--primary)' }}
