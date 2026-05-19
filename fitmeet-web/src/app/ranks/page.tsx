@@ -17,6 +17,27 @@ const TIERS: Record<string, { label: string; note: string; amount: string; emoji
 
 function BeerModal({ onClose, onPurchased }: { onClose: () => void; onPurchased: () => void }) {
   const payingRef = useRef(false)
+  const [done, setDone] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  if (done) {
+    return (
+      <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center">
+        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+        <div className="relative w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl border p-8 text-center"
+          style={{ background: '#0c0a14', borderColor: 'rgba(246,198,91,0.25)' }}>
+          <p className="text-4xl mb-3">🙏</p>
+          <p className="font-black text-xl mb-1">Thank you!</p>
+          <p className="text-sm opacity-60 mb-5">Your name will appear on the leaderboard shortly.</p>
+          <button onClick={onClose}
+            className="px-6 py-2.5 rounded-xl font-bold text-sm"
+            style={{ background: '#f6c65b', color: '#000' }}>
+            Close
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <PayPalScriptProvider options={{ clientId: PAYPAL_CLIENT_ID, currency: 'EUR', intent: 'capture' }}>
@@ -34,6 +55,9 @@ function BeerModal({ onClose, onPurchased }: { onClose: () => void; onPurchased:
           </div>
           <div className="overflow-y-auto p-5 flex flex-col gap-3">
             <p className="text-sm opacity-60 mb-1">Support FitMeet and get on the Beer Sponsor leaderboard!</p>
+            {error && (
+              <p className="text-xs px-3 py-2 rounded-lg" style={{ background: 'rgba(248,113,113,0.1)', color: '#f87171' }}>{error}</p>
+            )}
             {Object.entries(TIERS).map(([productId, tier]) => (
               <div key={productId} className="rounded-xl border overflow-hidden" style={{ borderColor: 'rgba(246,198,91,0.18)' }}>
                 <div className="px-4 py-3 flex items-center justify-between" style={{ background: 'rgba(246,198,91,0.05)' }}>
@@ -51,14 +75,16 @@ function BeerModal({ onClose, onPurchased }: { onClose: () => void; onPurchased:
                     style={{ layout: 'horizontal', height: 35, tagline: false, label: 'pay' }}
                     createOrder={() => {
                       payingRef.current = true
+                      setError(null)
                       return api.post('/paypal/create-order', { product_id: productId }).then(r => r.data.order_id)
                     }}
                     onApprove={(data) =>
                       api.post('/paypal/capture-order', { order_id: data.orderID, product_id: productId })
-                        .then(() => { payingRef.current = false; onPurchased() })
+                        .then(() => { payingRef.current = false; setDone(true); onPurchased() })
+                        .catch(() => { payingRef.current = false; setError('Payment failed. Please try again or contact support.') })
                     }
                     onCancel={() => { payingRef.current = false }}
-                    onError={() => { payingRef.current = false }}
+                    onError={() => { payingRef.current = false; setError('PayPal error. Please try again.') }}
                   />
                 </div>
               </div>

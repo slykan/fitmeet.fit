@@ -101,7 +101,7 @@ class Event extends Model
     public function scopeNearby(Builder $query, float $lat, float $lng, int $radiusKm): Builder
     {
         return $query
-            ->selectRaw("events.*, (
+            ->addSelect(\DB::raw("(
                 6371 * ACOS(
                     LEAST(1, GREATEST(-1,
                         COS(RADIANS({$lat})) * COS(RADIANS(lat)) *
@@ -109,7 +109,7 @@ class Event extends Model
                         SIN(RADIANS({$lat})) * SIN(RADIANS(lat))
                     ))
                 )
-            ) AS distance_from_user")
+            ) AS distance_from_user"))
             ->having('distance_from_user', '<=', $radiusKm)
             ->orderBy('distance_from_user');
     }
