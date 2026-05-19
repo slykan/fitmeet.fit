@@ -81,12 +81,13 @@ Schedule::command('events:send-started')->everyMinute();
 Artisan::command('moments:send-reminders', function () {
     $window = now()->subMinutes(15);
 
+    // Fire after event ends: start_at + duration_minutes (0 treated as null → 120 min fallback)
     $events = Event::query()
         ->where('status', 'active')
         ->where('is_private', false)
         ->whereNull('moment_image_path')
-        ->whereRaw("DATE_ADD(start_at, INTERVAL COALESCE(duration_minutes, 120) MINUTE) <= NOW()")
-        ->whereRaw("DATE_ADD(start_at, INTERVAL COALESCE(duration_minutes, 120) MINUTE) > ?", [$window])
+        ->whereRaw("DATE_ADD(start_at, INTERVAL COALESCE(NULLIF(duration_minutes, 0), 120) MINUTE) <= NOW()")
+        ->whereRaw("DATE_ADD(start_at, INTERVAL COALESCE(NULLIF(duration_minutes, 0), 120) MINUTE) > ?", [$window])
         ->with('organizer')
         ->get();
 
