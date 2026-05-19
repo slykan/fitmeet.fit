@@ -102,7 +102,7 @@ function OlderDonorRow({ donor }: { donor: Donor }) {
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.fitmeet.fit/api'
 
 function fetchDonors() {
-  return fetch(`${API_URL}/beer-donations?limit=200`).then(r => r.json())
+  return fetch(`${API_URL}/beer-donations?limit=200`, { cache: 'no-store' }).then(r => r.json())
 }
 
 export function SupportersClient({ initialDonors }: { initialDonors: Donor[] }) {

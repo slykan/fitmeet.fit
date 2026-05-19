@@ -17,7 +17,7 @@ async function getDonors() {
   try {
     const res = await fetch(
       `${process.env.NEXT_PUBLIC_API_URL ?? 'https://api.fitmeet.fit/api'}/beer-donations?limit=200`,
-      { next: { revalidate: 60 } }
+      { cache: 'no-store' }
     )
     if (!res.ok) return []
     return res.json()
