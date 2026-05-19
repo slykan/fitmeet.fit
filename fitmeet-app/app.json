@@ -19,7 +19,21 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "icon": "./assets/icon.png"
+      "icon": "./assets/icon.png",
+      "bundleIdentifier": "app.fitmeet.fit",
+      "buildNumber": "1",
+      "associatedDomains": [
+        "applinks:fitmeet.fit"
+      ],
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "FitMeet uses your location to show nearby sports events.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "FitMeet uses your location to show nearby sports events.",
+        "NSCameraUsageDescription": "FitMeet needs camera access to upload event moment photos.",
+        "NSPhotoLibraryUsageDescription": "FitMeet needs photo library access to upload event moment photos.",
+        "NSPhotoLibraryAddUsageDescription": "FitMeet saves photos to your library.",
+        "NSMotionUsageDescription": "FitMeet tracks activity during events."
+      },
+      "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {
       "adaptiveIcon": {
@@ -55,9 +69,11 @@
     "extra": {
       "apiUrl": "https://api.fitmeet.fit/api",
       "revenueCatGoogleApiKey": "goog_bYVILzxmdRkZxGcbQtQoAUIsMxL",
+      "revenueCatAppleApiKey": "PLACEHOLDER_REVENUECAT_IOS_KEY",
       "revenueCatSupportProductIds": ["beer_small", "beer_medium", "beer_large"],
       "stravaClientId": "234864",
       "googleAndroidClientId": "206851995035-f0vleunetrb0nqog6dm24e1j1aq6tgqa.apps.googleusercontent.com",
+      "googleIosClientId": "PLACEHOLDER_GOOGLE_IOS_CLIENT_ID",
       "googleWebClientId": "206851995035-0cn2pik52tpaprm9hsshss7uhehab2h0.apps.googleusercontent.com"
     }
   }
