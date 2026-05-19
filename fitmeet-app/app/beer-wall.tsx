@@ -16,7 +16,12 @@ import { SupportFitMeetCard } from '@/src/components/SupportFitMeetCard'
 import { api } from '@/src/lib/api'
 import { palette, spacing } from '@/src/theme'
 
-type Donor = { name: string; beer_score: number; beer_top_tier: string }
+type Donor = { name: string; beer_score: number; beer_top_tier: string; last_donation_at: string }
+
+const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000
+function isRecent(d: Donor) {
+  return Date.now() - new Date(d.last_donation_at).getTime() < THIRTY_DAYS_MS
+}
 
 const MEDAL: Record<string, { label: string; icons: number; crate?: boolean }> = {
   beer_small:  { label: 'Small beer',   icons: 1 },
@@ -70,6 +75,27 @@ function DonorRow({ donor, rank }: { donor: Donor; rank: number }) {
   )
 }
 
+function OlderDonorRow({ donor }: { donor: Donor }) {
+  const daysAgo = Math.floor((Date.now() - new Date(donor.last_donation_at).getTime()) / (24 * 60 * 60 * 1000))
+  return (
+    <View style={[styles.donorRow, { opacity: 0.45 }]}>
+      <View style={{ width: 32, alignItems: 'center' }}>
+        <Ionicons name="beer-outline" size={18} color="rgba(246,198,91,0.5)" />
+      </View>
+      <View style={styles.donorInfo}>
+        <Text style={styles.donorName}>{donor.name}</Text>
+        <Text style={styles.donorLevel}>{daysAgo}d ago · ×{donor.beer_score}</Text>
+      </View>
+    </View>
+  )
+}
+
+function SectionLabel({ text }: { text: string }) {
+  return (
+    <Text style={styles.sectionLabel}>{text}</Text>
+  )
+}
+
 export default function BeerWallScreen() {
   const [donors, setDonors] = useState<Donor[]>([])
   const [loading, setLoading] = useState(true)
@@ -115,13 +141,30 @@ export default function BeerWallScreen() {
           <ActivityIndicator color={palette.accent} style={{ marginTop: 40 }} />
         ) : donors.length === 0 ? (
           <Text style={styles.empty}>No supporters yet. Be the first! 🍺</Text>
-        ) : (
-          <View style={styles.list}>
-            {donors.map((d, i) => (
-              <DonorRow key={i} donor={d} rank={i + 1} />
-            ))}
-          </View>
-        )}
+        ) : (() => {
+          const recent = donors.filter(isRecent)
+          const older  = donors.filter(d => !isRecent(d))
+          return (
+            <>
+              {recent.length > 0 && (
+                <>
+                  <SectionLabel text="🔥 Last 30 days" />
+                  <View style={styles.list}>
+                    {recent.map((d, i) => <DonorRow key={i} donor={d} rank={i + 1} />)}
+                  </View>
+                </>
+              )}
+              {older.length > 0 && (
+                <>
+                  <SectionLabel text="Past supporters" />
+                  <View style={styles.list}>
+                    {older.map((d, i) => <OlderDonorRow key={i} donor={d} />)}
+                  </View>
+                </>
+              )}
+            </>
+          )
+        })()}
 
         <View style={styles.divider} />
 
@@ -230,6 +273,15 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 60,
     fontSize: 15,
+  },
+  sectionLabel: {
+    color: 'rgba(246,198,91,0.55)',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    marginTop: 4,
+    marginBottom: 2,
   },
   divider: {
     height: StyleSheet.hairlineWidth,

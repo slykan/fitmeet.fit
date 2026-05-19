@@ -19,7 +19,12 @@ import {
 import { SupportFitMeetCard } from '@/src/components/SupportFitMeetCard'
 import { api } from '@/src/lib/api'
 
-type Donor = { name: string; beer_score: number; beer_top_tier: string }
+type Donor = { name: string; beer_score: number; beer_top_tier: string; last_donation_at: string }
+
+const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000
+function isRecent(d: Donor) {
+  return Date.now() - new Date(d.last_donation_at).getTime() < THIRTY_DAYS_MS
+}
 
 const MEDAL_LABEL: Record<string, string> = {
   beer_small: 'Small beer',
@@ -85,6 +90,9 @@ function SupportersModal({
   onClose: () => void
   onPurchased: () => void
 }) {
+  const recent = donors.filter(isRecent)
+  const older  = donors.filter(d => !isRecent(d))
+
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={styles.modalOverlay} onPress={onClose} />
@@ -106,6 +114,27 @@ function SupportersModal({
           contentContainerStyle={styles.donorListContent}
           showsVerticalScrollIndicator={false}
         >
+          {recent.length > 0 && (
+            <>
+              <Text style={styles.sectionLabel}>🔥 Last 30 days</Text>
+              {recent.map((d, i) => <DonorRow key={i} donor={d} index={i} />)}
+            </>
+          )}
+
+          {older.length > 0 && (
+            <>
+              <Text style={[styles.sectionLabel, { color: 'rgba(255,255,255,0.25)', marginTop: 8 }]}>Past supporters</Text>
+              {older.map((d, i) => (
+                <View key={i} style={[styles.donorRow, { opacity: 0.4 }]}>
+                  <Ionicons name="beer-outline" size={16} color="rgba(246,198,91,0.5)" style={{ width: 22 }} />
+                  <View style={styles.donorInfo}>
+                    <Text style={styles.donorName}>{d.name}</Text>
+                  </View>
+                </View>
+              ))}
+            </>
+          )}
+
           <SupportFitMeetCard
             title="Join the wall of fame"
             subtitle="Buy a beer and your name scrolls across every screen."
@@ -158,7 +187,7 @@ export function BeerTickerBanner() {
   }
 
   function loadDonors() {
-    api.get('/beer-donations?limit=10')
+    api.get('/beer-donations?limit=200')
       .then(r => {
         resetTickerMeasurements()
         setDonors(r.data)
@@ -213,6 +242,9 @@ export function BeerTickerBanner() {
     return () => { animRef.current?.stop() }
   }, [])
 
+  const recent = donors.filter(isRecent)
+  const tickerDonors = recent.length > 0 ? recent : donors
+
   if (!donors.length) return null
 
   return (
@@ -226,10 +258,8 @@ export function BeerTickerBanner() {
           <Animated.View
             style={[styles.row, { transform: [{ translateX }] }]}
           >
-            <View
-              style={styles.sequence}
-            >
-              {donors.map((donor, i) => (
+            <View style={styles.sequence}>
+              {tickerDonors.map((donor, i) => (
                 <TickerItem
                   key={`a-${i}`}
                   donor={donor}
@@ -238,7 +268,7 @@ export function BeerTickerBanner() {
               ))}
             </View>
             <View style={styles.sequence}>
-              {donors.map((donor, i) => (
+              {tickerDonors.map((donor, i) => (
                 <TickerItem key={`b-${i}`} donor={donor} />
               ))}
             </View>
@@ -430,6 +460,14 @@ const styles = StyleSheet.create({
     height: StyleSheet.hairlineWidth,
     backgroundColor: 'rgba(255,255,255,0.08)',
     marginVertical: 8,
+  },
+  sectionLabel: {
+    color: 'rgba(246,198,91,0.55)',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    marginBottom: 4,
   },
   seeAllBtn: {
     flexDirection: 'row',
