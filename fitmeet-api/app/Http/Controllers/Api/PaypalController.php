@@ -73,6 +73,7 @@ class PaypalController extends Controller
         $token = $this->accessToken();
 
         $response = Http::withToken($token)
+            ->withBody('{}', 'application/json')
             ->post($this->baseUrl() . "/v2/checkout/orders/{$validated['order_id']}/capture");
 
         if (!$response->successful() || $response->json('status') !== 'COMPLETED') {
