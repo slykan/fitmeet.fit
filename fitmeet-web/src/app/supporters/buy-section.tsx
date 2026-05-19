@@ -13,7 +13,7 @@ const TIERS: Record<string, { label: string; note: string; amount: string; emoji
   beer_large:  { label: 'Full crate',    note: 'Fuel for future features', amount: '12.00', emoji: '📦📦📦' },
 }
 
-function TierButton({ productId, onSuccess }: { productId: string; onSuccess: () => void }) {
+function TierButton({ productId, onSuccess, loggedIn }: { productId: string; onSuccess: () => void; loggedIn: boolean }) {
   const tier = TIERS[productId]
   const payingRef = useRef(false)
   const [error, setError] = useState<string | null>(null)
@@ -36,18 +36,25 @@ function TierButton({ productId, onSuccess }: { productId: string; onSuccess: ()
           createOrder={() => {
             payingRef.current = true
             setError(null)
-            return api.post('/paypal/create-order', { product_id: productId }).then(r => r.data.order_id)
+            return api.post('/paypal/create-order', { product_id: productId })
+              .then(r => r.data.order_id)
+              .catch((err: { response?: { status?: number } }) => {
+                payingRef.current = false
+                if (err?.response?.status === 401) setError('Please log in first to donate.')
+                else setError('Could not start payment. Try again.')
+                throw err
+              })
           }}
           onApprove={(data) =>
             api.post('/paypal/capture-order', { order_id: data.orderID, product_id: productId })
               .then(() => { payingRef.current = false; onSuccess() })
               .catch(() => {
                 payingRef.current = false
-                setError('Payment failed. Please try again or contact support.')
+                setError(loggedIn ? 'Payment failed. Please try again or contact support.' : 'Please log in first to donate.')
               })
           }
           onCancel={() => { payingRef.current = false }}
-          onError={() => { payingRef.current = false; setError('PayPal error. Please try again.') }}
+          onError={() => { payingRef.current = false; if (!error) setError('PayPal error. Please try again.') }}
         />
         {error && (
           <p className="text-xs mt-2 text-center" style={{ color: '#f87171' }}>{error}</p>
@@ -60,26 +67,20 @@ function TierButton({ productId, onSuccess }: { productId: string; onSuccess: ()
 export function BuySection({ onPurchased }: { onPurchased: () => void }) {
   const { token } = useAuthStore()
 
-  if (!token) {
-    return (
-      <div className="rounded-2xl border p-6 text-center" style={{ borderColor: 'rgba(246,198,91,0.2)', background: 'rgba(246,198,91,0.03)' }}>
-        <p className="text-2xl mb-2">🍺</p>
-        <p className="font-bold text-lg mb-1">Join the Wall of Fame</p>
-        <p className="text-sm opacity-60 mb-4">Log in to buy a beer and get your name on every screen.</p>
-        <a href="/login" className="inline-block px-6 py-2.5 rounded-xl font-bold text-sm" style={{ background: '#f6c65b', color: '#000' }}>
-          Log in
-        </a>
-      </div>
-    )
-  }
-
   if (!PAYPAL_CLIENT_ID) return null
 
   return (
     <PayPalScriptProvider options={{ clientId: PAYPAL_CLIENT_ID, currency: 'EUR', intent: 'capture' }}>
       <div className="flex flex-col gap-3">
+        {!token && (
+          <div className="rounded-xl px-4 py-3 text-sm text-center border"
+            style={{ background: 'rgba(246,198,91,0.05)', borderColor: 'rgba(246,198,91,0.2)', color: 'rgba(246,198,91,0.8)' }}>
+            <a href="/login" style={{ fontWeight: 700, color: '#f6c65b' }}>Log in</a>
+            {' '}to get your name on the Wall of Fame after donating.
+          </div>
+        )}
         {Object.keys(TIERS).map(id => (
-          <TierButton key={id} productId={id} onSuccess={onPurchased} />
+          <TierButton key={id} productId={id} onSuccess={onPurchased} loggedIn={!!token} />
         ))}
       </div>
     </PayPalScriptProvider>

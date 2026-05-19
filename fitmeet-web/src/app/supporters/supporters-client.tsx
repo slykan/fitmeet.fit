@@ -126,6 +126,7 @@ export function SupportersClient({ initialDonors }: { initialDonors: Donor[] }) 
       <div className="text-center mb-10">
         <div className="text-5xl mb-4">🍺</div>
         <h1 className="text-3xl font-black mb-2">Beer Wall of Fame</h1>
+        <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: 'rgba(246,198,91,0.55)' }}>Last 30 days</p>
         <p className="opacity-60 text-sm max-w-xs mx-auto mb-4">
           These people keep FitMeet free. Buy a beer and get your name on every screen.
         </p>
