@@ -1,7 +1,7 @@
 'use client'
 
 import { PayPalButtons, PayPalScriptProvider } from '@paypal/react-paypal-js'
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import api from '@/lib/api'
 import { useAuthStore } from '@/store/auth'
 
@@ -16,6 +16,7 @@ const TIERS: Record<string, { label: string; note: string; amount: string; emoji
 function TierButton({ productId, onSuccess }: { productId: string; onSuccess: () => void }) {
   const tier = TIERS[productId]
   const payingRef = useRef(false)
+  const [error, setError] = useState<string | null>(null)
 
   return (
     <div className="rounded-2xl border overflow-hidden" style={{ borderColor: 'rgba(246,198,91,0.2)' }}>
@@ -34,15 +35,23 @@ function TierButton({ productId, onSuccess }: { productId: string; onSuccess: ()
           style={{ layout: 'horizontal', height: 40, tagline: false, label: 'pay' }}
           createOrder={() => {
             payingRef.current = true
+            setError(null)
             return api.post('/paypal/create-order', { product_id: productId }).then(r => r.data.order_id)
           }}
           onApprove={(data) =>
             api.post('/paypal/capture-order', { order_id: data.orderID, product_id: productId })
               .then(() => { payingRef.current = false; onSuccess() })
+              .catch(() => {
+                payingRef.current = false
+                setError('Payment failed. Please try again or contact support.')
+              })
           }
           onCancel={() => { payingRef.current = false }}
-          onError={() => { payingRef.current = false }}
+          onError={() => { payingRef.current = false; setError('PayPal error. Please try again.') }}
         />
+        {error && (
+          <p className="text-xs mt-2 text-center" style={{ color: '#f87171' }}>{error}</p>
+        )}
       </div>
     </div>
   )
