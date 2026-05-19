@@ -24,18 +24,18 @@ export default function HubPage() {
       <Navbar />
       <style>{`
         .hub-page-shell {
-          height: calc(100dvh - 64px);
+          height: calc(100dvh - 64px - var(--beer-ticker-h, 0px));
         }
 
         @supports not (height: 100dvh) {
           .hub-page-shell {
-            height: calc(100vh - 64px);
+            height: calc(100vh - 64px - var(--beer-ticker-h, 0px));
           }
         }
 
         @media (max-width: 767px) {
           .hub-page-shell {
-            height: calc(100svh - 64px);
+            height: calc(100svh - 64px - var(--beer-ticker-h, 0px));
           }
         }
       `}</style>

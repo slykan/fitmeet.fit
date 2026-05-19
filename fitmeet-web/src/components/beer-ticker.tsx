@@ -193,6 +193,16 @@ function BeerTickerInner() {
     load()
   }, [])
 
+  useEffect(() => {
+    const root = document.documentElement
+    if (donors.length > 0) {
+      root.style.setProperty('--beer-ticker-h', '30px')
+    } else {
+      root.style.removeProperty('--beer-ticker-h')
+    }
+    return () => root.style.removeProperty('--beer-ticker-h')
+  }, [donors.length])
+
   const recent = donors.filter(isRecent)
 
   if (!donors.length) return null
