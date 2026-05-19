@@ -21,9 +21,18 @@ class LeaderboardController extends Controller
         ]);
     }
 
+    private function withFallback(array $recent, string $fallbackSql, int $limit = 5): array
+    {
+        if (count($recent) >= $limit) return $recent;
+        $exclude = implode(',', array_column($recent, 'id') ?: [0]);
+        $needed  = $limit - count($recent);
+        $fallback = DB::select(str_replace('__EXCLUDE__', $exclude, $fallbackSql) . " LIMIT {$needed}");
+        return array_merge($recent, $fallback);
+    }
+
     private function beerSponsors(): array
     {
-        return DB::select("
+        $recent = DB::select("
             SELECT u.id, u.name, u.avatar,
                 COALESCE(SUM(CASE bd.product_id
                     WHEN 'beer_large'  THEN 3
@@ -36,11 +45,23 @@ class LeaderboardController extends Controller
             ORDER BY count DESC
             LIMIT 5
         ");
+        return $this->withFallback($recent, "
+            SELECT u.id, u.name, u.avatar,
+                COALESCE(SUM(CASE bd.product_id
+                    WHEN 'beer_large'  THEN 3
+                    WHEN 'beer_medium' THEN 2
+                    ELSE 1 END), 0) AS count
+            FROM users u
+            JOIN beer_donations bd ON bd.user_id = u.id
+            WHERE u.id NOT IN (__EXCLUDE__)
+            GROUP BY u.id, u.name, u.avatar
+            ORDER BY count DESC
+        ");
     }
 
     private function consistencyBeasts(): array
     {
-        return DB::select("
+        $recent = DB::select("
             SELECT u.id, u.name, u.avatar, COUNT(ep.id) AS count
             FROM users u
             JOIN event_participants ep ON ep.user_id = u.id
@@ -50,11 +71,19 @@ class LeaderboardController extends Controller
             ORDER BY count DESC
             LIMIT 5
         ");
+        return $this->withFallback($recent, "
+            SELECT u.id, u.name, u.avatar, COUNT(ep.id) AS count
+            FROM users u
+            JOIN event_participants ep ON ep.user_id = u.id AND ep.status = 'joined'
+            WHERE u.id NOT IN (__EXCLUDE__)
+            GROUP BY u.id, u.name, u.avatar
+            ORDER BY count DESC
+        ");
     }
 
     private function eventCreators(): array
     {
-        return DB::select("
+        $recent = DB::select("
             SELECT u.id, u.name, u.avatar, COUNT(e.id) AS count
             FROM users u
             JOIN events e ON e.user_id = u.id
@@ -62,6 +91,14 @@ class LeaderboardController extends Controller
             GROUP BY u.id, u.name, u.avatar
             ORDER BY count DESC
             LIMIT 5
+        ");
+        return $this->withFallback($recent, "
+            SELECT u.id, u.name, u.avatar, COUNT(e.id) AS count
+            FROM users u
+            JOIN events e ON e.user_id = u.id
+            WHERE u.id NOT IN (__EXCLUDE__)
+            GROUP BY u.id, u.name, u.avatar
+            ORDER BY count DESC
         ");
     }
 
@@ -78,7 +115,7 @@ class LeaderboardController extends Controller
 
     private function localLegends(): array
     {
-        return DB::select("
+        $recent = DB::select("
             SELECT u.id, u.name, u.avatar, COUNT(ep.id) AS count
             FROM users u
             JOIN event_participants ep ON ep.user_id = u.id
@@ -88,11 +125,19 @@ class LeaderboardController extends Controller
             ORDER BY count DESC
             LIMIT 5
         ");
+        return $this->withFallback($recent, "
+            SELECT u.id, u.name, u.avatar, COUNT(ep.id) AS count
+            FROM users u
+            JOIN event_participants ep ON ep.user_id = u.id AND ep.checked_in_at IS NOT NULL
+            WHERE u.id NOT IN (__EXCLUDE__)
+            GROUP BY u.id, u.name, u.avatar
+            ORDER BY count DESC
+        ");
     }
 
     private function socialAnimals(): array
     {
-        return DB::select("
+        $recent = DB::select("
             SELECT u.id, u.name, u.avatar, COUNT(ec.id) AS count
             FROM users u
             JOIN event_comments ec ON ec.user_id = u.id
@@ -101,11 +146,19 @@ class LeaderboardController extends Controller
             ORDER BY count DESC
             LIMIT 5
         ");
+        return $this->withFallback($recent, "
+            SELECT u.id, u.name, u.avatar, COUNT(ec.id) AS count
+            FROM users u
+            JOIN event_comments ec ON ec.user_id = u.id
+            WHERE u.id NOT IN (__EXCLUDE__)
+            GROUP BY u.id, u.name, u.avatar
+            ORDER BY count DESC
+        ");
     }
 
     private function alwaysLate(): array
     {
-        return DB::select("
+        $recent = DB::select("
             SELECT u.id, u.name, u.avatar, COUNT(ep.id) AS count
             FROM users u
             JOIN event_participants ep ON ep.user_id = u.id
@@ -115,6 +168,15 @@ class LeaderboardController extends Controller
             GROUP BY u.id, u.name, u.avatar
             ORDER BY count DESC
             LIMIT 5
+        ");
+        return $this->withFallback($recent, "
+            SELECT u.id, u.name, u.avatar, COUNT(ep.id) AS count
+            FROM users u
+            JOIN event_participants ep ON ep.user_id = u.id
+                AND ep.status = 'joined' AND ep.checked_in_at IS NULL
+            WHERE u.id NOT IN (__EXCLUDE__)
+            GROUP BY u.id, u.name, u.avatar
+            ORDER BY count DESC
         ");
     }
 }
