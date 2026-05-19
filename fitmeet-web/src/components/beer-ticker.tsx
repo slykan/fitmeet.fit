@@ -6,7 +6,12 @@ import React, { useEffect, useRef, useState } from 'react'
 import api from '@/lib/api'
 import { useAuthStore } from '@/store/auth'
 
-type Donor = { name: string; beer_score: number; beer_top_tier: string }
+type Donor = { name: string; beer_score: number; beer_top_tier: string; last_donation_at: string }
+
+const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000
+function isRecent(d: Donor) {
+  return Date.now() - new Date(d.last_donation_at).getTime() < THIRTY_DAYS_MS
+}
 
 const PAYPAL_CLIENT_ID = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID ?? ''
 
@@ -74,6 +79,9 @@ function SupportersModal({ onClose, donors, onPurchased }: {
   const { token } = useAuthStore()
   const payingRef = useRef(false)
 
+  const recent = donors.filter(isRecent)
+  const older  = donors.filter(d => !isRecent(d))
+
   return (
     <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center">
       <div
@@ -111,9 +119,40 @@ function SupportersModal({ onClose, donors, onPurchased }: {
             <span className="opacity-50">→</span>
           </a>
 
+          {recent.length > 0 && (
+            <>
+              <p className="text-xs font-black uppercase tracking-widest" style={{ color: 'rgba(246,198,91,0.55)' }}>
+                🔥 Last 30 days
+              </p>
+              {recent.map((d, i) => (
+                <div key={i} className="flex items-center gap-3 px-3 py-2 rounded-xl border"
+                  style={{ background: 'rgba(246,198,91,0.04)', borderColor: 'rgba(246,198,91,0.15)' }}>
+                  <MedalIcons productId={d.beer_top_tier} />
+                  <span className="font-bold text-sm flex-1 truncate">{d.name}</span>
+                  <span className="text-xs" style={{ color: 'rgba(246,198,91,0.5)' }}>×{d.beer_score}</span>
+                </div>
+              ))}
+            </>
+          )}
+
+          {older.length > 0 && (
+            <>
+              <p className="text-xs font-black uppercase tracking-widest mt-1" style={{ color: 'rgba(255,255,255,0.2)' }}>
+                Past supporters
+              </p>
+              {older.map((d, i) => (
+                <div key={i} className="flex items-center gap-3 px-3 py-2 rounded-xl"
+                  style={{ opacity: 0.45 }}>
+                  <span className="text-sm">🍺</span>
+                  <span className="text-sm flex-1 truncate">{d.name}</span>
+                </div>
+              ))}
+            </>
+          )}
+
           {!token ? (
             <div
-              className="rounded-xl p-4 text-center border"
+              className="rounded-xl p-4 text-center border mt-1"
               style={{ background: 'rgba(246,198,91,0.04)', borderColor: 'rgba(246,198,91,0.15)' }}
             >
               <p className="font-bold text-sm mb-1">Want to join the wall of fame?</p>
@@ -121,7 +160,7 @@ function SupportersModal({ onClose, donors, onPurchased }: {
             </div>
           ) : (
             <>
-              <p className="text-xs font-bold uppercase tracking-widest" style={{ color: 'rgba(246,198,91,0.6)' }}>
+              <p className="text-xs font-bold uppercase tracking-widest mt-1" style={{ color: 'rgba(246,198,91,0.6)' }}>
                 Join the wall of fame
               </p>
               <div className="flex flex-col gap-2">
@@ -154,9 +193,12 @@ function BeerTickerInner() {
     load()
   }, [])
 
+  const recent = donors.filter(isRecent)
+
   if (!donors.length) return null
 
-  const doubled = [...donors, ...donors]
+  const tickerDonors = recent.length > 0 ? recent : donors
+  const doubled = [...tickerDonors, ...tickerDonors]
 
   return (
     <>

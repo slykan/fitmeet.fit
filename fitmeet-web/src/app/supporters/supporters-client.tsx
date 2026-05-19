@@ -32,12 +32,18 @@ function ShareButton() {
   )
 }
 
-type Donor = { name: string; beer_score: number; beer_top_tier: string }
+type Donor = { name: string; beer_score: number; beer_top_tier: string; last_donation_at: string }
 
 const MEDAL_LABEL: Record<string, string> = {
   beer_small:  '🍺 Small beer',
   beer_medium: '🍺🍺🍺 3 beers',
   beer_large:  '📦📦📦 Full crate',
+}
+
+const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000
+
+function isRecent(d: Donor) {
+  return Date.now() - new Date(d.last_donation_at).getTime() < THIRTY_DAYS_MS
 }
 
 function RankBadge({ rank }: { rank: number }) {
@@ -71,26 +77,43 @@ function DonorRow({ donor, rank }: { donor: Donor; rank: number }) {
   )
 }
 
+function OlderDonorRow({ donor }: { donor: Donor }) {
+  const daysAgo = Math.floor((Date.now() - new Date(donor.last_donation_at).getTime()) / (24 * 60 * 60 * 1000))
+  return (
+    <div
+      className="flex items-center gap-4 px-5 py-3 rounded-2xl border"
+      style={{ background: 'rgba(255,255,255,0.015)', borderColor: 'rgba(255,255,255,0.05)', opacity: 0.55 }}
+    >
+      <span className="text-xl shrink-0">🍺</span>
+      <div className="flex-1 min-w-0">
+        <p className="font-semibold text-sm truncate">{donor.name}</p>
+        <p className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>{daysAgo}d ago · ×{donor.beer_score}</p>
+      </div>
+    </div>
+  )
+}
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.fitmeet.fit/api'
+
+function fetchDonors() {
+  return fetch(`${API_URL}/beer-donations?limit=200`).then(r => r.json())
+}
 
 export function SupportersClient({ initialDonors }: { initialDonors: Donor[] }) {
   const [donors, setDonors] = useState<Donor[]>(initialDonors)
   const [purchased, setPurchased] = useState(false)
 
   useEffect(() => {
-    fetch(`${API_URL}/beer-donations?limit=200`)
-      .then(r => r.json())
-      .then(setDonors)
-      .catch(() => {})
+    fetchDonors().then(setDonors).catch(() => {})
   }, [])
 
   function handlePurchased() {
     setPurchased(true)
-    fetch(`${API_URL}/beer-donations?limit=200`)
-      .then(r => r.json())
-      .then(setDonors)
-      .catch(() => {})
+    fetchDonors().then(setDonors).catch(() => {})
   }
+
+  const recent = donors.filter(isRecent)
+  const older  = donors.filter(d => !isRecent(d))
 
   return (
     <div className="max-w-xl mx-auto px-4 py-12">
@@ -106,15 +129,34 @@ export function SupportersClient({ initialDonors }: { initialDonors: Donor[] }) 
         </div>
       </div>
 
-      {/* Donors list */}
-      {donors.length > 0 ? (
-        <div className="flex flex-col gap-3 mb-10">
-          {donors.map((d, i) => (
-            <DonorRow key={i} donor={d} rank={i + 1} />
-          ))}
-        </div>
+      {/* Recent donors — last 30 days */}
+      {recent.length > 0 ? (
+        <>
+          <p className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: 'rgba(246,198,91,0.55)' }}>
+            🔥 Last 30 days
+          </p>
+          <div className="flex flex-col gap-3 mb-10">
+            {recent.map((d, i) => (
+              <DonorRow key={i} donor={d} rank={i + 1} />
+            ))}
+          </div>
+        </>
       ) : (
-        <p className="text-center opacity-40 mb-10">No supporters yet. Be the first! 🍺</p>
+        <p className="text-center opacity-40 mb-10">No supporters this month. Be the first! 🍺</p>
+      )}
+
+      {/* Older donors */}
+      {older.length > 0 && (
+        <>
+          <p className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: 'rgba(255,255,255,0.2)' }}>
+            Past supporters
+          </p>
+          <div className="flex flex-col gap-2 mb-10">
+            {older.map((d, i) => (
+              <OlderDonorRow key={i} donor={d} />
+            ))}
+          </div>
+        </>
       )}
 
       {/* Divider */}

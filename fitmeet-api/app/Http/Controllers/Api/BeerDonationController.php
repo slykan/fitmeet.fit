@@ -22,9 +22,10 @@ class BeerDonationController extends Controller
                 $score   = $donations->sum(fn($d) => $weights[$d->product_id] ?? 1);
                 $topTier = $donations->sortByDesc(fn($d) => $weights[$d->product_id] ?? 0)->first();
                 return [
-                    'name'         => $topTier->user->name,
-                    'beer_score'   => $score,
-                    'beer_top_tier'=> $topTier->product_id,
+                    'name'             => $topTier->user->name,
+                    'beer_score'       => $score,
+                    'beer_top_tier'    => $topTier->product_id,
+                    'last_donation_at' => $donations->max('created_at'),
                 ];
             })
             ->sortByDesc('beer_score')
