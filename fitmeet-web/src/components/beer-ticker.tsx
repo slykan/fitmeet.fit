@@ -145,15 +145,12 @@ function SupportersModal({ onClose, donors, onPurchased }: {
 function BeerTickerInner() {
   const [donors, setDonors] = useState<Donor[]>([])
   const [open, setOpen] = useState(false)
-  const loaded = useRef(false)
 
   function load() {
     api.get('/beer-donations').then(r => setDonors(r.data)).catch(() => {})
   }
 
   useEffect(() => {
-    if (loaded.current) return
-    loaded.current = true
     load()
   }, [])
 

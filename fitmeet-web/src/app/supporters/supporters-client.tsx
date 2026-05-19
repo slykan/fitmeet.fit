@@ -1,7 +1,7 @@
 'use client'
 
 import { Share2, Check } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { BuySection } from './buy-section'
 
 function ShareButton() {
@@ -71,13 +71,22 @@ function DonorRow({ donor, rank }: { donor: Donor; rank: number }) {
   )
 }
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.fitmeet.fit/api'
+
 export function SupportersClient({ initialDonors }: { initialDonors: Donor[] }) {
   const [donors, setDonors] = useState<Donor[]>(initialDonors)
   const [purchased, setPurchased] = useState(false)
 
+  useEffect(() => {
+    fetch(`${API_URL}/beer-donations?limit=200`)
+      .then(r => r.json())
+      .then(setDonors)
+      .catch(() => {})
+  }, [])
+
   function handlePurchased() {
     setPurchased(true)
-    fetch(`${process.env.NEXT_PUBLIC_API_URL ?? 'https://api.fitmeet.fit/api'}/beer-donations?limit=200`)
+    fetch(`${API_URL}/beer-donations?limit=200`)
       .then(r => r.json())
       .then(setDonors)
       .catch(() => {})
