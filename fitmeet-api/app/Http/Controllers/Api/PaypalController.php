@@ -76,6 +76,11 @@ class PaypalController extends Controller
             ->post($this->baseUrl() . "/v2/checkout/orders/{$validated['order_id']}/capture");
 
         if (!$response->successful() || $response->json('status') !== 'COMPLETED') {
+            \Log::error('PayPal capture failed', [
+                'status'  => $response->status(),
+                'body'    => $response->json(),
+                'order'   => $validated['order_id'],
+            ]);
             return response()->json(['error' => 'Payment not completed.'], 402);
         }
 

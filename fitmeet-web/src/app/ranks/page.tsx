@@ -23,13 +23,13 @@ function BeerModal({ onClose, onPurchased }: { onClose: () => void; onPurchased:
   if (done) {
     return (
       <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center">
-        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => { onPurchased(); onClose() }} />
         <div className="relative w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl border p-8 text-center"
           style={{ background: '#0c0a14', borderColor: 'rgba(246,198,91,0.25)' }}>
           <p className="text-4xl mb-3">🙏</p>
           <p className="font-black text-xl mb-1">Thank you!</p>
           <p className="text-sm opacity-60 mb-5">Your name will appear on the leaderboard shortly.</p>
-          <button onClick={onClose}
+          <button onClick={() => { onPurchased(); onClose() }}
             className="px-6 py-2.5 rounded-xl font-bold text-sm"
             style={{ background: '#f6c65b', color: '#000' }}>
             Close
@@ -80,7 +80,7 @@ function BeerModal({ onClose, onPurchased }: { onClose: () => void; onPurchased:
                     }}
                     onApprove={(data) =>
                       api.post('/paypal/capture-order', { order_id: data.orderID, product_id: productId })
-                        .then(() => { payingRef.current = false; setDone(true); onPurchased() })
+                        .then(() => { payingRef.current = false; setDone(true) })
                         .catch(() => { payingRef.current = false; setError('Payment failed. Please try again or contact support.') })
                     }
                     onCancel={() => { payingRef.current = false }}
