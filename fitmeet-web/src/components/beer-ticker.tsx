@@ -200,7 +200,7 @@ function BeerTickerInner() {
     } else {
       root.style.removeProperty('--beer-ticker-h')
     }
-    return () => root.style.removeProperty('--beer-ticker-h')
+    return () => { root.style.removeProperty('--beer-ticker-h') }
   }, [donors.length])
 
   const recent = donors.filter(isRecent)
