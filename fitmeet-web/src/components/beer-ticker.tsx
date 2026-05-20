@@ -27,16 +27,14 @@ const TIERS: Record<string, { label: string; note: string; amount: string; icons
   beer_large:  { label: 'Full crate',      note: 'Fuel for future features', amount: '12.00', icons: 1, crate: true },
 }
 
-function MedalIcons({ productId }: { productId: string }) {
+function MedalIcons({ productId, ticker = false }: { productId: string; ticker?: boolean }) {
   const tier = TIERS[productId]
   if (!tier) return null
-  return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 1, lineHeight: 1 }}>
-      <span style={{ fontSize: 12, lineHeight: 1 }}>🍺</span>
-      {tier.crate && <span style={{ fontSize: 10, fontWeight: 900, color: '#f6c65b', lineHeight: 1 }}>×3</span>}
-      {!tier.crate && tier.icons > 1 && <span style={{ fontSize: 12, lineHeight: 1 }}>{'🍺'.repeat(tier.icons - 1)}</span>}
-    </span>
-  )
+  if (ticker) {
+    return <span style={{ fontSize: 13, lineHeight: '13px', display: 'block', width: 14, textAlign: 'center' }}>🍺</span>
+  }
+  if (tier.crate) return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>🍺🍺🍺</span>
+  return <span>{'🍺'.repeat(tier.icons)}</span>
 }
 
 function PayPalTierButton({ productId, onSuccess, payingRef }: {
@@ -249,12 +247,12 @@ function BeerTickerInner() {
         <div className="flex-1 overflow-hidden h-full flex items-center">
           <div className="beer-ticker flex items-center gap-0">
             {doubled.map((d, i) => (
-              <div key={i} className="flex items-center gap-1.5 px-4">
-                <MedalIcons productId={d.beer_top_tier} />
-                <span className="text-[12px] font-bold whitespace-nowrap" style={{ color: 'rgba(255,255,255,0.9)' }}>
+              <div key={i} className="flex items-center gap-1.5 px-4" style={{ height: 30 }}>
+                <MedalIcons productId={d.beer_top_tier} ticker />
+                <span className="text-[12px] font-bold whitespace-nowrap" style={{ color: 'rgba(255,255,255,0.9)', lineHeight: 1 }}>
                   {d.name}
                 </span>
-                <span className="text-[12px] ml-1" style={{ color: 'rgba(246,198,91,0.45)' }}>·</span>
+                <span className="text-[12px] ml-1" style={{ color: 'rgba(246,198,91,0.45)', lineHeight: 1 }}>·</span>
               </div>
             ))}
           </div>
