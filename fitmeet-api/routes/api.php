@@ -93,6 +93,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('me/invite-tap', [UserController::class, 'recordInviteTap']);
     Route::delete('me/push-token', [UserController::class, 'destroyPushToken']);
     Route::get('users', [UserController::class, 'index']);
+    Route::get('users/{user}', [UserController::class, 'show']);
 
     // Friends & notifications
     Route::post('strava/token',                    [\App\Http\Controllers\Api\StravaController::class, 'exchangeToken']);

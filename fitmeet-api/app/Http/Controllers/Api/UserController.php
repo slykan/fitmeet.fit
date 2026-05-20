@@ -225,6 +225,55 @@ class UserController extends Controller
         return response()->noContent();
     }
 
+    public function show(Request $request, User $user): JsonResponse
+    {
+        $me = $request->user();
+
+        // Friendship status
+        $friendshipStatus = null;
+        if ($me->id !== $user->id) {
+            $fr = FriendRequest::where(function ($q) use ($me, $user) {
+                $q->where('sender_id', $me->id)->where('receiver_id', $user->id);
+            })->orWhere(function ($q) use ($me, $user) {
+                $q->where('sender_id', $user->id)->where('receiver_id', $me->id);
+            })->first();
+
+            if ($fr) {
+                if ($fr->status === 'accepted') $friendshipStatus = 'friends';
+                elseif ($fr->sender_id === $me->id) $friendshipStatus = 'pending_sent';
+                else $friendshipStatus = 'pending_received';
+            }
+        }
+
+        // Stats
+        $stats = [
+            'events_created' => Event::where('user_id', $user->id)->count(),
+            'events_joined'  => \DB::table('event_participants')->where('user_id', $user->id)->where('status', 'joined')->count(),
+            'check_ins'      => \DB::table('event_participants')->where('user_id', $user->id)->whereNotNull('checked_in_at')->count(),
+            'comments'       => EventComment::where('user_id', $user->id)->count(),
+            'moments'        => Event::where('user_id', $user->id)->whereNotNull('moment_image_path')->count(),
+            'beers'          => \App\Models\BeerDonation::where('user_id', $user->id)->count(),
+        ];
+
+        $beerDonations = \App\Models\BeerDonation::where('user_id', $user->id)->get();
+        $tierWeight    = ['beer_small' => 1, 'beer_medium' => 2, 'beer_large' => 3];
+        $beerScore     = $beerDonations->sum(fn ($d) => $tierWeight[$d->product_id] ?? 1);
+
+        return response()->json([
+            'id'               => $user->id,
+            'name'             => $user->name,
+            'avatar'           => $user->avatar,
+            'home'             => ['city' => $user->home_city, 'country' => $user->home_country],
+            'categories'       => $user->categories ?? [],
+            'skill_level'      => $user->skill_level,
+            'member_since'     => $user->created_at?->toDateString(),
+            'is_self'          => $me->id === $user->id,
+            'friendship_status'=> $friendshipStatus,
+            'beer_score'       => $beerScore,
+            'stats'            => $stats,
+        ]);
+    }
+
     public function myStats(Request $request): JsonResponse
     {
         $userId = $request->user()->id;

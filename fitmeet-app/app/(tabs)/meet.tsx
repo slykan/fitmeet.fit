@@ -636,7 +636,7 @@ function PeopleTab() {
       </Modal>
 
       {!loading && users.map((u, index) => (
-        <View key={u.id} style={styles.userCard}>
+        <Pressable key={u.id} style={styles.userCard} onPress={() => router.push(`/user/${u.id}` as never)}>
           <Pressable
             style={styles.userAvatar}
             onPress={() => u.avatar ? setZoomAvatar(u.avatar) : null}
@@ -708,7 +708,7 @@ function PeopleTab() {
               <Text style={styles.friendBtnText}>{acting === u.id ? '…' : '+ Add'}</Text>
             </Pressable>
           )}
-        </View>
+        </Pressable>
       ))}
     </View>
   )
