@@ -11,6 +11,7 @@ import { api } from '@/src/lib/api'
 import { syncPushToken, unregisterPushToken } from '@/src/lib/push-notifications'
 import { useAuthStore } from '@/src/store/auth'
 import { palette, spacing } from '@/src/theme'
+import { AlibiCard } from '@/src/components/AlibiCard'
 
 const RADIUS_LABELS: Record<string, string> = {
   nearby: 'Nearby (50 km)',
@@ -128,6 +129,9 @@ export default function ProfileScreen() {
             ) : null}
           </View>
         </View>
+
+        {/* Alibi stats */}
+        <AlibiCard />
 
         {/* Edit profile link */}
         <Pressable style={styles.settingsLink} onPress={() => router.push('/settings' as never)}>

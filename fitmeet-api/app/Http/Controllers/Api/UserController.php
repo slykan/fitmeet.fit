@@ -225,6 +225,25 @@ class UserController extends Controller
         return response()->noContent();
     }
 
+    public function myStats(Request $request): JsonResponse
+    {
+        $userId = $request->user()->id;
+
+        $created  = Event::where('user_id', $userId)->count();
+        $joined   = \DB::table('event_participants')->where('user_id', $userId)->where('status', 'joined')->count();
+        $checkIns = \DB::table('event_participants')->where('user_id', $userId)->whereNotNull('checked_in_at')->count();
+        $comments = EventComment::where('user_id', $userId)->count();
+        $moments  = Event::where('user_id', $userId)->whereNotNull('moment_image_path')->count();
+
+        return response()->json([
+            'events_created' => $created,
+            'events_joined'  => $joined,
+            'check_ins'      => $checkIns,
+            'comments'       => $comments,
+            'moments'        => $moments,
+        ]);
+    }
+
     private function deleteStoredAvatar(?string $avatarUrl): void
     {
         if (! $avatarUrl) {

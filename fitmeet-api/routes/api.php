@@ -85,6 +85,7 @@ Route::get('events/og',            [EventController::class, 'ogPage']);
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('me',          [AuthController::class, 'me']);
+    Route::get('me/stats',    [UserController::class, 'myStats']);
     Route::patch('me',        [UserController::class, 'update']);
     Route::delete('me',       [AuthController::class, 'destroyAccount']);
     Route::post('me/avatar',  [UserController::class, 'updateAvatar']);
