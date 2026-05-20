@@ -131,7 +131,17 @@ export default function AlibiPage() {
           })}
         </div>
 
-        <p className="text-center text-xs mt-8" style={{ color: 'var(--text-muted)' }}>
+        {stats && stats.beers === 0 && (
+          <Link
+            href="/supporters"
+            className="mt-6 flex items-center justify-center gap-2 rounded-2xl border px-6 py-4 text-sm font-semibold transition-opacity hover:opacity-80"
+            style={{ borderColor: 'rgba(245,158,11,0.35)', background: 'rgba(245,158,11,0.08)', color: '#f59e0b' }}
+          >
+            🍺 Become a Supporter — buy the team a beer
+          </Link>
+        )}
+
+        <p className="text-center text-xs mt-6" style={{ color: 'var(--text-muted)' }}>
           All-time stats · updated in real time
         </p>
       </main>

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Animated, StyleSheet, Text, View } from 'react-native'
+import { Animated, Linking, Pressable, StyleSheet, Text, View } from 'react-native'
 import { api } from '@/src/lib/api'
 import { palette, spacing } from '@/src/theme'
 
@@ -86,6 +86,15 @@ export function AlibiCard() {
           )
         })}
       </View>
+
+      {stats && stats.beers === 0 && (
+        <Pressable
+          style={styles.supporterBtn}
+          onPress={() => Linking.openURL('https://fitmeet.fit/supporters')}
+        >
+          <Text style={styles.supporterText}>🍺 Become a Supporter</Text>
+        </Pressable>
+      )}
     </View>
   )
 }
@@ -127,5 +136,19 @@ const styles = StyleSheet.create({
   fill: {
     height: '100%',
     borderRadius: 999,
+  },
+
+  supporterBtn: {
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(245,158,11,0.35)',
+    backgroundColor: 'rgba(245,158,11,0.08)',
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  supporterText: {
+    color: '#f59e0b',
+    fontSize: 13,
+    fontWeight: '700',
   },
 })
