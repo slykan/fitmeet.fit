@@ -20,7 +20,7 @@ import { HeroMap } from '@/components/hero-map'
 import { LatestEventsCarousel } from '@/components/latest-events-carousel'
 import { LatestUsersTicker, type PublicUser } from '@/components/latest-users-ticker'
 import { PublicStatsSection, type PublicStats } from '@/components/public-stats'
-import { PublicCommentsSection, type PublicComment } from '@/components/public-comments'
+import { PublicCommentsSection } from '@/components/public-comments'
 
 const categories = [
   'Running',
@@ -133,19 +133,6 @@ type HomeEvent = {
   organizer: { id: number; name: string } | null
 }
 
-async function getPublicComments(): Promise<PublicComment[]> {
-  const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.fitmeet.fit/api'
-  try {
-    const res = await fetch(`${apiBase}/comments/public-latest`, {
-      headers: { Accept: 'application/json' },
-      next: { revalidate: 120 },
-    })
-    if (!res.ok) return []
-    return res.json()
-  } catch {
-    return []
-  }
-}
 
 async function getPublicStats(): Promise<PublicStats | null> {
   const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.fitmeet.fit/api'
@@ -201,11 +188,10 @@ async function getLatestEvents(): Promise<HomeEvent[]> {
 }
 
 export default async function HomePage() {
-  const [latestEvents, latestUsers, publicStats, publicComments] = await Promise.all([
+  const [latestEvents, latestUsers, publicStats] = await Promise.all([
     getLatestEvents(),
     getLatestUsers(),
     getPublicStats(),
-    getPublicComments(),
   ])
 
   return (
@@ -408,7 +394,7 @@ export default async function HomePage() {
 
         {publicStats && <PublicStatsSection stats={publicStats} />}
 
-        <PublicCommentsSection comments={publicComments} />
+        <PublicCommentsSection />
 
         <section className="py-16 md:py-20">
           <div className="max-w-6xl mx-auto px-4">

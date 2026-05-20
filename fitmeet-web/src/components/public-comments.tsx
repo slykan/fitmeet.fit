@@ -1,6 +1,10 @@
-import Image from 'next/image'
-import Link from 'next/link'
+'use client'
+
+import { useEffect, useState } from 'react'
 import { MessageSquareText } from 'lucide-react'
+import Link from 'next/link'
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.fitmeet.fit/api'
 
 const CATEGORY_EMOJI: Record<string, string> = {
   running: '🏃', cycling: '🚴', hiking: '🥾', swimming: '🏊', football: '⚽',
@@ -10,7 +14,7 @@ const CATEGORY_EMOJI: Record<string, string> = {
   social: '🎉', other: '📅',
 }
 
-export interface PublicComment {
+interface PublicComment {
   id: number
   body: string
   created_at: string
@@ -30,22 +34,29 @@ function timeAgo(iso: string) {
 function Avatar({ user }: { user: PublicComment['user'] }) {
   if (user.avatar) {
     return (
-      <Image
-        src={user.avatar} alt={user.name}
-        width={32} height={32}
-        className="rounded-full object-cover shrink-0"
-      />
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src={user.avatar} alt={user.name} width={32} height={32}
+        className="rounded-full object-cover shrink-0 w-8 h-8" />
     )
   }
   return (
     <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black shrink-0"
       style={{ background: 'rgba(57,255,20,0.12)', color: 'var(--primary)' }}>
-      {user.name.charAt(0).toUpperCase()}
+      {user.name?.charAt(0).toUpperCase() ?? '?'}
     </div>
   )
 }
 
-export function PublicCommentsSection({ comments }: { comments: PublicComment[] }) {
+export function PublicCommentsSection() {
+  const [comments, setComments] = useState<PublicComment[]>([])
+
+  useEffect(() => {
+    fetch(`${API_URL}/comments/public-latest`, { cache: 'no-store' })
+      .then(r => r.json())
+      .then(setComments)
+      .catch(() => {})
+  }, [])
+
   if (!comments.length) return null
 
   return (
