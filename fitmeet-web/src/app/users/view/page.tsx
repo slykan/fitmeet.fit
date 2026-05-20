@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useEffect, useState, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, MapPin, Star } from 'lucide-react'
 import { Navbar } from '@/components/navbar'
@@ -42,8 +42,9 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })
 }
 
-export default function UserProfilePage() {
-  const params   = useParams()
+function UserProfileContent() {
+  const searchParams = useSearchParams()
+  const userId = searchParams.get('id')
   const router   = useRouter()
   const { token } = useAuthStore()
   const [profile, setProfile] = useState<UserProfile | null>(null)
@@ -53,11 +54,12 @@ export default function UserProfilePage() {
 
   useEffect(() => {
     if (!token) { router.replace('/login'); return }
-    api.get(`/users/${params.id}`).then(({ data }) => {
+    if (!userId) { router.replace('/meet'); return }
+    api.get(`/users/${userId}`).then(({ data }) => {
       setProfile(data)
       requestAnimationFrame(() => setTimeout(() => setAnimate(true), 80))
     }).catch(() => router.replace('/meet'))
-  }, [token, params.id, router])
+  }, [token, userId, router])
 
   async function handleFriendAction() {
     if (!profile || acting) return
@@ -234,5 +236,13 @@ export default function UserProfilePage() {
         </div>
       </main>
     </>
+  )
+}
+
+export default function UserProfilePage() {
+  return (
+    <Suspense>
+      <UserProfileContent />
+    </Suspense>
   )
 }
