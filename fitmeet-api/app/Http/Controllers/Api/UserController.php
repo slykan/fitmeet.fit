@@ -234,6 +234,7 @@ class UserController extends Controller
         $checkIns = \DB::table('event_participants')->where('user_id', $userId)->whereNotNull('checked_in_at')->count();
         $comments = EventComment::where('user_id', $userId)->count();
         $moments  = Event::where('user_id', $userId)->whereNotNull('moment_image_path')->count();
+        $beers    = \App\Models\BeerDonation::where('user_id', $userId)->count();
 
         return response()->json([
             'events_created' => $created,
@@ -241,6 +242,7 @@ class UserController extends Controller
             'check_ins'      => $checkIns,
             'comments'       => $comments,
             'moments'        => $moments,
+            'beers'          => $beers,
         ]);
     }
 

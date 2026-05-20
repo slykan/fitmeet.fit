@@ -9,6 +9,7 @@ interface Stats {
   check_ins:      number
   comments:       number
   moments:        number
+  beers:          number
 }
 
 const ROWS: {
@@ -22,6 +23,7 @@ const ROWS: {
   { key: 'check_ins',      label: 'Check-ins',      emoji: '✅',  color: '#fbbf24' },
   { key: 'comments',       label: 'Comments',        emoji: '💬',  color: '#a78bfa' },
   { key: 'moments',        label: 'Moments',         emoji: '📸',  color: '#fb923c' },
+  { key: 'beers',          label: 'Beers bought',   emoji: '🍺',  color: '#f59e0b' },
 ]
 
 function AnimatedBar({ pct, color }: { pct: number; color: string }) {

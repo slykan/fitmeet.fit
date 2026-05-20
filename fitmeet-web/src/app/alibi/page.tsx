@@ -15,6 +15,7 @@ interface AlibiStats {
   check_ins:      number
   comments:       number
   moments:        number
+  beers:          number
 }
 
 const ROWS: { key: keyof AlibiStats; label: string; emoji: string; color: string; desc: string }[] = [
@@ -23,6 +24,7 @@ const ROWS: { key: keyof AlibiStats; label: string; emoji: string; color: string
   { key: 'check_ins',      label: 'Check-ins',      emoji: '✅',  color: '#fbbf24', desc: 'Times you actually arrived, not just confirmed' },
   { key: 'comments',       label: 'Comments',        emoji: '💬',  color: '#a78bfa', desc: 'Things said in the group wall' },
   { key: 'moments',        label: 'Moments posted',  emoji: '📸',  color: '#fb923c', desc: 'Event photos you uploaded as organizer' },
+  { key: 'beers',          label: 'Beers bought',   emoji: '🍺',  color: '#f59e0b', desc: 'Times you supported FitMeet with a cold one' },
 ]
 
 export default function AlibiPage() {
