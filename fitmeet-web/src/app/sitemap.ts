@@ -1,6 +1,8 @@
 import type { MetadataRoute } from 'next'
 import { posts } from '@/lib/posts'
 
+export const dynamic = 'force-static'
+
 const BASE = 'https://fitmeet.fit'
 
 export default function sitemap(): MetadataRoute.Sitemap {
