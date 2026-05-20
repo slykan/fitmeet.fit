@@ -294,14 +294,16 @@ function PeopleTab() {
   const [acting,   setActing]   = useState<number | null>(null)
   const [confirmRemoveId, setConfirmRemoveId] = useState<number | null>(null)
   const [addError, setAddError] = useState<string | null>(null)
-  const [sort,      setSort]      = useState<PeopleSort>('latest')
-  const [direction, setDirection] = useState<'asc' | 'desc'>('desc')
-  const [showSort,  setShowSort]  = useState(false)
+  const [sort,        setSort]        = useState<PeopleSort>('latest')
+  const [direction,   setDirection]   = useState<'asc' | 'desc'>('desc')
+  const [showSort,    setShowSort]    = useState(false)
+  const [friendsOnly, setFriendsOnly] = useState(false)
 
-  const load = useCallback((q: string, s: PeopleSort, d: 'asc' | 'desc') => {
+  const load = useCallback((q: string, s: PeopleSort, d: 'asc' | 'desc', fo: boolean) => {
     setLoading(true)
     const params: Record<string, string> = { sort: s, direction: d }
     if (q) params.search = q
+    if (fo) params.friends_only = '1'
     api.get('/users', { params })
       .then(({ data }) => setUsers(data.data ?? []))
       .finally(() => setLoading(false))
@@ -352,12 +354,12 @@ function PeopleTab() {
     }
   }
 
-  useEffect(() => { load('', sort, direction) }, [load])
+  useEffect(() => { load('', sort, direction, friendsOnly) }, [load])
 
   useEffect(() => {
-    const t = setTimeout(() => load(search, sort, direction), 350)
+    const t = setTimeout(() => load(search, sort, direction, friendsOnly), 350)
     return () => clearTimeout(t)
-  }, [search, sort, direction, load])
+  }, [search, sort, direction, friendsOnly, load])
 
   async function handleInvite() {
     api.post('/me/invite-tap').catch(() => {})
@@ -397,6 +399,17 @@ function PeopleTab() {
             style={{ background: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
           />
         </div>
+        <button
+          onClick={() => setFriendsOnly(v => !v)}
+          className="px-3 rounded-xl border flex items-center gap-1.5 text-sm font-bold whitespace-nowrap transition-colors"
+          style={{
+            background: friendsOnly ? 'var(--primary)' : 'var(--surface)',
+            borderColor: friendsOnly ? 'var(--primary)' : 'var(--border)',
+            color: friendsOnly ? '#000' : 'var(--text-primary)',
+          }}
+        >
+          <Users size={13} /> Friends
+        </button>
         <div className="relative">
           <button
             onClick={() => setShowSort(v => !v)}

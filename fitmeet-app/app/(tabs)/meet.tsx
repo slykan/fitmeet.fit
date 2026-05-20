@@ -491,21 +491,23 @@ function PeopleTab() {
   const [sort,         setSort]         = useState<PeopleSort>('latest')
   const [direction,    setDirection]    = useState<'asc' | 'desc'>('desc')
   const [showSort,     setShowSort]     = useState(false)
+  const [friendsOnly,  setFriendsOnly]  = useState(false)
 
-  const load = useCallback((q: string, s: PeopleSort, d: 'asc' | 'desc') => {
+  const load = useCallback((q: string, s: PeopleSort, d: 'asc' | 'desc', fo: boolean) => {
     setLoading(true)
     const params: Record<string, string> = { sort: s, direction: d }
     if (q) params.search = q
+    if (fo) params.friends_only = '1'
     api.get('/users', { params })
       .then(({ data }) => setUsers(data.data ?? []))
       .finally(() => setLoading(false))
   }, [])
 
-  useEffect(() => { load('', sort, direction) }, [load])
+  useEffect(() => { load('', sort, direction, friendsOnly) }, [load])
   useEffect(() => {
-    const t = setTimeout(() => load(search, sort, direction), 400)
+    const t = setTimeout(() => load(search, sort, direction, friendsOnly), 400)
     return () => clearTimeout(t)
-  }, [search, sort, direction, load])
+  }, [search, sort, direction, friendsOnly, load])
 
   function handleSortSelect(key: PeopleSort) {
     if (key === sort) {
@@ -583,6 +585,13 @@ function PeopleTab() {
             autoCapitalize="none"
           />
         </View>
+        <Pressable
+          style={[styles.filterBtn, friendsOnly && styles.sortBtnActive]}
+          onPress={() => setFriendsOnly(v => !v)}
+        >
+          <Ionicons name="people-outline" size={15} color={friendsOnly ? '#031109' : palette.accent} />
+          <Text style={[styles.filterBtnLabel, friendsOnly && styles.filterBtnLabelActive]}>Friends</Text>
+        </Pressable>
         <Pressable
           style={[styles.filterBtn, styles.sortBtn, showSort && styles.sortBtnActive]}
           onPress={() => setShowSort(v => !v)}
