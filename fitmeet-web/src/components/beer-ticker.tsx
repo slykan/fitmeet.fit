@@ -30,8 +30,13 @@ const TIERS: Record<string, { label: string; note: string; amount: string; icons
 function MedalIcons({ productId }: { productId: string }) {
   const tier = TIERS[productId]
   if (!tier) return null
-  if (tier.crate) return <span style={{ fontSize: 12, lineHeight: 1, verticalAlign: 'middle', display: 'inline-flex', alignItems: 'center' }}>🍺🍺🍺</span>
-  return <span style={{ fontSize: 12, lineHeight: 1, verticalAlign: 'middle', display: 'inline-flex', alignItems: 'center' }}>{'🍺'.repeat(tier.icons)}</span>
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 1, lineHeight: 1 }}>
+      <span style={{ fontSize: 12, lineHeight: 1 }}>🍺</span>
+      {tier.crate && <span style={{ fontSize: 10, fontWeight: 900, color: '#f6c65b', lineHeight: 1 }}>×3</span>}
+      {!tier.crate && tier.icons > 1 && <span style={{ fontSize: 12, lineHeight: 1 }}>{'🍺'.repeat(tier.icons - 1)}</span>}
+    </span>
+  )
 }
 
 function PayPalTierButton({ productId, onSuccess, payingRef }: {
