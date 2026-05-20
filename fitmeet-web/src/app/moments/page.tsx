@@ -64,6 +64,9 @@ export default function MomentsPage() {
           <div>
             <h1 className="text-2xl font-black">Moments</h1>
             <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>Real events, real people</p>
+            <p className="text-xs mt-1" style={{ color: 'var(--text-muted)', opacity: 0.6 }}>
+              Event organizers can add one photo after each event ends.
+            </p>
           </div>
           <button
             onClick={handleShare}
