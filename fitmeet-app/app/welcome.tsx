@@ -53,7 +53,7 @@ export default function WelcomeScreen() {
     <SafeAreaView style={styles.root}>
       <View style={styles.heroWrap}>
         <Animated.Text style={[styles.logoText, { transform: [{ translateY: heroShift }] }]}>
-          FIT<Text style={styles.logoTextGreen}>MEET</Text>
+          <Text style={styles.logoTextGreen}>FIT</Text>MEET
         </Animated.Text>
         <Animated.Image
           source={LOGO}
@@ -108,18 +108,15 @@ export default function WelcomeScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#000000' },
   heroWrap: {
-    flex: 1,
     alignItems: 'center',
-    justifyContent: 'flex-start',
     paddingHorizontal: 48,
     paddingTop: 46,
-    backgroundColor: '#000000',
   },
   logo: {
-    width: '34%',
-    maxWidth: 150,
+    width: '52%',
+    maxWidth: 200,
     aspectRatio: 439 / 448,
-    marginTop: 8,
+    marginTop: 4,
   },
   safe: {
     ...StyleSheet.absoluteFillObject,
@@ -137,7 +134,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     letterSpacing: 1.5,
     textAlign: 'center',
-    marginBottom: 14,
+    marginBottom: 2,
   },
   logoTextGreen: { color: '#39FF14' },
   tagline: {
