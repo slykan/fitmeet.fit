@@ -1,15 +1,12 @@
 import {
   ArrowRight,
   Bell,
-  CalendarPlus,
   Camera,
   CheckCircle2,
   Compass,
   MessageSquareText,
   Route,
   Share2,
-  Users,
-  UserRoundPlus,
   Zap,
 } from 'lucide-react'
 import Link from 'next/link'
@@ -477,191 +474,39 @@ function MiniStat({ label, value }: { label: string; value: string }) {
   )
 }
 
-function PhoneShell({ children }: { children: React.ReactNode }) {
-  return (
-    <div
-      className="rounded-[28px] border p-3"
-      style={{
-        borderColor: 'rgba(57,255,20,0.16)',
-        background: 'linear-gradient(180deg, rgba(10,14,18,0.98), rgba(8,10,15,0.98))',
-        boxShadow: '0 18px 48px rgba(0,0,0,0.28)',
-      }}
-    >
-      <div className="rounded-[22px] border overflow-hidden" style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
-        <div className="px-4 py-3 border-b flex items-center justify-between" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
-          <div className="w-16 h-1.5 rounded-full mx-auto" style={{ background: 'rgba(255,255,255,0.12)' }} />
-          <span className="sr-only">FitMeet preview</span>
-        </div>
-        <div className="p-4 bg-[var(--background)] min-h-[22rem]">{children}</div>
-      </div>
-    </div>
-  )
-}
-
 function LoginShot() {
   return (
-    <PhoneShell>
-      <div className="space-y-4">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(57,255,20,0.08)' }}>
-            <Users size={22} style={{ color: 'var(--primary)' }} />
-          </div>
-          <div>
-            <p className="font-semibold">Welcome to FitMeet</p>
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-              Your local activity network
-            </p>
-          </div>
-        </div>
-
-        <div className="rounded-2xl border p-4 space-y-3" style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}>
-          <div className="rounded-xl px-3 py-3 text-sm" style={{ background: 'var(--background)', color: 'var(--text-muted)' }}>
-            Email address
-          </div>
-          <div className="rounded-xl px-3 py-3 text-sm" style={{ background: 'var(--background)', color: 'var(--text-muted)' }}>
-            Password
-          </div>
-          <div className="rounded-xl px-3 py-3 text-sm font-semibold text-center" style={{ background: 'var(--primary)', color: '#000' }}>
-            Continue
-          </div>
-        </div>
-
-        <div className="rounded-2xl border p-4 space-y-3" style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}>
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Your interests</span>
-            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-              Nearby
-            </span>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {['Running', 'Cycling', 'Hiking'].map((item) => (
-              <span
-                key={item}
-                className="px-3 py-1.5 rounded-full text-xs border"
-                style={{ borderColor: 'rgba(57,255,20,0.35)', color: 'var(--primary)', background: 'rgba(57,255,20,0.08)' }}
-              >
-                {item}
-              </span>
-            ))}
-          </div>
-          <div className="h-2 rounded-full" style={{ background: 'rgba(255,255,255,0.08)' }}>
-            <div className="h-2 rounded-full w-2/3" style={{ background: 'linear-gradient(90deg, var(--primary), #00a8ff)' }} />
-          </div>
-        </div>
-      </div>
-    </PhoneShell>
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src="/images/welcome1.jpeg"
+      alt="FitMeet welcome screen"
+      className="w-full rounded-[28px] object-cover"
+      style={{ boxShadow: '0 18px 48px rgba(0,0,0,0.28)' }}
+    />
   )
 }
 
 function EventShot() {
   return (
-    <PhoneShell>
-      <div className="space-y-4">
-        <div className="rounded-2xl border p-4" style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}>
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-11 h-11 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(0,168,255,0.1)' }}>
-              <CalendarPlus size={20} style={{ color: '#00a8ff' }} />
-            </div>
-            <div>
-              <p className="font-semibold">Create event</p>
-              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                Add details people care about
-              </p>
-            </div>
-          </div>
-
-          <div className="space-y-2.5">
-            <FieldMock label="Title" value="Sunset ride across the city" />
-            <FieldMock label="Category" value="Cycling" />
-            <FieldMock label="Meeting point" value="Bundek Lake, Zagreb" />
-            <FieldMock label="Start time" value="Thu · 18:30" />
-          </div>
-        </div>
-
-        <div className="rounded-2xl border p-4" style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}>
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Route size={16} style={{ color: 'var(--primary)' }} />
-              <span className="text-sm font-medium">Route and share</span>
-            </div>
-            <Share2 size={14} style={{ color: 'var(--text-muted)' }} />
-          </div>
-          <div className="rounded-xl p-3 border" style={{ borderColor: 'rgba(0,168,255,0.2)', background: 'rgba(0,168,255,0.06)' }}>
-            <div className="h-28 rounded-lg relative overflow-hidden" style={{ background: 'linear-gradient(180deg, rgba(4,15,22,0.95), rgba(9,12,16,1))' }}>
-              <div className="absolute inset-4 border rounded-[999px]" style={{ borderColor: 'rgba(0,168,255,0.22)' }} />
-              <svg viewBox="0 0 240 100" className="absolute inset-0 w-full h-full">
-                <path
-                  d="M25 78 C55 20, 92 20, 122 48 S175 92, 214 30"
-                  fill="none"
-                  stroke="#39ff14"
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                />
-                <circle cx="25" cy="78" r="4" fill="#39ff14" />
-                <circle cx="214" cy="30" r="4" fill="#00a8ff" />
-              </svg>
-            </div>
-          </div>
-        </div>
-      </div>
-    </PhoneShell>
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src="/images/create1.jpg"
+      alt="Create event screen"
+      className="w-full rounded-[28px] object-cover"
+      style={{ boxShadow: '0 18px 48px rgba(0,0,0,0.28)' }}
+    />
   )
 }
 
 function FriendsShot() {
   return (
-    <PhoneShell>
-      <div className="space-y-4">
-        <div className="rounded-2xl border p-4" style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}>
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-11 h-11 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(57,255,20,0.08)' }}>
-              <UserRoundPlus size={20} style={{ color: 'var(--primary)' }} />
-            </div>
-            <div>
-              <p className="font-semibold">Invite your people</p>
-              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                Build a crew around each plan
-              </p>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            {['Marta', 'Luka', 'Ivana'].map((name, index) => (
-              <div key={name} className="flex items-center gap-3 rounded-xl px-3 py-2.5" style={{ background: 'var(--background)' }}>
-                <div
-                  className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-black"
-                  style={{ background: index === 0 ? 'var(--primary)' : index === 1 ? '#00a8ff' : '#f97316' }}
-                >
-                  {name.charAt(0)}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium">{name}</p>
-                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                    Ready to join
-                  </p>
-                </div>
-                <CheckCircle2 size={16} style={{ color: 'var(--primary)' }} />
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="rounded-2xl border p-4" style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}>
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <MessageSquareText size={16} style={{ color: 'var(--primary)' }} />
-              <span className="text-sm font-medium">Group chat</span>
-            </div>
-            <Bell size={14} style={{ color: 'var(--text-muted)' }} />
-          </div>
-          <div className="space-y-2">
-            <Bubble text="Meet 10 min earlier at the cafe?" mine={false} />
-            <Bubble text="Perfect. I will bring the GPX route too." mine />
-            <Bubble text="Nice, see you all there." mine={false} />
-          </div>
-        </div>
-      </div>
-    </PhoneShell>
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src="/images/invite1.jpg"
+      alt="Invite friends screen"
+      className="w-full rounded-[28px] object-cover"
+      style={{ boxShadow: '0 18px 48px rgba(0,0,0,0.28)' }}
+    />
   )
 }
 
