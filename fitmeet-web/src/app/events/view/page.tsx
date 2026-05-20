@@ -450,7 +450,8 @@ function EventContent() {
                 {showParticipants && event.participants?.length > 0 && (
                   <div className="mt-2 ml-6 grid gap-2 sm:grid-cols-2">
                     {event.participants.map(p => (
-                      <div key={p.id} className="flex items-center gap-2 text-xs px-2.5 py-2 rounded-xl border"
+                      <a key={p.id} href={`/users/view?id=${p.id}`}
+                        className="flex items-center gap-2 text-xs px-2.5 py-2 rounded-xl border transition-opacity hover:opacity-70"
                         style={{ borderColor: 'var(--border)', background: 'var(--background)', color: 'var(--text-primary)' }}>
                         {p.avatar ? (
                           <Image src={p.avatar} alt={p.name} width={28} height={28} className="rounded-full object-cover flex-shrink-0" />
@@ -466,7 +467,7 @@ function EventContent() {
                             {p.checked_in_at ? `Checked in · ${formatCheckInTime(p.checked_in_at)}` : 'Waiting'}
                           </div>
                         </div>
-                      </div>
+                      </a>
                     ))}
                   </div>
                 )}
@@ -661,7 +662,9 @@ function EventContent() {
             </div>
           )}
 
-          <div className="rounded-2xl border p-5 flex items-center gap-3" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
+          <a href={`/users/view?id=${event.organizer.id}`}
+            className="rounded-2xl border p-5 flex items-center gap-3 transition-opacity hover:opacity-70"
+            style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
             <div className="text-xs uppercase tracking-wide font-semibold" style={{ color: 'var(--text-muted)' }}>Organized by</div>
             {event.organizer.avatar ? (
               <Image src={event.organizer.avatar} alt={event.organizer.name} width={32} height={32} className="rounded-full" />
@@ -671,7 +674,7 @@ function EventContent() {
               </div>
             )}
             <span className="font-medium text-sm">{event.organizer.name}</span>
-          </div>
+          </a>
 
         </div>
       )}

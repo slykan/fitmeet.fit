@@ -1006,15 +1006,13 @@ export default function EventDetailScreen() {
         {event.organizer ? (
           <View style={styles.card}>
             <Text style={styles.cardLabel}>Organizer</Text>
-            <View style={styles.personRow}>
-              <Pressable onPress={() => openAvatarZoom(event.organizer?.avatar ?? null)} disabled={!event.organizer.avatar}>
-                <Avatar user={event.organizer} size={36} />
-              </Pressable>
+            <Pressable style={styles.personRow} onPress={() => router.push(`/user/${event.organizer!.id}` as never)}>
+              <Avatar user={event.organizer} size={36} />
               <Text style={styles.personName}>{event.organizer.name}</Text>
               {isOrg && (
                 <View style={styles.youBadge}><Text style={styles.youBadgeText}>You</Text></View>
               )}
-            </View>
+            </Pressable>
           </View>
         ) : null}
 
@@ -1035,17 +1033,15 @@ export default function EventDetailScreen() {
             {showParticipants && (
               <View style={styles.participantList}>
                 {event.participants.map(p => (
-                  <View key={p.id} style={styles.participantRow}>
-                    <Pressable onPress={() => openAvatarZoom(p.avatar)} disabled={!p.avatar}>
-                      <Avatar user={p} size={34} />
-                    </Pressable>
+                  <Pressable key={p.id} style={styles.participantRow} onPress={() => router.push(`/user/${p.id}` as never)}>
+                    <Avatar user={p} size={34} />
                     <View style={styles.participantInfo}>
                       <Text style={styles.participantName} numberOfLines={1}>{p.name}</Text>
                       <Text style={p.checked_in_at ? styles.participantChecked : styles.participantWaiting}>
                         {p.checked_in_at ? `Checked in · ${formatTime(p.checked_in_at)}` : 'Waiting'}
                       </Text>
                     </View>
-                  </View>
+                  </Pressable>
                 ))}
               </View>
             )}
