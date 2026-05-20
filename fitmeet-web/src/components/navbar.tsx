@@ -5,7 +5,7 @@ import { useTheme } from 'next-themes'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Moon, Sun, Plus, LogOut, User, CalendarDays, Bell, Users, MessageSquare, Settings, Trophy } from 'lucide-react'
+import { Moon, Sun, Plus, LogOut, User, CalendarDays, Bell, Users, MessageSquare, Settings, Trophy, ShieldCheck } from 'lucide-react'
 import { Button } from './ui/button'
 import api from '@/lib/api'
 import { useEffect, useRef, useState } from 'react'
@@ -206,9 +206,10 @@ export function Navbar() {
                     </div>
 
                     <div className="py-1">
-                      <MenuItem icon={<Bell size={15} />}        label="Notifications" onClick={() => navigate('/notifications')} badge={notifCount} />
-                      <MenuItem icon={<Settings size={15} />}    label="Settings"      onClick={() => navigate('/profile')} />
-                      <MenuItem icon={<Users size={15} />}       label="Meet"          onClick={() => navigate('/meet')} />
+                      <MenuItem icon={<Bell size={15} />}         label="Notifications" onClick={() => navigate('/notifications')} badge={notifCount} />
+                      <MenuItem icon={<ShieldCheck size={15} />}  label="Your Alibi"   onClick={() => navigate('/alibi')} />
+                      <MenuItem icon={<Settings size={15} />}     label="Settings"     onClick={() => navigate('/profile')} />
+                      <MenuItem icon={<Users size={15} />}        label="Meet"         onClick={() => navigate('/meet')} />
                       <MenuItem icon={<CalendarDays size={15} />} label="My Events"    onClick={() => navigate('/events/my')} />
                     </div>
 

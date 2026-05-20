@@ -10,6 +10,82 @@ import { Button } from '@/components/ui/button'
 import { Bell, Calendar, Camera, Mail, MapPin, Phone, Globe, Navigation, Pencil, Trash2, UserPlus } from 'lucide-react'
 import api from '@/lib/api'
 
+interface AlibiStats {
+  events_created: number
+  events_joined:  number
+  check_ins:      number
+  comments:       number
+  moments:        number
+}
+
+const ALIBI_ROWS: { key: keyof AlibiStats; label: string; emoji: string; color: string }[] = [
+  { key: 'events_created', label: 'Events created', emoji: '🗓',  color: '#39ff14' },
+  { key: 'events_joined',  label: 'Events joined',  emoji: '🏃',  color: '#00a8ff' },
+  { key: 'check_ins',      label: 'Check-ins',      emoji: '✅',  color: '#fbbf24' },
+  { key: 'comments',       label: 'Comments',        emoji: '💬',  color: '#a78bfa' },
+  { key: 'moments',        label: 'Moments',         emoji: '📸',  color: '#fb923c' },
+]
+
+function AlibiCard() {
+  const [stats,   setStats]   = useState<AlibiStats | null>(null)
+  const [animate, setAnimate] = useState(false)
+
+  useEffect(() => {
+    api.get('/me/stats').then(({ data }) => {
+      setStats(data)
+      requestAnimationFrame(() => setTimeout(() => setAnimate(true), 80))
+    }).catch(() => {})
+  }, [])
+
+  const maxVal = stats ? Math.max(1, ...Object.values(stats)) : 1
+
+  return (
+    <div
+      className="rounded-2xl border p-4 sm:p-6 mb-5"
+      style={{ background: 'var(--surface)', borderColor: 'rgba(57,255,20,0.2)' }}
+    >
+      <div className="flex items-center gap-3 mb-5">
+        <span className="text-2xl">🕵️</span>
+        <div>
+          <h2 className="font-bold text-base">Your Alibi</h2>
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Proof you actually went outside</p>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        {ALIBI_ROWS.map(({ key, label, emoji, color }) => {
+          const val = stats?.[key] ?? 0
+          const pct = (val / maxVal) * 100
+          return (
+            <div key={key}>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-sm flex items-center gap-2" style={{ color: 'var(--text-muted)' }}>
+                  <span>{emoji}</span> {label}
+                </span>
+                <span className="text-sm font-bold tabular-nums" style={{ color }}>{val}</span>
+              </div>
+              <div
+                className="h-2 rounded-full overflow-hidden"
+                style={{ background: 'rgba(255,255,255,0.06)' }}
+              >
+                <div
+                  className="h-full rounded-full"
+                  style={{
+                    width: animate ? `${pct}%` : '0%',
+                    backgroundColor: color,
+                    transition: 'width 0.7s cubic-bezier(0.4,0,0.2,1)',
+                    opacity: 0.9,
+                  }}
+                />
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 const RADIUS_LABELS: Record<string, string> = {
   nearby: 'Nearby (50 km)',
   city: 'City (200 km)',
@@ -182,6 +258,8 @@ export default function ProfilePage() {
             </Button>
           </Link>
         </div>
+
+        <AlibiCard />
 
         {/* Email notifications */}
         <div
