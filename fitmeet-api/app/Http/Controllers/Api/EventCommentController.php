@@ -21,7 +21,7 @@ class EventCommentController extends Controller
             ->whereHas('event', fn ($q) => $q->where('is_private', false)->where('status', 'active'))
             ->where('body', '!=', '')
             ->latest()
-            ->limit(10)
+            ->limit(9)
             ->get()
             ->map(fn ($c) => [
                 'id'          => $c->id,
