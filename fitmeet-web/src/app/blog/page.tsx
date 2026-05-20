@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowRight, BookOpen } from 'lucide-react'
+import { ArrowRight, BookOpen, Users } from 'lucide-react'
 import { Navbar } from '@/components/navbar'
 import { posts } from '@/lib/posts'
 
@@ -91,6 +91,23 @@ export default function BlogPage() {
                 </Link>
               ))}
             </div>
+
+            <Link
+              href="/about"
+              className="group mt-2 rounded-2xl border flex items-center gap-5 px-6 py-5 transition-opacity hover:opacity-80"
+              style={{ background: 'var(--surface)', borderColor: 'rgba(57,255,20,0.18)' }}
+            >
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'rgba(57,255,20,0.1)' }}>
+                <Users size={18} style={{ color: 'var(--primary)' }} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-bold mb-0.5">About FitMeet</p>
+                <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                  How it started, who it is for, and where it is going.
+                </p>
+              </div>
+              <ArrowRight size={16} style={{ color: 'var(--primary)' }} className="shrink-0" />
+            </Link>
           </div>
         </section>
       </main>

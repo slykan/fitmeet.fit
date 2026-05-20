@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, ArrowRight, Clock } from 'lucide-react'
 import { Navbar } from '@/components/navbar'
+import { ShareButton } from '@/components/share-button'
 import { posts, getPost } from '@/lib/posts'
 import type { Metadata } from 'next'
 
@@ -83,9 +84,16 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
             <p className="text-base leading-relaxed mb-4" style={{ color: 'var(--text-muted)' }}>
               {post.description}
             </p>
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-              {formatDate(post.publishedAt)}
-            </p>
+            <div className="flex items-center justify-between">
+              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                {formatDate(post.publishedAt)}
+              </p>
+              <ShareButton
+                title={post.title}
+                text={post.description}
+                url={`https://fitmeet.fit/blog/${post.slug}`}
+              />
+            </div>
           </header>
 
           <div className="border-t mb-10" style={{ borderColor: 'var(--border)' }} />

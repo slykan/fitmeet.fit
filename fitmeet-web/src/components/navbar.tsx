@@ -106,6 +106,13 @@ export function Navbar() {
           >
             Blog
           </Link>
+          <Link
+            href="/about"
+            className="hidden sm:block text-sm font-medium transition-colors hover:opacity-80"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            About
+          </Link>
         </div>
 
         <div className="flex items-center gap-2">
