@@ -448,7 +448,7 @@ function PeopleTab() {
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="font-semibold text-sm truncate">{u.name}</p>
+                  <a href={`/users/view?id=${u.id}`} className="font-semibold text-sm truncate hover:underline underline-offset-2">{u.name}</a>
                   {(u.beer_score ?? 0) > 0 && (
                     <span
                       className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md border text-[10px] font-black"

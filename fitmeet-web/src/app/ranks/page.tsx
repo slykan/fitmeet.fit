@@ -3,6 +3,7 @@
 import { PayPalButtons, PayPalScriptProvider } from '@paypal/react-paypal-js'
 import { ChevronDown, ChevronUp, Share2, X } from 'lucide-react'
 import Image from 'next/image'
+import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { Navbar } from '@/components/navbar'
 import api from '@/lib/api'
@@ -128,7 +129,8 @@ function Avatar({ entry }: { entry: Entry }) {
 
 function EntryRow({ entry, rank }: { entry: Entry; rank: number; unit: string }) {
   return (
-    <div className="flex items-center gap-3 px-4 py-2.5">
+    <Link href={`/users/view?id=${entry.id}`}
+      className="flex items-center gap-3 px-4 py-2.5 transition-opacity hover:opacity-70">
       <span className="w-7 text-center text-lg shrink-0">{MEDALS[rank - 1] ?? rank}</span>
       <Avatar entry={entry} />
       <span className="flex-1 text-sm font-semibold truncate">{entry.name}</span>
@@ -136,7 +138,7 @@ function EntryRow({ entry, rank }: { entry: Entry; rank: number; unit: string })
         style={{ background: 'rgba(57,255,20,0.08)', color: 'var(--primary)', border: '1px solid rgba(57,255,20,0.2)' }}>
         {entry.count}
       </span>
-    </div>
+    </Link>
   )
 }
 
