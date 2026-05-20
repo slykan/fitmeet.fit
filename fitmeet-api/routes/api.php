@@ -73,6 +73,7 @@ Route::get('beer-donations', [BeerDonationController::class, 'index']);
 Route::get('leaderboard', [LeaderboardController::class, 'index']);
 Route::get('moments',    [MomentsController::class,   'index']);
 Route::get('users/public-latest', [UserController::class, 'publicLatest']);
+Route::get('comments/public-latest', [EventCommentController::class, 'publicLatest']);
 Route::get('users/public-stats',  [UserController::class, 'publicStats']);
 Route::get('events/public/{event}',   [EventController::class, 'publicShow']);
 Route::get('events/public-latest',    [EventController::class, 'publicLatest']);

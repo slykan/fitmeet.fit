@@ -14,6 +14,26 @@ use Illuminate\Support\Collection;
 
 class EventCommentController extends Controller
 {
+    public function publicLatest(): JsonResponse
+    {
+        $comments = EventComment::query()
+            ->with(['user:id,name,avatar', 'event:id,title,category'])
+            ->whereHas('event', fn ($q) => $q->where('is_private', false)->where('status', 'active'))
+            ->where('body', '!=', '')
+            ->latest()
+            ->limit(10)
+            ->get()
+            ->map(fn ($c) => [
+                'id'          => $c->id,
+                'body'        => $c->body,
+                'created_at'  => $c->created_at->toIso8601String(),
+                'user'        => ['name' => $c->user?->name, 'avatar' => $c->user?->avatar],
+                'event'       => ['id' => $c->event?->id, 'title' => $c->event?->title, 'category' => $c->event?->category?->value],
+            ]);
+
+        return response()->json($comments);
+    }
+
     public function index(Request $request, Event $event): JsonResponse
     {
         $user = $request->user();
