@@ -6,6 +6,8 @@ use App\Models\User;
 use App\Models\UserPushToken;
 use Illuminate\Support\Collection;
 use Kreait\Firebase\Contract\Messaging;
+use Kreait\Firebase\Messaging\AndroidConfig;
+use Kreait\Firebase\Messaging\ApnsConfig;
 use Kreait\Firebase\Messaging\CloudMessage;
 use Kreait\Firebase\Messaging\Notification;
 
@@ -63,18 +65,32 @@ class PushNotificationService
             ->map(fn ($value) => (string) $value)
             ->all();
 
-        $notification = Notification::create($title, $body);
+        $dataOnly = ($payload['_data_only'] ?? '') === 'true';
+        $categoryId = $payload['categoryId'] ?? null;
 
         foreach ($tokens->chunk(500) as $chunk) {
-            $message = CloudMessage::new()
-                ->withNotification($notification)
-                ->withData($payload);
+            if ($dataOnly) {
+                // Data-only message: Expo background task handles display + categories
+                $message = CloudMessage::new()
+                    ->withData($payload)
+                    ->withAndroidConfig(AndroidConfig::fromArray(['priority' => 'high']))
+                    ->withApnsConfig(ApnsConfig::fromArray([
+                        'headers' => ['apns-priority' => '10', 'apns-push-type' => 'background'],
+                        'payload' => ['aps' => [
+                            'content-available' => 1,
+                            'category'          => $categoryId ?? '',
+                        ]],
+                    ]));
+            } else {
+                $notification = Notification::create($title, $body);
+                $message = CloudMessage::new()
+                    ->withNotification($notification)
+                    ->withData($payload);
+            }
 
             try {
                 $this->messaging->sendMulticast($message, $chunk->all());
-            } catch (\Throwable) {
-                // Ignore single-batch failures for now; notification channels remain best-effort.
-            }
+            } catch (\Throwable) {}
         }
     }
 }

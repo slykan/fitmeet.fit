@@ -49,10 +49,13 @@ class SendStartedEventNotifications implements ShouldQueue
                 '📍 Starting soon — tap to check in',
                 $event->title,
                 [
-                    'type'       => 'event_started',
-                    'event_id'   => $event->id,
-                    'categoryId' => 'event_started',
-                    'channelId'  => 'default',
+                    'type'        => 'event_started',
+                    'event_id'    => $event->id,
+                    'categoryId'  => 'event_started',
+                    'channelId'   => 'event_started',
+                    '_data_only'  => 'true',
+                    '_title'      => '📍 Starting soon — tap to check in',
+                    '_body'       => $event->title,
                 ],
             );
         }

@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import * as Notifications from 'expo-notifications'
+import * as TaskManager from 'expo-task-manager'
 import { router } from 'expo-router'
 import { Platform } from 'react-native'
 
@@ -7,7 +8,33 @@ import { api } from '@/src/lib/api'
 
 export const PUSH_TOKEN_STORAGE_KEY = 'fitmeet-mobile-push-token-v1'
 
+const BACKGROUND_NOTIFICATION_TASK = 'fitmeet-background-notification'
 const EVENT_STARTED_CATEGORY_ID = 'event_started'
+
+// Must be defined at module top level (before any component mounts)
+TaskManager.defineTask(BACKGROUND_NOTIFICATION_TASK, async ({ data, error }: TaskManager.TaskManagerTaskBody) => {
+  if (error) return
+  const notifData = (data as { notification?: { request?: { content?: { data?: Record<string, string> } } } })
+    ?.notification?.request?.content?.data
+  if (!notifData) return
+
+  const title     = notifData._title     ?? 'FitMeet'
+  const body      = notifData._body      ?? ''
+  const categoryId = notifData.categoryId ?? undefined
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { _title, _body, _data_only, ...cleanData } = notifData
+
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title,
+      body,
+      data: cleanData,
+      ...(categoryId ? { categoryIdentifier: categoryId } : {}),
+    },
+    trigger: null,
+  }).catch(() => {})
+})
 const CHECK_IN_ACTION_ID = 'check_in'
 const OPEN_EVENT_ACTION_ID = 'open_event'
 
@@ -94,6 +121,7 @@ export async function syncPushToken(pushEnabled: boolean) {
   }
 
   await registerNotificationCategories()
+  await Notifications.registerTaskAsync(BACKGROUND_NOTIFICATION_TASK).catch(() => {})
 
   const existingPermissions = await Notifications.getPermissionsAsync()
   let finalStatus = existingPermissions.status
@@ -137,6 +165,7 @@ export async function unregisterPushToken() {
 
 export function setupPushNotificationRouting() {
   registerNotificationCategories()
+  Notifications.registerTaskAsync(BACKGROUND_NOTIFICATION_TASK).catch(() => {})
 
   Notifications.getLastNotificationResponseAsync()
     .then((response) => handleNotificationResponse(response))
