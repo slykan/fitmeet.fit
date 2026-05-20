@@ -66,6 +66,7 @@ export default function MomentsScreen() {
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>Moments</Text>
           <Text style={styles.headerSub}>Real events, real people</Text>
+          <Text style={styles.headerNote}>Organizers can add one photo after each event ends.</Text>
         </View>
         <Pressable onPress={handleShare} hitSlop={12}>
           <Ionicons name="share-social-outline" size={22} color={palette.accent} />
@@ -148,6 +149,7 @@ const styles = StyleSheet.create({
   headerCenter: { alignItems: 'center', gap: 1 },
   headerTitle: { color: palette.text, fontSize: 17, fontWeight: '800' },
   headerSub:   { color: palette.textDim, fontSize: 11 },
+  headerNote:  { color: palette.textDim, fontSize: 10, opacity: 0.6, textAlign: 'center', marginTop: 1 },
 
   grid: { padding: spacing.md, paddingTop: 12 },
   cell: {
