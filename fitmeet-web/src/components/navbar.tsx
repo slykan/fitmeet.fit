@@ -87,17 +87,26 @@ export function Navbar() {
     <nav className="sticky top-0 z-[1001] border-b border-[--border] bg-[--surface]/80 backdrop-blur-md">
       <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
 
-        <Link href={user ? '/hub' : '/'} className="flex items-center">
-          {mounted && (
-            <Image
-              src={isDark ? '/logo_c.png' : '/logo_b.png'}
-              alt="FitMeet"
-              width={36}
-              height={36}
-              className="object-contain"
-            />
-          )}
-        </Link>
+        <div className="flex items-center gap-5">
+          <Link href={user ? '/hub' : '/'} className="flex items-center">
+            {mounted && (
+              <Image
+                src={isDark ? '/logo_c.png' : '/logo_b.png'}
+                alt="FitMeet"
+                width={36}
+                height={36}
+                className="object-contain"
+              />
+            )}
+          </Link>
+          <Link
+            href="/blog"
+            className="hidden sm:block text-sm font-medium transition-colors hover:opacity-80"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            Blog
+          </Link>
+        </div>
 
         <div className="flex items-center gap-2">
           <button
