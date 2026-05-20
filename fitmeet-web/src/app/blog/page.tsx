@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowRight, BookOpen, Users } from 'lucide-react'
+import { ArrowRight, BookOpen, Camera, CalendarCheck, CheckCircle2, Sparkles, Users } from 'lucide-react'
 import { Navbar } from '@/components/navbar'
 import { posts } from '@/lib/posts'
 
@@ -90,6 +90,61 @@ export default function BlogPage() {
                   </div>
                 </Link>
               ))}
+
+              {/* 6th card — What's New */}
+              <Link
+                href="/login"
+                className="group rounded-2xl flex flex-col overflow-hidden transition-opacity hover:opacity-90"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(57,255,20,0.18) 0%, rgba(57,255,20,0.08) 100%)',
+                  border: '1px solid rgba(57,255,20,0.35)',
+                }}
+              >
+                <div className="p-6 flex flex-col gap-4 flex-1">
+                  <div className="flex items-center justify-between">
+                    <span
+                      className="text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5"
+                      style={{ background: 'rgba(57,255,20,0.2)', color: '#39ff14' }}
+                    >
+                      <Sparkles size={11} /> What&apos;s New
+                    </span>
+                    <span className="text-xs font-semibold" style={{ color: 'var(--primary)' }}>v1.1</span>
+                  </div>
+
+                  <div className="flex-1">
+                    <h2 className="font-bold text-lg leading-snug mb-3">
+                      Latest features in FitMeet
+                    </h2>
+                    <div className="space-y-2.5">
+                      {[
+                        { icon: Camera,        label: 'Moments',         desc: 'One photo per event, forever saved' },
+                        { icon: CalendarCheck, label: 'Event calendar',  desc: 'Your upcoming events at a glance' },
+                        { icon: CheckCircle2,  label: 'Check-in',        desc: 'Mark your arrival and see who\'s there' },
+                      ].map(({ icon: Icon, label, desc }) => (
+                        <div key={label} className="flex items-start gap-3">
+                          <div
+                            className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
+                            style={{ background: 'rgba(57,255,20,0.15)' }}
+                          >
+                            <Icon size={13} style={{ color: '#39ff14' }} />
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold leading-none mb-0.5">{label}</p>
+                            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.55)' }}>{desc}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between mt-auto pt-3 border-t" style={{ borderColor: 'rgba(57,255,20,0.2)' }}>
+                    <span className="text-xs font-semibold" style={{ color: 'var(--primary)' }}>
+                      Try it now
+                    </span>
+                    <ArrowRight size={14} style={{ color: 'var(--primary)' }} />
+                  </div>
+                </div>
+              </Link>
             </div>
 
             <Link
