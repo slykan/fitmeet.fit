@@ -30,6 +30,17 @@ const categories = [
   'Climbing',
 ]
 
+function GooglePlayIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M3.18 23.76c.3.17.65.19.97.07l11.65-11.65L12 8.38 3.18 23.76z" opacity=".6"/>
+      <path d="M20.47 10.6L17.3 8.77l-3.57 3.57 3.57 3.57 3.2-1.85a1.75 1.75 0 0 0 0-3.05v-.01z"/>
+      <path d="M3.18.24A1.75 1.75 0 0 0 2.25 1.8v20.4c0 .62.33 1.17.83 1.47L15.42 12 3.18.24z" opacity=".8"/>
+      <path d="M3.18.24L15.42 12l3.38-3.38L4.15.17A1.75 1.75 0 0 0 3.18.24z" opacity=".4"/>
+    </svg>
+  )
+}
+
 function InstagramIcon({ size = 18 }: { size?: number }) {
   return (
     <svg
@@ -256,6 +267,17 @@ export default async function HomePage() {
                   >
                     Create account
                   </Link>
+                  <a
+                    href="https://play.google.com/store/apps/details?id=app.fitmeet.fit"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Get FitMeet on Google Play"
+                    className="inline-flex items-center gap-2 border font-semibold px-4 py-3.5 rounded-xl transition-colors hover:opacity-80"
+                    style={{ borderColor: 'var(--border)', color: 'var(--text-primary)', background: 'var(--surface)' }}
+                  >
+                    <GooglePlayIcon />
+                    <span className="hidden sm:inline text-sm">Google Play</span>
+                  </a>
                   <a
                     href="https://www.instagram.com/fitmeet.fit?igsh=MWxoM2FhZmR0dnprYg=="
                     target="_blank"
