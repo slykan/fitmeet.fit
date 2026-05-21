@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Image from 'next/image'
 
 export type PublicUser = {
@@ -46,7 +47,17 @@ function UserChip({ user }: { user: PublicUser }) {
   )
 }
 
-export function LatestUsersTicker({ users }: { users: PublicUser[] }) {
+export function LatestUsersTicker() {
+  const [users, setUsers] = useState<PublicUser[]>([])
+
+  useEffect(() => {
+    const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.fitmeet.fit/api'
+    fetch(`${apiBase}/users/public-latest`, { headers: { Accept: 'application/json' } })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => data?.data && setUsers(data.data as PublicUser[]))
+      .catch(() => null)
+  }, [])
+
   if (users.length === 0) return null
 
   const doubled = [...users, ...users]

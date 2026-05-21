@@ -15,8 +15,8 @@ import Image from 'next/image'
 import { Navbar } from '@/components/navbar'
 import { HeroMap } from '@/components/hero-map'
 import { LatestEventsCarousel } from '@/components/latest-events-carousel'
-import { LatestUsersTicker, type PublicUser } from '@/components/latest-users-ticker'
-import { PublicStatsSection, type PublicStats } from '@/components/public-stats'
+import { LatestUsersTicker } from '@/components/latest-users-ticker'
+import { PublicStatsSection } from '@/components/public-stats'
 import { PublicCommentsSection } from '@/components/public-comments'
 
 const categories = [
@@ -142,40 +142,7 @@ type HomeEvent = {
 }
 
 
-async function getPublicStats(): Promise<PublicStats | null> {
-  const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.fitmeet.fit/api'
 
-  try {
-    const response = await fetch(`${apiBase}/users/public-stats`, {
-      headers: { Accept: 'application/json' },
-      next: { revalidate: 300 },
-    })
-
-    if (!response.ok) return null
-
-    return (await response.json()) as PublicStats
-  } catch {
-    return null
-  }
-}
-
-async function getLatestUsers(): Promise<PublicUser[]> {
-  const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.fitmeet.fit/api'
-
-  try {
-    const response = await fetch(`${apiBase}/users/public-latest`, {
-      headers: { Accept: 'application/json' },
-      next: { revalidate: 300 },
-    })
-
-    if (!response.ok) return []
-
-    const payload = (await response.json()) as { data?: PublicUser[] }
-    return payload.data ?? []
-  } catch {
-    return []
-  }
-}
 
 async function getLatestEvents(): Promise<HomeEvent[]> {
   const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.fitmeet.fit/api'
@@ -196,10 +163,8 @@ async function getLatestEvents(): Promise<HomeEvent[]> {
 }
 
 export default async function HomePage() {
-  const [latestEvents, latestUsers, publicStats] = await Promise.all([
+  const [latestEvents] = await Promise.all([
     getLatestEvents(),
-    getLatestUsers(),
-    getPublicStats(),
   ])
 
   return (
@@ -368,7 +333,7 @@ export default async function HomePage() {
                   </div>
                   <HeroMap />
                 </div>
-                <LatestUsersTicker users={latestUsers} />
+                <LatestUsersTicker />
               </div>
             </div>
           </div>
@@ -411,7 +376,7 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {publicStats && <PublicStatsSection stats={publicStats} />}
+        <PublicStatsSection />
 
         <PublicCommentsSection />
 

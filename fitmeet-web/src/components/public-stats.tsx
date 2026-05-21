@@ -83,9 +83,18 @@ function StatBox({ icon: Icon, label, value, isName, nameValue, active }: StatBo
   )
 }
 
-export function PublicStatsSection({ stats }: { stats: PublicStats }) {
+export function PublicStatsSection() {
   const ref = useRef<HTMLElement | null>(null)
   const [active, setActive] = useState(false)
+  const [stats, setStats] = useState<PublicStats | null>(null)
+
+  useEffect(() => {
+    const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.fitmeet.fit/api'
+    fetch(`${apiBase}/users/public-stats`, { headers: { Accept: 'application/json' } })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => data && setStats(data as PublicStats))
+      .catch(() => null)
+  }, [])
 
   useEffect(() => {
     const el = ref.current
@@ -122,27 +131,27 @@ export function PublicStatsSection({ stats }: { stats: PublicStats }) {
           <StatBox
             icon={Users}
             label="Members joined"
-            value={stats.users_count}
+            value={stats?.users_count ?? 0}
             active={active}
           />
           <StatBox
             icon={Trophy}
             label="Latest member"
             isName
-            nameValue={stats.last_user_name}
+            nameValue={stats?.last_user_name ?? null}
             value={null}
             active={active}
           />
           <StatBox
             icon={Zap}
             label="Events created"
-            value={stats.events_count}
+            value={stats?.events_count ?? 0}
             active={active}
           />
           <StatBox
             icon={MessageCircle}
             label="Comments posted"
-            value={stats.comments_count}
+            value={stats?.comments_count ?? 0}
             active={active}
           />
         </div>
