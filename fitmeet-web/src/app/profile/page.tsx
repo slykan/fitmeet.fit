@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { useAuthStore } from '@/store/auth'
 import { Navbar } from '@/components/navbar'
 import { Button } from '@/components/ui/button'
-import { Bell, Calendar, Camera, Mail, MapPin, Phone, Globe, Navigation, Pencil, Trash2, UserPlus } from 'lucide-react'
+import { AlertTriangle, Bell, Calendar, Camera, Mail, MapPin, Phone, Globe, Navigation, Pencil, Trash2, UserPlus } from 'lucide-react'
 import api from '@/lib/api'
 
 interface AlibiStats {
@@ -381,7 +381,122 @@ export default function ProfilePage() {
           </div>
         )}
 
+        <DangerZone />
+
       </main>
+    </>
+  )
+}
+
+function DangerZone() {
+  const { logout } = useAuthStore()
+  const router = useRouter()
+  const [open, setOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleDelete() {
+    setLoading(true)
+    setError(null)
+    try {
+      await api.delete('/me')
+      logout()
+      router.replace('/')
+    } catch {
+      setError('Something went wrong. Please try again or contact support.')
+      setLoading(false)
+    }
+  }
+
+  return (
+    <>
+      <div
+        className="rounded-2xl border p-4 sm:p-6 mt-2"
+        style={{ borderColor: 'rgba(239,68,68,0.35)', background: 'rgba(239,68,68,0.04)' }}
+      >
+        <h2 className="font-bold text-sm uppercase tracking-wide mb-1 flex items-center gap-2" style={{ color: '#ef4444' }}>
+          <AlertTriangle size={14} /> Danger zone
+        </h2>
+        <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
+          Irreversible actions that permanently affect your account.
+        </p>
+
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold">Delete account</p>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+              Permanently deletes your account, profile, events you organised, and all associated data.
+              This action cannot be undone.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="shrink-0 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80"
+            style={{ background: '#ef4444', color: '#fff' }}
+          >
+            <Trash2 size={14} /> Delete account
+          </button>
+        </div>
+      </div>
+
+      {open && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.7)' }}
+          onClick={() => !loading && setOpen(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl border p-6"
+            style={{ background: 'var(--surface)', borderColor: 'rgba(239,68,68,0.4)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'rgba(239,68,68,0.12)' }}>
+                <AlertTriangle size={18} style={{ color: '#ef4444' }} />
+              </div>
+              <div>
+                <h3 className="font-bold text-base">Delete your account?</h3>
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>This cannot be undone.</p>
+              </div>
+            </div>
+
+            <p className="text-sm mb-2" style={{ color: 'var(--text-muted)' }}>
+              The following will be permanently deleted:
+            </p>
+            <ul className="text-sm space-y-1 mb-5 pl-1" style={{ color: 'var(--text-muted)' }}>
+              {['Your profile, name, and avatar', 'Events you organised', 'Your comments and check-ins', 'Friend connections and messages'].map(item => (
+                <li key={item} className="flex items-start gap-2">
+                  <span style={{ color: '#ef4444' }}>×</span> {item}
+                </li>
+              ))}
+            </ul>
+
+            {error && <p className="text-xs text-red-400 mb-4">{error}</p>}
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                disabled={loading}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold border transition-opacity hover:opacity-80 disabled:opacity-50"
+                style={{ borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={loading}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-60"
+                style={{ background: '#ef4444', color: '#fff' }}
+              >
+                {loading ? 'Deleting…' : 'Yes, delete account'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }
