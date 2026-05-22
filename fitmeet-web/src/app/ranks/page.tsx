@@ -1,25 +1,19 @@
 'use client'
 
-import { PayPalButtons, PayPalScriptProvider } from '@paypal/react-paypal-js'
 import { ChevronDown, ChevronUp, Share2, X } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Navbar } from '@/components/navbar'
+import { PaymentTiers } from '@/components/payment-tiers'
 import api from '@/lib/api'
 
-const PAYPAL_CLIENT_ID = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID ?? ''
-
-const TIERS: Record<string, { label: string; note: string; amount: string; emoji: string }> = {
-  beer_small:  { label: 'Small beer',     note: 'A small thank-you',        amount: '3.00',  emoji: '🍺' },
-  beer_medium: { label: 'Round for team', note: 'Helps a lot',              amount: '6.00',  emoji: '🍺🍺🍺' },
-  beer_large:  { label: 'Full crate',     note: 'Fuel for future features', amount: '12.00', emoji: '📦📦📦' },
-}
-
 function BeerModal({ onClose, onPurchased }: { onClose: () => void; onPurchased: () => void }) {
-  const payingRef = useRef(false)
   const [done, setDone] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+
+  function handleSuccess() {
+    setDone(true)
+  }
 
   if (done) {
     return (
@@ -41,59 +35,24 @@ function BeerModal({ onClose, onPurchased }: { onClose: () => void; onPurchased:
   }
 
   return (
-    <PayPalScriptProvider options={{ clientId: PAYPAL_CLIENT_ID, currency: 'EUR', intent: 'capture' }}>
-      <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center">
-        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => { if (!payingRef.current) onClose() }} />
-        <div className="relative w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl border overflow-hidden flex flex-col max-h-[85vh]"
-          style={{ background: '#0c0a14', borderColor: 'rgba(246,198,91,0.25)' }}>
-          <div className="w-10 h-1 rounded-full mx-auto mt-3 sm:hidden" style={{ background: 'rgba(255,255,255,0.15)' }} />
-          <div className="flex items-center justify-between px-5 py-4 border-b shrink-0" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
-            <div className="flex items-center gap-2">
-              <span className="text-lg">🍺</span>
-              <h2 className="font-black text-lg">Buy me a Beer</h2>
-            </div>
-            <button onClick={onClose} className="opacity-50 hover:opacity-100 transition-opacity"><X size={20} /></button>
+    <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl border overflow-hidden flex flex-col max-h-[85vh]"
+        style={{ background: '#0c0a14', borderColor: 'rgba(246,198,91,0.25)' }}>
+        <div className="w-10 h-1 rounded-full mx-auto mt-3 sm:hidden" style={{ background: 'rgba(255,255,255,0.15)' }} />
+        <div className="flex items-center justify-between px-5 py-4 border-b shrink-0" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
+          <div className="flex items-center gap-2">
+            <span className="text-lg">🍺</span>
+            <h2 className="font-black text-lg">Buy me a Beer</h2>
           </div>
-          <div className="overflow-y-auto p-5 flex flex-col gap-3">
-            <p className="text-sm opacity-60 mb-1">Support FitMeet and get on the Beer Sponsor leaderboard!</p>
-            {error && (
-              <p className="text-xs px-3 py-2 rounded-lg" style={{ background: 'rgba(248,113,113,0.1)', color: '#f87171' }}>{error}</p>
-            )}
-            {Object.entries(TIERS).map(([productId, tier]) => (
-              <div key={productId} className="rounded-xl border overflow-hidden" style={{ borderColor: 'rgba(246,198,91,0.18)' }}>
-                <div className="px-4 py-3 flex items-center justify-between" style={{ background: 'rgba(246,198,91,0.05)' }}>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm">{tier.emoji}</span>
-                    <div>
-                      <p className="font-bold text-sm">{tier.label}</p>
-                      <p className="text-xs opacity-60">{tier.note}</p>
-                    </div>
-                  </div>
-                  <span className="font-black text-sm" style={{ color: '#f6c65b' }}>€{tier.amount}</span>
-                </div>
-                <div className="px-3 py-2" style={{ background: 'rgba(0,0,0,0.2)' }}>
-                  <PayPalButtons
-                    style={{ layout: 'horizontal', height: 35, tagline: false, label: 'pay' }}
-                    createOrder={() => {
-                      payingRef.current = true
-                      setError(null)
-                      return api.post('/paypal/create-order', { product_id: productId }).then(r => r.data.order_id)
-                    }}
-                    onApprove={(data) =>
-                      api.post('/paypal/capture-order', { order_id: data.orderID, product_id: productId })
-                        .then(() => { payingRef.current = false; setDone(true) })
-                        .catch(() => { payingRef.current = false; setError('Payment failed. Please try again or contact support.') })
-                    }
-                    onCancel={() => { payingRef.current = false }}
-                    onError={() => { payingRef.current = false; setError('PayPal error. Please try again.') }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
+          <button onClick={onClose} className="opacity-50 hover:opacity-100 transition-opacity"><X size={20} /></button>
+        </div>
+        <div className="overflow-y-auto p-5 flex flex-col gap-3">
+          <p className="text-sm opacity-60 mb-1">Support FitMeet and get on the Beer Sponsor leaderboard!</p>
+          <PaymentTiers onSuccess={handleSuccess} />
         </div>
       </div>
-    </PayPalScriptProvider>
+    </div>
   )
 }
 

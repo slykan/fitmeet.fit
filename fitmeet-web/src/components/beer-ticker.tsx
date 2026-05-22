@@ -1,10 +1,10 @@
 'use client'
 
-import { PayPalButtons, PayPalScriptProvider } from '@paypal/react-paypal-js'
 import { X } from 'lucide-react'
-import React, { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import api from '@/lib/api'
 import { useAuthStore } from '@/store/auth'
+import { PaymentTiers } from '@/components/payment-tiers'
 
 type Donor = { name: string; beer_score: number; beer_top_tier: string; last_donation_at: string }
 
@@ -19,65 +19,17 @@ function top5(all: Donor[]): Donor[] {
   return [...recent, ...older]
 }
 
-const PAYPAL_CLIENT_ID = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID ?? ''
-
-const TIERS: Record<string, { label: string; note: string; amount: string; icons: number; crate?: boolean }> = {
-  beer_small:  { label: 'Small beer',      note: 'A small thank-you',        amount: '3.00', icons: 1 },
-  beer_medium: { label: 'Round for team',  note: 'Helps a lot',              amount: '6.00', icons: 3 },
-  beer_large:  { label: 'Full crate',      note: 'Fuel for future features', amount: '12.00', icons: 1, crate: true },
+const BEER_TIER_EMOJI: Record<string, string> = {
+  beer_small: '🍺',
+  beer_medium: '🍺🍺🍺',
+  beer_large: '📦📦📦',
 }
 
 function MedalIcons({ productId, ticker = false }: { productId: string; ticker?: boolean }) {
-  const tier = TIERS[productId]
-  if (!tier) return null
   if (ticker) {
     return <span style={{ fontSize: 13, lineHeight: '13px', display: 'block', width: 14, textAlign: 'center' }}>🍺</span>
   }
-  if (tier.crate) return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>🍺🍺🍺</span>
-  return <span>{'🍺'.repeat(tier.icons)}</span>
-}
-
-function PayPalTierButton({ productId, onSuccess, payingRef }: {
-  productId: string
-  onSuccess: () => void
-  payingRef: React.MutableRefObject<boolean>
-}) {
-  const tier = TIERS[productId]
-  if (!tier) return null
-
-  return (
-    <div className="rounded-xl border overflow-hidden" style={{ borderColor: 'rgba(246,198,91,0.18)' }}>
-      <div
-        className="px-4 py-3 flex items-center justify-between"
-        style={{ background: 'rgba(246,198,91,0.05)' }}
-      >
-        <div className="flex items-center gap-2">
-          <MedalIcons productId={productId} />
-          <div>
-            <p className="font-bold text-sm">{tier.label}</p>
-            <p className="text-xs opacity-60">{tier.note}</p>
-          </div>
-        </div>
-        <span className="font-black text-sm" style={{ color: '#f6c65b' }}>€{tier.amount}</span>
-      </div>
-      <div className="px-3 py-2" style={{ background: 'rgba(0,0,0,0.2)' }}>
-        <PayPalButtons
-          style={{ layout: 'horizontal', height: 35, tagline: false, label: 'pay' }}
-          createOrder={() => {
-            payingRef.current = true
-            return api.post('/paypal/create-order', { product_id: productId })
-              .then(r => r.data.order_id)
-          }}
-          onApprove={(data) =>
-            api.post('/paypal/capture-order', { order_id: data.orderID, product_id: productId })
-              .then(() => { payingRef.current = false; onSuccess() })
-          }
-          onCancel={() => { payingRef.current = false }}
-          onError={() => { payingRef.current = false }}
-        />
-      </div>
-    </div>
-  )
+  return <span>{BEER_TIER_EMOJI[productId] ?? '🍺'}</span>
 }
 
 function SupportersModal({ onClose, donors, onPurchased }: {
@@ -86,7 +38,6 @@ function SupportersModal({ onClose, donors, onPurchased }: {
   onPurchased: () => void
 }) {
   const { token } = useAuthStore()
-  const payingRef = useRef(false)
 
   const recent = donors.filter(isRecent).slice(0, 5)
   const older  = donors.filter(d => !isRecent(d)).slice(0, 5)
@@ -95,7 +46,7 @@ function SupportersModal({ onClose, donors, onPurchased }: {
     <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center">
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={() => { if (!payingRef.current) onClose() }}
+        onClick={onClose}
       />
       <div
         className="relative w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl border overflow-hidden flex flex-col max-h-[85vh]"
@@ -159,31 +110,10 @@ function SupportersModal({ onClose, donors, onPurchased }: {
             </>
           )}
 
-          {!token ? (
-            <div
-              className="rounded-xl p-4 text-center border mt-1"
-              style={{ background: 'rgba(246,198,91,0.04)', borderColor: 'rgba(246,198,91,0.15)' }}
-            >
-              <p className="font-bold text-sm mb-1">Want to join the wall of fame?</p>
-              <p className="text-xs opacity-60">Log in to buy a beer and get your name on every screen.</p>
-            </div>
-          ) : (
-            <>
-              <p className="text-xs font-bold uppercase tracking-widest mt-1" style={{ color: 'rgba(246,198,91,0.6)' }}>
-                Join the wall of fame
-              </p>
-              <div className="flex flex-col gap-2">
-                {Object.keys(TIERS).map(id => (
-                  <PayPalTierButton
-                    key={id}
-                    productId={id}
-                    payingRef={payingRef}
-                    onSuccess={onPurchased}
-                  />
-                ))}
-              </div>
-            </>
-          )}
+          <p className="text-xs font-bold uppercase tracking-widest mt-1" style={{ color: 'rgba(246,198,91,0.6)' }}>
+            Join the wall of fame
+          </p>
+          <PaymentTiers onSuccess={onPurchased} loggedIn={!!token} />
         </div>
       </div>
     </div>
@@ -276,10 +206,5 @@ function BeerTickerInner() {
 }
 
 export function BeerTicker() {
-  if (!PAYPAL_CLIENT_ID) return <BeerTickerInner />
-  return (
-    <PayPalScriptProvider options={{ clientId: PAYPAL_CLIENT_ID, currency: 'EUR', intent: 'capture' }}>
-      <BeerTickerInner />
-    </PayPalScriptProvider>
-  )
+  return <BeerTickerInner />
 }
