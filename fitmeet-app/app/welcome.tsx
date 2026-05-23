@@ -26,7 +26,7 @@ export default function WelcomeScreen() {
     const timer = setTimeout(() => {
       Animated.parallel([
         Animated.timing(heroShift, {
-          toValue: 14,
+          toValue: -18,
           duration: 760,
           easing: Easing.out(Easing.cubic),
           useNativeDriver: true,
@@ -110,13 +110,13 @@ const styles = StyleSheet.create({
   heroWrap: {
     alignItems: 'center',
     paddingHorizontal: 48,
-    paddingTop: 46,
+    paddingTop: 34,
   },
   logo: {
-    width: '52%',
-    maxWidth: 200,
+    width: '44%',
+    maxWidth: 168,
     aspectRatio: 439 / 448,
-    marginTop: 4,
+    marginTop: -2,
   },
   safe: {
     ...StyleSheet.absoluteFillObject,
