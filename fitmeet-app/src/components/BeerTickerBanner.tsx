@@ -183,6 +183,7 @@ export function BeerTickerBanner() {
   const sequenceWidth = useRef(0)
   const itemWidths = useRef<number[]>([])
   const started = useRef(false)
+  const tickerDonors = top5(donors)
 
   function resetTickerMeasurements() {
     animRef.current?.stop()
@@ -238,8 +239,8 @@ export function BeerTickerBanner() {
     if (!width) return
 
     itemWidths.current[index] = width
-    const measured = itemWidths.current.slice(0, donors.length)
-    if (measured.length !== donors.length || measured.some(itemWidth => !itemWidth)) return
+    const measured = itemWidths.current.slice(0, tickerDonors.length)
+    if (measured.length !== tickerDonors.length || measured.some(itemWidth => !itemWidth)) return
 
     setMeasuredSequenceWidth(measured.reduce((sum, itemWidth) => sum + itemWidth, 0))
   }
@@ -248,9 +249,7 @@ export function BeerTickerBanner() {
     return () => { animRef.current?.stop() }
   }, [])
 
-  const tickerDonors = top5(donors)
-
-  if (!donors.length) return null
+  if (!tickerDonors.length) return null
 
   return (
     <>
