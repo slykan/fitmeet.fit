@@ -573,8 +573,8 @@ function PeopleTab() {
         <Ionicons name="share-outline" size={15} color={palette.accent} />
       </Pressable>
 
-      <View style={styles.peopleSearchRow}>
-        <View style={[styles.searchBar, { flex: 1 }]}>
+      <View style={styles.peopleControls}>
+        <View style={styles.searchBar}>
           <Ionicons name="search-outline" size={16} color={palette.textDim} />
           <TextInput
             style={styles.searchInput}
@@ -585,25 +585,28 @@ function PeopleTab() {
             autoCapitalize="none"
           />
         </View>
-        <Pressable
-          style={[styles.filterBtn, friendsOnly && styles.sortBtnActive]}
-          onPress={() => setFriendsOnly(v => !v)}
-        >
-          <Ionicons name="people-outline" size={15} color={friendsOnly ? '#031109' : palette.accent} />
-          <Text style={[styles.filterBtnLabel, friendsOnly && styles.filterBtnLabelActive]}>Friends</Text>
-        </Pressable>
-        <Pressable
-          style={[styles.filterBtn, styles.sortBtn, showSort && styles.sortBtnActive]}
-          onPress={() => setShowSort(v => !v)}
-        >
-          <Ionicons name="swap-vertical-outline" size={15} color={showSort ? '#031109' : palette.text} />
-          <Text style={[styles.filterBtnLabel, showSort && styles.filterBtnLabelActive]}>{activeSortLabel}</Text>
-          <Ionicons
-            name={direction === 'desc' ? 'arrow-down-outline' : 'arrow-up-outline'}
-            size={13}
-            color={showSort ? '#031109' : palette.accent}
-          />
-        </Pressable>
+
+        <View style={styles.peopleFilterRow}>
+          <Pressable
+            style={[styles.filterBtn, friendsOnly && styles.sortBtnActive]}
+            onPress={() => setFriendsOnly(v => !v)}
+          >
+            <Ionicons name="people-outline" size={15} color={friendsOnly ? '#031109' : palette.accent} />
+            <Text style={[styles.filterBtnLabel, friendsOnly && styles.filterBtnLabelActive]}>Friends</Text>
+          </Pressable>
+          <Pressable
+            style={[styles.filterBtn, styles.sortBtn, showSort && styles.sortBtnActive]}
+            onPress={() => setShowSort(v => !v)}
+          >
+            <Ionicons name="swap-vertical-outline" size={15} color={showSort ? '#031109' : palette.text} />
+            <Text style={[styles.filterBtnLabel, showSort && styles.filterBtnLabelActive]}>{activeSortLabel}</Text>
+            <Ionicons
+              name={direction === 'desc' ? 'arrow-down-outline' : 'arrow-up-outline'}
+              size={13}
+              color={showSort ? '#031109' : palette.accent}
+            />
+          </Pressable>
+        </View>
       </View>
 
       {showSort && (
@@ -946,7 +949,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(108,255,47,0.06)',
   },
   inviteBtnText: { color: palette.accent, fontSize: 14, fontWeight: '700', flex: 1, textAlign: 'center' },
-  peopleSearchRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  peopleControls: { gap: 8 },
+  peopleFilterRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   userLocation:   { color: palette.textMuted, fontSize: 12 },
   userEvents:     { color: palette.textMuted, fontSize: 12 },
   userCategories: { fontSize: 14, marginTop: 2 },

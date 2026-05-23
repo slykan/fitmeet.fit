@@ -387,9 +387,9 @@ function PeopleTab() {
         <Share2 size={14} />
       </button>
 
-      {/* Search + Sort */}
-      <div className="flex gap-2">
-        <div className="relative flex-1">
+      {/* Search + filters */}
+      <div className="space-y-2">
+        <div className="relative">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
           <input
             value={search}
@@ -399,43 +399,46 @@ function PeopleTab() {
             style={{ background: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
           />
         </div>
-        <button
-          onClick={() => setFriendsOnly(v => !v)}
-          className="px-3 rounded-xl border flex items-center gap-1.5 text-sm font-bold whitespace-nowrap transition-colors"
-          style={{
-            background: friendsOnly ? 'var(--primary)' : 'var(--surface)',
-            borderColor: friendsOnly ? 'var(--primary)' : 'var(--border)',
-            color: friendsOnly ? '#000' : 'var(--text-primary)',
-          }}
-        >
-          <Users size={13} /> Friends
-        </button>
-        <div className="relative">
+
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => setShowSort(v => !v)}
-            className="h-full px-3 rounded-xl border flex items-center gap-1.5 text-sm font-bold whitespace-nowrap"
-            style={{ background: showSort ? 'var(--primary)' : 'var(--surface)', borderColor: showSort ? 'var(--primary)' : 'var(--border)', color: showSort ? '#000' : 'var(--text-primary)' }}
+            onClick={() => setFriendsOnly(v => !v)}
+            className="px-3 py-2.5 rounded-xl border flex items-center gap-1.5 text-sm font-bold whitespace-nowrap transition-colors"
+            style={{
+              background: friendsOnly ? 'var(--primary)' : 'var(--surface)',
+              borderColor: friendsOnly ? 'var(--primary)' : 'var(--border)',
+              color: friendsOnly ? '#000' : 'var(--text-primary)',
+            }}
           >
-            <ArrowUpDown size={13} />
-            {activeSortLabel}
-            {direction === 'desc' ? <ChevronDown size={12} /> : <ChevronUp size={12} />}
+            <Users size={13} /> Friends
           </button>
-          {showSort && (
-            <div className="absolute right-0 top-full mt-1 w-32 rounded-xl border z-10 overflow-hidden shadow-lg"
-              style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
-              {PEOPLE_SORT_OPTIONS.map(opt => (
-                <button
-                  key={opt.key}
-                  onClick={() => handleSortSelect(opt.key)}
-                  className="w-full px-4 py-2.5 text-left text-sm font-semibold flex items-center justify-between hover:opacity-70 transition-opacity"
-                  style={{ color: sort === opt.key ? 'var(--primary)' : 'var(--text-primary)' }}
-                >
-                  {opt.label}
-                  {sort === opt.key && (direction === 'desc' ? <ChevronDown size={12} /> : <ChevronUp size={12} />)}
-                </button>
-              ))}
-            </div>
-          )}
+          <div className="relative ml-auto">
+            <button
+              onClick={() => setShowSort(v => !v)}
+              className="px-3 py-2.5 rounded-xl border flex items-center gap-1.5 text-sm font-bold whitespace-nowrap"
+              style={{ background: showSort ? 'var(--primary)' : 'var(--surface)', borderColor: showSort ? 'var(--primary)' : 'var(--border)', color: showSort ? '#000' : 'var(--text-primary)' }}
+            >
+              <ArrowUpDown size={13} />
+              {activeSortLabel}
+              {direction === 'desc' ? <ChevronDown size={12} /> : <ChevronUp size={12} />}
+            </button>
+            {showSort && (
+              <div className="absolute right-0 top-full mt-1 w-32 rounded-xl border z-10 overflow-hidden shadow-lg"
+                style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
+                {PEOPLE_SORT_OPTIONS.map(opt => (
+                  <button
+                    key={opt.key}
+                    onClick={() => handleSortSelect(opt.key)}
+                    className="w-full px-4 py-2.5 text-left text-sm font-semibold flex items-center justify-between hover:opacity-70 transition-opacity"
+                    style={{ color: sort === opt.key ? 'var(--primary)' : 'var(--text-primary)' }}
+                  >
+                    {opt.label}
+                    {sort === opt.key && (direction === 'desc' ? <ChevronDown size={12} /> : <ChevronUp size={12} />)}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
