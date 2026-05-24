@@ -56,6 +56,7 @@ interface EventDetail {
   }
   participants_count: number
   max_participants: number | null
+  views_count: number
   status: string
   is_full: boolean
   is_joined: boolean
@@ -817,6 +818,9 @@ export default function EventDetailScreen() {
                 event.activity.max_downgrade != null && `▼ ${Math.abs(event.activity.max_downgrade)}%`,
               ].filter(Boolean).join('  ')}
             />
+          ) : null}
+          {event.views_count > 0 ? (
+            <DetailRow icon="eye-outline" primary={`${event.views_count} seen`} />
           ) : null}
           {event.activity.gpx_url ? (
             <DetailRow icon="map-outline" primary="GPX route attached" />
