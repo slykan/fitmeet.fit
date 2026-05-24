@@ -66,6 +66,10 @@ function timeAgo(iso: string) {
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
 }
 
+function messageTime(iso: string) {
+  return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+}
+
 function convTitle(conv: Conversation, meId: number) {
   if (conv.title) return conv.title
   if (!conv.is_group && conv.partner) return conv.partner.name
@@ -515,7 +519,7 @@ function ThreadView({
               {item.body ? (
                 <Text style={[th.bubbleText, item.is_mine && th.bubbleTextMine]}>{item.body}</Text>
               ) : null}
-              <Text style={[th.bubbleTime, item.is_mine && th.bubbleTimeMine]}>{timeAgo(item.created_at)}</Text>
+              <Text style={[th.bubbleTime, item.is_mine && th.bubbleTimeMine]}>{messageTime(item.created_at)}</Text>
             </View>
           )}
           ListEmptyComponent={<Text style={th.emptyText}>No messages yet. Say hello!</Text>}
