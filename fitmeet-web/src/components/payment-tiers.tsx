@@ -95,7 +95,34 @@ function PayPalTiers({ onSuccess }: { onSuccess: () => void }) {
   )
 }
 
-function RevolutTiers() {
+function RevolutTiers({ onSuccess, loggedIn }: { onSuccess: () => void; loggedIn: boolean }) {
+  const [openedTier, setOpenedTier] = useState<(typeof TIERS)[number] | null>(null)
+  const [recording, setRecording] = useState(false)
+  const [message, setMessage] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  function rememberTier(tier: (typeof TIERS)[number]) {
+    setOpenedTier(tier)
+    setMessage(null)
+    setError(null)
+  }
+
+  async function recordDonation() {
+    if (!openedTier || recording) return
+    setRecording(true)
+    setError(null)
+
+    try {
+      await api.post('/beer-donations', { product_id: openedTier.id })
+      setMessage('Thanks! Your name is on the beer wall.')
+      onSuccess()
+    } catch {
+      setError('Could not add your name. Make sure you are logged in.')
+    } finally {
+      setRecording(false)
+    }
+  }
+
   return (
     <div className="flex flex-col gap-2">
       {TIERS.map(tier => (
@@ -104,6 +131,7 @@ function RevolutTiers() {
           href={tier.revolut_url}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={() => rememberTier(tier)}
           className="rounded-xl border flex items-center justify-between px-4 py-3 transition-opacity hover:opacity-80"
           style={{ borderColor: 'rgba(246,198,91,0.18)', background: 'rgba(246,198,91,0.05)' }}
         >
@@ -114,6 +142,33 @@ function RevolutTiers() {
           <span className="font-black text-sm" style={{ color: '#f6c65b' }}>€{tier.revolut_amount}</span>
         </a>
       ))}
+
+      {openedTier && (
+        <div className="rounded-xl border px-3 py-3" style={{ borderColor: 'rgba(130,80,255,0.24)', background: 'rgba(130,80,255,0.08)' }}>
+          {loggedIn ? (
+            <>
+              <p className="text-xs mb-2" style={{ color: 'rgba(255,255,255,0.62)' }}>
+                After Revolut confirms the payment, add your name to the beer wall.
+              </p>
+              <button
+                type="button"
+                onClick={recordDonation}
+                disabled={recording}
+                className="w-full rounded-lg px-3 py-2 text-sm font-bold transition-opacity disabled:opacity-50"
+                style={{ background: '#f6c65b', color: '#18110a' }}
+              >
+                {recording ? 'Adding...' : 'I completed payment'}
+              </button>
+            </>
+          ) : (
+            <p className="text-xs text-center" style={{ color: 'rgba(246,198,91,0.78)' }}>
+              <a href="/login" style={{ fontWeight: 800, color: '#f6c65b' }}>Log in</a> before confirming if you want your name on the beer wall.
+            </p>
+          )}
+          {message && <p className="text-xs mt-2" style={{ color: '#39ff14' }}>{message}</p>}
+          {error && <p className="text-xs mt-2" style={{ color: '#f87171' }}>{error}</p>}
+        </div>
+      )}
     </div>
   )
 }
@@ -185,7 +240,7 @@ export function PaymentTiers({ onSuccess, loggedIn = true }: { onSuccess: () => 
         </button>
         {open === 'revolut' && (
           <div className="px-3 pb-3 pt-1" style={{ background: 'rgba(0,0,0,0.18)' }}>
-            <RevolutTiers />
+            <RevolutTiers onSuccess={onSuccess} loggedIn={loggedIn} />
           </div>
         )}
       </div>
