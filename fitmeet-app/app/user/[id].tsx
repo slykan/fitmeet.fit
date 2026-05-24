@@ -3,7 +3,7 @@ import { router, useLocalSearchParams } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator, Animated, Easing, Image, Modal,
-  Pressable, ScrollView, StyleSheet, Text, View,
+  Pressable, ScrollView, Share, StyleSheet, Text, View,
 } from 'react-native'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -85,12 +85,45 @@ export default function UserProfileScreen() {
       if (profile.friendship_status === null) {
         await api.post(`/friends/request/${profile.id}`)
         setProfile(p => p ? { ...p, friendship_status: 'pending_sent' } : p)
+      } else if (profile.friendship_status === 'pending_received') {
+        const requestId = await api.get('/notifications').then(({ data }) => {
+          const request = data.data?.find((n: { type: string; id: number; sender?: { id: number } }) =>
+            n.type === 'friend_request' && n.sender?.id === profile.id
+          )
+          return request?.id ?? null
+        }).catch(() => null)
+        if (requestId) {
+          await api.post(`/friends/accept/${requestId}`)
+          setProfile(p => p ? { ...p, friendship_status: 'friends' } : p)
+        }
       } else if (profile.friendship_status === 'friends') {
         await api.delete(`/friends/${profile.id}`)
         setProfile(p => p ? { ...p, friendship_status: null } : p)
       }
     } catch {}
     setActing(false)
+  }
+
+  async function shareProfile() {
+    if (!profile) return
+
+    const url = `https://fitmeet.fit/users/view?id=${profile.id}`
+    const stats = profile.stats
+    const categories = profile.categories.length
+      ? `\nSports: ${profile.categories.map(cat => cat.replace('_', ' ')).join(', ')}`
+      : ''
+
+    await Share.share({
+      title: `${profile.name} on FitMeet`,
+      message: [
+        `${profile.name}'s FitMeet profile`,
+        '',
+        `Alibi score: ${total}`,
+        `Joined ${stats.events_joined} events, checked in ${stats.check_ins} times, created ${stats.events_created} events.${categories}`,
+        '',
+        url,
+      ].join('\n'),
+    }).catch(() => {})
   }
 
   if (loading) {
@@ -171,21 +204,26 @@ export default function UserProfileScreen() {
           </View>
         </View>
 
-        {/* Friend button */}
-        {!profile.is_self && (
-          <Pressable
-            style={[styles.friendBtn, profile.friendship_status === 'friends' && styles.friendBtnActive]}
-            onPress={handleFriendAction}
-            disabled={acting || profile.friendship_status === 'pending_sent'}
-          >
-            {acting
-              ? <ActivityIndicator size="small" color={palette.accent} />
-              : <Text style={[styles.friendBtnLabel, profile.friendship_status === 'friends' && styles.friendBtnLabelActive]}>
-                  {friendLabel}
-                </Text>
-            }
+        <View style={styles.actionRow}>
+          {!profile.is_self && (
+            <Pressable
+              style={[styles.friendBtn, profile.friendship_status === 'friends' && styles.friendBtnActive]}
+              onPress={handleFriendAction}
+              disabled={acting || profile.friendship_status === 'pending_sent'}
+            >
+              {acting
+                ? <ActivityIndicator size="small" color={palette.accent} />
+                : <Text style={[styles.friendBtnLabel, profile.friendship_status === 'friends' && styles.friendBtnLabelActive]}>
+                    {friendLabel}
+                  </Text>
+              }
+            </Pressable>
+          )}
+          <Pressable style={styles.shareBtn} onPress={shareProfile}>
+            <Ionicons name="share-social-outline" size={17} color={palette.accent} />
+            <Text style={styles.shareBtnLabel}>Share</Text>
           </Pressable>
-        )}
+        </View>
 
         {/* Categories */}
         {profile.categories.length > 0 && (
@@ -259,7 +297,9 @@ const styles = StyleSheet.create({
   meta:         { color: palette.textMuted, fontSize: 13 },
   memberSince:  { color: palette.textDim, fontSize: 11 },
 
+  actionRow: { flexDirection: 'row', gap: 10 },
   friendBtn: {
+    flex: 1,
     height: 44, borderRadius: 16,
     borderWidth: 1, borderColor: palette.line,
     backgroundColor: palette.panel,
@@ -268,6 +308,19 @@ const styles = StyleSheet.create({
   friendBtnActive: { borderColor: 'rgba(57,255,20,0.35)', backgroundColor: 'rgba(57,255,20,0.08)' },
   friendBtnLabel:  { color: palette.text, fontSize: 14, fontWeight: '700' },
   friendBtnLabelActive: { color: palette.accent },
+  shareBtn: {
+    flex: 1,
+    height: 44,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(57,255,20,0.28)',
+    backgroundColor: 'rgba(57,255,20,0.06)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+  },
+  shareBtnLabel: { color: palette.accent, fontSize: 14, fontWeight: '800' },
 
   tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   tag: {
