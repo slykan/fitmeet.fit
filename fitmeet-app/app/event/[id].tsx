@@ -162,7 +162,7 @@ function youtubeEmbedHtml(videoId: string) {
 </head>
 <body>
   <iframe
-    src="https://www.youtube-nocookie.com/embed/${safeId}?rel=0&playsinline=1&modestbranding=1&enablejsapi=1&origin=https%3A%2F%2Ffitmeet.fit"
+    src="https://www.youtube.com/embed/${safeId}?autoplay=1&rel=0&playsinline=1&modestbranding=1&origin=https%3A%2F%2Ffitmeet.fit"
     title="Event video"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
     allowfullscreen>
@@ -872,6 +872,9 @@ export default function EventDetailScreen() {
                     allowsInlineMediaPlayback
                     setSupportMultipleWindows={false}
                     mixedContentMode="always"
+                    sharedCookiesEnabled
+                    thirdPartyCookiesEnabled
+                    userAgent="Mozilla/5.0 (Linux; Android 13; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36"
                     style={{ flex: 1, backgroundColor: '#000' }}
                   />
                 </View>
