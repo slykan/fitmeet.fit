@@ -5,8 +5,7 @@ import {
   ActivityIndicator, Animated, Easing, Image, Modal,
   Pressable, ScrollView, StyleSheet, Text, View,
 } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
-import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs'
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { api } from '@/src/lib/api'
 import { palette, spacing } from '@/src/theme'
@@ -66,7 +65,7 @@ function formatDate(iso: string) {
 
 export default function UserProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
-  const tabBarHeight = useBottomTabBarHeight()
+  const insets = useSafeAreaInsets()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [zoom,    setZoom]    = useState(false)
@@ -130,7 +129,7 @@ export default function UserProfileScreen() {
         </Pressable>
       </Modal>
 
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: tabBarHeight + 16 }]} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 16 }]} showsVerticalScrollIndicator={false}>
 
         {/* Back */}
         <Pressable style={styles.backBtn} onPress={() => router.back()}>
