@@ -515,7 +515,11 @@ export default function CreateEventScreen() {
         <Text style={styles.heading}>{editId ? 'Edit Event' : 'New Event'}</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        scrollEnabled={!mapEnabled}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+      >
         {prefilling ? (
           <View style={{ paddingVertical: spacing.md }}>
             <ActivityIndicator color={palette.accent} />
