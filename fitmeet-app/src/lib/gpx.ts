@@ -31,10 +31,39 @@ export function slopeColor(grade: number): string {
   return '#ff2200'                  // red    — steep
 }
 
+function readPoints(xml: string, tagNames: string): { coords: [number, number]; ele: number | null }[] {
+  const tagRe = new RegExp(
+    `<(?:(?:[^:>\\s]+):)?(?:${tagNames})\\b([^>]*)>([\\s\\S]*?)<\\/(?:(?:[^:>\\s]+):)?(?:${tagNames})>|<(?:(?:[^:>\\s]+):)?(?:${tagNames})\\b([^>]*)\\/>`,
+    'gi',
+  )
+  const latRe = /\blat=["']([^"']+)["']/i
+  const lonRe = /\blon=["']([^"']+)["']/i
+  const eleRe = /<(?:[^:>\s]+:)?ele[^>]*>([\d.+-]+)<\/(?:[^:>\s]+:)?ele>/i
+  const points: { coords: [number, number]; ele: number | null }[] = []
+  let match: RegExpExecArray | null
+
+  while ((match = tagRe.exec(xml)) !== null) {
+    const attrs = match[1] ?? match[3] ?? ''
+    const lat = parseFloat(latRe.exec(attrs)?.[1] ?? '')
+    const lon = parseFloat(lonRe.exec(attrs)?.[1] ?? '')
+    if (isNaN(lat) || isNaN(lon)) continue
+    const ele = parseFloat(eleRe.exec(match[2] ?? '')?.[1] ?? '')
+    points.push({ coords: [lat, lon], ele: isNaN(ele) ? null : ele })
+  }
+
+  return points
+}
+
 export function parseGpxText(xml: string): GpxParsed {
-  const trkpts = [...xml.matchAll(/<trkpt[^>]*lat="([^"]+)"[^>]*lon="([^"]+)"[^>]*>/g)]
-  const track: [number, number][] = trkpts.map(m => [parseFloat(m[1]), parseFloat(m[2])])
-  const elevs = [...xml.matchAll(/<ele>([\d.]+)<\/ele>/g)].map(m => parseFloat(m[1]))
+  let points = readPoints(xml, 'trkpt|rtept')
+  if (points.length === 0) points = readPoints(xml, 'wpt')
+
+  const track: [number, number][] = points.map(point => point.coords)
+  const pointElevs = points.map(point => point.ele)
+  const allElevs = [...xml.matchAll(/<(?:[^:>\s]+:)?ele[^>]*>([\d.+-]+)<\/(?:[^:>\s]+:)?ele>/gi)].map(m => parseFloat(m[1]))
+  const elevs = pointElevs.some(ele => ele != null)
+    ? pointElevs.map(ele => ele ?? NaN)
+    : allElevs
 
   let distM = 0
   let elevGain = 0
@@ -50,11 +79,11 @@ export function parseGpxText(xml: string): GpxParsed {
     segDistM += d
     cumM.push(distM)
 
-    if (i < elevs.length && elevs[i] > elevs[i - 1]) {
+    if (i < elevs.length && !isNaN(elevs[i]) && !isNaN(elevs[i - 1]) && elevs[i] > elevs[i - 1]) {
       elevGain += elevs[i] - elevs[i - 1]
     }
 
-    if (segDistM >= 50 && i < elevs.length) {
+    if (segDistM >= 50 && i < elevs.length && !isNaN(elevs[i]) && !isNaN(segStartElev)) {
       const elevChange = elevs[i] - segStartElev
       const grade = (elevChange / segDistM) * 100
       if (grade > maxGrade) maxGrade = grade
@@ -65,7 +94,7 @@ export function parseGpxText(xml: string): GpxParsed {
   }
 
   // Build elevation profile (max 300 points)
-  const hasEle = elevs.length >= 2
+  const hasEle = elevs.filter(ele => !isNaN(ele)).length >= 2
   const elevationProfile: { km: number; ele: number }[] = []
   const coloredSegments: TrackSegment[] = []
 

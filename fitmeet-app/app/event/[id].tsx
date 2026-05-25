@@ -230,6 +230,8 @@ export default function EventDetailScreen() {
   const [youtubeOpen, setYoutubeOpen] = useState(false)
   const [coloredSegments, setColoredSegments] = useState<TrackSegment[]>([])
   const [elevationProfile, setElevationProfile] = useState<ElevationPoint[]>([])
+  const [gpxLoading, setGpxLoading] = useState(false)
+  const [gpxError, setGpxError] = useState(false)
   const [showWall, setShowWall] = useState(wall === '1')
   const [comments, setComments] = useState<EventComment[]>([])
   const [commentsLoading, setCommentsLoading] = useState(false)
@@ -352,19 +354,32 @@ export default function EventDetailScreen() {
   useEffect(() => {
     setColoredSegments([])
     setElevationProfile([])
-    if (!event?.activity.gpx_url) return
+    setGpxError(false)
+    if (!event?.activity.gpx_url) {
+      setGpxLoading(false)
+      return
+    }
+    setGpxLoading(true)
     const token = useAuthStore.getState().token
     const separator = event.activity.gpx_url.includes('?') ? '&' : '?'
     fetch(`${event.activity.gpx_url}${separator}t=${Date.now()}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
-      .then(r => r.text())
+      .then(r => {
+        if (!r.ok) throw new Error(`GPX request failed: ${r.status}`)
+        return r.text()
+      })
       .then(xml => {
         const parsed = parseGpxText(xml)
+        if (parsed.track.length < 2) {
+          setGpxError(true)
+          return
+        }
         if (parsed.coloredSegments.length > 0) setColoredSegments(parsed.coloredSegments)
         if (parsed.elevationProfile.length >= 2) setElevationProfile(parsed.elevationProfile)
       })
-      .catch(() => {})
+      .catch(() => setGpxError(true))
+      .finally(() => setGpxLoading(false))
   }, [event?.activity.gpx_url])
 
   useEffect(() => {
@@ -609,6 +624,15 @@ export default function EventDetailScreen() {
         `Join on FitMeet 👉 https://fitmeet.fit/events/share?id=${event!.id}`,
       ].filter(Boolean).join('\n'),
     })
+  }
+
+  async function openGpxRoute() {
+    if (!event?.activity.gpx_url) return
+    try {
+      await Linking.openURL(event.activity.gpx_url)
+    } catch {
+      Alert.alert('GPX route', 'Could not open GPX file.')
+    }
   }
 
   async function sendComment() {
@@ -932,7 +956,18 @@ export default function EventDetailScreen() {
             <DetailRow icon="eye-outline" primary={`${event.views_count} seen`} />
           ) : null}
           {event.activity.gpx_url ? (
-            <DetailRow icon="map-outline" primary="GPX route attached" />
+            <Pressable style={styles.gpxActionRow} onPress={openGpxRoute}>
+              <Ionicons name="map-outline" size={15} color={gpxError ? '#ff6b6b' : palette.textDim} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.detailPrimary}>
+                  {gpxLoading ? 'Loading GPX route...' : gpxError ? 'GPX route attached' : 'GPX route attached'}
+                </Text>
+                <Text style={styles.detailSecondary}>
+                  {gpxError ? 'Tap to open file' : 'Tap to open or download'}
+                </Text>
+              </View>
+              <Ionicons name="download-outline" size={17} color={palette.accent} />
+            </Pressable>
           ) : null}
           {event.is_private ? (
             <DetailRow icon="lock-closed-outline" primary="Private event" />
@@ -1471,6 +1506,7 @@ const styles = StyleSheet.create({
   cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
 
   detailRow:      { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  gpxActionRow:   { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 2 },
   detailPrimary:  { color: palette.textMuted, fontSize: 14, lineHeight: 20 },
   detailSecondary:{ color: palette.textDim, fontSize: 13 },
 

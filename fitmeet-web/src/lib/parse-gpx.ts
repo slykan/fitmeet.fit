@@ -34,34 +34,40 @@ export function slopeColor(grade: number): string {
   return '#ff2200'                  // red    — steep uphill
 }
 
-export function parseGpx(xml: string): GpxResult {
-  const trkptRe = /<(?:[^:>]+:)?(?:trkpt|rtept|wpt)([^>]+)>([\s\S]*?)<\/(?:[^:>]+:)?(?:trkpt|rtept|wpt)>/gi
-  const latRe   = /lat="([^"]+)"/
-  const lonRe   = /lon="([^"]+)"/
-  const eleRe   = /<(?:[^:>]+:)?ele[^>]*>([\d.+-]+)<\/(?:[^:>]+:)?ele>/
+function readPoints(xml: string, tagNames: string): { coords: [number, number]; ele: number | null }[] {
+  const tagRe = new RegExp(
+    `<(?:(?:[^:>\\s]+):)?(?:${tagNames})\\b([^>]*)>([\\s\\S]*?)<\\/(?:(?:[^:>\\s]+):)?(?:${tagNames})>|<(?:(?:[^:>\\s]+):)?(?:${tagNames})\\b([^>]*)\\/>`,
+    'gi',
+  )
+  const latRe = /\blat=["']([^"']+)["']/i
+  const lonRe = /\blon=["']([^"']+)["']/i
+  const eleRe = /<(?:[^:>\s]+:)?ele[^>]*>([\d.+-]+)<\/(?:[^:>\s]+:)?ele>/i
+  const points: { coords: [number, number]; ele: number | null }[] = []
+  let match: RegExpExecArray | null
 
-  const track:   [number, number][]        = []
-  const eleData: number[]                  = []
-  let   m: RegExpExecArray | null
-
-  while ((m = trkptRe.exec(xml)) !== null) {
-    const attrs   = m[1]
-    const content = m[2]
+  while ((match = tagRe.exec(xml)) !== null) {
+    const attrs = match[1] ?? match[3] ?? ''
     const lat = parseFloat(latRe.exec(attrs)?.[1] ?? '')
     const lon = parseFloat(lonRe.exec(attrs)?.[1] ?? '')
     if (isNaN(lat) || isNaN(lon)) continue
-    track.push([lat, lon])
-    const ele = parseFloat(eleRe.exec(content)?.[1] ?? '')
-    eleData.push(isNaN(ele) ? -Infinity : ele)
+    const ele = parseFloat(eleRe.exec(match[2] ?? '')?.[1] ?? '')
+    points.push({ coords: [lat, lon], ele: isNaN(ele) ? null : ele })
   }
 
-  if (track.length === 0) {
-    const lats = [...xml.matchAll(/\blat="([^"]+)"/g)].map(x => parseFloat(x[1]))
-    const lons = [...xml.matchAll(/\blon="([^"]+)"/g)].map(x => parseFloat(x[1]))
-    const len  = Math.min(lats.length, lons.length)
-    for (let i = 0; i < len; i++) {
-      if (!isNaN(lats[i]) && !isNaN(lons[i])) track.push([lats[i], lons[i]])
-    }
+  return points
+}
+
+export function parseGpx(xml: string): GpxResult {
+
+  const track:   [number, number][]        = []
+  const eleData: number[]                  = []
+
+  let points = readPoints(xml, 'trkpt|rtept')
+  if (points.length === 0) points = readPoints(xml, 'wpt')
+
+  for (const point of points) {
+    track.push(point.coords)
+    eleData.push(point.ele ?? -Infinity)
   }
 
   let totalKm = 0
