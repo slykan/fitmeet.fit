@@ -28,6 +28,18 @@ interface Participant {
   checked_in_at?: string | null
 }
 
+type SavePickerWindow = Window & {
+  showSaveFilePicker?: (options: {
+    suggestedName?: string
+    types?: Array<{ description: string; accept: Record<string, string[]> }>
+  }) => Promise<{
+    createWritable: () => Promise<{
+      write: (data: Blob) => Promise<void>
+      close: () => Promise<void>
+    }>
+  }>
+}
+
 interface Event {
   id: number
   title: string
@@ -254,15 +266,31 @@ function EventContent() {
       const blob = data instanceof Blob
         ? data
         : new Blob([data], { type: 'application/gpx+xml' })
+      const filename = `fitmeet-event-${event.id}.gpx`
+      const saveFilePicker = (window as SavePickerWindow).showSaveFilePicker
+
+      if (saveFilePicker) {
+        const handle = await saveFilePicker({
+          suggestedName: filename,
+          types: [{ description: 'GPX route', accept: { 'application/gpx+xml': ['.gpx'] } }],
+        })
+        const writable = await handle.createWritable()
+        await writable.write(blob)
+        await writable.close()
+        return
+      }
+
       const url = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.download = `fitmeet-event-${event.id}.gpx`
+      link.download = filename
+      link.rel = 'noopener'
       document.body.appendChild(link)
       link.click()
       link.remove()
       window.URL.revokeObjectURL(url)
-    } catch {
+    } catch (error) {
+      if ((error as { name?: string })?.name === 'AbortError') return
       alert('Could not download GPX.')
     }
   }
