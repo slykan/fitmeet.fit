@@ -567,9 +567,10 @@ HTML;
     public function gpx(Request $request, Event $event): \Illuminate\Http\Response
     {
         abort_unless($event->gpx_path, 404);
-        $path = storage_path('app/public/' . $event->gpx_path);
-        abort_unless(file_exists($path), 404);
-        return response(file_get_contents($path), 200, [
+
+        abort_unless(Storage::disk('public')->exists($event->gpx_path), 404);
+
+        return response(Storage::disk('public')->get($event->gpx_path), 200, [
             'Content-Type'  => 'application/gpx+xml',
             'Cache-Control' => 'public, max-age=86400',
         ]);

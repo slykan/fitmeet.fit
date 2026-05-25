@@ -38,7 +38,7 @@ class PublicEventShareResource extends JsonResource
                 'pace'           => $this->pace,
                 'max_grade'      => $this->max_grade,
                 'max_downgrade'  => $this->max_downgrade,
-                'gpx_url'        => $this->gpx_path ? url("/api/events/{$this->id}/gpx") : null,
+                'gpx_url'        => $this->gpx_path ? url('/storage/' . $this->gpx_path) : null,
             ],
 
             'skill_level'        => $this->skill_level,
