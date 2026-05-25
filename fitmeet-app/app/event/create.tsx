@@ -211,7 +211,14 @@ export default function CreateEventScreen() {
   const [prefilling,  setPrefilling]  = useState(false)
   const [createdEvent, setCreatedEvent] = useState<{ id: number; title: string } | null>(null)
 
-  const mapKey = `${lat}-${lng}-${gpxTrack.length}`
+  const mapKey = [
+    lat,
+    lng,
+    gpxName ?? 'no-gpx',
+    gpxTrack.length,
+    gpxTrack[0]?.join(',') ?? '',
+    gpxTrack[gpxTrack.length - 1]?.join(',') ?? '',
+  ].join('|')
 
   useEffect(() => {
     if (!editId) return
@@ -245,6 +252,22 @@ export default function CreateEventScreen() {
         setImageName(null)
         setImageRemoved(false)
         setYoutubeUrl(ev.youtube_url ?? '')
+        if (ev.activity?.gpx_url) {
+          setGpxName('Current GPX route')
+          const separator = ev.activity.gpx_url.includes('?') ? '&' : '?'
+          api.get(`${ev.activity.gpx_url}${separator}t=${Date.now()}`, { responseType: 'text' })
+            .then(({ data: text }) => {
+              if (!alive) return
+              setGpxContent(text)
+              const parsed = parseGpxText(text)
+              setGpxTrack(parsed.track)
+            })
+            .catch(() => {})
+        } else {
+          setGpxName(null)
+          setGpxContent(null)
+          setGpxTrack([])
+        }
       })
       .catch(() => {
         Alert.alert('Error', 'Could not load event for editing.')
@@ -366,19 +389,39 @@ export default function CreateEventScreen() {
     }
   }
 
-  function handleStravaImport(gpxText: string, routeName?: string) {
-    setGpxContent(gpxText)
-    setGpxName(`${(routeName ?? 'strava-route').replace(/[^\w.-]+/g, '-').replace(/^-+|-+$/g, '') || 'strava-route'}.gpx`)
+  async function applyGpxText(gpxText: string, routeName: string, showSuccess = false) {
     const parsed = parseGpxText(gpxText)
-    setGpxTrack(parsed.track)
-    if (parsed.track.length > 0 && lat === null) {
-      setLat(parsed.track[0][0])
-      setLng(parsed.track[0][1])
+    if (parsed.track.length < 2) {
+      Alert.alert('Invalid GPX', 'This GPX route does not contain enough track points.')
+      return
     }
+
+    setGpxContent(gpxText)
+    setGpxName(routeName)
+    setGpxTrack(parsed.track)
+
+    const [startLat, startLng] = parsed.track[0]
+    setLat(startLat)
+    setLng(startLng)
+    reverseGeocode(startLat, startLng).then((addr) => {
+      if (addr) setAddress(addr)
+    }).catch(() => {})
+
+    if (showSuccess) {
+      Alert.alert('GPX added', `${routeName} · ${parsed.track.length} pts`)
+    }
+
     if (parsed.distanceKm > 0)    setDistanceKm(String(parsed.distanceKm))
     if (parsed.elevGain > 0)      setElevGain(String(parsed.elevGain))
     if (parsed.maxGrade !== 0)    setMaxGrade(String(parsed.maxGrade))
     if (parsed.maxDowngrade !== 0) setMaxDowngrade(String(parsed.maxDowngrade))
+  }
+
+  function handleStravaImport(gpxText: string, routeName?: string) {
+    const safeName = (routeName ?? 'strava-route').replace(/[^\w.-]+/g, '-').replace(/^-+|-+$/g, '') || 'strava-route'
+    applyGpxText(gpxText, `${safeName}.gpx`, true).catch(() => {
+      Alert.alert('Error', 'Could not parse GPX route.')
+    })
   }
 
   async function pickGpx() {
@@ -388,20 +431,9 @@ export default function CreateEventScreen() {
     })
     if (result.canceled || !result.assets?.[0]) return
     const asset = result.assets[0]
-    setGpxName(asset.name)
     try {
       const text = await fetch(asset.uri).then(r => r.text())
-      setGpxContent(text)
-      const parsed = parseGpxText(text)
-      setGpxTrack(parsed.track)
-      if (parsed.track.length > 0 && lat === null) {
-        setLat(parsed.track[0][0])
-        setLng(parsed.track[0][1])
-      }
-      if (parsed.distanceKm > 0)   setDistanceKm(String(parsed.distanceKm))
-      if (parsed.elevGain > 0)     setElevGain(String(parsed.elevGain))
-      if (parsed.maxGrade !== 0)   setMaxGrade(String(parsed.maxGrade))
-      if (parsed.maxDowngrade !== 0) setMaxDowngrade(String(parsed.maxDowngrade))
+      await applyGpxText(text, asset.name, true)
     } catch {
       Alert.alert('Error', 'Could not parse GPX file.')
     }
