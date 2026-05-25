@@ -345,17 +345,29 @@ HTML;
             return response()->json(['message' => 'Upload window has closed (48 hours after event end).'], 422);
         }
 
-        $request->validate(['image' => 'required|file|mimes:jpeg,jpg,png,webp|max:10240']);
+        $data = $request->validate([
+            'image' => 'required|file|mimes:jpeg,jpg,png,webp|max:10240',
+            'cover_x' => 'nullable|numeric|min:0|max:1',
+            'cover_y' => 'nullable|numeric|min:0|max:1',
+        ]);
 
         if ($event->moment_image_path) {
             Storage::disk('public')->delete($event->moment_image_path);
         }
 
         $path = $request->file('image')->store('moments', 'public');
-        $event->update(['moment_image_path' => $path]);
+        $event->update([
+            'moment_image_path' => $path,
+            'moment_cover_x' => $data['cover_x'] ?? 0.5,
+            'moment_cover_y' => $data['cover_y'] ?? 0.5,
+        ]);
 
         return response()->json([
             'moment_image_url' => url('/storage/' . $path),
+            'moment_cover' => [
+                'x' => $event->moment_cover_x ?? 0.5,
+                'y' => $event->moment_cover_y ?? 0.5,
+            ],
         ]);
     }
 

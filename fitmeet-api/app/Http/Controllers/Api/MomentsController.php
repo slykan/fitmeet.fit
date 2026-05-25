@@ -19,7 +19,7 @@ class MomentsController extends Controller
             ->whereNotNull('moment_image_path')
             ->where('start_at', '<', now())
             ->orderByDesc('start_at')
-            ->select('id', 'title', 'moment_image_path', 'category', 'start_at', 'user_id')
+            ->select('id', 'title', 'moment_image_path', 'moment_cover_x', 'moment_cover_y', 'category', 'start_at', 'user_id')
             ->paginate($perPage, ['*'], 'page', $page);
 
         return response()->json([
@@ -27,6 +27,10 @@ class MomentsController extends Controller
                 'id'        => $e->id,
                 'title'     => $e->title,
                 'image_url' => url('/storage/' . $e->moment_image_path),
+                'cover'     => [
+                    'x' => $e->moment_cover_x ?? 0.5,
+                    'y' => $e->moment_cover_y ?? 0.5,
+                ],
                 'category'  => $e->category?->value,
                 'start_at'  => $e->start_at->toIso8601String(),
             ]),

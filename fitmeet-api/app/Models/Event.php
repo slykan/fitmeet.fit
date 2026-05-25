@@ -34,6 +34,8 @@ class Event extends Model
         'gpx_path',
         'image_path',
         'moment_image_path',
+        'moment_cover_x',
+        'moment_cover_y',
         'youtube_url',
         'skill_level',
         'max_participants',
@@ -49,6 +51,8 @@ class Event extends Model
             'lng'              => 'float',
             'is_private'       => 'boolean',
             'distance_km'      => 'float',
+            'moment_cover_x'   => 'float',
+            'moment_cover_y'   => 'float',
             'category'         => Category::class,
         ];
     }

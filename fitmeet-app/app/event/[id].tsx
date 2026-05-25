@@ -4,7 +4,8 @@ import * as ImagePicker from 'expo-image-picker'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator, Alert, Image, Modal, Pressable,
-  Keyboard, KeyboardAvoidingView, Linking, Platform, ScrollView, Share, StyleSheet, Text, TextInput, View, type StyleProp, type ViewStyle,
+  Keyboard, KeyboardAvoidingView, Linking, Platform, ScrollView, Share, StyleSheet, Text, TextInput, View,
+  type GestureResponderEvent, type StyleProp, type ViewStyle,
 } from 'react-native'
 import { WebView } from 'react-native-webview'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -12,6 +13,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { WeatherBadge } from '@/src/components/WeatherBadge'
 import { EventMapCard } from '@/src/components/EventMapCard'
 import { ElevationChart } from '@/src/components/ElevationChart'
+import { MomentCoverImage, type MomentCoverPosition } from '@/src/components/MomentCoverImage'
 import type { ElevationPoint } from '@/src/components/ElevationChart'
 import { CATEGORIES } from '@/src/lib/categories'
 import { api } from '@/src/lib/api'
@@ -67,6 +69,7 @@ interface EventDetail {
   is_private: boolean
   image_url: string | null
   moment_image_url: string | null
+  moment_cover: MomentCoverPosition | null
   youtube_url: string | null
   organizer: Participant | null
   participants: Participant[]
@@ -239,6 +242,9 @@ export default function EventDetailScreen() {
   const [zoomAvatar, setZoomAvatar] = useState<string | null>(null)
   const [mapEnabled, setMapEnabled] = useState(false)
   const [momentUploading, setMomentUploading] = useState(false)
+  const [pendingMoment, setPendingMoment] = useState<ImagePicker.ImagePickerAsset | null>(null)
+  const [pendingMomentCover, setPendingMomentCover] = useState({ x: 0.5, y: 0.5 })
+  const [pendingMomentLayout, setPendingMomentLayout] = useState({ width: 0, height: 0 })
 
   const loadEvent = useCallback(() => {
     if (!id) return
@@ -261,21 +267,53 @@ export default function EventDetailScreen() {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       quality: 0.8,
-      allowsEditing: true,
-      aspect: [4, 3],
+      allowsEditing: false,
     })
     if (result.canceled || !result.assets[0]) return
 
-    const asset = result.assets[0]
+    setPendingMoment(result.assets[0])
+    setPendingMomentCover({ x: 0.5, y: 0.5 })
+  }
+
+  function updatePendingMomentCover(e: GestureResponderEvent) {
+    if (!pendingMoment || pendingMomentLayout.width <= 0 || pendingMomentLayout.height <= 0) return
+
+    const imageWidth = pendingMoment.width || pendingMomentLayout.width
+    const imageHeight = pendingMoment.height || pendingMomentLayout.height
+    const scale = Math.min(pendingMomentLayout.width / imageWidth, pendingMomentLayout.height / imageHeight)
+    const renderWidth = imageWidth * scale
+    const renderHeight = imageHeight * scale
+    const offsetX = (pendingMomentLayout.width - renderWidth) / 2
+    const offsetY = (pendingMomentLayout.height - renderHeight) / 2
+    const x = Math.min(1, Math.max(0, (e.nativeEvent.locationX - offsetX) / renderWidth))
+    const y = Math.min(1, Math.max(0, (e.nativeEvent.locationY - offsetY) / renderHeight))
+
+    setPendingMomentCover({ x, y })
+  }
+
+  async function uploadPendingMoment() {
+    if (!pendingMoment) return
+
     const form = new FormData()
-    form.append('image', { uri: asset.uri, name: 'moment.jpg', type: 'image/jpeg' } as never)
+    form.append('image', {
+      uri: pendingMoment.uri,
+      name: pendingMoment.fileName ?? 'moment.jpg',
+      type: pendingMoment.mimeType ?? 'image/jpeg',
+    } as never)
+    form.append('cover_x', String(pendingMomentCover.x))
+    form.append('cover_y', String(pendingMomentCover.y))
 
     setMomentUploading(true)
     try {
       const { data } = await api.post(`/events/${id}/moment`, form, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
-      setEvent(prev => prev ? { ...prev, moment_image_url: data.moment_image_url } : prev)
+      setEvent(prev => prev ? {
+        ...prev,
+        moment_image_url: data.moment_image_url,
+        moment_cover: data.moment_cover ?? pendingMomentCover,
+      } : prev)
+      setPendingMoment(null)
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message
       Alert.alert('Error', msg ?? 'Could not upload moment.')
@@ -694,6 +732,64 @@ export default function EventDetailScreen() {
           </Pressable>
         </Pressable>
       </Modal>
+      <Modal visible={!!pendingMoment} transparent animationType="slide" onRequestClose={() => setPendingMoment(null)}>
+        <Pressable style={styles.modalBackdrop} onPress={() => !momentUploading && setPendingMoment(null)}>
+          <Pressable style={styles.coverPickerModal} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.modalHeader}>
+              <View style={styles.modalIcon}>
+                <Ionicons name="image-outline" size={22} color={palette.accent} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.modalTitle}>Moment cover</Text>
+                <Text style={styles.modalSubtitle}>Tap the spot that should stay centered.</Text>
+              </View>
+              <Pressable style={styles.modalClose} onPress={() => setPendingMoment(null)} disabled={momentUploading}>
+                <Ionicons name="close" size={20} color={palette.textMuted} />
+              </Pressable>
+            </View>
+
+            {pendingMoment && (
+              <Pressable
+                style={styles.coverPickerFrame}
+                onPress={updatePendingMomentCover}
+                onLayout={(event) => setPendingMomentLayout(event.nativeEvent.layout)}
+              >
+                <Image source={{ uri: pendingMoment.uri }} style={styles.coverPickerImage} resizeMode="contain" />
+                <View
+                  pointerEvents="none"
+                  style={[
+                    styles.coverPickerTarget,
+                    {
+                      left: `${pendingMomentCover.x * 100}%`,
+                      top: `${pendingMomentCover.y * 100}%`,
+                    },
+                  ]}
+                />
+              </Pressable>
+            )}
+
+            <View style={styles.coverPreviewBlock}>
+              <Text style={styles.coverPreviewLabel}>Cover preview</Text>
+              {pendingMoment && (
+                <MomentCoverImage uri={pendingMoment.uri} cover={pendingMomentCover} style={styles.coverPreviewImage} />
+              )}
+            </View>
+
+            <View style={styles.modalActions}>
+              <Pressable style={styles.modalSecondary} onPress={() => setPendingMoment(null)} disabled={momentUploading}>
+                <Text style={styles.modalSecondaryText}>Cancel</Text>
+              </Pressable>
+              <Pressable style={[styles.modalPrimary, momentUploading && styles.disabledBtn]} onPress={uploadPendingMoment} disabled={momentUploading}>
+                {momentUploading ? (
+                  <ActivityIndicator size="small" color="#041109" />
+                ) : (
+                  <Text style={styles.modalPrimaryText}>Save Moment</Text>
+                )}
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       <ScrollView
         ref={scrollRef}
@@ -732,7 +828,7 @@ export default function EventDetailScreen() {
             return (
               <View style={styles.momentSection}>
                 <Text style={styles.momentLabel}>📸 Moment</Text>
-                <Image source={{ uri: event.moment_image_url }} style={styles.momentImage} resizeMode="cover" />
+                <MomentCoverImage uri={event.moment_image_url} cover={event.moment_cover} style={styles.momentImage} />
                 {isOrg && withinWindow && (
                   <Pressable style={styles.momentReplaceBtn} onPress={pickAndUploadMoment} disabled={momentUploading}>
                     <Ionicons name="camera-outline" size={14} color={palette.textDim} />
@@ -1287,6 +1383,43 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(108,255,47,0.05)',
   },
   momentUploadText: { color: palette.accent, fontSize: 14, fontWeight: '700' },
+  coverPickerModal: {
+    marginHorizontal: spacing.md,
+    borderRadius: 24,
+    padding: spacing.md,
+    gap: spacing.md,
+    backgroundColor: palette.panel,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.12)',
+  },
+  coverPickerFrame: {
+    height: 300,
+    borderRadius: 18,
+    overflow: 'hidden',
+    backgroundColor: '#020403',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.12)',
+  },
+  coverPickerImage: { width: '100%', height: '100%' },
+  coverPickerTarget: {
+    position: 'absolute',
+    width: 24,
+    height: 24,
+    marginLeft: -12,
+    marginTop: -12,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: palette.accent,
+    backgroundColor: 'rgba(57,255,20,0.18)',
+  },
+  coverPreviewBlock: { gap: 8 },
+  coverPreviewLabel: {
+    color: palette.textDim,
+    fontSize: 11,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+  },
+  coverPreviewImage: { width: '100%', height: 150, borderRadius: 14 },
 
   coverImage: { width: '100%', height: 220 },
   imgOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.92)', alignItems: 'center', justifyContent: 'center' },

@@ -8,12 +8,14 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { api } from '@/src/lib/api'
+import { MomentCoverImage, type MomentCoverPosition } from '@/src/components/MomentCoverImage'
 import { palette, spacing } from '@/src/theme'
 
 interface Moment {
   id: number
   title: string
   image_url: string
+  cover?: MomentCoverPosition | null
   category: string | null
   start_at: string
 }
@@ -85,7 +87,7 @@ export default function MomentsScreen() {
           ItemSeparatorComponent={() => <View style={{ height: 4 }} />}
           renderItem={({ item }) => (
             <Pressable onPress={() => setLightbox(item)} style={styles.cell}>
-              <Image source={{ uri: item.image_url }} style={styles.cellImg} resizeMode="cover" />
+              <MomentCoverImage uri={item.image_url} cover={item.cover} style={styles.cellImg} />
               {item.category && (
                 <View style={styles.cellBadge}>
                   <Text style={styles.cellEmoji}>{CAT_EMOJI[item.category] ?? '📅'}</Text>

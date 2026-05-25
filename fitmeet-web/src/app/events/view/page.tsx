@@ -51,6 +51,7 @@ interface Event {
   checked_in_at: string | null
   checked_in_count?: number
   moment_image_url: string | null
+  moment_cover: { x: number; y: number } | null
   youtube_url: string | null
   organizer: { id: number; name: string; avatar: string | null }
 }
@@ -102,6 +103,9 @@ function EventContent() {
   const [weatherCenter, setWeatherCenter] = useState<{ lat: number; lng: number } | null>(null)
   const [weatherRefreshTick, setWeatherRefreshTick] = useState(0)
   const [momentUploading, setMomentUploading] = useState(false)
+  const [pendingMomentFile, setPendingMomentFile] = useState<File | null>(null)
+  const [pendingMomentPreview, setPendingMomentPreview] = useState<string | null>(null)
+  const [pendingMomentCover, setPendingMomentCover] = useState({ x: 0.5, y: 0.5 })
   const momentInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -259,16 +263,45 @@ function EventContent() {
     }
   }
 
-  async function handleMomentUpload(file: File) {
+  useEffect(() => {
+    return () => {
+      if (pendingMomentPreview) URL.revokeObjectURL(pendingMomentPreview)
+    }
+  }, [pendingMomentPreview])
+
+  function prepareMomentUpload(file: File) {
+    if (pendingMomentPreview) URL.revokeObjectURL(pendingMomentPreview)
+    setPendingMomentFile(file)
+    setPendingMomentPreview(URL.createObjectURL(file))
+    setPendingMomentCover({ x: 0.5, y: 0.5 })
+  }
+
+  function closeMomentPicker() {
+    if (pendingMomentPreview) URL.revokeObjectURL(pendingMomentPreview)
+    setPendingMomentFile(null)
+    setPendingMomentPreview(null)
+    setPendingMomentCover({ x: 0.5, y: 0.5 })
+    if (momentInputRef.current) momentInputRef.current.value = ''
+  }
+
+  async function handleMomentUpload() {
+    if (!pendingMomentFile) return
     if (!event) return
     const form = new FormData()
-    form.append('image', file)
+    form.append('image', pendingMomentFile)
+    form.append('cover_x', String(pendingMomentCover.x))
+    form.append('cover_y', String(pendingMomentCover.y))
     setMomentUploading(true)
     try {
       const { data } = await api.post(`/events/${event.id}/moment`, form, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
-      setEvent(cur => cur ? { ...cur, moment_image_url: data.moment_image_url } : cur)
+      setEvent(cur => cur ? {
+        ...cur,
+        moment_image_url: data.moment_image_url,
+        moment_cover: data.moment_cover ?? pendingMomentCover,
+      } : cur)
+      closeMomentPicker()
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Upload failed.'
       alert(msg)
@@ -361,11 +394,19 @@ function EventContent() {
                   <div className="mb-5">
                     <p className="text-xs font-bold uppercase mb-2" style={{ color: 'var(--text-muted)' }}>📸 Moment</p>
                     <div className="relative overflow-hidden rounded-2xl" style={{ border: '1px solid var(--border)' }}>
-                      <img src={event.moment_image_url} alt="Moment" className="w-full object-cover" style={{ aspectRatio: '4/3' }} />
+                      <img
+                        src={event.moment_image_url}
+                        alt="Moment"
+                        className="w-full object-cover"
+                        style={{
+                          aspectRatio: '4/3',
+                          objectPosition: `${(event.moment_cover?.x ?? 0.5) * 100}% ${(event.moment_cover?.y ?? 0.5) * 100}%`,
+                        }}
+                      />
                       {event.is_organizer && withinWindow && (
                         <>
                           <input ref={momentInputRef} type="file" accept="image/*" className="hidden"
-                            onChange={e => { const f = e.target.files?.[0]; if (f) handleMomentUpload(f) }} />
+                            onChange={e => { const f = e.target.files?.[0]; if (f) prepareMomentUpload(f) }} />
                           <button
                             onClick={() => momentInputRef.current?.click()}
                             disabled={momentUploading}
@@ -384,7 +425,7 @@ function EventContent() {
                 return (
                   <div className="mb-5">
                     <input ref={momentInputRef} type="file" accept="image/*" className="hidden"
-                      onChange={e => { const f = e.target.files?.[0]; if (f) handleMomentUpload(f) }} />
+                      onChange={e => { const f = e.target.files?.[0]; if (f) prepareMomentUpload(f) }} />
                     <button
                       onClick={() => momentInputRef.current?.click()}
                       disabled={momentUploading}
@@ -681,7 +722,7 @@ function EventContent() {
     </div>
     </main>
 
-    {showImageModal && event?.image_url && (
+      {showImageModal && event?.image_url && (
       <div
         className="fixed inset-0 z-[1900] flex items-center justify-center p-4"
         style={{ background: 'rgba(5,8,22,0.88)' }}
@@ -773,8 +814,83 @@ function EventContent() {
           </div>
         </div>
       </div>
-    )}
-    </>
+      )}
+      {pendingMomentPreview && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center px-4"
+          style={{ background: 'rgba(0,0,0,0.78)' }}
+          onClick={() => !momentUploading && closeMomentPicker()}
+        >
+          <div
+            className="w-full max-w-2xl rounded-3xl border p-4"
+            style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-bold">Moment cover</p>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Click the spot that should stay centered.</p>
+              </div>
+              <button
+                type="button"
+                className="rounded-full p-2"
+                style={{ background: 'rgba(255,255,255,0.08)' }}
+                onClick={closeMomentPicker}
+                disabled={momentUploading}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <button
+              type="button"
+              className="relative block h-[52vh] max-h-[520px] min-h-[300px] w-full overflow-hidden rounded-2xl border"
+              style={{ background: '#020403', borderColor: 'var(--border)' }}
+              onClick={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect()
+                setPendingMomentCover({
+                  x: Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width)),
+                  y: Math.min(1, Math.max(0, (e.clientY - rect.top) / rect.height)),
+                })
+              }}
+            >
+              <img src={pendingMomentPreview} alt="Selected moment" className="h-full w-full object-contain" />
+              <span
+                className="pointer-events-none absolute h-6 w-6 -translate-x-1/2 -translate-y-1/2 rounded-full border-2"
+                style={{
+                  left: `${pendingMomentCover.x * 100}%`,
+                  top: `${pendingMomentCover.y * 100}%`,
+                  borderColor: 'var(--primary)',
+                  background: 'rgba(57,255,20,0.18)',
+                }}
+              />
+            </button>
+
+            <div className="mt-4">
+              <p className="mb-2 text-xs font-bold uppercase" style={{ color: 'var(--text-muted)' }}>Cover preview</p>
+              <div className="overflow-hidden rounded-2xl border" style={{ borderColor: 'var(--border)' }}>
+                <img
+                  src={pendingMomentPreview}
+                  alt="Moment cover preview"
+                  className="w-full object-cover"
+                  style={{
+                    aspectRatio: '4/3',
+                    objectPosition: `${pendingMomentCover.x * 100}% ${pendingMomentCover.y * 100}%`,
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="mt-4 flex justify-end gap-2">
+              <Button type="button" variant="ghost" onClick={closeMomentPicker} disabled={momentUploading}>Cancel</Button>
+              <Button type="button" onClick={handleMomentUpload} disabled={momentUploading}>
+                {momentUploading ? 'Uploading...' : 'Save Moment'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+      </>
   )
 }
 

@@ -11,6 +11,7 @@ interface Moment {
   id: number
   title: string
   image_url: string
+  cover?: { x: number; y: number } | null
   category: string | null
   start_at: string
 }
@@ -102,6 +103,9 @@ export default function MomentsPage() {
                     fill
                     sizes="(max-width: 768px) 33vw, 280px"
                     className="object-cover transition-transform duration-300 group-hover:scale-105"
+                    style={{
+                      objectPosition: `${(m.cover?.x ?? 0.5) * 100}% ${(m.cover?.y ?? 0.5) * 100}%`,
+                    }}
                   />
                   {m.category && (
                     <span className="absolute bottom-1.5 left-1.5 text-xs px-1.5 py-0.5 rounded-md" style={{ background: 'rgba(0,0,0,0.6)' }}>

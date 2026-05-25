@@ -26,6 +26,10 @@ class EventResource extends JsonResource
             'description' => $this->description,
             'image_url'        => $this->image_path ? url('/storage/' . $this->image_path) : null,
             'moment_image_url' => $this->moment_image_path ? url('/storage/' . $this->moment_image_path) : null,
+            'moment_cover' => $this->moment_image_path ? [
+                'x' => $this->moment_cover_x ?? 0.5,
+                'y' => $this->moment_cover_y ?? 0.5,
+            ] : null,
             'category'    => $this->category ? [
                 'value' => $this->category->value,
                 'label' => $this->category->label(),
