@@ -58,6 +58,11 @@
               "scheme": "https",
               "host": "fitmeet.fit",
               "pathPrefix": "/events/view"
+            },
+            {
+              "scheme": "https",
+              "host": "fitmeet.fit",
+              "pathPrefix": "/events/check-in"
             }
           ],
           "category": ["BROWSABLE", "DEFAULT"]

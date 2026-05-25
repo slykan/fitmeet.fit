@@ -34,6 +34,16 @@
                     <div style="font-size:48px;line-height:1;">⏰</div>
                   </td>
                 </tr>
+                @if($reminder->remind_offset === '1h')
+                <tr>
+                  <td align="center" style="padding-top:14px;">
+                    <a href="https://fitmeet.fit/events/check-in?id={{ $event->id }}"
+                      style="color:#39FF14;font-size:12px;text-decoration:none;">
+                      Check-in opens 30 minutes before start
+                    </a>
+                  </td>
+                </tr>
+                @endif
               </table>
 
               @php

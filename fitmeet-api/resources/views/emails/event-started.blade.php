@@ -35,7 +35,7 @@
                 Your event starts soon
               </h1>
               <p style="margin:0 0 28px;font-size:14px;color:#8888aa;text-align:center;line-height:1.5;">
-                You're joined to this event. It starts in about 10 minutes.
+                You're joined to this event. It starts in about 10 minutes. Check-in is open now.
               </p>
 
               <table width="100%" cellpadding="0" cellspacing="0"
@@ -108,13 +108,21 @@
               <table width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td align="center">
-                    <a href="https://fitmeet.fit/events/view?id={{ $event->id }}"
+                    <a href="https://fitmeet.fit/events/check-in?id={{ $event->id }}"
                       style="
                         display:inline-block;background:#39FF14;color:#000;
                         font-weight:700;font-size:15px;text-decoration:none;
                         padding:14px 40px;border-radius:12px;
                       ">
-                      View Event
+                      Check in
+                    </a>
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center" style="padding-top:14px;">
+                    <a href="https://fitmeet.fit/events/view?id={{ $event->id }}"
+                      style="color:#8888aa;font-size:12px;text-decoration:none;">
+                      View event details
                     </a>
                   </td>
                 </tr>

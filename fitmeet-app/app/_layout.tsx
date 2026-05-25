@@ -18,14 +18,17 @@ function eventPathFromUrl(url: string | null) {
     const parsed = new URL(url)
     const host = parsed.hostname.replace(/^www\./, '')
 
-    if (host === 'fitmeet.fit' && ['/events/share', '/events/view'].includes(parsed.pathname)) {
+    if (host === 'fitmeet.fit' && ['/events/share', '/events/view', '/events/check-in'].includes(parsed.pathname)) {
       const id = parsed.searchParams.get('id')
-      return id ? `/event/${encodeURIComponent(id)}` : null
+      if (!id) return null
+      const checkIn = parsed.pathname === '/events/check-in' || parsed.searchParams.get('checkin') === '1'
+      return `/event/${encodeURIComponent(id)}${checkIn ? '?checkin=1' : ''}`
     }
 
     if (parsed.protocol === 'fitmeet:' && parsed.hostname === 'event') {
       const id = parsed.pathname.split('/').filter(Boolean)[0]
-      return id ? `/event/${encodeURIComponent(id)}` : null
+      const checkIn = parsed.searchParams.get('checkin') === '1'
+      return id ? `/event/${encodeURIComponent(id)}${checkIn ? '?checkin=1' : ''}` : null
     }
   } catch {}
 

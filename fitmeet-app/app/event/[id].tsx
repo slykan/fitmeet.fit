@@ -206,7 +206,7 @@ function Avatar({ user, size = 32 }: { user: Participant; size?: number }) {
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function EventDetailScreen() {
-  const { id, wall } = useLocalSearchParams<{ id: string; wall?: string }>()
+  const { id, wall, checkin } = useLocalSearchParams<{ id: string; wall?: string; checkin?: string }>()
   const me = useAuthStore(s => s.user)
   const insets = useSafeAreaInsets()
   const scrollRef = useRef<ScrollView | null>(null)
@@ -223,6 +223,7 @@ export default function EventDetailScreen() {
   const [showSupportModal, setShowSupportModal] = useState(false)
   const [checkingIn, setCheckingIn] = useState(false)
   const joinedJustNow = useRef(false)
+  const checkInPromptShown = useRef(false)
   const [notifyOnJoin, setNotifyOnJoin] = useState(false)
   const [showParticipants, setShowParticipants] = useState(false)
   const [participantSectionY, setParticipantSectionY] = useState<number | null>(null)
@@ -384,6 +385,18 @@ export default function EventDetailScreen() {
   useEffect(() => {
     if (event?.is_joined) setNotifyOnJoin(event.notify_on_join)
   }, [event?.notify_on_join, event?.is_joined])
+
+  useEffect(() => {
+    if (checkin !== '1' || checkInPromptShown.current || !event) return
+    checkInPromptShown.current = true
+
+    if (canCheckInNow(event)) {
+      Alert.alert('Check in', 'Mark that you made it to this event?', [
+        { text: 'Not now', style: 'cancel' },
+        { text: 'Check in', onPress: () => checkIn() },
+      ])
+    }
+  }, [checkin, event?.id, event?.checked_in_at, event?.is_joined])
 
   const loadComments = useCallback(async () => {
     if (!id || !event) return

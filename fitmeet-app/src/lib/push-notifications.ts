@@ -10,12 +10,21 @@ export const PUSH_TOKEN_STORAGE_KEY = 'fitmeet-mobile-push-token-v1'
 
 const BACKGROUND_NOTIFICATION_TASK = 'fitmeet-background-notification'
 const EVENT_STARTED_CATEGORY_ID = 'event_started'
+const EVENT_STARTED_CHANNEL_ID = 'event_started'
+
+function notificationDataFromTaskPayload(data: unknown) {
+  const payload = data as Record<string, unknown> | undefined
+  const nested = (payload?.notification as { request?: { content?: { data?: Record<string, string> } } } | undefined)
+    ?.request?.content?.data
+  const directData = payload?.data as Record<string, string> | undefined
+
+  return nested ?? directData ?? (payload as Record<string, string> | undefined)
+}
 
 // Must be defined at module top level (before any component mounts)
 TaskManager.defineTask(BACKGROUND_NOTIFICATION_TASK, async ({ data, error }: TaskManager.TaskManagerTaskBody) => {
   if (error) return
-  const notifData = (data as { notification?: { request?: { content?: { data?: Record<string, string> } } } })
-    ?.notification?.request?.content?.data
+  const notifData = notificationDataFromTaskPayload(data)
   if (!notifData) return
 
   const title     = notifData._title     ?? 'FitMeet'
@@ -32,7 +41,7 @@ TaskManager.defineTask(BACKGROUND_NOTIFICATION_TASK, async ({ data, error }: Tas
       data: cleanData,
       ...(categoryId ? { categoryIdentifier: categoryId } : {}),
     },
-    trigger: null,
+    trigger: Platform.OS === 'android' ? { channelId: EVENT_STARTED_CHANNEL_ID } : null,
   }).catch(() => {})
 })
 const CHECK_IN_ACTION_ID = 'check_in'
@@ -74,6 +83,15 @@ function routeFromNotificationData(data: Record<string, unknown> | undefined) {
 }
 
 async function registerNotificationCategories() {
+  if (Platform.OS === 'android') {
+    await Notifications.setNotificationChannelAsync(EVENT_STARTED_CHANNEL_ID, {
+      name: 'Event check-in',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#39FF14',
+    }).catch(() => {})
+  }
+
   await Notifications.setNotificationCategoryAsync(EVENT_STARTED_CATEGORY_ID, [
     {
       identifier: CHECK_IN_ACTION_ID,

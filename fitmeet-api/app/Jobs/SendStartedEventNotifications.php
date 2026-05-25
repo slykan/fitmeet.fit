@@ -46,7 +46,7 @@ class SendStartedEventNotifications implements ShouldQueue
         if (! empty($pushRecipientIds)) {
             SendPushNotification::dispatch(
                 array_values(array_unique($pushRecipientIds)),
-                '📍 Starting soon — tap to check in',
+                'Starting soon - tap to check in',
                 $event->title,
                 [
                     'type'        => 'event_started',
@@ -54,7 +54,7 @@ class SendStartedEventNotifications implements ShouldQueue
                     'categoryId'  => 'event_started',
                     'channelId'   => 'event_started',
                     '_data_only'  => 'true',
-                    '_title'      => '📍 Starting soon — tap to check in',
+                    '_title'      => 'Starting soon - tap to check in',
                     '_body'       => $event->title,
                 ],
             );
