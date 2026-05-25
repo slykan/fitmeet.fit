@@ -193,7 +193,7 @@ function ShareEventContent() {
       return
     }
 
-    fetch(event.activity.gpx_url)
+    fetch(`${apiBase}/events/public/${event.id}/gpx`)
       .then((res) => {
         if (!res.ok) throw new Error('Missing route')
         return res.text()
@@ -217,7 +217,7 @@ function ShareEventContent() {
     return () => {
       cancelled = true
     }
-  }, [event?.activity.gpx_url])
+  }, [apiBase, event?.activity.gpx_url, event?.id])
 
   async function handleShare() {
     if (!event || typeof window === 'undefined') return

@@ -132,7 +132,7 @@ function EventContent() {
           setWeatherCenter({ lat: loadedEvent.location.lat, lng: loadedEvent.location.lng })
         }
         if (loadedEvent.activity?.gpx_url) {
-          api.get(loadedEvent.activity.gpx_url, { responseType: 'text' })
+          api.get(`/events/${loadedEvent.id}/gpx`, { responseType: 'text' })
             .then(async (r) => {
               const parsed = parseGpx(r.data)
               if (parsed.elevationProfile.length >= 2) {
@@ -274,7 +274,7 @@ function EventContent() {
     if (!event?.activity.gpx_url || typeof window === 'undefined') return
 
     try {
-      const { data } = await api.get(event.activity.gpx_url, { responseType: 'blob' })
+      const { data } = await api.get(`/events/${event.id}/gpx`, { responseType: 'blob' })
       const blob = data instanceof Blob
         ? data
         : new Blob([data], { type: 'application/gpx+xml' })

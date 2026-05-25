@@ -194,6 +194,14 @@ class EventController extends Controller
         return response()->json(['data' => new PublicEventShareResource($event)]);
     }
 
+    // GET /api/events/public/{event}/gpx
+    public function publicGpx(Event $event): \Illuminate\Http\Response
+    {
+        abort_if($event->is_private || $event->status !== 'active', 404);
+
+        return $this->gpxResponse($event);
+    }
+
     // GET /api/events/public-latest
     public function publicLatest(Request $request): JsonResponse
     {
@@ -565,6 +573,11 @@ HTML;
 
     // GET /api/events/{event}/gpx
     public function gpx(Request $request, Event $event): \Illuminate\Http\Response
+    {
+        return $this->gpxResponse($event);
+    }
+
+    private function gpxResponse(Event $event): \Illuminate\Http\Response
     {
         abort_unless($event->gpx_path, 404);
 

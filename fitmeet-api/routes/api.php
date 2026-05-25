@@ -76,6 +76,7 @@ Route::get('users/public-latest', [UserController::class, 'publicLatest']);
 Route::get('comments/public-latest', [EventCommentController::class, 'publicLatest']);
 Route::get('users/public-stats',  [UserController::class, 'publicStats']);
 Route::get('events/public/{event}',   [EventController::class, 'publicShow']);
+Route::get('events/public/{event}/gpx', [EventController::class, 'publicGpx']);
 Route::get('events/public-latest',    [EventController::class, 'publicLatest']);
 Route::post('auth/register-mobile',   [AuthController::class, 'registerMobile']);
 Route::post('auth/login-mobile',      [AuthController::class, 'loginMobile']);
