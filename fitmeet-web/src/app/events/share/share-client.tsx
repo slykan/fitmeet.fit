@@ -10,7 +10,7 @@ import { Navbar } from '@/components/navbar'
 import { Button } from '@/components/ui/button'
 import { formatEventDateParts, formatEventDateTime } from '@/lib/event-time'
 import { shortAddress } from '@/lib/format-address'
-import { GpxResult, parseGpx } from '@/lib/parse-gpx'
+import { fetchElevationProfile, GpxResult, parseGpx } from '@/lib/parse-gpx'
 import { useAuthStore } from '@/store/auth'
 
 export interface SharedEvent {
@@ -202,6 +202,13 @@ function ShareEventContent() {
         if (cancelled) return
         const parsed = parseGpx(xml)
         setRoute(parsed.track.length >= 2 ? parsed : null)
+        if (parsed.track.length >= 2 && parsed.elevationProfile.length < 2) {
+          fetchElevationProfile(parsed.track)
+            .then((profile) => {
+              if (!cancelled) setRoute({ ...parsed, ...profile })
+            })
+            .catch(() => {})
+        }
       })
       .catch(() => {
         if (!cancelled) setRoute(null)

@@ -17,7 +17,7 @@ import { MomentCoverImage, type MomentCoverPosition } from '@/src/components/Mom
 import type { ElevationPoint } from '@/src/components/ElevationChart'
 import { CATEGORIES } from '@/src/lib/categories'
 import { api } from '@/src/lib/api'
-import { parseGpxText } from '@/src/lib/gpx'
+import { fetchElevationProfile, parseGpxText } from '@/src/lib/gpx'
 import type { TrackSegment } from '@/src/lib/gpx'
 import { useAuthStore } from '@/src/store/auth'
 import { palette, spacing } from '@/src/theme'
@@ -377,6 +377,14 @@ export default function EventDetailScreen() {
         }
         if (parsed.coloredSegments.length > 0) setColoredSegments(parsed.coloredSegments)
         if (parsed.elevationProfile.length >= 2) setElevationProfile(parsed.elevationProfile)
+        else {
+          fetchElevationProfile(parsed.track)
+            .then((profile) => {
+              if (profile.coloredSegments.length > 0) setColoredSegments(profile.coloredSegments)
+              if (profile.elevationProfile.length >= 2) setElevationProfile(profile.elevationProfile)
+            })
+            .catch(() => {})
+        }
       })
       .catch(() => setGpxError(true))
       .finally(() => setGpxLoading(false))

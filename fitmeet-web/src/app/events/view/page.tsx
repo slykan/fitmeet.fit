@@ -15,7 +15,7 @@ import { shortAddress } from '@/lib/format-address'
 import { formatEventDateTime } from '@/lib/event-time'
 import { fetchRelevantEventWeather, windDirectionLabelDetailed, type EventWeather } from '@/lib/weather'
 import api from '@/lib/api'
-import { parseGpx, GpxResult } from '@/lib/parse-gpx'
+import { fetchElevationProfile, parseGpx, GpxResult } from '@/lib/parse-gpx'
 import { useAuthStore } from '@/store/auth'
 import { Button } from '@/components/ui/button'
 
@@ -133,7 +133,19 @@ function EventContent() {
         }
         if (loadedEvent.activity?.gpx_url) {
           api.get(loadedEvent.activity.gpx_url, { responseType: 'text' })
-            .then(r => setGpxResult(parseGpx(r.data)))
+            .then(async (r) => {
+              const parsed = parseGpx(r.data)
+              if (parsed.elevationProfile.length >= 2) {
+                setGpxResult(parsed)
+                return
+              }
+              try {
+                const profile = await fetchElevationProfile(parsed.track)
+                setGpxResult({ ...parsed, ...profile })
+              } catch {
+                setGpxResult(parsed)
+              }
+            })
             .catch(() => {})
         }
       })
