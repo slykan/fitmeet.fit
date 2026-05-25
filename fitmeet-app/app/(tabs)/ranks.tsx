@@ -91,7 +91,7 @@ function Section({ section, data, onBuyBeer }: { section: typeof SECTIONS[0]; da
           )}
           {onBuyBeer && (
             <Pressable style={styles.buyBeerBtn} onPress={onBuyBeer}>
-              <Text style={styles.buyBeerText}>🍺 Buy a Beer</Text>
+              <Text style={styles.buyBeerText}>🍺 Buy a beer</Text>
             </Pressable>
           )}
         </View>
@@ -152,7 +152,7 @@ export default function RanksScreen() {
                 <Ionicons name="beer-outline" size={22} color="#f6c65b" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.modalTitle}>Buy me a Beer 🍺</Text>
+                <Text style={styles.modalTitle}>Buy me a beer 🍺</Text>
                 <Text style={styles.modalSub}>Support FitMeet and get on the leaderboard!</Text>
               </View>
               <Pressable hitSlop={12} onPress={() => setShowBeer(false)}>

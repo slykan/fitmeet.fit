@@ -43,7 +43,7 @@ function BeerModal({ onClose, onPurchased }: { onClose: () => void; onPurchased:
         <div className="flex items-center justify-between px-5 py-4 border-b shrink-0" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
           <div className="flex items-center gap-2">
             <span className="text-lg">🍺</span>
-            <h2 className="font-black text-lg">Buy me a Beer</h2>
+            <h2 className="font-black text-lg">Buy me a beer</h2>
           </div>
           <button onClick={onClose} className="opacity-50 hover:opacity-100 transition-opacity"><X size={20} /></button>
         </div>
@@ -132,7 +132,7 @@ function Section({ section, data, onBuyBeer }: { section: typeof SECTIONS[0]; da
                 className="w-full py-3 rounded-xl text-sm font-bold transition-opacity hover:opacity-80"
                 style={{ background: 'rgba(246,198,91,0.1)', border: '1px solid rgba(246,198,91,0.3)', color: '#f6c65b' }}
               >
-                🍺 Buy a Beer
+                🍺 Buy a beer
               </button>
             </div>
           )}
