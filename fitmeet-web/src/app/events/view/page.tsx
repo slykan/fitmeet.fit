@@ -246,6 +246,27 @@ function EventContent() {
     } catch {}
   }
 
+  async function handleGpxDownload() {
+    if (!event?.activity.gpx_url || typeof window === 'undefined') return
+
+    try {
+      const { data } = await api.get(event.activity.gpx_url, { responseType: 'blob' })
+      const blob = data instanceof Blob
+        ? data
+        : new Blob([data], { type: 'application/gpx+xml' })
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `fitmeet-event-${event.id}.gpx`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+    } catch {
+      alert('Could not download GPX.')
+    }
+  }
+
   async function handleCancelEvent() {
     if (!event) return
     if (!confirm('Cancel this event? Joined users will be notified.')) return
@@ -539,14 +560,14 @@ function EventContent() {
               {event.activity.gpx_url && (
                 <div className="flex items-start gap-2.5 text-sm">
                   <Download size={15} style={{ color: 'var(--primary)', flexShrink: 0, marginTop: 2 }} />
-                  <a
-                    href={event.activity.gpx_url}
-                    download={`fitmeet-event-${event.id}.gpx`}
+                  <button
+                    type="button"
+                    onClick={handleGpxDownload}
                     className="inline-flex items-center gap-2 font-medium transition-opacity hover:opacity-75"
                     style={{ color: 'var(--primary)' }}
                   >
                     Download GPX
-                  </a>
+                  </button>
                 </div>
               )}
             </div>
