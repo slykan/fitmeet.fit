@@ -82,6 +82,28 @@ function routeFromNotificationData(data: Record<string, unknown> | undefined) {
   }
 }
 
+async function dismissEventNotification(
+  response: Notifications.NotificationResponse | null | undefined,
+  eventId: string,
+) {
+  const requestId = response?.notification.request.identifier
+  if (requestId) {
+    await Notifications.dismissNotificationAsync(requestId).catch(() => {})
+  }
+
+  const presented = await Notifications.getPresentedNotificationsAsync().catch(() => [])
+  await Promise.all(
+    presented
+      .filter((notification) => {
+        const data = notification.request.content.data as Record<string, unknown> | undefined
+        return data?.event_id != null &&
+          String(data.event_id) === eventId &&
+          data.type === 'event_started'
+      })
+      .map((notification) => Notifications.dismissNotificationAsync(notification.request.identifier).catch(() => {})),
+  )
+}
+
 async function registerNotificationCategories() {
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync(EVENT_STARTED_CHANNEL_ID, {
@@ -116,6 +138,7 @@ async function handleNotificationResponse(response: Notifications.NotificationRe
       await api.post(`/events/${eventId}/check-in`)
     } catch {}
 
+    await dismissEventNotification(response, eventId)
     router.push(`/event/${eventId}` as never)
     return
   }
