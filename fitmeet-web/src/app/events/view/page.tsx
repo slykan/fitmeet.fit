@@ -40,6 +40,10 @@ type SavePickerWindow = Window & {
   }>
 }
 
+function gpxEndpoint(event: Event) {
+  return event.is_private ? `/events/${event.id}/gpx` : `/events/public/${event.id}/gpx`
+}
+
 interface Event {
   id: number
   title: string
@@ -132,7 +136,7 @@ function EventContent() {
           setWeatherCenter({ lat: loadedEvent.location.lat, lng: loadedEvent.location.lng })
         }
         if (loadedEvent.activity?.gpx_url) {
-          api.get(`/events/${loadedEvent.id}/gpx`, { responseType: 'text' })
+          api.get(gpxEndpoint(loadedEvent), { responseType: 'text' })
             .then(async (r) => {
               const parsed = parseGpx(r.data)
               if (parsed.elevationProfile.length >= 2) {
@@ -274,7 +278,7 @@ function EventContent() {
     if (!event?.activity.gpx_url || typeof window === 'undefined') return
 
     try {
-      const { data } = await api.get(`/events/${event.id}/gpx`, { responseType: 'blob' })
+      const { data } = await api.get(gpxEndpoint(event), { responseType: 'blob' })
       const blob = data instanceof Blob
         ? data
         : new Blob([data], { type: 'application/gpx+xml' })
