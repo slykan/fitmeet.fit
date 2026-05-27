@@ -39,6 +39,18 @@ const DURATION_PRESETS = [
   { label: '3 h',    value: '180' },
 ]
 
+const CATEGORY_EMOJI: Record<string, string> = Object.fromEntries(
+  CATEGORIES.map(category => [category.value, category.emoji])
+)
+
+interface FitMeetRoute {
+  id: number
+  title: string
+  category: { value: string; label: string }
+  stats: { distance_km: number | null; elevation_gain: number | null }
+  location: { area_label: string | null }
+}
+
 function statsFromElevationProfile(profile: { km: number; ele: number }[]) {
   let elevGain = 0
   let maxGrade = 0
@@ -247,6 +259,14 @@ export default function CreateEventScreen() {
   const [gpxContent,  setGpxContent]  = useState<string | null>(null)
   const [routeTitle,  setRouteTitle]  = useState('')
   const [showStrava,  setShowStrava]  = useState(false)
+  const [showFitMeetRoutes, setShowFitMeetRoutes] = useState(false)
+  const [fitMeetRoutes, setFitMeetRoutes] = useState<FitMeetRoute[]>([])
+  const [fitMeetRoutesLoading, setFitMeetRoutesLoading] = useState(false)
+  const [fitMeetRoutesSearch, setFitMeetRoutesSearch] = useState('')
+  const [fitMeetRoutesCategory, setFitMeetRoutesCategory] = useState('')
+  const [importingFitMeetRoute, setImportingFitMeetRoute] = useState<number | null>(null)
+  const [fitMeetRouteId, setFitMeetRouteId] = useState<number | null>(null)
+  const [routeRemoved, setRouteRemoved] = useState(false)
 
   const [youtubeUrl,   setYoutubeUrl]   = useState('')
   const [joinOnCreate,  setJoinOnCreate]  = useState(true)
@@ -309,6 +329,7 @@ export default function CreateEventScreen() {
         if (ev.activity?.gpx_url) {
           setGpxName('Current GPX route')
           setRouteTitle('')
+          setRouteRemoved(false)
           const separator = ev.activity.gpx_url.includes('?') ? '&' : '?'
           api.get(`${ev.activity.gpx_url}${separator}t=${Date.now()}`, { responseType: 'text' })
             .then(async ({ data: text }) => {
@@ -323,6 +344,7 @@ export default function CreateEventScreen() {
           setGpxName(null)
           setGpxContent(null)
           setRouteTitle('')
+          setRouteRemoved(false)
           setGpxTrack([])
         }
       })
@@ -335,6 +357,36 @@ export default function CreateEventScreen() {
 
     return () => { alive = false }
   }, [editId])
+
+  useEffect(() => {
+    if (!showFitMeetRoutes) return
+    let cancelled = false
+    const timeout = setTimeout(() => {
+      setFitMeetRoutesLoading(true)
+      api.get('/routes', {
+        params: {
+          per_page: 60,
+          sort: 'new',
+          q: fitMeetRoutesSearch.trim() || undefined,
+          category: fitMeetRoutesCategory || undefined,
+        },
+      })
+        .then(({ data }) => {
+          if (!cancelled) setFitMeetRoutes(data.data ?? [])
+        })
+        .catch(() => {
+          if (!cancelled) setFitMeetRoutes([])
+        })
+        .finally(() => {
+          if (!cancelled) setFitMeetRoutesLoading(false)
+        })
+    }, fitMeetRoutesSearch ? 220 : 0)
+
+    return () => {
+      cancelled = true
+      clearTimeout(timeout)
+    }
+  }, [fitMeetRoutesCategory, fitMeetRoutesSearch, showFitMeetRoutes])
 
   // ─── Handlers ───────────────────────────────────────────────────────────────
 
@@ -456,6 +508,8 @@ export default function CreateEventScreen() {
     setGpxContent(gpxText)
     setGpxName(routeName)
     setRouteTitle(routeName.replace(/\.[^.]+$/, ''))
+    setFitMeetRouteId(null)
+    setRouteRemoved(false)
     setGpxTrack(parsed.track)
 
     const [startLat, startLng] = parsed.track[0]
@@ -478,6 +532,24 @@ export default function CreateEventScreen() {
       Alert.alert('Error', 'Could not parse GPX route.')
     })
   }
+
+  async function importFitMeetRoute(route: FitMeetRoute) {
+    setImportingFitMeetRoute(route.id)
+    try {
+      const { data } = await api.get(`/routes/${route.id}/gpx`, { responseType: 'text' })
+      await applyGpxText(data as string, `${route.title}.gpx`, true)
+      setRouteTitle(route.title)
+      setFitMeetRouteId(route.id)
+      setRouteRemoved(false)
+      setShowFitMeetRoutes(false)
+    } catch {
+      Alert.alert('Error', 'Could not import this FitMeet route.')
+    } finally {
+      setImportingFitMeetRoute(null)
+    }
+  }
+
+  const fitMeetRouteCategories = [{ value: '', label: 'All' }, ...CATEGORIES]
 
   async function pickGpx() {
     const result = await DocumentPicker.getDocumentAsync({
@@ -534,7 +606,11 @@ export default function CreateEventScreen() {
       } else if (editId && imageRemoved) {
         fd.append('image_remove', '1')
       }
-      if (gpxContent && gpxName) {
+      if (editId && routeRemoved) {
+        fd.append('gpx_remove', '1')
+      } else if (fitMeetRouteId) {
+        fd.append('route_id', String(fitMeetRouteId))
+      } else if (gpxContent && gpxName) {
         fd.append('gpx_text', gpxContent)
         fd.append('gpx_name', gpxName)
         if (routeTitle.trim()) fd.append('route_title', routeTitle.trim())
@@ -574,6 +650,36 @@ export default function CreateEventScreen() {
     } finally {
       setSubmitting(false)
     }
+  }
+
+  async function clearRoute() {
+    if (editId && gpxName === 'Current GPX route') {
+      try {
+        const fd = new FormData()
+        fd.append('gpx_remove', '1')
+        await api.post(`/events/${editId}`, (() => {
+          fd.append('_method', 'PATCH')
+          return fd
+        })(), {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
+      } catch {
+        Alert.alert('Error', 'Could not delete this route.')
+        return
+      }
+    }
+
+    setGpxName(null)
+    setGpxContent(null)
+    setRouteTitle('')
+    setFitMeetRouteId(null)
+    setGpxTrack([])
+    setDistanceKm('')
+    setElevGain('')
+    setMaxGrade('')
+    setMaxDowngrade('')
+    setPace('')
+    if (editId && gpxName !== 'Current GPX route') setRouteRemoved(true)
   }
 
   function openCreatedEvent() {
@@ -842,17 +948,27 @@ export default function CreateEventScreen() {
               </Text>
             </Pressable>
             {gpxName ? (
-              <TextInput
-                style={styles.input}
-                value={routeTitle}
-                onChangeText={setRouteTitle}
-                placeholder="Route title"
-                placeholderTextColor={palette.textDim}
-              />
+              <>
+                <TextInput
+                  style={styles.input}
+                  value={routeTitle}
+                  onChangeText={setRouteTitle}
+                  placeholder="Route title"
+                  placeholderTextColor={palette.textDim}
+                />
+                <Pressable style={styles.deleteRouteBtn} onPress={clearRoute}>
+                  <Ionicons name="trash-outline" size={16} color="#f87171" />
+                  <Text style={styles.deleteRouteText}>Delete route</Text>
+                </Pressable>
+              </>
             ) : null}
             <Pressable style={styles.stravaBtn} onPress={() => setShowStrava(true)}>
               <Text style={styles.stravaMark}>STRAVA</Text>
               <Text style={styles.stravaBtnText}>Import from Strava</Text>
+            </Pressable>
+            <Pressable style={styles.fitMeetRouteBtn} onPress={() => setShowFitMeetRoutes(true)}>
+              <Ionicons name="map-outline" size={16} color={palette.accent} />
+              <Text style={styles.fitMeetRouteBtnText}>Add from FitMeet routes</Text>
             </Pressable>
           </View>
         </Field>
@@ -862,6 +978,85 @@ export default function CreateEventScreen() {
           onClose={() => setShowStrava(false)}
           onImport={handleStravaImport}
         />
+
+        <Modal
+          visible={showFitMeetRoutes}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setShowFitMeetRoutes(false)}
+        >
+          <Pressable style={styles.modalOverlay} onPress={() => setShowFitMeetRoutes(false)}>
+            <Pressable style={styles.routeModal} onPress={(event) => event.stopPropagation()}>
+              <View style={styles.routeModalHeader}>
+                <View>
+                  <Text style={styles.routeModalEyebrow}>FITMEET</Text>
+                  <Text style={styles.routeModalTitle}>Route catalog</Text>
+                </View>
+                <Pressable onPress={() => setShowFitMeetRoutes(false)} hitSlop={10}>
+                  <Ionicons name="close" size={22} color={palette.textMuted} />
+                </Pressable>
+              </View>
+
+              <View style={styles.routeSearchBar}>
+                <Ionicons name="search-outline" size={15} color={palette.textDim} />
+                <TextInput
+                  style={styles.routeSearchInput}
+                  value={fitMeetRoutesSearch}
+                  onChangeText={setFitMeetRoutesSearch}
+                  placeholder="Search routes"
+                  placeholderTextColor={palette.textDim}
+                />
+              </View>
+
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.routeFilterRow}>
+                {fitMeetRouteCategories.map(cat => {
+                  const active = fitMeetRoutesCategory === cat.value
+                  return (
+                    <Pressable
+                      key={cat.value}
+                      style={[styles.routeFilterChip, active && styles.routeFilterChipActive]}
+                      onPress={() => setFitMeetRoutesCategory(cat.value)}
+                    >
+                      <Text style={[styles.routeFilterText, active && styles.routeFilterTextActive]}>
+                        {cat.value ? `${CATEGORY_EMOJI[cat.value] ?? ''} ${cat.label}` : cat.label}
+                      </Text>
+                    </Pressable>
+                  )
+                })}
+              </ScrollView>
+
+              {fitMeetRoutesLoading ? (
+                <ActivityIndicator color={palette.accent} style={{ paddingVertical: spacing.lg }} />
+              ) : fitMeetRoutes.length === 0 ? (
+                <Text style={styles.routeEmpty}>No public routes yet.</Text>
+              ) : (
+                <ScrollView style={styles.routeList} contentContainerStyle={{ gap: 8 }} showsVerticalScrollIndicator>
+                  {fitMeetRoutes.map(route => (
+                    <Pressable
+                      key={route.id}
+                      style={styles.routeImportCard}
+                      disabled={importingFitMeetRoute === route.id}
+                      onPress={() => importFitMeetRoute(route)}
+                    >
+                      <Text style={styles.routeImportEmoji}>{CATEGORY_EMOJI[route.category.value] ?? '📍'}</Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.routeImportTitle} numberOfLines={1}>{route.title}</Text>
+                        <Text style={styles.routeImportMeta} numberOfLines={1}>
+                          {[
+                            route.stats.distance_km != null && `${route.stats.distance_km} km`,
+                            route.stats.elevation_gain != null && `↑${route.stats.elevation_gain} m`,
+                            route.location.area_label,
+                          ].filter(Boolean).join(' · ')}
+                        </Text>
+                      </View>
+                      <Text style={styles.routeUseText}>{importingFitMeetRoute === route.id ? '...' : 'Use'}</Text>
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              )}
+            </Pressable>
+          </Pressable>
+        </Modal>
 
         {/* ── Details ── */}
         <SectionHeader title="Details" icon="settings-outline" badge="optional" />
@@ -1240,6 +1435,69 @@ const styles = StyleSheet.create({
   stravaBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 14, paddingHorizontal: spacing.md, paddingVertical: 12, backgroundColor: 'rgba(252,76,2,0.08)', borderWidth: 1, borderColor: 'rgba(252,76,2,0.3)' },
   stravaMark: { color: '#FC4C02', fontSize: 10, fontWeight: '900', letterSpacing: 0.7 },
   stravaBtnText: { color: '#FC4C02', fontSize: 14, fontWeight: '700' },
+  fitMeetRouteBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 14, paddingHorizontal: spacing.md, paddingVertical: 12, backgroundColor: 'rgba(108,255,47,0.08)', borderWidth: 1, borderColor: 'rgba(108,255,47,0.3)' },
+  fitMeetRouteBtnText: { color: palette.accent, fontSize: 14, fontWeight: '700' },
+  deleteRouteBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 14, paddingHorizontal: spacing.md, paddingVertical: 12, backgroundColor: 'rgba(248,113,113,0.08)', borderWidth: 1, borderColor: 'rgba(248,113,113,0.3)' },
+  deleteRouteText: { color: '#f87171', fontSize: 14, fontWeight: '800' },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'flex-end',
+    padding: spacing.md,
+  },
+  routeModal: {
+    maxHeight: '82%',
+    backgroundColor: palette.panelRaised,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: palette.line,
+    padding: spacing.lg,
+    gap: 10,
+  },
+  routeModalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  routeModalEyebrow: { color: palette.accent, fontSize: 11, fontWeight: '900', letterSpacing: 0.7 },
+  routeModalTitle: { color: palette.text, fontSize: 18, fontWeight: '900' },
+  routeSearchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: palette.panel,
+    borderWidth: 1,
+    borderColor: palette.line,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    height: 42,
+  },
+  routeSearchInput: { flex: 1, color: palette.text, fontSize: 13 },
+  routeFilterRow: { gap: 6, paddingVertical: 2 },
+  routeFilterChip: {
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: palette.line,
+    backgroundColor: palette.panel,
+  },
+  routeFilterChipActive: { backgroundColor: palette.accent, borderColor: palette.accent },
+  routeFilterText: { color: palette.textMuted, fontSize: 11, fontWeight: '800' },
+  routeFilterTextActive: { color: '#031109' },
+  routeEmpty: { color: palette.textMuted, fontSize: 13, textAlign: 'center', paddingVertical: spacing.lg },
+  routeList: { maxHeight: 320 },
+  routeImportCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: palette.panel,
+    borderWidth: 1,
+    borderColor: palette.line,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  routeImportEmoji: { fontSize: 20 },
+  routeImportTitle: { color: palette.text, fontSize: 14, fontWeight: '800' },
+  routeImportMeta: { color: palette.textMuted, fontSize: 11, marginTop: 2 },
+  routeUseText: { color: palette.accent, fontSize: 13, fontWeight: '900' },
 
   imagePreviewWrap: { gap: 10, marginTop: 8 },
   imagePreview: { width: '100%', height: 180, borderRadius: 14 },

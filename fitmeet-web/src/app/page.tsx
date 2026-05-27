@@ -1,10 +1,11 @@
 import {
   ArrowRight,
   Bell,
-  Camera,
   CheckCircle2,
   Compass,
+  Download,
   MessageSquareText,
+  PencilLine,
   Route,
   Share2,
   Zap,
@@ -86,22 +87,45 @@ const highlights = [
 
 const latestFeatures = [
   {
-    icon: CheckCircle2,
-    title: 'Event check-ins',
-    description: 'Check in when you arrive and see who is already there before the activity starts.',
-    href: null,
+    icon: Route,
+    title: 'Public route library',
+    description: 'Public GPX routes now get their own searchable home with maps, elevation and details.',
+    href: '/meet?tab=routes',
   },
   {
-    icon: MessageSquareText,
-    title: 'Comments and chat',
-    description: 'Share updates, coordinate details and keep participants connected around every event.',
-    href: null,
+    icon: Share2,
+    title: 'Share and download',
+    description: 'Open a route, share the page, or download the GPX for your watch, bike computer or map app.',
+    href: '/blog/fitmeet-routes-gpx-event-planning',
   },
   {
-    icon: Camera,
-    title: 'Moments',
-    description: 'After every event, organizers upload one photo. Real people, real events — all in one gallery.',
-    href: '/moments',
+    icon: PencilLine,
+    title: 'Add routes to events',
+    description: 'Create and edit events from saved FitMeet routes, without duplicating the original route.',
+    href: '/blog/fitmeet-routes-gpx-event-planning',
+  },
+]
+
+const routeNews = [
+  {
+    icon: Route,
+    title: 'Routes tab',
+    description: 'Meet now has a dedicated Routes view with categories, search, distance and elevation at a glance.',
+  },
+  {
+    icon: Download,
+    title: 'GPX download',
+    description: 'Every public route can be downloaded as a GPX file for navigation tools and devices.',
+  },
+  {
+    icon: Share2,
+    title: 'Share route pages',
+    description: 'Route detail pages are shareable, with the map, elevation profile and key stats in one place.',
+  },
+  {
+    icon: PencilLine,
+    title: 'Create from routes',
+    description: 'When creating or editing an event, you can pull in an existing FitMeet route and keep it clean.',
   },
 ]
 
@@ -270,7 +294,7 @@ export default async function HomePage() {
                       New in FitMeet
                     </p>
                     <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                      Check-ins, Moments, chat
+                      Routes, GPX, sharing
                     </span>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-3">
@@ -343,6 +367,50 @@ export default async function HomePage() {
         </section>
 
         <LatestEventsCarousel events={latestEvents} />
+
+        <section className="py-14 md:py-16 border-b" style={{ borderColor: 'var(--border)' }}>
+          <div className="max-w-6xl mx-auto px-4">
+            <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between mb-8">
+              <div className="max-w-2xl">
+                <p className="text-sm font-semibold mb-3" style={{ color: 'var(--primary)' }}>
+                  What&apos;s new
+                </p>
+                <h2 className="text-3xl md:text-4xl font-bold mb-3">Routes now live beyond one event.</h2>
+                <p className="text-base leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+                  GPX routes from public events are easier to find, reuse, edit, share and download across FitMeet.
+                </p>
+              </div>
+              <Link
+                href="/blog/fitmeet-routes-gpx-event-planning"
+                className="inline-flex items-center gap-2 text-sm font-semibold transition-opacity hover:opacity-80"
+                style={{ color: 'var(--primary)' }}
+              >
+                Read the update <ArrowRight size={14} />
+              </Link>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {routeNews.map(({ icon: Icon, title, description }) => (
+                <div
+                  key={title}
+                  className="rounded-2xl border p-5"
+                  style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
+                >
+                  <div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center mb-4"
+                    style={{ background: 'rgba(57,255,20,0.1)' }}
+                  >
+                    <Icon size={18} style={{ color: 'var(--primary)' }} />
+                  </div>
+                  <h3 className="font-bold mb-2">{title}</h3>
+                  <p className="text-sm leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+                    {description}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
 
         <section className="py-16 md:py-20 border-b" style={{ borderColor: 'var(--border)' }}>
           <div className="max-w-6xl mx-auto px-4">

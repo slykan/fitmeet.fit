@@ -38,6 +38,7 @@ class StoreEventRequest extends FormRequest
             'gpx_text'         => ['nullable', 'string', 'max:8388608'],
             'gpx_name'         => ['nullable', 'string', 'max:120'],
             'route_title'      => ['nullable', 'string', 'max:140'],
+            'route_id'         => ['nullable', 'integer', 'exists:routes,id'],
             'image_file'       => ['nullable', 'file', 'max:8192'],
 
             'skill_level'      => ['nullable', Rule::in(['beginner', 'advanced', 'pro'])],

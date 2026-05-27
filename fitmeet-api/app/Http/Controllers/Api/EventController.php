@@ -153,8 +153,11 @@ class EventController extends Controller
         $routeTitle = $data['route_title'] ?? null;
         $gpxTextForRoute = null;
         $gpxNameForRoute = $data['gpx_name'] ?? null;
+        $importedRoute = $this->requestedPublicRoute($data['route_id'] ?? null);
 
-        if ($request->hasFile('gpx_file')) {
+        if ($importedRoute) {
+            $this->applyImportedRouteData($data, $importedRoute);
+        } elseif ($request->hasFile('gpx_file')) {
             $file = $request->file('gpx_file');
             $gpxTextForRoute = file_get_contents($file->getRealPath()) ?: null;
             $gpxNameForRoute = $file->getClientOriginalName();
@@ -318,24 +321,29 @@ HTML;
         $routeTitle = $data['route_title'] ?? null;
         $gpxTextForRoute = null;
         $gpxNameForRoute = $data['gpx_name'] ?? null;
+        $importedRoute = $this->requestedPublicRoute($data['route_id'] ?? null);
 
-        if ($request->hasFile('gpx_file')) {
-            if ($event->gpx_path) {
-                Storage::disk('public')->delete($event->gpx_path);
-            }
+        if ($importedRoute) {
+            $this->deleteOwnedRouteForEvent($event);
+            $this->deleteEventGpxIfUnshared($event->gpx_path);
+            $this->applyImportedRouteData($data, $importedRoute);
+        } elseif ($request->hasFile('gpx_file')) {
+            $this->deleteOwnedRouteForEvent($event);
+            $this->deleteEventGpxIfUnshared($event->gpx_path);
             $file = $request->file('gpx_file');
             $gpxTextForRoute = file_get_contents($file->getRealPath()) ?: null;
             $gpxNameForRoute = $file->getClientOriginalName();
             $data['gpx_path'] = $file->store('gpx', 'public');
         } elseif ($request->filled('gpx_text')) {
-            if ($event->gpx_path) {
-                Storage::disk('public')->delete($event->gpx_path);
-            }
+            $this->deleteOwnedRouteForEvent($event);
+            $this->deleteEventGpxIfUnshared($event->gpx_path);
             $gpxTextForRoute = (string) $request->string('gpx_text');
             $data['gpx_path'] = $this->storeGpxText(
                 $gpxTextForRoute,
                 (string) $gpxNameForRoute
             );
+        } elseif ($request->boolean('gpx_remove')) {
+            $this->removeEventRouteData($event, $data);
         }
 
         if ($request->hasFile('image_file')) {
@@ -350,7 +358,7 @@ HTML;
             $data['image_path'] = null;
         }
 
-        unset($data['gpx_file'], $data['gpx_text'], $data['gpx_name'], $data['route_title'], $data['image_file'], $data['image_remove']);
+        unset($data['gpx_file'], $data['gpx_text'], $data['gpx_name'], $data['route_title'], $data['gpx_remove'], $data['image_file'], $data['image_remove']);
 
         $event->update($data);
 
@@ -723,7 +731,10 @@ HTML;
         $end = $parsed['end'] ?? null;
 
         $route = $event->route_id
-            ? ActivityRoute::query()->whereKey($event->route_id)->first()
+            ? ActivityRoute::query()
+                ->whereKey($event->route_id)
+                ->where('source_event_id', $event->id)
+                ->first()
             : null;
 
         $routeData = [
@@ -760,9 +771,79 @@ HTML;
 
         ActivityRoute::query()
             ->whereKey($event->route_id)
+            ->where('source_event_id', $event->id)
             ->update([
                 'is_public' => ! $event->is_private && $event->status !== 'cancelled',
             ]);
+    }
+
+    private function requestedPublicRoute(mixed $routeId): ?ActivityRoute
+    {
+        if (! $routeId) {
+            return null;
+        }
+
+        return ActivityRoute::query()
+            ->public()
+            ->whereKey($routeId)
+            ->firstOrFail();
+    }
+
+    private function applyImportedRouteData(array &$data, ActivityRoute $route): void
+    {
+        $data['route_id'] = $route->id;
+        $data['gpx_path'] = $route->gpx_path;
+        $data['distance_km'] = $route->distance_km;
+        $data['elevation_gain'] = $route->elevation_gain;
+        $data['max_grade'] = $route->max_grade;
+        $data['max_downgrade'] = $route->max_downgrade;
+
+        if (! isset($data['lat']) && $route->start_lat !== null) {
+            $data['lat'] = $route->start_lat;
+        }
+        if (! isset($data['lng']) && $route->start_lng !== null) {
+            $data['lng'] = $route->start_lng;
+        }
+    }
+
+    private function removeEventRouteData(Event $event, array &$data): void
+    {
+        $this->deleteOwnedRouteForEvent($event);
+
+        $this->deleteEventGpxIfUnshared($event->gpx_path);
+
+        $data['route_id'] = null;
+        $data['gpx_path'] = null;
+        $data['distance_km'] = null;
+        $data['elevation_gain'] = null;
+        $data['max_grade'] = null;
+        $data['max_downgrade'] = null;
+        $data['pace'] = null;
+    }
+
+    private function deleteOwnedRouteForEvent(Event $event): void
+    {
+        if (! $event->route_id) {
+            return;
+        }
+
+        ActivityRoute::query()
+            ->whereKey($event->route_id)
+            ->where('source_event_id', $event->id)
+            ->delete();
+    }
+
+    private function deleteEventGpxIfUnshared(?string $path): void
+    {
+        if (! $path) {
+            return;
+        }
+
+        if (ActivityRoute::query()->where('gpx_path', $path)->exists()) {
+            return;
+        }
+
+        Storage::disk('public')->delete($path);
     }
 
     private function routeTitle(Event $event, array $parsed, ?string $routeTitle, ?string $gpxName): string

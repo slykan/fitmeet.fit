@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowRight, BookOpen, Camera, CalendarCheck, CheckCircle2, Sparkles, Users } from 'lucide-react'
+import { ArrowRight, BookOpen, Download, PencilLine, Route, Share2, Sparkles, Users } from 'lucide-react'
 import { Navbar } from '@/components/navbar'
 import { posts } from '@/lib/posts'
 
@@ -14,6 +14,7 @@ const CATEGORY_COLOR: Record<string, string> = {
   Hiking:    'rgba(251,191,36,0.12)',
   Fitness:   'rgba(167,139,250,0.12)',
   Community: 'rgba(251,113,133,0.12)',
+  Routes:    'rgba(34,197,94,0.14)',
 }
 
 const CATEGORY_TEXT: Record<string, string> = {
@@ -22,6 +23,7 @@ const CATEGORY_TEXT: Record<string, string> = {
   Hiking:    '#fbbf24',
   Fitness:   '#a78bfa',
   Community: '#fb7185',
+  Routes:    '#22c55e',
 }
 
 function formatDate(iso: string) {
@@ -93,7 +95,7 @@ export default function BlogPage() {
 
               {/* 6th card — What's New */}
               <Link
-                href="/login"
+                href="/blog/fitmeet-routes-gpx-event-planning"
                 className="group rounded-2xl flex flex-col overflow-hidden transition-opacity hover:opacity-90"
                 style={{
                   background: 'linear-gradient(135deg, rgba(57,255,20,0.18) 0%, rgba(57,255,20,0.08) 100%)',
@@ -108,18 +110,19 @@ export default function BlogPage() {
                     >
                       <Sparkles size={11} /> What&apos;s New
                     </span>
-                    <span className="text-xs font-semibold" style={{ color: 'var(--primary)' }}>v1.1</span>
+                    <span className="text-xs font-semibold" style={{ color: 'var(--primary)' }}>Routes</span>
                   </div>
 
                   <div className="flex-1">
                     <h2 className="font-bold text-lg leading-snug mb-3">
-                      Latest features in FitMeet
+                      Routes got a serious upgrade
                     </h2>
                     <div className="space-y-2.5">
                       {[
-                        { icon: Camera,        label: 'Moments',         desc: 'One photo per event, forever saved' },
-                        { icon: CalendarCheck, label: 'Event calendar',  desc: 'Your upcoming events at a glance' },
-                        { icon: CheckCircle2,  label: 'Check-in',        desc: 'Mark your arrival and see who\'s there' },
+                        { icon: Route,      label: 'Routes tab',      desc: 'Browse public GPX routes from events' },
+                        { icon: Share2,     label: 'Share pages',     desc: 'Send a clean route page to anyone' },
+                        { icon: Download,   label: 'Download GPX',    desc: 'Use the route in watches and map apps' },
+                        { icon: PencilLine, label: 'Reuse in events', desc: 'Add routes while creating or editing' },
                       ].map(({ icon: Icon, label, desc }) => (
                         <div key={label} className="flex items-start gap-3">
                           <div

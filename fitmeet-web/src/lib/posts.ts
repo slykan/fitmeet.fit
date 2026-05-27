@@ -15,6 +15,52 @@ export interface Post {
 
 export const posts: Post[] = [
   {
+    slug: 'fitmeet-routes-gpx-event-planning',
+    title: 'FitMeet Routes: Share, Download and Reuse GPX Routes',
+    description: 'Routes now have their own place in FitMeet: browse public GPX routes, open route detail pages, download files, share links, and reuse routes when creating or editing events.',
+    publishedAt: '2026-05-27',
+    readTime: 4,
+    category: 'Routes',
+    sections: [
+      {
+        heading: 'Routes Are No Longer Hidden Inside Events',
+        paragraphs: [
+          'A good route should not disappear after the event date passes. Public events with GPX routes now help build a route library inside FitMeet, so people can browse past and upcoming routes in one place.',
+          'The Routes tab in Meet shows the core details people care about before joining or planning something new: category, distance, elevation, route shape and the location context. It turns public GPX uploads into a useful archive, not just an attachment on one event.',
+        ],
+      },
+      {
+        heading: 'Open the Route, See the Map and Elevation',
+        paragraphs: [
+          'Route detail pages now feel closer to the event route view: map, elevation chart, distance, elevation gain, and grade information live together. That makes it easier to judge whether a route is a relaxed social loop, a proper climb, or something you want to save for later.',
+          'The goal is simple: when someone shares a route, the person opening it should understand the activity before they even join an event.',
+        ],
+      },
+      {
+        heading: 'Share the Page or Download the GPX',
+        paragraphs: [
+          'Every route detail page has sharing built in, so you can send the route link to a friend or group without exporting anything first. If someone needs the raw file, GPX download is there too.',
+          'That matters for watches, bike computers, map apps and offline planning. FitMeet can be the social layer, while the GPX file still works wherever people already navigate.',
+        ],
+      },
+      {
+        heading: 'Create and Edit Events From Saved Routes',
+        paragraphs: [
+          'When creating or editing an event, you can now add a route from existing FitMeet routes. Instead of uploading the same GPX again and again, pick the route, preview it, and attach it to the event.',
+          'FitMeet keeps the original public route clean, avoids duplicating route records, and still lets the event show the same distance, elevation and route preview participants expect.',
+        ],
+      },
+      {
+        heading: 'Cleaner Route Editing',
+        paragraphs: [
+          'Event route editing is now more deliberate. You can replace a route, import one from the FitMeet route library, or delete the route from an event when it no longer belongs there.',
+          'That gives organisers more freedom to refine an event after publishing it, while keeping the route archive useful for everyone.',
+        ],
+      },
+    ],
+  },
+
+  {
     slug: 'how-to-organize-a-group-run',
     title: 'How to Organize a Group Run (Without It Falling Apart)',
     description: 'Step-by-step guide to planning a group run that people actually show up to — from picking the route to keeping everyone in sync on the day.',

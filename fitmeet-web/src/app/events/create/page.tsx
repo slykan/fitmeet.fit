@@ -16,6 +16,7 @@ import { useAuthStore } from '@/store/auth'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import CategoryPicker from '@/components/category-picker'
+import { RouteImportModal, type ImportableRoute } from '@/components/route-import-modal'
 
 const LocationPickerMap = dynamic(() => import('@/components/location-picker-map'), { ssr: false })
 
@@ -93,6 +94,9 @@ export default function CreateEventPage() {
   const [stravaImportToken, setStravaImportToken] = useState<string | null>(null)
   const [showStravaModal,   setShowStravaModal]   = useState(false)
   const [importingRoute,    setImportingRoute]    = useState<string | null>(null)
+  const [showRouteModal,    setShowRouteModal]    = useState(false)
+  const [importingFitMeetRoute, setImportingFitMeetRoute] = useState<number | null>(null)
+  const [fitMeetRouteId, setFitMeetRouteId] = useState<number | null>(null)
 
   const {
     register,
@@ -190,6 +194,7 @@ export default function CreateEventPage() {
     const file = e.target.files?.[0]
     if (!file) return
     setGpxFile(file)
+    setFitMeetRouteId(null)
     setRouteTitle(file.name.replace(/\.[^.]+$/, ''))
     const result = parseGpx(await file.text())
     setGpxResult(result)
@@ -222,6 +227,7 @@ export default function CreateEventPage() {
       setGpxName(route.name + '.gpx')
       setRouteTitle(route.name)
       setGpxFile(null)
+      setFitMeetRouteId(null)
       setGpxResult(result)
       if (result.track.length > 0 && watchedLat === null) {
         setValue('lat', result.track[0][0])
@@ -237,6 +243,47 @@ export default function CreateEventPage() {
     } finally {
       setImportingRoute(null)
     }
+  }
+
+  async function importFitMeetRoute(route: ImportableRoute) {
+    setImportingFitMeetRoute(route.id)
+    try {
+      const { data } = await api.get(`/routes/${route.id}/gpx`, { responseType: 'text' })
+      const text = data as string
+      const result = parseGpx(text)
+      setGpxText(text)
+      setGpxName(`${route.title}.gpx`)
+      setRouteTitle(route.title)
+      setGpxFile(null)
+      setFitMeetRouteId(route.id)
+      setGpxResult(result)
+      if (result.track.length > 0 && watchedLat === null) {
+        setValue('lat', result.track[0][0])
+        setValue('lng', result.track[0][1])
+      }
+      if (result.distanceKm > 0)    setValue('distance_km',    String(result.distanceKm))
+      if (result.elevationGain > 0) setValue('elevation_gain', String(result.elevationGain))
+      if (result.maxGrade > 0)      setValue('max_grade',      String(result.maxGrade))
+      if (result.maxDowngrade < 0)  setValue('max_downgrade',  String(result.maxDowngrade))
+      setShowRouteModal(false)
+    } catch {
+      alert('Could not import this FitMeet route.')
+    } finally {
+      setImportingFitMeetRoute(null)
+    }
+  }
+
+  function clearRoute() {
+    setGpxFile(null)
+    setGpxText(null)
+    setGpxName(null)
+    setGpxResult(null)
+    setRouteTitle('')
+    setFitMeetRouteId(null)
+    setValue('distance_km', '')
+    setValue('elevation_gain', '')
+    setValue('max_grade', '')
+    setValue('max_downgrade', '')
   }
 
   function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -280,9 +327,10 @@ export default function CreateEventPage() {
       if (data.max_grade)      fd.append('max_grade',      data.max_grade)
       if (data.max_downgrade)  fd.append('max_downgrade',  data.max_downgrade)
       if (data.pace)           fd.append('pace',           data.pace)
-      if (gpxFile)             fd.append('gpx_file',  gpxFile)
+      if (fitMeetRouteId)      fd.append('route_id', String(fitMeetRouteId))
+      else if (gpxFile)        fd.append('gpx_file',  gpxFile)
       else if (gpxText && gpxName) { fd.append('gpx_text', gpxText); fd.append('gpx_name', gpxName) }
-      if ((gpxFile || gpxText) && routeTitle.trim()) fd.append('route_title', routeTitle.trim())
+      if (!fitMeetRouteId && (gpxFile || gpxText) && routeTitle.trim()) fd.append('route_title', routeTitle.trim())
       if (imageFile)           fd.append('image_file', imageFile)
       if (data.youtube_url)    fd.append('youtube_url', data.youtube_url)
 
@@ -551,21 +599,41 @@ export default function CreateEventPage() {
                   >
                     <input type="file" accept=".gpx,.xml" className="hidden" onChange={handleGpxChange} />
                     <span className="text-sm">
-                      {gpxFile
+                      {fitMeetRouteId
+                        ? `📍 ${gpxName} · ${gpxResult?.track.length ?? 0} pts (FitMeet)`
+                        : gpxFile
                         ? `📍 ${gpxFile.name} · ${gpxResult?.track.length ?? 0} pts`
                         : gpxText
                         ? `📍 ${gpxName} · ${gpxResult?.track.length ?? 0} pts (Strava)`
                         : '+ Upload GPX file (optional)'}
                     </span>
                   </label>
-                  {(gpxFile || gpxText) && (
-                    <input
-                      value={routeTitle}
-                      onChange={(event) => setRouteTitle(event.target.value)}
-                      placeholder="Route title"
-                      className={inputCls(false)}
-                    />
+                  {(gpxFile || gpxText || fitMeetRouteId) && (
+                    <>
+                      <input
+                        value={routeTitle}
+                        onChange={(event) => setRouteTitle(event.target.value)}
+                        placeholder="Route title"
+                        className={inputCls(false)}
+                      />
+                      <button
+                        type="button"
+                        onClick={clearRoute}
+                        className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-semibold transition-all"
+                        style={{ borderColor: 'rgba(248,113,113,0.35)', color: '#f87171', background: 'rgba(248,113,113,0.06)' }}
+                      >
+                        Delete route
+                      </button>
+                    </>
                   )}
+                  <button
+                    type="button"
+                    onClick={() => setShowRouteModal(true)}
+                    className="flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-semibold transition-all"
+                    style={{ borderColor: 'rgba(57,255,20,0.35)', color: 'var(--primary)', background: 'rgba(57,255,20,0.05)' }}
+                  >
+                    Add from FitMeet routes
+                  </button>
                   <button
                     type="button"
                     onClick={connectStrava}
@@ -739,6 +807,13 @@ export default function CreateEventPage() {
           </div>
         </div>
       )}
+
+      <RouteImportModal
+        visible={showRouteModal}
+        importingId={importingFitMeetRoute}
+        onClose={() => setShowRouteModal(false)}
+        onImport={importFitMeetRoute}
+      />
     </>
   )
 }
