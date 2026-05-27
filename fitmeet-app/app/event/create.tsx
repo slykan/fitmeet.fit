@@ -16,7 +16,8 @@ import { WebView } from 'react-native-webview'
 
 import { CATEGORIES } from '@/src/lib/categories'
 import { api } from '@/src/lib/api'
-import { parseGpxText } from '@/src/lib/gpx'
+import { fetchElevationProfile, parseGpxText } from '@/src/lib/gpx'
+import type { GpxParsed } from '@/src/lib/gpx'
 import { cloudLabel, EventWeather, fetchEventWeather, weatherIconName } from '@/src/lib/weather'
 import { palette, spacing } from '@/src/theme'
 
@@ -37,6 +38,51 @@ const DURATION_PRESETS = [
   { label: '2 h',    value: '120' },
   { label: '3 h',    value: '180' },
 ]
+
+function statsFromElevationProfile(profile: { km: number; ele: number }[]) {
+  let elevGain = 0
+  let maxGrade = 0
+  let maxDowngrade = 0
+
+  for (let i = 1; i < profile.length; i++) {
+    const distKm = profile[i].km - profile[i - 1].km
+    const eleM = profile[i].ele - profile[i - 1].ele
+    if (eleM > 0) elevGain += eleM
+    if (distKm > 0) {
+      const grade = (eleM / (distKm * 1000)) * 100
+      if (grade > maxGrade) maxGrade = grade
+      if (grade < maxDowngrade) maxDowngrade = grade
+    }
+  }
+
+  return {
+    elevGain: Math.round(elevGain),
+    maxGrade: Math.round(maxGrade * 10) / 10,
+    maxDowngrade: Math.round(maxDowngrade * 10) / 10,
+  }
+}
+
+async function statsFromGpx(parsed: GpxParsed) {
+  let profileStats = parsed.elevationProfile.length >= 2
+    ? statsFromElevationProfile(parsed.elevationProfile)
+    : null
+
+  if (!profileStats && parsed.track.length >= 2) {
+    try {
+      const profile = await fetchElevationProfile(parsed.track)
+      if (profile.elevationProfile.length >= 2) {
+        profileStats = statsFromElevationProfile(profile.elevationProfile)
+      }
+    } catch {}
+  }
+
+  return {
+    distanceKm: parsed.distanceKm,
+    elevGain: parsed.elevGain || profileStats?.elevGain || 0,
+    maxGrade: parsed.maxGrade || profileStats?.maxGrade || 0,
+    maxDowngrade: parsed.maxDowngrade || profileStats?.maxDowngrade || 0,
+  }
+}
 
 // ─── Map HTML ─────────────────────────────────────────────────────────────────
 
@@ -211,6 +257,13 @@ export default function CreateEventScreen() {
   const [prefilling,  setPrefilling]  = useState(false)
   const [createdEvent, setCreatedEvent] = useState<{ id: number; title: string } | null>(null)
 
+  function applyActivityStats(stats: Awaited<ReturnType<typeof statsFromGpx>>) {
+    if (stats.distanceKm > 0) setDistanceKm(String(stats.distanceKm))
+    setElevGain(String(stats.elevGain))
+    setMaxGrade(String(stats.maxGrade))
+    setMaxDowngrade(String(stats.maxDowngrade))
+  }
+
   const mapKey = [
     lat,
     lng,
@@ -256,11 +309,12 @@ export default function CreateEventScreen() {
           setGpxName('Current GPX route')
           const separator = ev.activity.gpx_url.includes('?') ? '&' : '?'
           api.get(`${ev.activity.gpx_url}${separator}t=${Date.now()}`, { responseType: 'text' })
-            .then(({ data: text }) => {
+            .then(async ({ data: text }) => {
               if (!alive) return
               setGpxContent(text)
               const parsed = parseGpxText(text)
               setGpxTrack(parsed.track)
+              applyActivityStats(await statsFromGpx(parsed))
             })
             .catch(() => {})
         } else {
@@ -411,10 +465,7 @@ export default function CreateEventScreen() {
       Alert.alert('GPX added', `${routeName} · ${parsed.track.length} pts`)
     }
 
-    if (parsed.distanceKm > 0)    setDistanceKm(String(parsed.distanceKm))
-    if (parsed.elevGain > 0)      setElevGain(String(parsed.elevGain))
-    if (parsed.maxGrade !== 0)    setMaxGrade(String(parsed.maxGrade))
-    if (parsed.maxDowngrade !== 0) setMaxDowngrade(String(parsed.maxDowngrade))
+    applyActivityStats(await statsFromGpx(parsed))
   }
 
   function handleStravaImport(gpxText: string, routeName?: string) {

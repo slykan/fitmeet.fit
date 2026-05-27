@@ -91,6 +91,41 @@ function canCheckInNow(event: Event) {
   return event.status === 'active' && event.is_joined && !event.checked_in_at && now >= opensAt && now <= closesAt
 }
 
+function statsFromElevationProfile(profile: GpxResult['elevationProfile']) {
+  let elevationGain = 0
+  let maxGrade = 0
+  let maxDowngrade = 0
+
+  for (let i = 1; i < profile.length; i++) {
+    const distKm = profile[i].km - profile[i - 1].km
+    const eleM = profile[i].ele - profile[i - 1].ele
+    if (eleM > 0) elevationGain += eleM
+    if (distKm > 0) {
+      const grade = (eleM / (distKm * 1000)) * 100
+      if (grade > maxGrade) maxGrade = grade
+      if (grade < maxDowngrade) maxDowngrade = grade
+    }
+  }
+
+  return {
+    elevationGain: Math.round(elevationGain),
+    maxGrade: Math.round(maxGrade * 10) / 10,
+    maxDowngrade: Math.round(maxDowngrade * 10) / 10,
+  }
+}
+
+function withProfileStats(result: GpxResult): GpxResult {
+  if (result.elevationProfile.length < 2) return result
+
+  const profileStats = statsFromElevationProfile(result.elevationProfile)
+  return {
+    ...result,
+    elevationGain: result.elevationGain || profileStats.elevationGain,
+    maxGrade: result.maxGrade || profileStats.maxGrade,
+    maxDowngrade: result.maxDowngrade || profileStats.maxDowngrade,
+  }
+}
+
 function EventContent() {
   const searchParams = useSearchParams()
   const { token }    = useAuthStore()
@@ -137,12 +172,15 @@ function EventContent() {
             .then(async (r) => {
               const parsed = parseGpx(r.data)
               if (parsed.elevationProfile.length >= 2) {
-                setGpxResult(parsed)
+                setGpxResult(withProfileStats(parsed))
                 return
               }
               try {
                 const profile = await fetchElevationProfile(parsed.track)
-                setGpxResult({ ...parsed, ...profile })
+                setGpxResult(withProfileStats({
+                  ...parsed,
+                  ...profile,
+                }))
               } catch {
                 setGpxResult(parsed)
               }
@@ -359,6 +397,10 @@ function EventContent() {
   const checkedInCount = event
     ? event.checked_in_count ?? event.participants.filter(p => p.checked_in_at).length
     : 0
+  const activityDistanceKm = gpxResult?.distanceKm ?? event?.activity.distance_km ?? null
+  const activityElevationGain = gpxResult?.elevationGain ?? event?.activity.elevation_gain ?? null
+  const activityMaxGrade = gpxResult?.maxGrade ?? event?.activity.max_grade ?? null
+  const activityMaxDowngrade = gpxResult?.maxDowngrade ?? event?.activity.max_downgrade ?? null
 
   return (
     <>
@@ -557,15 +599,15 @@ function EventContent() {
                   </div>
                 )}
               </div>
-              {(event.activity.distance_km || event.activity.pace || event.activity.elevation_gain || event.activity.max_grade || event.activity.max_downgrade) && (
+              {(activityDistanceKm != null || event.activity.pace || activityElevationGain != null || activityMaxGrade != null || activityMaxDowngrade != null) && (
                 <div className="flex items-start gap-2.5 text-sm">
                   <Zap size={15} style={{ color: 'var(--primary)', flexShrink: 0, marginTop: 2 }} />
                   <span style={{ color: 'var(--text-muted)' }}>
                     {[
-                      event.activity.distance_km    && `${event.activity.distance_km} km`,
-                      event.activity.elevation_gain && `↑${event.activity.elevation_gain} m`,
-                      event.activity.max_grade      && `▲ ${event.activity.max_grade}%`,
-                      event.activity.max_downgrade  && `▼ ${Math.abs(event.activity.max_downgrade)}%`,
+                      activityDistanceKm != null && `${activityDistanceKm} km`,
+                      activityElevationGain != null && `↑${activityElevationGain} m`,
+                      activityMaxGrade != null && `▲ ${activityMaxGrade}%`,
+                      activityMaxDowngrade != null && `▼ ${Math.abs(activityMaxDowngrade)}%`,
                       event.activity.pace,
                     ].filter(Boolean).join(' · ')}
                   </span>

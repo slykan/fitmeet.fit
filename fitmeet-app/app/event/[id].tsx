@@ -23,6 +23,12 @@ import { palette, spacing } from '@/src/theme'
 import { SupportFitMeetCard } from '@/src/components/SupportFitMeetCard'
 
 type MomentCoverPosition = { x: number; y: number }
+type GpxActivityStats = {
+  distanceKm: number
+  elevGain: number
+  maxGrade: number
+  maxDowngrade: number
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -106,6 +112,42 @@ function canCheckInNow(event: EventDetail) {
   const now = Date.now()
   const { opensAt, closesAt } = checkInWindow(event)
   return event.status === 'active' && event.is_joined && !event.checked_in_at && now >= opensAt && now <= closesAt
+}
+
+function statsFromElevationProfile(profile: ElevationPoint[]) {
+  let elevGain = 0
+  let maxGrade = 0
+  let maxDowngrade = 0
+
+  for (let i = 1; i < profile.length; i++) {
+    const distKm = profile[i].km - profile[i - 1].km
+    const eleM = profile[i].ele - profile[i - 1].ele
+    if (eleM > 0) elevGain += eleM
+    if (distKm > 0) {
+      const grade = (eleM / (distKm * 1000)) * 100
+      if (grade > maxGrade) maxGrade = grade
+      if (grade < maxDowngrade) maxDowngrade = grade
+    }
+  }
+
+  return {
+    elevGain: Math.round(elevGain),
+    maxGrade: Math.round(maxGrade * 10) / 10,
+    maxDowngrade: Math.round(maxDowngrade * 10) / 10,
+  }
+}
+
+function gpxStatsFromParsed(parsed: GpxActivityStats & { elevationProfile?: ElevationPoint[] }) {
+  const profileStats = parsed.elevationProfile && parsed.elevationProfile.length >= 2
+    ? statsFromElevationProfile(parsed.elevationProfile)
+    : null
+
+  return {
+    distanceKm: parsed.distanceKm,
+    elevGain: parsed.elevGain || profileStats?.elevGain || 0,
+    maxGrade: parsed.maxGrade || profileStats?.maxGrade || 0,
+    maxDowngrade: parsed.maxDowngrade || profileStats?.maxDowngrade || 0,
+  }
 }
 
 function activeMentionAt(text: string, cursor: number) {
@@ -231,6 +273,7 @@ export default function EventDetailScreen() {
   const [youtubeOpen, setYoutubeOpen] = useState(false)
   const [coloredSegments, setColoredSegments] = useState<TrackSegment[]>([])
   const [elevationProfile, setElevationProfile] = useState<ElevationPoint[]>([])
+  const [gpxStats, setGpxStats] = useState<GpxActivityStats | null>(null)
   const [gpxLoading, setGpxLoading] = useState(false)
   const [gpxError, setGpxError] = useState(false)
   const [showWall, setShowWall] = useState(wall === '1')
@@ -332,6 +375,7 @@ export default function EventDetailScreen() {
   useEffect(() => {
     setColoredSegments([])
     setElevationProfile([])
+    setGpxStats(null)
     setGpxError(false)
     if (!event?.activity.gpx_url) {
       setGpxLoading(false)
@@ -353,11 +397,19 @@ export default function EventDetailScreen() {
           setGpxError(true)
           return
         }
+        setGpxStats(gpxStatsFromParsed(parsed))
         if (parsed.coloredSegments.length > 0) setColoredSegments(parsed.coloredSegments)
         if (parsed.elevationProfile.length >= 2) setElevationProfile(parsed.elevationProfile)
         else {
           fetchElevationProfile(parsed.track)
             .then((profile) => {
+              const profileStats = statsFromElevationProfile(profile.elevationProfile)
+              setGpxStats({
+                distanceKm: parsed.distanceKm,
+                elevGain: parsed.elevGain || profileStats.elevGain,
+                maxGrade: parsed.maxGrade || profileStats.maxGrade,
+                maxDowngrade: parsed.maxDowngrade || profileStats.maxDowngrade,
+              })
               if (profile.coloredSegments.length > 0) setColoredSegments(profile.coloredSegments)
               if (profile.elevationProfile.length >= 2) setElevationProfile(profile.elevationProfile)
             })
@@ -583,6 +635,10 @@ export default function EventDetailScreen() {
   const checkedInCount = event.checked_in_count ?? event.participants.filter(p => p.checked_in_at).length
   const checkInAvailable = canCheckInNow(event)
   const canAccessWall = event.is_joined || isOrg
+  const activityDistanceKm = gpxStats?.distanceKm ?? event.activity.distance_km ?? null
+  const activityElevGain = gpxStats?.elevGain ?? event.activity.elevation_gain ?? null
+  const activityMaxGrade = gpxStats?.maxGrade ?? event.activity.max_grade ?? null
+  const activityMaxDowngrade = gpxStats?.maxDowngrade ?? event.activity.max_downgrade ?? null
   const wallMembers = [
     ...(event.organizer ? [event.organizer] : []),
     ...event.participants,
@@ -858,24 +914,24 @@ export default function EventDetailScreen() {
               (event.max_participants ? ` · max ${event.max_participants}` : '')
             } />
           </Pressable>
-          {(event.activity.distance_km || event.activity.elevation_gain || event.activity.pace) ? (
+          {(activityDistanceKm != null || activityElevGain != null || event.activity.pace) ? (
             <DetailRow
               icon="flash-outline"
               iconColor={palette.accent}
               primary={[
-                event.activity.distance_km    && `${event.activity.distance_km} km`,
-                event.activity.elevation_gain && `↑${event.activity.elevation_gain} m`,
+                activityDistanceKm != null && `${activityDistanceKm} km`,
+                activityElevGain != null && `↑${activityElevGain} m`,
                 event.activity.pace           && `⏱ ${event.activity.pace}`,
               ].filter(Boolean).join(' · ')}
             />
           ) : null}
-          {(event.activity.max_grade != null || event.activity.max_downgrade != null) ? (
+          {(activityMaxGrade != null || activityMaxDowngrade != null) ? (
             <DetailRow
               icon="trending-up-outline"
               iconColor="#58beff"
               primary={[
-                event.activity.max_grade     != null && `▲ ${event.activity.max_grade}%`,
-                event.activity.max_downgrade != null && `▼ ${Math.abs(event.activity.max_downgrade)}%`,
+                activityMaxGrade != null && `▲ ${activityMaxGrade}%`,
+                activityMaxDowngrade != null && `▼ ${Math.abs(activityMaxDowngrade)}%`,
               ].filter(Boolean).join('  ')}
             />
           ) : null}
