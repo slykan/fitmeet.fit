@@ -1058,12 +1058,12 @@ export default function MeetPage() {
           {showCalendar && <CalendarModal onClose={() => setShowCalendar(false)} />}
 
           {/* Tabs */}
-          <div className="flex gap-1 p-1 rounded-xl mb-6" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+          <div className="grid grid-cols-3 gap-1 p-1 rounded-xl mb-6 w-full" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
             {(['events', 'people', 'routes'] as const).map(t => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
-                className="flex-1 py-2 text-sm font-medium rounded-lg transition-colors capitalize"
+                className="min-w-0 py-2 text-xs sm:text-sm font-medium rounded-lg transition-colors"
                 style={{
                   background: tab === t ? 'var(--primary)' : 'transparent',
                   color:      tab === t ? '#000' : 'var(--text-muted)',

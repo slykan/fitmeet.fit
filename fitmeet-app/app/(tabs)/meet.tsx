@@ -1061,9 +1061,9 @@ const styles = StyleSheet.create({
     backgroundColor: palette.panel, borderRadius: 16,
     borderWidth: 1, borderColor: palette.line,
   },
-  tabBtn:       { flex: 1, paddingVertical: 10, borderRadius: 12, alignItems: 'center' },
+  tabBtn:       { flex: 1, minWidth: 0, paddingVertical: 10, borderRadius: 12, alignItems: 'center' },
   tabBtnActive: { backgroundColor: palette.accent },
-  tabLabel:     { color: palette.textMuted, fontSize: 14, fontWeight: '700' },
+  tabLabel:     { color: palette.textMuted, fontSize: 13, fontWeight: '700' },
   tabLabelActive: { color: '#031109' },
 
   filterBtn: {
