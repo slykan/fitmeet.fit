@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator, Alert, Image, Modal, Pressable,
   Keyboard, KeyboardAvoidingView, Linking, Platform, ScrollView, Share, StyleSheet, Text, TextInput, View,
-  type GestureResponderEvent, type StyleProp, type ViewStyle,
+  type StyleProp, type ViewStyle,
 } from 'react-native'
 import { WebView } from 'react-native-webview'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -13,7 +13,6 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { WeatherBadge } from '@/src/components/WeatherBadge'
 import { EventMapCard } from '@/src/components/EventMapCard'
 import { ElevationChart } from '@/src/components/ElevationChart'
-import { MomentCoverImage, type MomentCoverPosition } from '@/src/components/MomentCoverImage'
 import type { ElevationPoint } from '@/src/components/ElevationChart'
 import { CATEGORIES } from '@/src/lib/categories'
 import { api } from '@/src/lib/api'
@@ -22,6 +21,8 @@ import type { TrackSegment } from '@/src/lib/gpx'
 import { useAuthStore } from '@/src/store/auth'
 import { palette, spacing } from '@/src/theme'
 import { SupportFitMeetCard } from '@/src/components/SupportFitMeetCard'
+
+type MomentCoverPosition = { x: number; y: number }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -245,9 +246,6 @@ export default function EventDetailScreen() {
   const [zoomAvatar, setZoomAvatar] = useState<string | null>(null)
   const [mapEnabled, setMapEnabled] = useState(false)
   const [momentUploading, setMomentUploading] = useState(false)
-  const [pendingMoment, setPendingMoment] = useState<ImagePicker.ImagePickerAsset | null>(null)
-  const [pendingMomentCover, setPendingMomentCover] = useState({ x: 0.5, y: 0.5 })
-  const [pendingMomentLayout, setPendingMomentLayout] = useState({ width: 0, height: 0 })
 
   const loadEvent = useCallback(() => {
     if (!id) return
@@ -274,37 +272,18 @@ export default function EventDetailScreen() {
     })
     if (result.canceled || !result.assets[0]) return
 
-    setPendingMoment(result.assets[0])
-    setPendingMomentCover({ x: 0.5, y: 0.5 })
+    await uploadMoment(result.assets[0])
   }
 
-  function updatePendingMomentCover(e: GestureResponderEvent) {
-    if (!pendingMoment || pendingMomentLayout.width <= 0 || pendingMomentLayout.height <= 0) return
-
-    const imageWidth = pendingMoment.width || pendingMomentLayout.width
-    const imageHeight = pendingMoment.height || pendingMomentLayout.height
-    const scale = Math.min(pendingMomentLayout.width / imageWidth, pendingMomentLayout.height / imageHeight)
-    const renderWidth = imageWidth * scale
-    const renderHeight = imageHeight * scale
-    const offsetX = (pendingMomentLayout.width - renderWidth) / 2
-    const offsetY = (pendingMomentLayout.height - renderHeight) / 2
-    const x = Math.min(1, Math.max(0, (e.nativeEvent.locationX - offsetX) / renderWidth))
-    const y = Math.min(1, Math.max(0, (e.nativeEvent.locationY - offsetY) / renderHeight))
-
-    setPendingMomentCover({ x, y })
-  }
-
-  async function uploadPendingMoment() {
-    if (!pendingMoment) return
-
+  async function uploadMoment(moment: ImagePicker.ImagePickerAsset) {
     const form = new FormData()
     form.append('image', {
-      uri: pendingMoment.uri,
-      name: pendingMoment.fileName ?? 'moment.jpg',
-      type: pendingMoment.mimeType ?? 'image/jpeg',
+      uri: moment.uri,
+      name: moment.fileName ?? 'moment.jpg',
+      type: moment.mimeType ?? 'image/jpeg',
     } as never)
-    form.append('cover_x', String(pendingMomentCover.x))
-    form.append('cover_y', String(pendingMomentCover.y))
+    form.append('cover_x', '0.5')
+    form.append('cover_y', '0.5')
 
     setMomentUploading(true)
     try {
@@ -314,9 +293,8 @@ export default function EventDetailScreen() {
       setEvent(prev => prev ? {
         ...prev,
         moment_image_url: data.moment_image_url,
-        moment_cover: data.moment_cover ?? pendingMomentCover,
+        moment_cover: data.moment_cover ?? { x: 0.5, y: 0.5 },
       } : prev)
-      setPendingMoment(null)
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message
       Alert.alert('Error', msg ?? 'Could not upload moment.')
@@ -777,65 +755,6 @@ export default function EventDetailScreen() {
           </Pressable>
         </Pressable>
       </Modal>
-      <Modal visible={!!pendingMoment} transparent animationType="slide" onRequestClose={() => setPendingMoment(null)}>
-        <Pressable style={styles.modalBackdrop} onPress={() => !momentUploading && setPendingMoment(null)}>
-          <Pressable style={styles.coverPickerModal} onPress={(e) => e.stopPropagation()}>
-            <View style={styles.modalHeader}>
-              <View style={styles.modalIcon}>
-                <Ionicons name="image-outline" size={22} color={palette.accent} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.modalTitle}>Moment cover</Text>
-                <Text style={styles.modalSubtitle}>Tap the spot that should stay centered.</Text>
-              </View>
-              <Pressable style={styles.modalClose} onPress={() => setPendingMoment(null)} disabled={momentUploading}>
-                <Ionicons name="close" size={20} color={palette.textMuted} />
-              </Pressable>
-            </View>
-
-            {pendingMoment && (
-              <Pressable
-                style={styles.coverPickerFrame}
-                onPress={updatePendingMomentCover}
-                onLayout={(event) => setPendingMomentLayout(event.nativeEvent.layout)}
-              >
-                <Image source={{ uri: pendingMoment.uri }} style={styles.coverPickerImage} resizeMode="contain" />
-                <View
-                  pointerEvents="none"
-                  style={[
-                    styles.coverPickerTarget,
-                    {
-                      left: `${pendingMomentCover.x * 100}%`,
-                      top: `${pendingMomentCover.y * 100}%`,
-                    },
-                  ]}
-                />
-              </Pressable>
-            )}
-
-            <View style={styles.coverPreviewBlock}>
-              <Text style={styles.coverPreviewLabel}>Cover preview</Text>
-              {pendingMoment && (
-                <MomentCoverImage uri={pendingMoment.uri} cover={pendingMomentCover} style={styles.coverPreviewImage} />
-              )}
-            </View>
-
-            <View style={styles.modalActions}>
-              <Pressable style={styles.modalSecondary} onPress={() => setPendingMoment(null)} disabled={momentUploading}>
-                <Text style={styles.modalSecondaryText}>Cancel</Text>
-              </Pressable>
-              <Pressable style={[styles.modalPrimary, momentUploading && styles.disabledBtn]} onPress={uploadPendingMoment} disabled={momentUploading}>
-                {momentUploading ? (
-                  <ActivityIndicator size="small" color="#041109" />
-                ) : (
-                  <Text style={styles.modalPrimaryText}>Save Moment</Text>
-                )}
-              </Pressable>
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
-
       <ScrollView
         ref={scrollRef}
         scrollEnabled={!mapEnabled}
@@ -873,7 +792,7 @@ export default function EventDetailScreen() {
             return (
               <View style={styles.momentSection}>
                 <Text style={styles.momentLabel}>📸 Moment</Text>
-                <MomentCoverImage uri={event.moment_image_url} cover={event.moment_cover} style={styles.momentImage} />
+                <Image source={{ uri: event.moment_image_url }} style={styles.momentImage} resizeMode="cover" />
                 {isOrg && withinWindow && (
                   <Pressable style={styles.momentReplaceBtn} onPress={pickAndUploadMoment} disabled={momentUploading}>
                     <Ionicons name="camera-outline" size={14} color={palette.textDim} />
