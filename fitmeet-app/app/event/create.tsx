@@ -245,6 +245,7 @@ export default function CreateEventScreen() {
   // GPX
   const [gpxName,     setGpxName]     = useState<string | null>(null)
   const [gpxContent,  setGpxContent]  = useState<string | null>(null)
+  const [routeTitle,  setRouteTitle]  = useState('')
   const [showStrava,  setShowStrava]  = useState(false)
 
   const [youtubeUrl,   setYoutubeUrl]   = useState('')
@@ -307,6 +308,7 @@ export default function CreateEventScreen() {
         setYoutubeUrl(ev.youtube_url ?? '')
         if (ev.activity?.gpx_url) {
           setGpxName('Current GPX route')
+          setRouteTitle('')
           const separator = ev.activity.gpx_url.includes('?') ? '&' : '?'
           api.get(`${ev.activity.gpx_url}${separator}t=${Date.now()}`, { responseType: 'text' })
             .then(async ({ data: text }) => {
@@ -320,6 +322,7 @@ export default function CreateEventScreen() {
         } else {
           setGpxName(null)
           setGpxContent(null)
+          setRouteTitle('')
           setGpxTrack([])
         }
       })
@@ -452,6 +455,7 @@ export default function CreateEventScreen() {
 
     setGpxContent(gpxText)
     setGpxName(routeName)
+    setRouteTitle(routeName.replace(/\.[^.]+$/, ''))
     setGpxTrack(parsed.track)
 
     const [startLat, startLng] = parsed.track[0]
@@ -533,6 +537,7 @@ export default function CreateEventScreen() {
       if (gpxContent && gpxName) {
         fd.append('gpx_text', gpxContent)
         fd.append('gpx_name', gpxName)
+        if (routeTitle.trim()) fd.append('route_title', routeTitle.trim())
       }
       if (editId || youtubeUrl.trim()) fd.append('youtube_url', youtubeUrl.trim())
 
@@ -836,6 +841,15 @@ export default function CreateEventScreen() {
                 {gpxName ? `${gpxName} · ${gpxTrack.length} pts` : 'Upload GPX file (optional)'}
               </Text>
             </Pressable>
+            {gpxName ? (
+              <TextInput
+                style={styles.input}
+                value={routeTitle}
+                onChangeText={setRouteTitle}
+                placeholder="Route title"
+                placeholderTextColor={palette.textDim}
+              />
+            ) : null}
             <Pressable style={styles.stravaBtn} onPress={() => setShowStrava(true)}>
               <Text style={styles.stravaMark}>STRAVA</Text>
               <Text style={styles.stravaBtnText}>Import from Strava</Text>

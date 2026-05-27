@@ -37,6 +37,7 @@ class UpdateEventRequest extends FormRequest
             'gpx_file'         => ['sometimes', 'nullable', 'file', 'max:8192'],
             'gpx_text'         => ['sometimes', 'nullable', 'string', 'max:8388608'],
             'gpx_name'         => ['sometimes', 'nullable', 'string', 'max:120'],
+            'route_title'      => ['sometimes', 'nullable', 'string', 'max:140'],
             'image_file'       => ['sometimes', 'nullable', 'file', 'max:8192'],
             'image_remove'     => ['sometimes', 'boolean'],
             'youtube_url'      => ['sometimes', 'nullable', 'string', 'regex:/^https?:\/\/(www\.)?(youtube\.com\/(watch\?v=|shorts\/)|youtu\.be\/)[\w-]{11}/'],

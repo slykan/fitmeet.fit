@@ -80,6 +80,7 @@ function EditContent() {
   const [gpxResult,    setGpxResult]    = useState<GpxResult | null>(null)
   const [gpxText,      setGpxText]      = useState<string | null>(null)
   const [gpxName,      setGpxName]      = useState<string | null>(null)
+  const [routeTitle,   setRouteTitle]   = useState('')
   const [imageFile,    setImageFile]    = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [notFound,     setNotFound]     = useState(false)
@@ -223,6 +224,7 @@ function EditContent() {
       const result = parseGpx(text)
       setGpxText(text)
       setGpxName(route.name + '.gpx')
+      setRouteTitle(route.name)
       setGpxFile(null)
       setGpxResult(result)
       if (result.distanceKm > 0)    setValue('distance_km',    String(result.distanceKm))
@@ -241,6 +243,7 @@ function EditContent() {
     const file = e.target.files?.[0]
     if (!file) return
     setGpxFile(file)
+    setRouteTitle(file.name.replace(/\.[^.]+$/, ''))
     const result = parseGpx(await file.text())
     setGpxResult(result)
     if (result.distanceKm > 0)    setValue('distance_km',    String(result.distanceKm))
@@ -294,6 +297,7 @@ function EditContent() {
       fd.append('pace',              data.pace || '')
       if (gpxFile)             fd.append('gpx_file', gpxFile)
       else if (gpxText && gpxName) { fd.append('gpx_text', gpxText); fd.append('gpx_name', gpxName) }
+      if ((gpxFile || gpxText) && routeTitle.trim()) fd.append('route_title', routeTitle.trim())
       if (imageFile)           fd.append('image_file', imageFile)
       fd.append('youtube_url', data.youtube_url?.trim() || '')
 
@@ -572,6 +576,14 @@ function EditContent() {
                     : '+ Upload GPX file (optional)'}
                 </span>
               </label>
+              {(gpxFile || gpxText) && (
+                <input
+                  value={routeTitle}
+                  onChange={(event) => setRouteTitle(event.target.value)}
+                  placeholder="Route title"
+                  className={inputCls(false)}
+                />
+              )}
               <button
                 type="button"
                 onClick={connectStrava}

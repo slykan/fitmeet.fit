@@ -32,6 +32,7 @@ class Event extends Model
         'max_grade',
         'max_downgrade',
         'gpx_path',
+        'route_id',
         'image_path',
         'moment_image_path',
         'moment_cover_x',
@@ -72,6 +73,11 @@ class Event extends Model
     public function comments(): HasMany
     {
         return $this->hasMany(EventComment::class);
+    }
+
+    public function route(): BelongsTo
+    {
+        return $this->belongsTo(ActivityRoute::class, 'route_id');
     }
 
     public function isFull(): bool

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ActivityRouteController;
 use App\Http\Controllers\Api\BeerDonationController;
 use App\Http\Controllers\Api\LeaderboardController;
 use App\Http\Controllers\Api\MomentsController;
@@ -78,6 +79,9 @@ Route::get('users/public-stats',  [UserController::class, 'publicStats']);
 Route::get('events/public/{event}',   [EventController::class, 'publicShow']);
 Route::get('events/public/{event}/gpx', [EventController::class, 'publicGpx']);
 Route::get('events/public-latest',    [EventController::class, 'publicLatest']);
+Route::get('routes', [ActivityRouteController::class, 'index']);
+Route::get('routes/{activityRoute}', [ActivityRouteController::class, 'show']);
+Route::get('routes/{activityRoute}/gpx', [ActivityRouteController::class, 'gpx']);
 Route::post('auth/register-mobile',   [AuthController::class, 'registerMobile']);
 Route::post('auth/login-mobile',      [AuthController::class, 'loginMobile']);
 Route::post('auth/google-mobile',     [AuthController::class, 'googleMobile']);

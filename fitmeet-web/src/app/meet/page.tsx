@@ -18,6 +18,8 @@ import { useAuthStore } from '@/store/auth'
 import { shortAddress } from '@/lib/format-address'
 import { CATEGORIES, CATEGORY_EMOJI, FILTER_FEATURED } from '@/lib/categories'
 import { sortEventsBySchedule } from '@/lib/event-order'
+import { fetchGpxActivityStats, type GpxActivityStats } from '@/lib/gpx-activity-stats'
+import { RoutesTab } from '@/components/routes-tab'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -53,7 +55,7 @@ interface EventItem {
   category: { value: string; label: string }
   location: { lat: number | null; lng: number | null; address: string | null }
   schedule: { start_at: string; timezone: string; duration_minutes: number | null }
-  activity: { distance_km: number | null; elevation_gain: number | null }
+  activity: { distance_km: number | null; elevation_gain: number | null; gpx_url?: string | null }
   participants_count: number
   views_count: number
   comments_count: number
@@ -620,6 +622,7 @@ function EventsTab() {
   const [myOnly, setMyOnly] = useState(false)
   const [pastOnly, setPastOnly] = useState(false)
   const [friendIds, setFriendIds] = useState<Set<number>>(new Set())
+  const [gpxStats, setGpxStats] = useState<Record<number, GpxActivityStats>>({})
 
   // Reminder modal state
   const [reminderEvent,    setReminderEvent]    = useState<EventItem | null>(null)
@@ -655,6 +658,37 @@ function EventsTab() {
       return true
     })
   }
+
+  useEffect(() => {
+    const targets = events.filter((event) => event.activity.gpx_url)
+
+    if (targets.length === 0) {
+      setGpxStats({})
+      return
+    }
+
+    let cancelled = false
+
+    Promise.all(
+      targets.map(async (event) => ({
+        id: event.id,
+        stats: await fetchGpxActivityStats(event.activity.gpx_url!).catch(() => null),
+      })),
+    ).then((entries) => {
+      if (cancelled) return
+      const next: Record<number, GpxActivityStats> = {}
+      for (const entry of entries) {
+        if (entry.stats) next[entry.id] = entry.stats
+      }
+      setGpxStats(next)
+    }).catch(() => {
+      if (!cancelled) setGpxStats({})
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [events])
 
   useEffect(() => {
     setLoading(true)
@@ -807,6 +841,8 @@ function EventsTab() {
       {!loading && events.map(ev => {
         const { past: pastEvent, inProgress } = eventTiming(ev)
         const mutedEvent = ev.status === 'cancelled' || pastEvent
+        const activityDistanceKm = gpxStats[ev.id]?.distanceKm ?? ev.activity.distance_km
+        const activityElevationGain = gpxStats[ev.id]?.elevationGain ?? ev.activity.elevation_gain
 
         return (
         <div key={ev.id}
@@ -884,12 +920,12 @@ function EventsTab() {
                 {ev.max_participants ? ` · max ${ev.max_participants}` : ''}
                 {(ev.views_count ?? 0) > 0 && <span>· 👁 {ev.views_count} seen</span>}
               </div>
-              {(ev.activity.distance_km || ev.activity.elevation_gain) && (
+              {(activityDistanceKm != null || activityElevationGain != null) && (
                 <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
                   <Zap size={11} style={{ color: 'var(--primary)' }} />
                   {[
-                    ev.activity.distance_km    && `${ev.activity.distance_km} km`,
-                    ev.activity.elevation_gain && `↑${ev.activity.elevation_gain} m`,
+                    activityDistanceKm != null && `${activityDistanceKm} km`,
+                    activityElevationGain != null && `↑${activityElevationGain} m`,
                   ].filter(Boolean).join(' · ')}
                 </div>
               )}
@@ -977,7 +1013,7 @@ function EventsTab() {
 export default function MeetPage() {
   const { token } = useAuthStore()
   const router    = useRouter()
-  const [tab, setTab] = useState<'people' | 'events'>('events')
+  const [tab, setTab] = useState<'people' | 'events' | 'routes'>('events')
   const [showCalendar, setShowCalendar] = useState(false)
 
   useEffect(() => {
@@ -1023,7 +1059,7 @@ export default function MeetPage() {
 
           {/* Tabs */}
           <div className="flex gap-1 p-1 rounded-xl mb-6" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-            {(['events', 'people'] as const).map(t => (
+            {(['events', 'people', 'routes'] as const).map(t => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
@@ -1033,12 +1069,12 @@ export default function MeetPage() {
                   color:      tab === t ? '#000' : 'var(--text-muted)',
                 }}
               >
-                {t === 'people' ? '👥 People' : '📅 Events'}
+                {t === 'people' ? 'People' : t === 'routes' ? 'Routes' : 'Events'}
               </button>
             ))}
           </div>
 
-          {tab === 'people' ? <PeopleTab /> : <EventsTab />}
+          {tab === 'people' ? <PeopleTab /> : tab === 'routes' ? <RoutesTab /> : <EventsTab />}
 
         </div>
       </main>

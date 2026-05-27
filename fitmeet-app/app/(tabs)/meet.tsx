@@ -59,6 +59,25 @@ interface UserItem {
 }
 
 type PeopleSort = 'latest' | 'name' | 'beer' | 'events'
+type RouteSort = 'new' | 'popular' | 'distance_asc' | 'distance_desc' | 'elevation_asc' | 'elevation_desc'
+
+interface RouteItem {
+  id: number
+  title: string
+  category: { value: string; label: string }
+  stats: {
+    distance_km: number | null
+    elevation_gain: number | null
+    max_grade: number | null
+    max_downgrade: number | null
+  }
+  location: {
+    start_lat: number | null
+    start_lng: number | null
+    area_label: string | null
+  }
+  views_count: number
+}
 
 const PEOPLE_SORT_OPTIONS: { key: PeopleSort; label: string }[] = [
   { key: 'latest', label: 'New' },
@@ -95,6 +114,30 @@ const SORT_OPTIONS: Array<{ key: SortKey; label: string; icon: string }> = [
   { key: 'views',  label: 'Most viewed', icon: 'eye-outline' },
   { key: 'joined', label: 'Most joined', icon: 'people-outline' },
 ]
+
+const ROUTE_SORT_OPTIONS: Array<{ key: RouteSort; label: string; icon: string }> = [
+  { key: 'new', label: 'Newest', icon: 'sparkles-outline' },
+  { key: 'popular', label: 'Popular', icon: 'eye-outline' },
+  { key: 'distance_asc', label: 'Shortest', icon: 'resize-outline' },
+  { key: 'distance_desc', label: 'Longest', icon: 'resize-outline' },
+  { key: 'elevation_asc', label: 'Least climb', icon: 'trending-up-outline' },
+  { key: 'elevation_desc', label: 'Most climb', icon: 'trending-up-outline' },
+]
+
+const ROUTE_DISTANCE_FILTERS = [
+  { label: 'Any', min: null, max: null },
+  { label: '< 10 km', min: null, max: 10 },
+  { label: '10-30 km', min: 10, max: 30 },
+  { label: '30-80 km', min: 30, max: 80 },
+  { label: '80+ km', min: 80, max: null },
+] as const
+
+const ROUTE_ELEVATION_FILTERS = [
+  { label: 'Any climb', min: null, max: null },
+  { label: '< 300 m', min: null, max: 300 },
+  { label: '300-1000 m', min: 300, max: 1000 },
+  { label: '1000+ m', min: 1000, max: null },
+] as const
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -517,6 +560,182 @@ function EventsTab() {
   )
 }
 
+// ─── Routes Tab ───────────────────────────────────────────────────────────────
+
+function RoutesTab() {
+  const user = useAuthStore((s) => s.user)
+  const [routes, setRoutes] = useState<RouteItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [category, setCategory] = useState('')
+  const [radiusKm, setRadiusKm] = useState<number | null>(null)
+  const [distanceFilter, setDistanceFilter] = useState(0)
+  const [elevationFilter, setElevationFilter] = useState(0)
+  const [sortKey, setSortKey] = useState<RouteSort>('new')
+  const [showFilter, setShowFilter] = useState(false)
+  const [showSort, setShowSort] = useState(false)
+  const discoveryLat = user?.home?.lat ?? user?.location?.lat ?? null
+  const discoveryLng = user?.home?.lng ?? user?.location?.lng ?? null
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try {
+      const distance = ROUTE_DISTANCE_FILTERS[distanceFilter]
+      const elevation = ROUTE_ELEVATION_FILTERS[elevationFilter]
+      const params: Record<string, unknown> = { per_page: 100, sort: sortKey }
+      if (category) params.category = category
+      if (distance.min != null) params.distance_min = distance.min
+      if (distance.max != null) params.distance_max = distance.max
+      if (elevation.min != null) params.elevation_min = elevation.min
+      if (elevation.max != null) params.elevation_max = elevation.max
+      if (radiusKm && typeof discoveryLat === 'number' && typeof discoveryLng === 'number') {
+        params.lat = discoveryLat
+        params.lng = discoveryLng
+        params.radius_km = radiusKm
+      }
+      const { data } = await api.get('/routes', { params })
+      setRoutes(data.data ?? [])
+    } catch {
+      setRoutes([])
+    } finally {
+      setLoading(false)
+    }
+  }, [category, discoveryLat, discoveryLng, distanceFilter, elevationFilter, radiusKm, sortKey])
+
+  useFocusEffect(useCallback(() => { load() }, [load]))
+
+  const activeFilterCount =
+    (category ? 1 : 0) + (radiusKm !== null ? 1 : 0) + (distanceFilter ? 1 : 0) + (elevationFilter ? 1 : 0)
+  const activeSort = ROUTE_SORT_OPTIONS.find(option => option.key === sortKey) ?? ROUTE_SORT_OPTIONS[0]
+
+  return (
+    <View style={{ gap: spacing.md }}>
+      <View style={styles.filterToolbar}>
+        <Pressable
+          style={[styles.filterBtn, activeFilterCount > 0 && styles.filterBtnActive]}
+          onPress={() => { setShowFilter(v => !v); setShowSort(false) }}
+        >
+          <Ionicons name="options-outline" size={15} color={activeFilterCount > 0 ? '#031109' : palette.text} />
+          <Text style={[styles.filterBtnLabel, activeFilterCount > 0 && styles.filterBtnLabelActive]}>Filter</Text>
+          {activeFilterCount > 0 && (
+            <View style={styles.filterBadge}>
+              <Text style={styles.filterBadgeText}>{activeFilterCount}</Text>
+            </View>
+          )}
+        </Pressable>
+
+        <Pressable
+          style={[styles.filterBtn, styles.sortBtn, showSort && styles.sortBtnActive]}
+          onPress={() => { setShowSort(v => !v); setShowFilter(false) }}
+        >
+          <Ionicons name="swap-vertical-outline" size={15} color={showSort ? '#031109' : palette.text} />
+          <Text style={[styles.filterBtnLabel, showSort && styles.filterBtnLabelActive]}>{activeSort.label}</Text>
+        </Pressable>
+      </View>
+
+      {showFilter && (
+        <View style={styles.filterDropdown}>
+          <Text style={styles.filterSectionLabel}>Category</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+            <Pressable style={[styles.filterChip, !category && styles.filterChipActive]} onPress={() => setCategory('')}>
+              <Text style={[styles.filterLabel, !category && styles.filterLabelActive]}>All</Text>
+            </Pressable>
+            {CATEGORIES.map(cat => (
+              <Pressable key={cat.value} style={[styles.filterChip, category === cat.value && styles.filterChipActive]} onPress={() => setCategory(v => v === cat.value ? '' : cat.value)}>
+                <Text style={[styles.filterLabel, category === cat.value && styles.filterLabelActive]}>{cat.emoji} {cat.label}</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+
+          <Text style={styles.filterSectionLabel}>Near me</Text>
+          <View style={styles.filterRow}>
+            {RADIUS_OPTIONS.map(r => (
+              <Pressable key={String(r.km)} style={[styles.filterChip, radiusKm === r.km && styles.radiusChipActive]} onPress={() => setRadiusKm(r.km)}>
+                <Text style={[styles.filterLabel, radiusKm === r.km && styles.radiusLabelActive]}>{r.label}</Text>
+              </Pressable>
+            ))}
+          </View>
+
+          <Text style={styles.filterSectionLabel}>Route distance</Text>
+          <View style={styles.filterRow}>
+            {ROUTE_DISTANCE_FILTERS.map((item, index) => (
+              <Pressable key={item.label} style={[styles.filterChip, distanceFilter === index && styles.filterChipActive]} onPress={() => setDistanceFilter(index)}>
+                <Text style={[styles.filterLabel, distanceFilter === index && styles.filterLabelActive]}>{item.label}</Text>
+              </Pressable>
+            ))}
+          </View>
+
+          <Text style={styles.filterSectionLabel}>Elevation</Text>
+          <View style={styles.filterRow}>
+            {ROUTE_ELEVATION_FILTERS.map((item, index) => (
+              <Pressable key={item.label} style={[styles.filterChip, elevationFilter === index && styles.filterChipActive]} onPress={() => setElevationFilter(index)}>
+                <Text style={[styles.filterLabel, elevationFilter === index && styles.filterLabelActive]}>{item.label}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      )}
+
+      {showSort && (
+        <View style={styles.filterDropdown}>
+          <Text style={styles.filterSectionLabel}>Sort</Text>
+          <View style={styles.sortList}>
+            {ROUTE_SORT_OPTIONS.map(option => {
+              const active = option.key === sortKey
+              return (
+                <Pressable key={option.key} style={[styles.sortOption, active && styles.sortOptionActive]} onPress={() => setSortKey(option.key)}>
+                  <Ionicons name={option.icon as keyof typeof Ionicons.glyphMap} size={15} color={active ? '#031109' : palette.textMuted} />
+                  <Text style={[styles.sortOptionText, active && styles.sortOptionTextActive]}>{option.label}</Text>
+                </Pressable>
+              )
+            })}
+          </View>
+        </View>
+      )}
+
+      {loading && <ActivityIndicator color={palette.accent} style={{ paddingVertical: spacing.xl }} />}
+      {!loading && routes.length === 0 && <Text style={styles.emptyText}>No routes found.</Text>}
+
+      {!loading && routes.map(route => {
+        const emoji = CATEGORY_EMOJI[route.category.value] ?? '📍'
+        return (
+          <Pressable key={route.id} style={styles.eventCard} onPress={() => router.push(`/route/${route.id}` as never)}>
+            <View style={styles.eventTop}>
+              <View style={styles.eventBadge}><Text style={{ fontSize: 22 }}>{emoji}</Text></View>
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text style={styles.eventTitle} numberOfLines={1}>{route.title}</Text>
+                <View style={styles.tagRow}>
+                  <View style={styles.catTag}><Text style={styles.catTagText}>{route.category.label}</Text></View>
+                  {route.views_count > 0 && <Text style={styles.skillText}>{route.views_count} views</Text>}
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={palette.textDim} />
+            </View>
+            <View style={styles.details}>
+              {route.location.area_label ? (
+                <View style={styles.detailRow}>
+                  <Ionicons name="location-outline" size={12} color={palette.textDim} />
+                  <Text style={[styles.detailText, { flex: 1 }]} numberOfLines={1}>{route.location.area_label}</Text>
+                </View>
+              ) : null}
+              <View style={styles.detailRow}>
+                <Ionicons name="flash-outline" size={12} color={palette.accent} />
+                <Text style={styles.detailText}>
+                  {[
+                    route.stats.distance_km != null && `${route.stats.distance_km} km`,
+                    route.stats.elevation_gain != null && `↑${route.stats.elevation_gain} m`,
+                    route.stats.max_grade != null && `▲ ${route.stats.max_grade}%`,
+                    route.stats.max_downgrade != null && `▼ ${Math.abs(route.stats.max_downgrade)}%`,
+                  ].filter(Boolean).join(' · ')}
+                </Text>
+              </View>
+            </View>
+          </Pressable>
+        )
+      })}
+    </View>
+  )
+}
+
 // ─── People Tab ───────────────────────────────────────────────────────────────
 
 function PeopleTab() {
@@ -767,7 +986,7 @@ function PeopleTab() {
 
 export default function MeetScreen() {
   const tabBarHeight = useBottomTabBarHeight()
-  const [tab, setTab] = useState<'events' | 'people'>('events')
+  const [tab, setTab] = useState<'events' | 'people' | 'routes'>('events')
   const [showCalendar, setShowCalendar] = useState(false)
 
   return (
@@ -796,20 +1015,20 @@ export default function MeetScreen() {
 
         {/* Tab switcher */}
         <View style={styles.tabBar}>
-          {(['events', 'people'] as const).map(t => (
+          {(['events', 'people', 'routes'] as const).map(t => (
             <Pressable
               key={t}
               style={[styles.tabBtn, tab === t && styles.tabBtnActive]}
               onPress={() => setTab(t)}
             >
               <Text style={[styles.tabLabel, tab === t && styles.tabLabelActive]}>
-                {t === 'events' ? '📅 Events' : '👥 People'}
+                {t === 'events' ? 'Events' : t === 'routes' ? 'Routes' : 'People'}
               </Text>
             </Pressable>
           ))}
         </View>
 
-        {tab === 'events' ? <EventsTab /> : <PeopleTab />}
+        {tab === 'events' ? <EventsTab /> : tab === 'routes' ? <RoutesTab /> : <PeopleTab />}
 
       </ScrollView>
     </SafeAreaView>

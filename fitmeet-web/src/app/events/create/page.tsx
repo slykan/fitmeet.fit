@@ -86,6 +86,7 @@ export default function CreateEventPage() {
   const [gpxResult, setGpxResult] = useState<GpxResult | null>(null)
   const [gpxText,   setGpxText]   = useState<string | null>(null)
   const [gpxName,   setGpxName]   = useState<string | null>(null)
+  const [routeTitle, setRouteTitle] = useState('')
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [stravaRoutes,      setStravaRoutes]      = useState<StravaRoute[]>([])
@@ -189,6 +190,7 @@ export default function CreateEventPage() {
     const file = e.target.files?.[0]
     if (!file) return
     setGpxFile(file)
+    setRouteTitle(file.name.replace(/\.[^.]+$/, ''))
     const result = parseGpx(await file.text())
     setGpxResult(result)
     if (result.track.length > 0 && watchedLat === null) {
@@ -218,6 +220,7 @@ export default function CreateEventPage() {
       const result = parseGpx(text)
       setGpxText(text)
       setGpxName(route.name + '.gpx')
+      setRouteTitle(route.name)
       setGpxFile(null)
       setGpxResult(result)
       if (result.track.length > 0 && watchedLat === null) {
@@ -279,6 +282,7 @@ export default function CreateEventPage() {
       if (data.pace)           fd.append('pace',           data.pace)
       if (gpxFile)             fd.append('gpx_file',  gpxFile)
       else if (gpxText && gpxName) { fd.append('gpx_text', gpxText); fd.append('gpx_name', gpxName) }
+      if ((gpxFile || gpxText) && routeTitle.trim()) fd.append('route_title', routeTitle.trim())
       if (imageFile)           fd.append('image_file', imageFile)
       if (data.youtube_url)    fd.append('youtube_url', data.youtube_url)
 
@@ -554,6 +558,14 @@ export default function CreateEventPage() {
                         : '+ Upload GPX file (optional)'}
                     </span>
                   </label>
+                  {(gpxFile || gpxText) && (
+                    <input
+                      value={routeTitle}
+                      onChange={(event) => setRouteTitle(event.target.value)}
+                      placeholder="Route title"
+                      className={inputCls(false)}
+                    />
+                  )}
                   <button
                     type="button"
                     onClick={connectStrava}

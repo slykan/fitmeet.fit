@@ -15,6 +15,7 @@ import { WeatherBadge } from '@/components/WeatherBadge'
 import { fetchCurrentWeather, fetchRelevantEventWeather, weatherConditionLabel, windDirectionLabelDetailed, type EventWeather } from '@/lib/weather'
 import { WindOverlay } from '@/components/location-picker-map'
 import { sortEventsBySchedule } from '@/lib/event-order'
+import { fetchGpxActivityStats, type GpxActivityStats } from '@/lib/gpx-activity-stats'
 
 const openWeatherTileKey =
   process.env.NEXT_PUBLIC_OPENWEATHER_TILE_KEY ??
@@ -35,7 +36,7 @@ interface EventPin {
   category: { value: string; label: string }
   location: { lat: number; lng: number; address: string | null }
   schedule: { start_at: string; timezone: string; duration_minutes: number | null }
-  activity: { distance_km: number | null; elevation_gain: number | null }
+  activity: { distance_km: number | null; elevation_gain: number | null; gpx_url?: string | null }
   participants_count: number
   comments_count: number
   max_participants: number | null
@@ -286,6 +287,7 @@ export default function HubMap() {
   const [showCloudOverlay, setShowCloudOverlay] = useState(true)
   const [isMapInteracting, setIsMapInteracting] = useState(false)
   const [weatherRefreshTick, setWeatherRefreshTick] = useState(0)
+  const [gpxStats, setGpxStats] = useState<Record<number, GpxActivityStats>>({})
   const weatherRequestId = useRef(0)
 
   const lat      = (user?.location?.lat  || user?.home?.lat  || null)
@@ -336,6 +338,37 @@ export default function HubMap() {
       .catch(() => {})
       .finally(() => setReady(true))
   }, [lat, lng, radiusKm, friendsOnly])
+
+  useEffect(() => {
+    const targets = events.filter((event) => event.activity.gpx_url)
+
+    if (targets.length === 0) {
+      setGpxStats({})
+      return
+    }
+
+    let cancelled = false
+
+    Promise.all(
+      targets.map(async (event) => ({
+        id: event.id,
+        stats: await fetchGpxActivityStats(event.activity.gpx_url!).catch(() => null),
+      })),
+    ).then((entries) => {
+      if (cancelled) return
+      const next: Record<number, GpxActivityStats> = {}
+      for (const entry of entries) {
+        if (entry.stats) next[entry.id] = entry.stats
+      }
+      setGpxStats(next)
+    }).catch(() => {
+      if (!cancelled) setGpxStats({})
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [events])
 
   useEffect(() => {
     if (selected?.location?.lat != null && selected.location.lng != null) {
@@ -426,6 +459,12 @@ export default function HubMap() {
   const hubHasCloudLayer = Boolean(hubWeather && hubWeather.code > 0)
   const hasWeatherTiles = Boolean(openWeatherTileKey)
   const showWeatherLayers = !isMapInteracting
+  const selectedActivityDistanceKm = selected
+    ? gpxStats[selected.id]?.distanceKm ?? selected.activity.distance_km
+    : null
+  const selectedActivityElevationGain = selected
+    ? gpxStats[selected.id]?.elevationGain ?? selected.activity.elevation_gain
+    : null
 
   const visibleEvents = useMemo(() => {
     const specialMode = goingOnly || friendsOnly || myOnly
@@ -975,12 +1014,12 @@ export default function HubMap() {
                     ))}
                   </div>
                 )}
-                {(selected.activity.distance_km || selected.activity.elevation_gain) && (
+                {(selectedActivityDistanceKm != null || selectedActivityElevationGain != null) && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-muted)' }}>
                     <Zap size={12} style={{ color: 'var(--primary)' }} />
                     {[
-                      selected.activity.distance_km    && `${selected.activity.distance_km} km`,
-                      selected.activity.elevation_gain && `↑${selected.activity.elevation_gain} m`,
+                      selectedActivityDistanceKm != null && `${selectedActivityDistanceKm} km`,
+                      selectedActivityElevationGain != null && `↑${selectedActivityElevationGain} m`,
                     ].filter(Boolean).join(' · ')}
                   </div>
                 )}

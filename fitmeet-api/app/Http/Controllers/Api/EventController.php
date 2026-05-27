@@ -9,9 +9,11 @@ use App\Http\Requests\StoreEventRequest;
 use App\Http\Requests\UpdateEventRequest;
 use App\Http\Resources\EventResource;
 use App\Jobs\SendNewEventNotifications;
+use App\Models\ActivityRoute;
 use App\Models\Event;
 use App\Models\EventReminder;
 use App\Models\FriendRequest;
+use App\Services\GpxRouteParser;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -148,13 +150,20 @@ class EventController extends Controller
     public function store(StoreEventRequest $request): JsonResponse
     {
         $data = $request->validated();
+        $routeTitle = $data['route_title'] ?? null;
+        $gpxTextForRoute = null;
+        $gpxNameForRoute = $data['gpx_name'] ?? null;
 
         if ($request->hasFile('gpx_file')) {
-            $data['gpx_path'] = $request->file('gpx_file')->store('gpx', 'public');
+            $file = $request->file('gpx_file');
+            $gpxTextForRoute = file_get_contents($file->getRealPath()) ?: null;
+            $gpxNameForRoute = $file->getClientOriginalName();
+            $data['gpx_path'] = $file->store('gpx', 'public');
         } elseif ($request->filled('gpx_text')) {
+            $gpxTextForRoute = (string) $request->string('gpx_text');
             $data['gpx_path'] = $this->storeGpxText(
-                (string) $request->string('gpx_text'),
-                (string) $request->string('gpx_name')
+                $gpxTextForRoute,
+                (string) $gpxNameForRoute
             );
         }
 
@@ -162,9 +171,14 @@ class EventController extends Controller
             $data['image_path'] = $request->file('image_file')->store('event-images', 'public');
         }
 
-        unset($data['gpx_file'], $data['gpx_text'], $data['gpx_name'], $data['image_file']);
+        unset($data['gpx_file'], $data['gpx_text'], $data['gpx_name'], $data['route_title'], $data['image_file']);
 
         $event = $request->user()->events()->create($data);
+
+        if ($event->gpx_path && $gpxTextForRoute) {
+            $this->syncRouteFromEvent($event, $gpxTextForRoute, $routeTitle, $gpxNameForRoute);
+        }
+
         $event->load('organizer');
 
         SendNewEventNotifications::dispatch($event);
@@ -301,19 +315,26 @@ HTML;
         }
 
         $data = $request->validated();
+        $routeTitle = $data['route_title'] ?? null;
+        $gpxTextForRoute = null;
+        $gpxNameForRoute = $data['gpx_name'] ?? null;
 
         if ($request->hasFile('gpx_file')) {
             if ($event->gpx_path) {
                 Storage::disk('public')->delete($event->gpx_path);
             }
-            $data['gpx_path'] = $request->file('gpx_file')->store('gpx', 'public');
+            $file = $request->file('gpx_file');
+            $gpxTextForRoute = file_get_contents($file->getRealPath()) ?: null;
+            $gpxNameForRoute = $file->getClientOriginalName();
+            $data['gpx_path'] = $file->store('gpx', 'public');
         } elseif ($request->filled('gpx_text')) {
             if ($event->gpx_path) {
                 Storage::disk('public')->delete($event->gpx_path);
             }
+            $gpxTextForRoute = (string) $request->string('gpx_text');
             $data['gpx_path'] = $this->storeGpxText(
-                (string) $request->string('gpx_text'),
-                (string) $request->string('gpx_name')
+                $gpxTextForRoute,
+                (string) $gpxNameForRoute
             );
         }
 
@@ -329,9 +350,17 @@ HTML;
             $data['image_path'] = null;
         }
 
-        unset($data['gpx_file'], $data['gpx_text'], $data['gpx_name'], $data['image_file'], $data['image_remove']);
+        unset($data['gpx_file'], $data['gpx_text'], $data['gpx_name'], $data['route_title'], $data['image_file'], $data['image_remove']);
 
         $event->update($data);
+
+        $freshEvent = $event->fresh();
+        if ($freshEvent->gpx_path && $gpxTextForRoute) {
+            $this->syncRouteFromEvent($freshEvent, $gpxTextForRoute, $routeTitle, $gpxNameForRoute);
+        } else {
+            $this->syncRouteVisibilityFromEvent($freshEvent);
+        }
+
         $event->load('organizer');
 
         return response()->json(['data' => new EventResource($event)]);
@@ -391,6 +420,7 @@ HTML;
         }
 
         $event->update(['status' => 'cancelled']);
+        $this->syncRouteVisibilityFromEvent($event->fresh());
         EventReminder::where('event_id', $event->id)->delete();
         SendCancelledEventNotifications::dispatch($event->load('organizer', 'participants'));
 
@@ -673,5 +703,84 @@ HTML;
         Storage::disk('public')->put($path, $gpxText);
 
         return $path;
+    }
+
+    private function syncRouteFromEvent(Event $event, string $gpxText, ?string $routeTitle, ?string $gpxName): void
+    {
+        if ($event->is_private || $event->status === 'cancelled') {
+            $this->syncRouteVisibilityFromEvent($event);
+            return;
+        }
+
+        $parsed = app(GpxRouteParser::class)->parse($gpxText);
+
+        if (count($parsed['track'] ?? []) < 2) {
+            return;
+        }
+
+        $title = $this->routeTitle($event, $parsed, $routeTitle, $gpxName);
+        $start = $parsed['start'] ?? null;
+        $end = $parsed['end'] ?? null;
+
+        $route = $event->route_id
+            ? ActivityRoute::query()->whereKey($event->route_id)->first()
+            : null;
+
+        $routeData = [
+            'user_id' => $event->user_id,
+            'source_event_id' => $event->id,
+            'title' => $title,
+            'category' => $event->category?->value ?? 'other',
+            'distance_km' => $parsed['distance_km'] ?: $event->distance_km,
+            'elevation_gain' => $parsed['elevation_gain'] ?: $event->elevation_gain,
+            'max_grade' => $parsed['max_grade'] ?: $event->max_grade,
+            'max_downgrade' => $parsed['max_downgrade'] ?: $event->max_downgrade,
+            'start_lat' => $start[0] ?? null,
+            'start_lng' => $start[1] ?? null,
+            'end_lat' => $end[0] ?? null,
+            'end_lng' => $end[1] ?? null,
+            'area_label' => $event->address,
+            'gpx_path' => $event->gpx_path,
+            'is_public' => true,
+        ];
+
+        if ($route) {
+            $route->update($routeData);
+        } else {
+            $route = ActivityRoute::query()->create($routeData);
+            $event->forceFill(['route_id' => $route->id])->save();
+        }
+    }
+
+    private function syncRouteVisibilityFromEvent(Event $event): void
+    {
+        if (! $event->route_id) {
+            return;
+        }
+
+        ActivityRoute::query()
+            ->whereKey($event->route_id)
+            ->update([
+                'is_public' => ! $event->is_private && $event->status !== 'cancelled',
+            ]);
+    }
+
+    private function routeTitle(Event $event, array $parsed, ?string $routeTitle, ?string $gpxName): string
+    {
+        foreach ([
+            $routeTitle,
+            $parsed['name'] ?? null,
+            $gpxName ? pathinfo($gpxName, PATHINFO_FILENAME) : null,
+        ] as $candidate) {
+            $candidate = trim((string) $candidate);
+            if ($candidate !== '') return Str::limit($candidate, 140, '');
+        }
+
+        $category = $event->category?->label() ?? 'Activity';
+        $distance = $event->distance_km ?: ($parsed['distance_km'] ?? null);
+
+        return $distance
+            ? "{$category} route · {$distance} km"
+            : "Route from: {$event->title}";
     }
 }
