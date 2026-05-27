@@ -92,6 +92,7 @@ function EditContent() {
   const [showRouteModal,    setShowRouteModal]    = useState(false)
   const [importingFitMeetRoute, setImportingFitMeetRoute] = useState<number | null>(null)
   const [fitMeetRouteId, setFitMeetRouteId] = useState<number | null>(null)
+  const [hasExistingRoute, setHasExistingRoute] = useState(false)
   const [routeRemoved, setRouteRemoved] = useState(false)
 
   const {
@@ -131,11 +132,15 @@ function EditContent() {
           pace:             e.activity.pace ?? '',
           youtube_url:      e.youtube_url ?? '',
         })
+        const eventHasRoute = Boolean(e.activity.route_id || e.activity.gpx_url)
+        setHasExistingRoute(eventHasRoute)
         if (e.activity.gpx_url) {
           setRouteRemoved(false)
           api.get(e.activity.gpx_url, { responseType: 'text' })
             .then(r => setGpxResult(parseGpx(r.data)))
             .catch(() => {})
+        } else if (eventHasRoute) {
+          setRouteRemoved(false)
         }
         setImagePreview(e.image_url ?? null)
         setEventTimezone(e.schedule.timezone ?? 'Europe/Zagreb')
@@ -357,7 +362,7 @@ function EditContent() {
   }
 
   async function clearRoute() {
-    const shouldPersistRemoval = Boolean(id) && !gpxFile && !gpxText && !fitMeetRouteId && Boolean(gpxResult) && !routeRemoved
+    const shouldPersistRemoval = Boolean(id) && !gpxFile && !gpxText && !fitMeetRouteId && (hasExistingRoute || Boolean(gpxResult)) && !routeRemoved
     if (shouldPersistRemoval) {
       try {
         const fd = new globalThis.FormData()
@@ -375,6 +380,7 @@ function EditContent() {
     setGpxResult(null)
     setRouteTitle('')
     setFitMeetRouteId(null)
+    setHasExistingRoute(false)
     setRouteRemoved(true)
     setValue('distance_km', '')
     setValue('elevation_gain', '')
@@ -641,12 +647,12 @@ function EditContent() {
                     ? `📍 ${gpxFile.name} · ${gpxResult?.track.length ?? 0} pts`
                     : gpxText
                     ? `📍 ${gpxName} · ${gpxResult?.track.length ?? 0} pts (Strava)`
-                    : gpxResult && gpxResult.track.length > 0
-                    ? `📍 Current route · ${gpxResult.track.length} pts (upload to replace)`
+                    : (hasExistingRoute || (gpxResult && gpxResult.track.length > 0)) && !routeRemoved
+                    ? `📍 Current route · ${gpxResult?.track.length ?? 0} pts (upload to replace)`
                     : '+ Upload GPX file (optional)'}
                 </span>
               </label>
-              {(gpxFile || gpxText || fitMeetRouteId || (gpxResult && !routeRemoved)) && (
+              {(gpxFile || gpxText || fitMeetRouteId || ((hasExistingRoute || gpxResult) && !routeRemoved)) && (
                 <>
                   {(gpxFile || gpxText || fitMeetRouteId) && (
                     <input

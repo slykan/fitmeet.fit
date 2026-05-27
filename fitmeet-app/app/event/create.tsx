@@ -266,6 +266,7 @@ export default function CreateEventScreen() {
   const [fitMeetRoutesCategory, setFitMeetRoutesCategory] = useState('')
   const [importingFitMeetRoute, setImportingFitMeetRoute] = useState<number | null>(null)
   const [fitMeetRouteId, setFitMeetRouteId] = useState<number | null>(null)
+  const [hasExistingRoute, setHasExistingRoute] = useState(false)
   const [routeRemoved, setRouteRemoved] = useState(false)
 
   const [youtubeUrl,   setYoutubeUrl]   = useState('')
@@ -326,6 +327,8 @@ export default function CreateEventScreen() {
         setImageName(null)
         setImageRemoved(false)
         setYoutubeUrl(ev.youtube_url ?? '')
+        const eventHasRoute = Boolean(ev.activity?.route_id || ev.activity?.gpx_url)
+        setHasExistingRoute(eventHasRoute)
         if (ev.activity?.gpx_url) {
           setGpxName('Current GPX route')
           setRouteTitle('')
@@ -340,10 +343,17 @@ export default function CreateEventScreen() {
               applyActivityStats(await statsFromGpx(parsed))
             })
             .catch(() => {})
+        } else if (eventHasRoute) {
+          setGpxName('Current GPX route')
+          setGpxContent(null)
+          setRouteTitle('')
+          setRouteRemoved(false)
+          setGpxTrack([])
         } else {
           setGpxName(null)
           setGpxContent(null)
           setRouteTitle('')
+          setHasExistingRoute(false)
           setRouteRemoved(false)
           setGpxTrack([])
         }
@@ -509,6 +519,7 @@ export default function CreateEventScreen() {
     setGpxName(routeName)
     setRouteTitle(routeName.replace(/\.[^.]+$/, ''))
     setFitMeetRouteId(null)
+    setHasExistingRoute(false)
     setRouteRemoved(false)
     setGpxTrack(parsed.track)
 
@@ -653,7 +664,7 @@ export default function CreateEventScreen() {
   }
 
   async function clearRoute() {
-    if (editId && gpxName === 'Current GPX route') {
+    if (editId && !fitMeetRouteId && (hasExistingRoute || gpxName === 'Current GPX route')) {
       try {
         const fd = new FormData()
         fd.append('gpx_remove', '1')
@@ -673,13 +684,14 @@ export default function CreateEventScreen() {
     setGpxContent(null)
     setRouteTitle('')
     setFitMeetRouteId(null)
+    setHasExistingRoute(false)
     setGpxTrack([])
     setDistanceKm('')
     setElevGain('')
     setMaxGrade('')
     setMaxDowngrade('')
     setPace('')
-    if (editId && gpxName !== 'Current GPX route') setRouteRemoved(true)
+    if (editId && !hasExistingRoute && gpxName !== 'Current GPX route') setRouteRemoved(true)
   }
 
   function openCreatedEvent() {
