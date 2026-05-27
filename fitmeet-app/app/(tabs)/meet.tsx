@@ -19,6 +19,7 @@ import { useAuthStore } from '@/src/store/auth'
 import { palette, spacing } from '@/src/theme'
 import { fetchEventWeatherSnapshots, type EventWeatherSnapshot } from '@/src/lib/event-weather-snapshots'
 import { sortEventsBySchedule } from '@/src/lib/event-order'
+import { fetchGpxActivityStats, type GpxActivityStats } from '@/src/lib/gpx-activity-stats'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -28,7 +29,7 @@ interface EventItem {
   category: { value: string; label: string }
   location: { lat: number | null; lng: number | null; address: string | null }
   schedule: { start_at: string; timezone: string; duration_minutes: number | null }
-  activity: { distance_km: number | null; elevation_gain: number | null }
+  activity: { distance_km: number | null; elevation_gain: number | null; gpx_url?: string | null }
   participants_count: number
   max_participants: number | null
   status: string
@@ -130,6 +131,7 @@ function EventsTab() {
   const [sortKey, setSortKey] = useState<SortKey>('soonest')
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
   const [weatherSnapshots, setWeatherSnapshots] = useState<Record<number, EventWeatherSnapshot | null>>({})
+  const [gpxStats, setGpxStats] = useState<Record<number, GpxActivityStats>>({})
   const discoveryLat = user?.home?.lat ?? user?.location?.lat ?? null
   const discoveryLng = user?.home?.lng ?? user?.location?.lng ?? null
 
@@ -180,6 +182,38 @@ function EventsTab() {
       setReminderIds(ids)
     }).catch(() => {})
   }, [])
+
+  useEffect(() => {
+    const targets = events.filter((event) => event.activity.gpx_url)
+
+    if (targets.length === 0) {
+      setGpxStats({})
+      return
+    }
+
+    let cancelled = false
+    const token = useAuthStore.getState().token
+
+    Promise.all(
+      targets.map(async (event) => ({
+        id: event.id,
+        stats: await fetchGpxActivityStats(event.activity.gpx_url!, token).catch(() => null),
+      })),
+    ).then((entries) => {
+      if (cancelled) return
+      const next: Record<number, GpxActivityStats> = {}
+      for (const entry of entries) {
+        if (entry.stats) next[entry.id] = entry.stats
+      }
+      setGpxStats(next)
+    }).catch(() => {
+      if (!cancelled) setGpxStats({})
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [events])
 
   useEffect(() => {
     const weatherEligibleIds = events
@@ -364,6 +398,9 @@ function EventsTab() {
         const { date, time } = formatDate(ev.schedule.start_at)
         const emoji = CATEGORY_EMOJI[ev.category.value] ?? '📍'
 
+        const activityDistanceKm = gpxStats[ev.id]?.distanceKm ?? ev.activity.distance_km
+        const activityElevGain = gpxStats[ev.id]?.elevGain ?? ev.activity.elevation_gain
+
         return (
           <Pressable
             key={ev.id}
@@ -441,13 +478,13 @@ function EventsTab() {
                   {ev.is_joined ? ' · ✓ Going' : ''}
                 </Text>
               </View>
-              {(ev.activity.distance_km || ev.activity.elevation_gain) ? (
+              {(activityDistanceKm != null || activityElevGain != null) ? (
                 <View style={styles.detailRow}>
                   <Ionicons name="flash-outline" size={12} color={palette.accent} />
                   <Text style={styles.detailText}>
                     {[
-                      ev.activity.distance_km    && `${ev.activity.distance_km} km`,
-                      ev.activity.elevation_gain && `↑${ev.activity.elevation_gain} m`,
+                      activityDistanceKm != null && `${activityDistanceKm} km`,
+                      activityElevGain != null && `↑${activityElevGain} m`,
                     ].filter(Boolean).join(' · ')}
                   </Text>
                 </View>
