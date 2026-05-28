@@ -3,7 +3,7 @@ import { EmptyEvents } from '@/src/components/EmptyEvents'
 import { EventCommentsPreview } from '@/src/components/EventCommentsPreview'
 import { InProgressBadge } from '@/src/components/InProgressBadge'
 import { router, useFocusEffect } from 'expo-router'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, Share,
   StyleSheet, Text, TextInput, View,
@@ -566,6 +566,8 @@ function RoutesTab() {
   const user = useAuthStore((s) => s.user)
   const [routes, setRoutes] = useState<RouteItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [q, setQ] = useState('')
+  const qRef = useRef('')
   const [category, setCategory] = useState('')
   const [radiusKm, setRadiusKm] = useState<number | null>(null)
   const [distanceFilter, setDistanceFilter] = useState(0)
@@ -582,6 +584,7 @@ function RoutesTab() {
       const distance = ROUTE_DISTANCE_FILTERS[distanceFilter]
       const elevation = ROUTE_ELEVATION_FILTERS[elevationFilter]
       const params: Record<string, unknown> = { per_page: 100, sort: sortKey }
+      if (qRef.current.trim()) params.q = qRef.current.trim()
       if (category) params.category = category
       if (distance.min != null) params.distance_min = distance.min
       if (distance.max != null) params.distance_max = distance.max
@@ -603,6 +606,12 @@ function RoutesTab() {
 
   useFocusEffect(useCallback(() => { load() }, [load]))
 
+  useEffect(() => {
+    qRef.current = q
+    const t = setTimeout(() => load(), q ? 300 : 0)
+    return () => clearTimeout(t)
+  }, [q, load])
+
   const activeFilterCount =
     (category ? 1 : 0) + (radiusKm !== null ? 1 : 0) + (distanceFilter ? 1 : 0) + (elevationFilter ? 1 : 0)
   const activeSort = ROUTE_SORT_OPTIONS.find(option => option.key === sortKey) ?? ROUTE_SORT_OPTIONS[0]
@@ -616,6 +625,24 @@ function RoutesTab() {
         <Ionicons name="pencil-outline" size={16} color={palette.accent} />
         <Text style={styles.createRouteBtnText}>Create new route</Text>
       </Pressable>
+
+      <View style={styles.searchBar}>
+        <Ionicons name="search-outline" size={16} color={palette.textDim} />
+        <TextInput
+          style={styles.searchInput}
+          value={q}
+          onChangeText={setQ}
+          placeholder="Search routes…"
+          placeholderTextColor={palette.textDim}
+          autoCapitalize="none"
+          returnKeyType="search"
+        />
+        {q.length > 0 && (
+          <Pressable onPress={() => setQ('')} hitSlop={8}>
+            <Ionicons name="close-circle" size={16} color={palette.textDim} />
+          </Pressable>
+        )}
+      </View>
 
       <View style={styles.filterToolbar}>
         <Pressable
