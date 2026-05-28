@@ -20,7 +20,12 @@ async function wikiPost(params: Record<string, string>): Promise<unknown> {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body,
   })
-  return r.json()
+  const text = await r.text()
+  try {
+    return JSON.parse(text)
+  } catch {
+    throw new Error(`HTTP ${r.status}: ${text.substring(0, 100)}`)
+  }
 }
 
 async function fetchWikiPhotos(lat: number, lng: number): Promise<WikiPhoto[]> {
