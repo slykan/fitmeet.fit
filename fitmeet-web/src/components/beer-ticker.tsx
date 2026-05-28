@@ -8,17 +8,6 @@ import { PaymentTiers } from '@/components/payment-tiers'
 
 type Donor = { name: string; beer_score: number; beer_top_tier: string; last_donation_at: string }
 
-const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000
-function isRecent(d: Donor) {
-  return Date.now() - new Date(d.last_donation_at).getTime() < THIRTY_DAYS_MS
-}
-function top5(all: Donor[]): Donor[] {
-  const recent = all.filter(isRecent).slice(0, 5)
-  if (recent.length >= 5) return recent
-  const older = all.filter(d => !isRecent(d)).slice(0, 5 - recent.length)
-  return [...recent, ...older]
-}
-
 const BEER_TIER_EMOJI: Record<string, string> = {
   beer_small: '🍺',
   beer_medium: '🍺🍺🍺',
@@ -38,9 +27,6 @@ function SupportersModal({ onClose, donors, onPurchased }: {
   onPurchased: () => void
 }) {
   const { token } = useAuthStore()
-
-  const recent = donors.filter(isRecent).slice(0, 5)
-  const older  = donors.filter(d => !isRecent(d)).slice(0, 5)
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center">
@@ -79,32 +65,16 @@ function SupportersModal({ onClose, donors, onPurchased }: {
             <span className="opacity-50">→</span>
           </a>
 
-          {recent.length > 0 && (
+          {donors.length > 0 && (
             <>
               <p className="text-xs font-black uppercase tracking-widest" style={{ color: 'rgba(246,198,91,0.55)' }}>
-                🔥 Last 30 days
+                Recent supporters
               </p>
-              {recent.map((d, i) => (
+              {donors.map((d, i) => (
                 <div key={i} className="flex items-center gap-3 px-3 py-2 rounded-xl border"
                   style={{ background: 'rgba(246,198,91,0.04)', borderColor: 'rgba(246,198,91,0.15)' }}>
                   <MedalIcons productId={d.beer_top_tier} />
                   <span className="font-bold text-sm flex-1 truncate">{d.name}</span>
-                  <span className="text-xs" style={{ color: 'rgba(246,198,91,0.5)' }}>×{d.beer_score}</span>
-                </div>
-              ))}
-            </>
-          )}
-
-          {older.length > 0 && (
-            <>
-              <p className="text-xs font-black uppercase tracking-widest mt-1" style={{ color: 'rgba(255,255,255,0.2)' }}>
-                Past supporters
-              </p>
-              {older.map((d, i) => (
-                <div key={i} className="flex items-center gap-3 px-3 py-2 rounded-xl"
-                  style={{ opacity: 0.45 }}>
-                  <span className="text-sm">🍺</span>
-                  <span className="text-sm flex-1 truncate">{d.name}</span>
                 </div>
               ))}
             </>
@@ -125,7 +95,7 @@ function BeerTickerInner() {
   const [open, setOpen] = useState(false)
 
   function load() {
-    api.get('/beer-donations').then(r => setDonors(r.data)).catch(() => {})
+    api.get('/beer-donations?sort=recent&limit=10').then(r => setDonors(r.data)).catch(() => {})
   }
 
   useEffect(() => {
@@ -143,9 +113,6 @@ function BeerTickerInner() {
   }, [donors.length])
 
   if (!donors.length) return null
-
-  const tickerDonors = top5(donors)
-  const doubled = [...tickerDonors, ...tickerDonors]
 
   return (
     <>
@@ -176,7 +143,7 @@ function BeerTickerInner() {
         {/* Scrolling content */}
         <div className="flex-1 overflow-hidden h-full flex items-center">
           <div className="beer-ticker flex items-center gap-0">
-            {doubled.map((d, i) => (
+            {[...donors, ...donors].map((d, i) => (
               <div key={i} className="flex items-center gap-1.5 px-4" style={{ height: 30 }}>
                 <MedalIcons productId={d.beer_top_tier} ticker />
                 <span className="text-[12px] font-bold whitespace-nowrap" style={{ color: 'rgba(255,255,255,0.9)', lineHeight: 1 }}>

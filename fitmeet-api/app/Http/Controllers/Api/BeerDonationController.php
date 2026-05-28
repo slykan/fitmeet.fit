@@ -12,7 +12,24 @@ class BeerDonationController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $limit  = min((int) $request->query('limit', 10), 200);
+        $limit = min((int) $request->query('limit', 10), 200);
+
+        if ($request->query('sort') === 'recent') {
+            $donations = BeerDonation::with('user:id,name')
+                ->latest()
+                ->limit($limit)
+                ->get()
+                ->map(fn ($d) => [
+                    'name'             => $d->user->name,
+                    'beer_score'       => 1,
+                    'beer_top_tier'    => $d->product_id,
+                    'last_donation_at' => $d->created_at,
+                ])
+                ->values();
+
+            return response()->json($donations);
+        }
+
         $weights = ['beer_small' => 1, 'beer_medium' => 2, 'beer_large' => 3];
 
         $donors = BeerDonation::with('user:id,name')

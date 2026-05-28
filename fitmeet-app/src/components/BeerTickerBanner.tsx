@@ -21,17 +21,6 @@ import { api } from '@/src/lib/api'
 
 type Donor = { name: string; beer_score: number; beer_top_tier: string; last_donation_at: string }
 
-const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000
-function isRecent(d: Donor) {
-  return Date.now() - new Date(d.last_donation_at).getTime() < THIRTY_DAYS_MS
-}
-function top5(all: Donor[]): Donor[] {
-  const recent = all.filter(isRecent).slice(0, 5)
-  if (recent.length >= 5) return recent
-  const older = all.filter(d => !isRecent(d)).slice(0, 5 - recent.length)
-  return [...recent, ...older]
-}
-
 const MEDAL_LABEL: Record<string, string> = {
   beer_small: 'Small beer',
   beer_medium: '3 beers',
@@ -96,9 +85,6 @@ function SupportersModal({
   onClose: () => void
   onPurchased: () => void
 }) {
-  const recent = donors.filter(isRecent).slice(0, 5)
-  const older  = donors.filter(d => !isRecent(d)).slice(0, 5)
-
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={styles.modalOverlay} onPress={onClose} />
@@ -120,24 +106,10 @@ function SupportersModal({
           contentContainerStyle={styles.donorListContent}
           showsVerticalScrollIndicator={false}
         >
-          {recent.length > 0 && (
+          {donors.length > 0 && (
             <>
-              <Text style={styles.sectionLabel}>🔥 Last 30 days</Text>
-              {recent.map((d, i) => <DonorRow key={i} donor={d} index={i} />)}
-            </>
-          )}
-
-          {older.length > 0 && (
-            <>
-              <Text style={[styles.sectionLabel, { color: 'rgba(255,255,255,0.25)', marginTop: 8 }]}>Past supporters</Text>
-              {older.map((d, i) => (
-                <View key={i} style={[styles.donorRow, { opacity: 0.4 }]}>
-                  <Ionicons name="beer-outline" size={16} color="rgba(246,198,91,0.5)" style={{ width: 22 }} />
-                  <View style={styles.donorInfo}>
-                    <Text style={styles.donorName}>{d.name}</Text>
-                  </View>
-                </View>
-              ))}
+              <Text style={styles.sectionLabel}>Recent supporters</Text>
+              {donors.map((d, i) => <DonorRow key={i} donor={d} index={i} />)}
             </>
           )}
 
@@ -183,7 +155,7 @@ export function BeerTickerBanner() {
   const sequenceWidth = useRef(0)
   const itemWidths = useRef<number[]>([])
   const started = useRef(false)
-  const tickerDonors = top5(donors)
+  const tickerDonors = donors
 
   function resetTickerMeasurements() {
     animRef.current?.stop()
@@ -194,7 +166,7 @@ export function BeerTickerBanner() {
   }
 
   function loadDonors() {
-    api.get('/beer-donations?limit=200')
+    api.get('/beer-donations?sort=recent&limit=10')
       .then(r => {
         resetTickerMeasurements()
         setDonors(r.data)
