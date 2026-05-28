@@ -13,17 +13,32 @@ interface WikiPhoto {
 async function fetchWikiPhotos(lat: number, lng: number): Promise<WikiPhoto[]> {
   const base = 'https://commons.wikimedia.org/w/api.php'
 
-  const geo = await fetch(
-    `${base}?action=query&list=geosearch&gscoord=${lat}|${lng}&gsradius=3000&gslimit=12&gsnamespace=6&format=json&origin=*`
-  ).then(r => r.json())
+  const geoParams = new URLSearchParams({
+    action: 'query',
+    list: 'geosearch',
+    gscoord: `${lat}|${lng}`,
+    gsradius: '10000',
+    gslimit: '20',
+    gsnamespace: '6',
+    format: 'json',
+    origin: '*',
+  })
 
+  const geo = await fetch(`${base}?${geoParams.toString()}`).then(r => r.json())
   const items: Array<{ title: string }> = geo.query?.geosearch ?? []
   if (!items.length) return []
 
-  const titles = items.map((i: { title: string }) => i.title).join('|')
-  const info = await fetch(
-    `${base}?action=query&titles=${titles}&prop=imageinfo&iiprop=url&iiurlwidth=400&format=json&origin=*`
-  ).then(r => r.json())
+  const infoParams = new URLSearchParams({
+    action: 'query',
+    titles: items.map(i => i.title).join('|'),
+    prop: 'imageinfo',
+    iiprop: 'url',
+    iiurlwidth: '400',
+    format: 'json',
+    origin: '*',
+  })
+
+  const info = await fetch(`${base}?${infoParams.toString()}`).then(r => r.json())
 
   const pages = Object.values(info.query?.pages ?? {}) as Array<{
     title: string
@@ -51,7 +66,7 @@ export function WikiPhotosStrip({ lat, lng }: { lat: number; lng: number }) {
       .finally(() => setLoaded(true))
   }, [lat, lng])
 
-  if (!loaded || photos.length < 2) return null
+  if (!loaded || photos.length === 0) return null
 
   return (
     <View style={styles.container}>
