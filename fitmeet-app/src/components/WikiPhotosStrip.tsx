@@ -17,7 +17,10 @@ async function wikiPost(params: Record<string, string>): Promise<unknown> {
 
   const r = await fetch('https://commons.wikimedia.org/w/api.php', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'User-Agent': 'FitMeet/1.0 (https://fitmeet.fit)',
+    },
     body,
   })
   const text = await r.text()
