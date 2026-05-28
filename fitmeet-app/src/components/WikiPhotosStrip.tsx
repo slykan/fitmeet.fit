@@ -119,7 +119,10 @@ export function WikiPhotosStrip({ lat, lng }: { lat: number; lng: number }) {
             style={styles.card}
             onPress={() => Linking.openURL(photo.pageUrl)}
           >
-            <Image source={{ uri: photo.thumbUrl }} style={styles.image} />
+            <Image
+              source={{ uri: photo.thumbUrl, headers: { 'User-Agent': 'FitMeet/1.0 (https://fitmeet.fit)' } }}
+              style={styles.image}
+            />
             <View style={styles.overlay}>
               <Text style={styles.photoTitle} numberOfLines={1}>{photo.title}</Text>
             </View>
