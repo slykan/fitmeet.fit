@@ -54,7 +54,7 @@ export default function BlogPage() {
           <div className="max-w-6xl mx-auto px-4">
             <div className="flex items-center gap-2 mb-6">
               <Sparkles size={15} style={{ color: 'var(--primary)' }} />
-              <p className="text-sm font-bold uppercase tracking-widest" style={{ color: 'var(--primary)' }}>Novosti</p>
+              <p className="text-sm font-bold uppercase tracking-widest" style={{ color: 'var(--primary)' }}>News</p>
             </div>
 
             <div className="grid gap-4 md:grid-cols-3">
