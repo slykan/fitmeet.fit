@@ -20,7 +20,7 @@ async function fetchWikiPhotos(lat: number, lng: number): Promise<WikiPhoto[]> {
   const items: Array<{ title: string }> = geo.query?.geosearch ?? []
   if (!items.length) return []
 
-  const titles = items.map((i: { title: string }) => encodeURIComponent(i.title)).join('|')
+  const titles = items.map((i: { title: string }) => i.title).join('|')
   const info = await fetch(
     `${base}?action=query&titles=${titles}&prop=imageinfo&iiprop=url&iiurlwidth=400&format=json&origin=*`
   ).then(r => r.json())
