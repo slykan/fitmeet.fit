@@ -10,6 +10,7 @@ import { CATEGORIES } from '@/src/lib/categories'
 import { api } from '@/src/lib/api'
 import { fetchElevationProfile, parseGpxText } from '@/src/lib/gpx'
 import type { GpxParsed } from '@/src/lib/gpx'
+import { useAuthStore } from '@/src/store/auth'
 import { palette, spacing } from '@/src/theme'
 
 interface RouteDetail {
@@ -28,6 +29,8 @@ interface RouteDetail {
     area_label: string | null
   }
   views_count: number
+  creator?: { id: number; name: string } | null
+  waypoints?: [number, number][] | null
 }
 
 const CATEGORY_EMOJI: Record<string, string> = Object.fromEntries(
@@ -70,6 +73,7 @@ function withProfileStats(parsed: GpxParsed): GpxParsed {
 
 export default function RouteViewScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
+  const { user } = useAuthStore()
   const [route, setRoute] = useState<RouteDetail | null>(null)
   const [gpx, setGpx] = useState<GpxParsed | null>(null)
   const [loading, setLoading] = useState(true)
@@ -174,6 +178,15 @@ export default function RouteViewScreen() {
             <Text style={styles.title}>{route.title}</Text>
             <Text style={styles.meta}>{route.category.label}{route.views_count ? ` · ${route.views_count} views` : ''}</Text>
           </View>
+          {user && route.creator?.id === user.id && (
+            <Pressable
+              style={styles.editBtn}
+              onPress={() => router.push(`/route/draw?id=${route.id}` as never)}
+              hitSlop={10}
+            >
+              <Ionicons name="pencil-outline" size={17} color={palette.accent} />
+            </Pressable>
+          )}
           <Pressable style={styles.shareBtn} onPress={shareRoute} hitSlop={10}>
             <Ionicons name="share-social-outline" size={19} color={palette.text} />
           </Pressable>
@@ -234,6 +247,13 @@ const styles = StyleSheet.create({
   },
   title: { color: palette.text, fontSize: 22, fontWeight: '900' },
   meta: { color: palette.textMuted, fontSize: 13, marginTop: 3 },
+  editBtn: {
+    width: 42, height: 42, borderRadius: 14,
+    backgroundColor: 'rgba(108,255,47,0.1)',
+    borderWidth: 1, borderColor: 'rgba(108,255,47,0.28)',
+    alignItems: 'center', justifyContent: 'center',
+    marginRight: 6,
+  },
   shareBtn: {
     width: 42,
     height: 42,

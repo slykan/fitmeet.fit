@@ -609,6 +609,14 @@ function RoutesTab() {
 
   return (
     <View style={{ gap: spacing.md }}>
+      <Pressable
+        style={styles.createRouteBtn}
+        onPress={() => router.push('/route/draw' as never)}
+      >
+        <Ionicons name="pencil-outline" size={16} color={palette.accent} />
+        <Text style={styles.createRouteBtnText}>Create new route</Text>
+      </Pressable>
+
       <View style={styles.filterToolbar}>
         <Pressable
           style={[styles.filterBtn, activeFilterCount > 0 && styles.filterBtnActive]}
@@ -1071,6 +1079,13 @@ const styles = StyleSheet.create({
     backgroundColor: palette.panel, borderWidth: 1, borderColor: palette.line,
     borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8,
   },
+  createRouteBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 8, paddingVertical: 12, borderRadius: 16,
+    borderWidth: 1, borderColor: 'rgba(108,255,47,0.28)',
+    backgroundColor: 'rgba(108,255,47,0.07)',
+  },
+  createRouteBtnText: { color: palette.accent, fontSize: 14, fontWeight: '800' },
   filterToolbar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
