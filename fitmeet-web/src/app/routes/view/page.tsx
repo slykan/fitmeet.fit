@@ -7,6 +7,7 @@ import { ChevronLeft, Download, Eye, MapPin, PenLine, Share2, Zap } from 'lucide
 
 import { Navbar } from '@/components/navbar'
 import ElevationChart from '@/components/elevation-chart'
+import { WikiPhotosStrip } from '@/components/wiki-photos-strip'
 import api from '@/lib/api'
 import { CATEGORIES, CATEGORY_EMOJI } from '@/lib/categories'
 import { fetchElevationProfile, parseGpx, type GpxResult } from '@/lib/parse-gpx'
@@ -255,6 +256,10 @@ function RouteContent() {
               <ElevationChart profile={gpxResult.elevationProfile} totalKm={gpxResult.distanceKm} />
             )}
           </div>
+
+          {route.location.start_lat != null && route.location.start_lng != null && (
+            <WikiPhotosStrip lat={route.location.start_lat} lng={route.location.start_lng} />
+          )}
         </div>
       </main>
     </>

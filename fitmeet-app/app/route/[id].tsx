@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { ElevationChart } from '@/src/components/ElevationChart'
 import { EventMapCard } from '@/src/components/EventMapCard'
+import { WikiPhotosStrip } from '@/src/components/WikiPhotosStrip'
 import { CATEGORIES } from '@/src/lib/categories'
 import { api } from '@/src/lib/api'
 import { fetchElevationProfile, parseGpxText } from '@/src/lib/gpx'
@@ -228,6 +229,10 @@ export default function RouteViewScreen() {
         ) : null}
 
         {gpx && gpx.elevationProfile.length >= 2 ? <ElevationChart profile={gpx.elevationProfile} /> : null}
+
+        {route.location.start_lat != null && route.location.start_lng != null && (
+          <WikiPhotosStrip lat={route.location.start_lat} lng={route.location.start_lng} />
+        )}
       </ScrollView>
     </SafeAreaView>
   )

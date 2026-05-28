@@ -11,6 +11,7 @@ import { Navbar } from '@/components/navbar'
 import { WeatherBadge } from '@/components/WeatherBadge'
 import { EventWall } from '@/components/event-wall'
 import ElevationChart from '@/components/elevation-chart'
+import { WikiPhotosStrip } from '@/components/wiki-photos-strip'
 import { shortAddress } from '@/lib/format-address'
 import { formatEventDateTime } from '@/lib/event-time'
 import { fetchRelevantEventWeather, windDirectionLabelDetailed, type EventWeather } from '@/lib/weather'
@@ -716,6 +717,10 @@ function EventContent() {
               <p className="text-xs font-medium mb-2 px-1" style={{ color: 'var(--text-muted)' }}>Elevation profile</p>
               <ElevationChart profile={gpxResult.elevationProfile} totalKm={gpxResult.distanceKm} />
             </div>
+          )}
+
+          {event.activity.gpx_url && event.location.lat != null && event.location.lng != null && (
+            <WikiPhotosStrip lat={event.location.lat} lng={event.location.lng} />
           )}
 
           {error && (

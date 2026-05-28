@@ -13,6 +13,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { WeatherBadge } from '@/src/components/WeatherBadge'
 import { EventMapCard } from '@/src/components/EventMapCard'
 import { ElevationChart } from '@/src/components/ElevationChart'
+import { WikiPhotosStrip } from '@/src/components/WikiPhotosStrip'
 import type { ElevationPoint } from '@/src/components/ElevationChart'
 import { CATEGORIES } from '@/src/lib/categories'
 import { api } from '@/src/lib/api'
@@ -972,6 +973,12 @@ export default function EventDetailScreen() {
         {elevationProfile.length >= 2 && (
           <View style={{ paddingHorizontal: spacing.md }}>
             <ElevationChart profile={elevationProfile} />
+          </View>
+        )}
+
+        {event.activity.gpx_url != null && event.location.lat != null && event.location.lng != null && (
+          <View style={{ paddingHorizontal: spacing.md }}>
+            <WikiPhotosStrip lat={event.location.lat} lng={event.location.lng} />
           </View>
         )}
 
