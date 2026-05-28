@@ -15,6 +15,45 @@ export interface Post {
 
 export const posts: Post[] = [
   {
+    slug: 'gpx-routes-create-download-share',
+    title: 'Create, Download and Share GPX Routes for Free',
+    description: 'Draw routes on the map point by point, export as GPX, send to your Garmin or Wahoo, and share route pages with friends — all from FitMeet for free.',
+    publishedAt: '2026-05-28',
+    readTime: 3,
+    category: 'Routes',
+    sections: [
+      {
+        heading: 'Draw the Route Yourself',
+        paragraphs: [
+          'FitMeet now has a full route builder built into the app and the web. Click points on the map and the route snaps to real roads and trails — no manual tracing needed. Distance and elevation update live as you place each point. Move a waypoint, delete it, or undo the last step to refine the line.',
+          'When you are done, name the route, pick the sport category, and decide whether to keep it private or publish it to the FitMeet route library for others to find.',
+        ],
+      },
+      {
+        heading: 'Download as GPX — Works Everywhere',
+        paragraphs: [
+          'Every route in FitMeet can be downloaded as a GPX file. GPX is the universal format for GPS devices and navigation apps. Once you have the file, import it directly into Garmin Connect, Wahoo Elemnt, Komoot, AllTrails, Strava, OsmAnd, or any smartphone navigation app.',
+          'You create the route once and it works on every device you already use. No conversion, no subscriptions, no locked file formats.',
+        ],
+      },
+      {
+        heading: 'Share With Friends Before the Event',
+        paragraphs: [
+          'Every public route has its own shareable page with the route on the map, the elevation chart, and the key stats. Send the link in a message or post it to a group so people know the route, the distance and the climb before they leave home.',
+          'When organising an event, attach an existing FitMeet route instead of uploading a new GPX. The same route can be reused across events without duplicating the file.',
+        ],
+      },
+      {
+        heading: 'Send to Your Device',
+        paragraphs: [
+          'Download the GPX file from any route detail page and import it to your navigation device. The flow is the same on Garmin Edge, Garmin Forerunner, Wahoo Elemnt and Bolt, Hammerhead Karoo, and all major GPS watches.',
+          'On a phone, open the GPX file directly in Komoot, Organic Maps, Maps.me or your preferred app. The route loads immediately with the full track visible.',
+        ],
+      },
+    ],
+  },
+
+  {
     slug: 'fitmeet-routes-gpx-event-planning',
     title: 'FitMeet Routes: Share, Download and Reuse GPX Routes',
     description: 'Routes now have their own place in FitMeet: browse public GPX routes, open route detail pages, download files, share links, and reuse routes when creating or editing events.',

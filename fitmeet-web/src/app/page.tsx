@@ -19,6 +19,7 @@ import { LatestEventsCarousel } from '@/components/latest-events-carousel'
 import { LatestUsersTicker } from '@/components/latest-users-ticker'
 import { PublicStatsSection } from '@/components/public-stats'
 import { PublicCommentsSection } from '@/components/public-comments'
+import { LatestRoutesSection } from '@/components/latest-routes-section'
 
 const categories = [
   'Running',
@@ -367,6 +368,8 @@ export default async function HomePage() {
         </section>
 
         <LatestEventsCarousel events={latestEvents} />
+
+        <LatestRoutesSection />
 
         <section className="py-14 md:py-16 border-b" style={{ borderColor: 'var(--border)' }}>
           <div className="max-w-6xl mx-auto px-4">
