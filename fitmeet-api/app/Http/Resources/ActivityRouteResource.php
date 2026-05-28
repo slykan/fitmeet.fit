@@ -33,6 +33,8 @@ class ActivityRouteResource extends JsonResource
             'surface_type' => $this->surface_type,
             'gpx_url' => $this->gpx_path ? url('/storage/' . $this->gpx_path) : null,
             'source_event_id' => $this->source_event_id,
+            'is_public' => $this->is_public,
+            'waypoints' => $this->waypoints,
             'creator' => new UserResource($this->whenLoaded('creator')),
             'views_count' => $this->views_count ?? 0,
             'created_at' => $this->created_at?->toDateTimeString(),

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowUpDown, ChevronRight, MapPin, Route as RouteIcon, Search, Zap } from 'lucide-react'
+import { ChevronRight, MapPin, PenLine, Route as RouteIcon, Search, Zap } from 'lucide-react'
 
 import api from '@/lib/api'
 import { CATEGORIES, CATEGORY_EMOJI } from '@/lib/categories'
@@ -117,6 +117,17 @@ export function RoutesTab() {
 
   return (
     <div className="space-y-3">
+      {/* Create route button */}
+      <button
+        onClick={() => router.push('/routes/draw')}
+        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border font-bold text-sm transition-opacity hover:opacity-80"
+        style={{ borderColor: 'rgba(57,255,20,0.3)', background: 'rgba(57,255,20,0.06)', color: 'var(--primary)' }}
+      >
+        <PenLine size={15} />
+        Create new route
+      </button>
+
+      {/* Search */}
       <div className="flex items-center gap-2 rounded-xl border px-3 py-2" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
         <Search size={15} style={{ color: 'var(--text-muted)' }} />
         <input
@@ -222,9 +233,6 @@ export function RoutesTab() {
         </button>
       ))}
 
-      <div className="flex items-center justify-center gap-2 pt-2 text-[11px]" style={{ color: 'var(--text-muted)' }}>
-        <ArrowUpDown size={12} /> Routes are created from public event GPX files.
-      </div>
     </div>
   )
 }

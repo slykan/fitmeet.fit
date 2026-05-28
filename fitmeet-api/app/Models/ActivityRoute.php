@@ -27,6 +27,7 @@ class ActivityRoute extends Model
         'area_label',
         'surface_type',
         'gpx_path',
+        'waypoints',
         'is_public',
         'views_count',
     ];
@@ -43,6 +44,7 @@ class ActivityRoute extends Model
             'start_lng' => 'float',
             'end_lat' => 'float',
             'end_lng' => 'float',
+            'waypoints' => 'array',
             'is_public' => 'boolean',
         ];
     }

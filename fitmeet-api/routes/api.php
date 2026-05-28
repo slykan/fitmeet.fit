@@ -147,4 +147,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('events/{event}/check-in', [EventController::class, 'checkIn']);
     Route::post('events/{event}/moment', [EventController::class, 'storeMoment']);
     Route::apiResource('events', EventController::class);
+
+    Route::get('me/routes', [ActivityRouteController::class, 'my']);
+    Route::post('routes', [ActivityRouteController::class, 'store']);
+    Route::put('routes/{activityRoute}', [ActivityRouteController::class, 'update']);
+    Route::delete('routes/{activityRoute}', [ActivityRouteController::class, 'destroy']);
 });

@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic'
 import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ChevronLeft, Download, Eye, MapPin, Share2, Zap } from 'lucide-react'
+import { ChevronLeft, Download, Eye, MapPin, PenLine, Share2, Zap } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
 import ElevationChart from '@/components/elevation-chart'
@@ -72,7 +72,7 @@ function withProfileStats(result: GpxResult): GpxResult {
 function RouteContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { token } = useAuthStore()
+  const { token, user } = useAuthStore()
   const id = searchParams.get('id')
   const [route, setRoute] = useState<ActivityRoute | null>(null)
   const [gpxResult, setGpxResult] = useState<GpxResult | null>(null)
@@ -191,14 +191,26 @@ function RouteContent() {
                 </div>
               )}
             </div>
-            <button
-              onClick={shareRoute}
-              className="rounded-xl border p-2.5 flex-shrink-0 transition-opacity hover:opacity-80"
-              style={{ background: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--text)' }}
-              title="Share route"
-            >
-              {copied ? <span className="text-xs font-bold px-1">Copied</span> : <Share2 size={18} />}
-            </button>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {user && route.creator?.id === user.id && (
+                <button
+                  onClick={() => router.push(`/routes/draw?id=${currentRoute.id}`)}
+                  className="rounded-xl border px-3 py-2 flex items-center gap-1.5 text-sm font-semibold transition-opacity hover:opacity-80"
+                  style={{ background: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--text)' }}
+                  title="Edit route"
+                >
+                  <PenLine size={15} /> Edit
+                </button>
+              )}
+              <button
+                onClick={shareRoute}
+                className="rounded-xl border p-2.5 transition-opacity hover:opacity-80"
+                style={{ background: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--text)' }}
+                title="Share route"
+              >
+                {copied ? <span className="text-xs font-bold px-1">Copied</span> : <Share2 size={18} />}
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
