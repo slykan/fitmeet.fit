@@ -10,28 +10,47 @@ interface WikiPhoto {
   pageUrl: string
 }
 
+async function wikiPost(params: Record<string, string>): Promise<unknown> {
+  const body = Object.entries(params)
+    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+    .join('&')
+
+  const r = await fetch('https://commons.wikimedia.org/w/api.php', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body,
+  })
+  return r.json()
+}
+
 async function fetchWikiPhotos(lat: number, lng: number): Promise<WikiPhoto[]> {
-  const base = 'https://commons.wikimedia.org/w/api.php'
+  const geo = await wikiPost({
+    action: 'query',
+    list: 'geosearch',
+    gscoord: `${lat}|${lng}`,
+    gsradius: '10000',
+    gslimit: '20',
+    gsnamespace: '6',
+    format: 'json',
+  }) as { query?: { geosearch?: Array<{ title: string }> } }
 
-  // Wikimedia requires literal | as separator in gscoord
-  const geoUrl = `${base}?action=query&list=geosearch&gscoord=${lat}|${lng}&gsradius=10000&gslimit=20&gsnamespace=6&format=json&origin=*`
-  const geo = await fetch(geoUrl).then(r => r.json())
-
-  const items: Array<{ title: string }> = geo.query?.geosearch ?? []
+  const items = geo.query?.geosearch ?? []
   if (!items.length) return []
 
-  // Encode only non-ASCII chars in each title, keep | as the pipe separator
   const titles = items
     .map(i => i.title.replace(/[^\x00-\x7E]/g, c => encodeURIComponent(c)))
     .join('|')
 
-  const infoUrl = `${base}?action=query&titles=${titles}&prop=imageinfo&iiprop=url&iiurlwidth=400&format=json&origin=*`
-  const info = await fetch(infoUrl).then(r => r.json())
+  const info = await wikiPost({
+    action: 'query',
+    titles,
+    prop: 'imageinfo',
+    iiprop: 'url',
+    iiurlwidth: '400',
+    format: 'json',
+  }) as { query?: { pages?: Record<string, { title: string; imageinfo?: Array<{ thumburl: string }> }> } }
 
-  const pages = Object.values(info.query?.pages ?? {}) as Array<{
-    title: string
-    imageinfo?: Array<{ thumburl: string }>
-  }>
+  const pages = Object.values(info.query?.pages ?? {})
 
   return pages
     .filter(p => p.imageinfo?.[0]?.thumburl)
