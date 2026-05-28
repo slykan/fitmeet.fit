@@ -13,32 +13,19 @@ interface WikiPhoto {
 async function fetchWikiPhotos(lat: number, lng: number): Promise<WikiPhoto[]> {
   const base = 'https://commons.wikimedia.org/w/api.php'
 
-  const geoParams = new URLSearchParams({
-    action: 'query',
-    list: 'geosearch',
-    gscoord: `${lat}|${lng}`,
-    gsradius: '10000',
-    gslimit: '20',
-    gsnamespace: '6',
-    format: 'json',
-    origin: '*',
-  })
+  const geoUrl = `${base}?action=query&list=geosearch&gscoord=${lat}%7C${lng}&gsradius=10000&gslimit=20&gsnamespace=6&format=json&origin=*`
+  const geo = await fetch(geoUrl).then(r => r.json())
 
-  const geo = await fetch(`${base}?${geoParams.toString()}`).then(r => r.json())
   const items: Array<{ title: string }> = geo.query?.geosearch ?? []
   if (!items.length) return []
 
-  const infoParams = new URLSearchParams({
-    action: 'query',
-    titles: items.map(i => i.title).join('|'),
-    prop: 'imageinfo',
-    iiprop: 'url',
-    iiurlwidth: '400',
-    format: 'json',
-    origin: '*',
-  })
+  // Encode only non-ASCII characters, keep | and : as-is
+  const titles = items
+    .map(i => i.title.replace(/[^\x00-\x7E]/g, c => encodeURIComponent(c)))
+    .join('|')
 
-  const info = await fetch(`${base}?${infoParams.toString()}`).then(r => r.json())
+  const infoUrl = `${base}?action=query&titles=${titles}&prop=imageinfo&iiprop=url&iiurlwidth=400&format=json&origin=*`
+  const info = await fetch(infoUrl).then(r => r.json())
 
   const pages = Object.values(info.query?.pages ?? {}) as Array<{
     title: string
@@ -58,15 +45,39 @@ async function fetchWikiPhotos(lat: number, lng: number): Promise<WikiPhoto[]> {
 export function WikiPhotosStrip({ lat, lng }: { lat: number; lng: number }) {
   const [photos, setPhotos] = useState<WikiPhoto[]>([])
   const [loaded, setLoaded] = useState(false)
+  const [err, setErr] = useState<string | null>(null)
 
   useEffect(() => {
     fetchWikiPhotos(lat, lng)
       .then(setPhotos)
-      .catch(() => {})
+      .catch(e => setErr(String(e)))
       .finally(() => setLoaded(true))
   }, [lat, lng])
 
-  if (!loaded || photos.length === 0) return null
+  // Debug: always show something so user can report what they see
+  if (!loaded) {
+    return (
+      <View style={styles.debug}>
+        <Text style={styles.debugText}>📷 Loading nearby photos… ({lat.toFixed(4)}, {lng.toFixed(4)})</Text>
+      </View>
+    )
+  }
+
+  if (err) {
+    return (
+      <View style={styles.debug}>
+        <Text style={styles.debugText}>📷 Error: {err}</Text>
+      </View>
+    )
+  }
+
+  if (photos.length === 0) {
+    return (
+      <View style={styles.debug}>
+        <Text style={styles.debugText}>📷 No photos found nearby ({lat.toFixed(4)}, {lng.toFixed(4)})</Text>
+      </View>
+    )
+  }
 
   return (
     <View style={styles.container}>
@@ -94,6 +105,8 @@ export function WikiPhotosStrip({ lat, lng }: { lat: number; lng: number }) {
 }
 
 const styles = StyleSheet.create({
+  debug: { paddingVertical: 6 },
+  debugText: { color: palette.textMuted, fontSize: 11 },
   container: { gap: spacing.sm },
   header: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   headerText: {
