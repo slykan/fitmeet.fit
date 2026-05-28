@@ -13,13 +13,14 @@ interface WikiPhoto {
 async function fetchWikiPhotos(lat: number, lng: number): Promise<WikiPhoto[]> {
   const base = 'https://commons.wikimedia.org/w/api.php'
 
-  const geoUrl = `${base}?action=query&list=geosearch&gscoord=${lat}%7C${lng}&gsradius=10000&gslimit=20&gsnamespace=6&format=json&origin=*`
+  // Wikimedia requires literal | as separator in gscoord
+  const geoUrl = `${base}?action=query&list=geosearch&gscoord=${lat}|${lng}&gsradius=10000&gslimit=20&gsnamespace=6&format=json&origin=*`
   const geo = await fetch(geoUrl).then(r => r.json())
 
   const items: Array<{ title: string }> = geo.query?.geosearch ?? []
   if (!items.length) return []
 
-  // Encode only non-ASCII characters, keep | and : as-is
+  // Encode only non-ASCII chars in each title, keep | as the pipe separator
   const titles = items
     .map(i => i.title.replace(/[^\x00-\x7E]/g, c => encodeURIComponent(c)))
     .join('|')
@@ -54,7 +55,6 @@ export function WikiPhotosStrip({ lat, lng }: { lat: number; lng: number }) {
       .finally(() => setLoaded(true))
   }, [lat, lng])
 
-  // Debug: always show something so user can report what they see
   if (!loaded) {
     return (
       <View style={styles.debug}>
