@@ -43,8 +43,8 @@ interface ValhallaCosting {
 }
 
 function valhallaCosting(category: string): ValhallaCosting | null {
-  if (category === 'cycling') return { costing: 'auto', options: {} }
-  if (category === 'running')  return { costing: 'auto', options: {} }
+  if (category === 'cycling') return { costing: 'bicycle', options: { use_roads: 1.0 } }
+  if (category === 'running')  return { costing: 'pedestrian', options: {} }
   if (category === 'hiking')   return { costing: 'pedestrian', options: { max_hiking_difficulty: 1 } }
   return null
 }
@@ -184,6 +184,7 @@ export default function RouteDrawMap({ category, height = 500, initialWaypoints,
   function buildFullTrack(): LatLng[] {
     const track: LatLng[] = []
     segmentsRef.current.forEach((seg, i) => {
+      if (!seg) return
       if (i === 0) track.push(...seg.coords)
       else track.push(...seg.coords.slice(1))
     })

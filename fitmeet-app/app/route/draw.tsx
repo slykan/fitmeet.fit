@@ -198,6 +198,7 @@ function totalDistM() {
 function buildFullTrack() {
   var track = [];
   segments.forEach(function(seg, i) {
+    if (!seg) return;
     if (i===0) seg.coords.forEach(function(c){track.push(c);});
     else seg.coords.slice(1).forEach(function(c){track.push(c);});
   });
@@ -284,8 +285,8 @@ async function fetchValhalla(from, to, costing, options) {
 }
 
 function valhallaCosting(cat) {
-  if (cat === 'cycling') return { costing: 'auto', options: {} };
-  if (cat === 'running') return { costing: 'auto', options: {} };
+  if (cat === 'cycling') return { costing: 'bicycle', options: { use_roads: 1.0 } };
+  if (cat === 'running') return { costing: 'pedestrian', options: {} };
   if (cat === 'hiking')  return { costing: 'pedestrian', options: { max_hiking_difficulty: 1 } };
   return null;
 }
@@ -362,7 +363,6 @@ async function routeSegment(fromIdx) {
 
 // ── Add waypoint ──────────────────────────────────────────────────────────
 function addWaypoint(latlng) {
-  if (pendingRouting > 0) return;
   var idx = waypoints.length;
   var isLast = true;
 
@@ -466,16 +466,22 @@ function undoLast() {
 }
 
 // ── Done ──────────────────────────────────────────────────────────────────
-function done() {
+async function done() {
   if (waypoints.length < 2) return;
+  var doneBtn = document.getElementById('done-btn');
+  doneBtn.disabled = true;
+  doneBtn.textContent = '...';
+  if (elevDebounce) { clearTimeout(elevDebounce); elevDebounce = null; }
   var track = buildFullTrack();
   var distKm = Math.round(totalDistM()/100)/10;
+  var gain = await fetchElevGain(track);
+  window._elevGain = gain;
   send({
     type: 'done',
     waypoints: waypoints.map(function(wp){return wp.latlng;}),
     track: track,
     distanceKm: distKm,
-    elevGain: window._elevGain || 0,
+    elevGain: gain,
     category: category,
     startLat: waypoints[0].latlng[0],
     startLng: waypoints[0].latlng[1],
@@ -646,7 +652,7 @@ export default function DrawRouteScreen() {
       const areaLabel = await reverseGeocode(payload.startLat, payload.startLng)
       const gpxContent = buildGpx(payload.track, title)
       const tempUri = FileSystem.cacheDirectory + `route-${Date.now()}.gpx`
-      await FileSystem.writeAsStringAsync(tempUri, gpxContent, { encoding: FileSystem.EncodingType.UTF8 })
+      await FileSystem.writeAsStringAsync(tempUri, gpxContent, { encoding: 'utf8' })
 
       const form = new FormData()
       form.append('title', title.trim())
