@@ -175,7 +175,8 @@ function DrawContent() {
       if (areaLabel) form.append('area_label', areaLabel)
 
       if (editId) {
-        await api.post(`/routes/${editId}?_method=PUT`, form, {
+        form.append('_method', 'PUT')
+        await api.post(`/routes/${editId}`, form, {
           headers: { 'Content-Type': 'multipart/form-data' },
         })
         router.push(`/routes/view?id=${editId}`)
