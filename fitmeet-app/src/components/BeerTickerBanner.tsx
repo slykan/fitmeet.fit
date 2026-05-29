@@ -3,6 +3,7 @@ import { router } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
 import {
   Animated,
+  AppState,
   Easing,
   LayoutChangeEvent,
   Modal,
@@ -155,6 +156,7 @@ export function BeerTickerBanner() {
   const sequenceWidth = useRef(0)
   const itemWidths = useRef<number[]>([])
   const started = useRef(false)
+  const lastLoadedAt = useRef(0)
   const tickerDonors = donors
 
   function resetTickerMeasurements() {
@@ -166,6 +168,7 @@ export function BeerTickerBanner() {
   }
 
   function loadDonors() {
+    lastLoadedAt.current = Date.now()
     api.get('/beer-donations?sort=recent&limit=10')
       .then(r => {
         resetTickerMeasurements()
@@ -176,6 +179,16 @@ export function BeerTickerBanner() {
 
   useEffect(() => {
     loadDonors()
+  }, [])
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', state => {
+      if (state === 'active' && Date.now() - lastLoadedAt.current > 30000) {
+        loadDonors()
+      }
+    })
+
+    return () => { subscription.remove() }
   }, [])
 
   function tryStart() {
@@ -227,7 +240,7 @@ export function BeerTickerBanner() {
     <>
       <Pressable
         style={[styles.container, { top: STATUS_BAR_HEIGHT }]}
-        onPress={() => setModalVisible(true)}
+        onPress={() => { loadDonors(); setModalVisible(true) }}
       >
         <Label />
         <View style={styles.inner}>
