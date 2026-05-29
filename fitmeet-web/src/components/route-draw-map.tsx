@@ -177,6 +177,7 @@ export default function RouteDrawMap({ category, height = 500, initialWaypoints,
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null)
   const [stats, setStats] = useState({ distanceKm: 0, elevGain: 0 })
   const [routing, setRouting] = useState(false)
+  const [elevLoading, setElevLoading] = useState(false)
 
   // ─── Helper: build full track from all segments ──────────────────────────
 
@@ -233,12 +234,14 @@ export default function RouteDrawMap({ category, height = 500, initialWaypoints,
 
   function scheduleElevation() {
     if (elevDebounceRef.current) clearTimeout(elevDebounceRef.current)
+    setElevLoading(true)
     elevDebounceRef.current = setTimeout(async () => {
       const track = buildFullTrack()
       const gain = await fetchElevGain(track)
+      setElevLoading(false)
       setStats(s => ({ ...s, elevGain: gain }))
       publishResult(gain)
-    }, 900)
+    }, 600)
   }
 
   // ─── Route a single segment (fromIdx → fromIdx+1) ────────────────────────
@@ -548,9 +551,10 @@ export default function RouteDrawMap({ category, height = 500, initialWaypoints,
           {!routing && (stats.distanceKm > 0 || waypointsRef.current.length > 0) && (
             <>
               <span style={{ color: 'var(--primary)' }}>{stats.distanceKm.toFixed(1)} km</span>
-              {stats.elevGain > 0 && (
-                <span style={{ color: 'var(--text-muted)' }}>↑ {stats.elevGain} m</span>
-              )}
+              {elevLoading
+                ? <span style={{ color: 'var(--text-muted)' }}>↑ …m</span>
+                : stats.elevGain > 0 && <span style={{ color: 'var(--text-muted)' }}>↑ {stats.elevGain} m</span>
+              }
               <span style={{ color: 'var(--text-muted)', fontSize: 12, fontWeight: 400 }}>
                 {waypointsRef.current.length} point{waypointsRef.current.length !== 1 ? 's' : ''}
               </span>
