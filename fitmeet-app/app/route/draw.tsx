@@ -675,8 +675,10 @@ export default function DrawRouteScreen() {
         router.replace(`/route/${data.data.id}` as never)
       }
       setShowModal(false)
-    } catch {
-      Alert.alert('Error', 'Could not save the route. Please try again.')
+    } catch (e: unknown) {
+      const err = e as { response?: { status?: number; data?: unknown } }
+      const detail = err?.response?.data ? JSON.stringify(err.response.data) : String(e)
+      Alert.alert('Save error', `${err?.response?.status ?? '?'}: ${detail}`)
     } finally {
       setSaving(false)
     }
