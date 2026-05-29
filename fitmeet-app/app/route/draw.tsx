@@ -35,6 +35,25 @@ function buildGpx(track: [number, number][], title: string): string {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="FitMeet" xmlns="http://www.topografix.com/GPX/1/1">\n  <metadata><name>${name}</name></metadata>\n  <trk><name>${name}</name><trkseg>\n${pts}\n  </trkseg></trk>\n</gpx>`
 }
 
+// ─── GPX track parser ─────────────────────────────────────────────────────────
+
+function parseGpxTrack(gpx: string): [number, number][] {
+  const pts: [number, number][] = []
+  const rx = /<trkpt\s+lat="([^"]+)"\s+lon="([^"]+)"/g
+  let m: RegExpExecArray | null
+  while ((m = rx.exec(gpx)) !== null) pts.push([parseFloat(m[1]), parseFloat(m[2])])
+  return pts
+}
+
+function downsampleTrack(pts: [number, number][], max: number): [number, number][] {
+  if (pts.length <= max) return pts
+  const result: [number, number][] = [pts[0]]
+  const step = (pts.length - 1) / (max - 2)
+  for (let i = 1; i < max - 1; i++) result.push(pts[Math.round(i * step)])
+  result.push(pts[pts.length - 1])
+  return result
+}
+
 // ─── Reverse geocode ──────────────────────────────────────────────────────────
 
 async function reverseGeocode(lat: number, lng: number): Promise<string> {
@@ -55,10 +74,12 @@ async function reverseGeocode(lat: number, lng: number): Promise<string> {
 function buildDrawRouteHtml(
   initCategory: string,
   initWaypoints: [number, number][],
+  initTrack: [number, number][],
   topInset: number,
   bottomInset: number,
 ): string {
   const waypointsJson = JSON.stringify(initWaypoints)
+  const trackJson = JSON.stringify(initTrack)
 
   return `<!DOCTYPE html>
 <html>
@@ -499,6 +520,59 @@ function useGPS() {
   }, null, {timeout:8000});
 }
 
+// ── Track helpers (for GPX pre-population) ───────────────────────────────
+function findClosestIdx(track, point, from) {
+  var minDist = Infinity, minIdx = from;
+  for (var i=from;i<track.length;i++) {
+    var d = Math.sqrt(Math.pow(track[i][0]-point[0],2)+Math.pow(track[i][1]-point[1],2));
+    if (d < minDist) { minDist=d; minIdx=i; }
+  }
+  return minIdx;
+}
+function segmentLength(coords) {
+  var R=6371000, total=0;
+  for (var i=1;i<coords.length;i++) {
+    var dLat=(coords[i][0]-coords[i-1][0])*Math.PI/180;
+    var dLon=(coords[i][1]-coords[i-1][1])*Math.PI/180;
+    var a=Math.pow(Math.sin(dLat/2),2)+Math.cos(coords[i-1][0]*Math.PI/180)*Math.cos(coords[i][0]*Math.PI/180)*Math.pow(Math.sin(dLon/2),2);
+    total+=R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+  }
+  return total;
+}
+
+// ── Add waypoint without triggering routing (used when pre-loading GPX) ──
+function addWaypointNoRoute(latlng) {
+  var idx = waypoints.length;
+  var marker = L.marker(latlng, {
+    icon: makeIcon(idx+1, false, true),
+    draggable: true
+  });
+  marker.on('click', (function(capturedI){
+    return function() { selectedIdx=(selectedIdx===capturedI)?null:capturedI; refreshMarkerIcons(); };
+  })(idx));
+  marker.on('drag', (function(capturedI){
+    return function(e) {
+      var pos=e.target.getLatLng(); var newLL=[pos.lat,pos.lng];
+      waypoints[capturedI].latlng=newLL;
+      if (segments[capturedI-1]) segments[capturedI-1].polyline.setLatLngs([waypoints[capturedI-1].latlng,newLL]);
+      if (segments[capturedI])   segments[capturedI].polyline.setLatLngs([newLL,waypoints[capturedI+1]?waypoints[capturedI+1].latlng:newLL]);
+    };
+  })(idx));
+  marker.on('dragend', (function(capturedI){
+    return async function() {
+      var pos=marker.getLatLng(); waypoints[capturedI].latlng=[pos.lat,pos.lng];
+      var ps=[];
+      if (capturedI>0) ps.push(routeSegment(capturedI-1));
+      if (capturedI<waypoints.length-1) ps.push(routeSegment(capturedI));
+      await Promise.all(ps);
+    };
+  })(idx));
+  marker.addTo(map);
+  if (idx>0) waypoints[idx-1].marker.setIcon(makeIcon(idx,false,false));
+  waypoints.push({latlng:latlng,marker:marker});
+  selectedIdx=null;
+}
+
 // ── Re-route all (category change) ───────────────────────────────────────
 async function rerouteAll() {
   if (waypoints.length < 2) return;
@@ -562,12 +636,30 @@ window._elevGain = 0;
 
 // ── Load initial waypoints ────────────────────────────────────────────────
 var initWaypoints = ${waypointsJson};
+var initTrack     = ${trackJson};
 if (initWaypoints.length > 0) {
   (async function() {
     showLoading(true);
-    for (var i=0; i<initWaypoints.length; i++) {
-      addWaypoint(initWaypoints[i]);
-      if (i < initWaypoints.length-1) await new Promise(function(r){setTimeout(r,60);});
+    if (initTrack.length >= 2) {
+      // Pre-populate from saved GPX track — no Valhalla re-routing
+      for (var i=0; i<initWaypoints.length; i++) addWaypointNoRoute(initWaypoints[i]);
+      var prevIdx = 0;
+      for (var i=1; i<waypoints.length; i++) {
+        var tIdx = findClosestIdx(initTrack, waypoints[i].latlng, prevIdx);
+        var coords = initTrack.slice(prevIdx, tIdx+1);
+        var distM = segmentLength(coords);
+        var poly = L.polyline(coords, {color:'#6cff2f',weight:4,opacity:0.9,lineJoin:'round'}).addTo(map);
+        segments[i-1] = {polyline:poly, coords:coords, distM:distM};
+        prevIdx = tIdx;
+      }
+      updateStats();
+      scheduleElevation();
+    } else {
+      // No track available — route via Valhalla
+      for (var i=0; i<initWaypoints.length; i++) {
+        addWaypoint(initWaypoints[i]);
+        if (i < initWaypoints.length-1) await new Promise(function(r){setTimeout(r,60);});
+      }
     }
     showLoading(false);
     if (initWaypoints.length > 1) {
@@ -605,6 +697,7 @@ export default function DrawRouteScreen() {
 
   const [initCategory, setInitCategory] = useState('running')
   const [initWaypoints, setInitWaypoints] = useState<[number, number][]>([])
+  const [initTrack, setInitTrack] = useState<[number, number][]>([])
   const [loadingEdit, setLoadingEdit] = useState(!!editId)
 
   // Save modal
@@ -617,7 +710,7 @@ export default function DrawRouteScreen() {
   useEffect(() => {
     if (!editId) return
     api.get(`/routes/${editId}`)
-      .then(({ data }) => {
+      .then(async ({ data }) => {
         const route = data.data
         if (route.creator?.id !== user?.id) { router.back(); return }
         setTitle(route.title ?? '')
@@ -634,6 +727,13 @@ export default function DrawRouteScreen() {
             sampled.push(wps[wps.length - 1])
             setInitWaypoints(sampled)
           }
+        }
+        if (route.gpx_url) {
+          try {
+            const gpxRes = await api.get(`/routes/${route.id}/gpx`, { responseType: 'text' })
+            const track = parseGpxTrack(gpxRes.data as string)
+            if (track.length >= 2) setInitTrack(downsampleTrack(track, 500))
+          } catch { /* no track — will re-route */ }
         }
       })
       .catch(() => router.back())
@@ -707,7 +807,7 @@ export default function DrawRouteScreen() {
     )
   }
 
-  const html = buildDrawRouteHtml(initCategory, initWaypoints, insets.top, insets.bottom)
+  const html = buildDrawRouteHtml(initCategory, initWaypoints, initTrack, insets.top, insets.bottom)
 
   return (
     <View style={styles.root}>
