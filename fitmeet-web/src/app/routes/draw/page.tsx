@@ -25,6 +25,31 @@ function buildGpx(track: LatLng[], title: string): string {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="FitMeet" xmlns="http://www.topografix.com/GPX/1/1">\n  <metadata><name>${name}</name></metadata>\n  <trk><name>${name}</name><trkseg>\n${pts}\n  </trkseg></trk>\n</gpx>`
 }
 
+// ─── Elevation fetch ──────────────────────────────────────────────────────────
+
+async function fetchElevGain(track: LatLng[]): Promise<number> {
+  if (track.length < 2) return 0
+  const max = 100
+  const sampled = track.length <= max ? track : (() => {
+    const step = (track.length - 1) / (max - 1)
+    return Array.from({ length: max }, (_, i) => track[Math.round(i * step)])
+  })()
+  try {
+    const lats = sampled.map(p => p[0].toFixed(5)).join(',')
+    const lngs = sampled.map(p => p[1].toFixed(5)).join(',')
+    const res = await fetch(
+      `https://api.open-meteo.com/v1/elevation?latitude=${lats}&longitude=${lngs}`,
+      { signal: AbortSignal.timeout(8000) },
+    )
+    if (!res.ok) return 0
+    const data = await res.json()
+    const elevs: number[] = data.elevation ?? []
+    let gain = 0
+    for (let i = 1; i < elevs.length; i++) if (elevs[i] > elevs[i - 1]) gain += elevs[i] - elevs[i - 1]
+    return Math.round(gain)
+  } catch { return 0 }
+}
+
 // ─── Reverse geocode for area_label ──────────────────────────────────────────
 
 async function reverseGeocode(lat: number, lng: number): Promise<string> {
@@ -164,9 +189,12 @@ function DrawContent() {
     setSaving(true)
 
     try {
-      const areaLabel = result.startLat != null && result.startLng != null
-        ? await reverseGeocode(result.startLat, result.startLng)
-        : ''
+      const [areaLabel, elevGain] = await Promise.all([
+        result.startLat != null && result.startLng != null
+          ? reverseGeocode(result.startLat, result.startLng)
+          : Promise.resolve(''),
+        fetchElevGain(result.track),
+      ])
 
       const gpxContent = buildGpx(result.track, title)
       const gpxBlob = new Blob([gpxContent], { type: 'application/gpx+xml' })
@@ -178,7 +206,7 @@ function DrawContent() {
       form.append('waypoints', JSON.stringify(result.waypoints))
       form.append('gpx', gpxBlob, `${title.trim().replace(/\s+/g, '-')}.gpx`)
       form.append('distance_km', String(result.distanceKm))
-      form.append('elevation_gain', String(result.elevGain))
+      form.append('elevation_gain', String(elevGain || result.elevGain))
       if (result.startLat != null) form.append('start_lat', String(result.startLat))
       if (result.startLng != null) form.append('start_lng', String(result.startLng))
       if (result.endLat != null) form.append('end_lat', String(result.endLat))

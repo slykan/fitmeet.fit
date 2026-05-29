@@ -117,7 +117,7 @@ class ActivityRouteController extends Controller
 
         return response(Storage::disk('public')->get($activityRoute->gpx_path), 200, [
             'Content-Type' => 'application/gpx+xml',
-            'Cache-Control' => 'public, max-age=86400',
+            'Cache-Control' => 'no-cache, no-store, must-revalidate',
         ]);
     }
 
