@@ -624,7 +624,16 @@ export default function DrawRouteScreen() {
         setInitCategory(route.category?.value ?? 'running')
         setIsPublic(route.is_public ?? true)
         if (Array.isArray(route.waypoints) && route.waypoints.length >= 2) {
-          setInitWaypoints(route.waypoints)
+          const wps: [number, number][] = route.waypoints
+          if (wps.length <= 25) {
+            setInitWaypoints(wps)
+          } else {
+            const step = (wps.length - 1) / 23
+            const sampled: [number, number][] = [wps[0]]
+            for (let i = 1; i <= 23; i++) sampled.push(wps[Math.round(i * step)])
+            sampled.push(wps[wps.length - 1])
+            setInitWaypoints(sampled)
+          }
         }
       })
       .catch(() => router.back())
