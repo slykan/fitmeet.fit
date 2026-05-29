@@ -43,9 +43,9 @@ interface ValhallaCosting {
 }
 
 function valhallaCosting(category: string): ValhallaCosting | null {
-  if (category === 'cycling') return { costing: 'bicycle', options: { use_roads: 1.0, bicycle_type: 'Road' } }
-  if (category === 'running')  return { costing: 'pedestrian', options: { use_roads: 0.9, use_tracks: 0.0 } }
-  if (category === 'hiking')   return { costing: 'pedestrian', options: { use_roads: 0.4 } }
+  if (category === 'cycling') return { costing: 'bicycle', options: { use_roads: 1.0, avoid_bad_surfaces: 0.9, bicycle_type: 'Road' } }
+  if (category === 'running')  return { costing: 'auto', options: {} }
+  if (category === 'hiking')   return { costing: 'pedestrian', options: { max_hiking_difficulty: 1 } }
   return null
 }
 

@@ -284,9 +284,9 @@ async function fetchValhalla(from, to, costing, options) {
 }
 
 function valhallaCosting(cat) {
-  if (cat === 'cycling') return { costing: 'bicycle', options: { use_roads: 1.0, bicycle_type: 'Road' } };
-  if (cat === 'running') return { costing: 'pedestrian', options: { use_roads: 0.9, use_tracks: 0.0 } };
-  if (cat === 'hiking')  return { costing: 'pedestrian', options: { use_roads: 0.4 } };
+  if (cat === 'cycling') return { costing: 'bicycle', options: { use_roads: 1.0, avoid_bad_surfaces: 0.9, bicycle_type: 'Road' } };
+  if (cat === 'running') return { costing: 'auto', options: {} };
+  if (cat === 'hiking')  return { costing: 'pedestrian', options: { max_hiking_difficulty: 1 } };
   return null;
 }
 
