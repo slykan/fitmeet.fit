@@ -1459,12 +1459,12 @@ const styles = StyleSheet.create({
   },
   coverPreviewImage: { width: '100%', height: 150, borderRadius: 14 },
 
-  coverImage: { width: '100%', height: 220 },
+  coverImage: { marginHorizontal: spacing.md, borderRadius: 16, height: 220 },
   imgOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.92)', alignItems: 'center', justifyContent: 'center' },
   imgFull:    { width: '100%', height: '80%' },
   imgClose:   { position: 'absolute', top: 50, right: 20, width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
   coverPlaceholder: {
-    height: 160, width: '100%',
+    height: 160, marginHorizontal: spacing.md, borderRadius: 16,
     backgroundColor: palette.panel,
     alignItems: 'center', justifyContent: 'center',
   },
