@@ -19,7 +19,7 @@ class UserController extends Controller
 {
     public function publicLatest(): JsonResponse
     {
-        $users = User::latest()->limit(10)->get(['id', 'name', 'avatar']);
+        $users = User::latest()->limit(30)->get(['id', 'name', 'avatar']);
 
         return response()->json([
             'data' => $users->map(fn ($u) => [
