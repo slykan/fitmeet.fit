@@ -184,11 +184,6 @@ function send(obj) {
   window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify(obj));
 }
 
-function osrmProfile(cat) {
-  if (cat === 'cycling') return 'bike';
-  if (['running','hiking','skiing','climbing','kayaking'].includes(cat)) return 'foot';
-  return null;
-}
 
 function haversineM(a, b) {
   var R = 6371000, dLat = (b[0]-a[0])*Math.PI/180, dLon = (b[1]-a[1])*Math.PI/180;
@@ -250,18 +245,49 @@ function showLoading(v) {
   document.getElementById('loading-overlay').className = v ? 'show' : '';
 }
 
-// ── OSRM fetch ────────────────────────────────────────────────────────────
-async function fetchOsrm(from, to, profile) {
+// ── Polyline6 decoder (Valhalla uses precision 6) ────────────────────────
+function decodePolyline6(encoded) {
+  var coords = [], index = 0, lat = 0, lng = 0;
+  while (index < encoded.length) {
+    var b, shift = 0, result = 0;
+    do { b = encoded.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+    lat += (result & 1) ? ~(result >> 1) : (result >> 1);
+    shift = result = 0;
+    do { b = encoded.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+    lng += (result & 1) ? ~(result >> 1) : (result >> 1);
+    coords.push([lat / 1e6, lng / 1e6]);
+  }
+  return coords;
+}
+
+// ── Valhalla fetch ────────────────────────────────────────────────────────
+async function fetchValhalla(from, to, costing, options) {
   try {
-    var url = 'https://router.project-osrm.org/route/v1/'+profile+'/'+from[1]+','+from[0]+';'+to[1]+','+to[0]+'?overview=full&geometries=geojson';
-    var res = await fetch(url);
+    var body = JSON.stringify({
+      locations: [{ lon: from[1], lat: from[0] }, { lon: to[1], lat: to[0] }],
+      costing: costing,
+      costing_options: options ? { [costing]: options } : undefined,
+      units: 'km',
+    });
+    var res = await fetch('https://valhalla1.openstreetmap.de/route', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: body,
+    });
     if (!res.ok) return null;
     var data = await res.json();
-    if (!data.routes || !data.routes.length) return null;
-    var route = data.routes[0];
-    var coords = route.geometry.coordinates.map(function(c){return [c[1],c[0]];});
-    return { coords: coords, distM: route.distance };
+    if (!data.trip || !data.trip.legs || !data.trip.legs.length) return null;
+    var leg = data.trip.legs[0];
+    var coords = decodePolyline6(leg.shape);
+    return { coords: coords, distM: leg.summary.length * 1000 };
   } catch(e) { return null; }
+}
+
+function valhallaCosting(cat) {
+  if (cat === 'cycling') return { costing: 'bicycle', options: { use_roads: 1.0, bicycle_type: 'Road' } };
+  if (cat === 'running') return { costing: 'pedestrian', options: { use_roads: 0.9, use_tracks: 0.0 } };
+  if (cat === 'hiking')  return { costing: 'pedestrian', options: { use_roads: 0.4 } };
+  return null;
 }
 
 // ── Elevation fetch ──────────────────────────────────────────────────────
@@ -314,9 +340,9 @@ async function routeSegment(fromIdx) {
     segments[fromIdx] = null;
   }
 
-  var profile = osrmProfile(category);
+  var costingInfo = valhallaCosting(category);
   var result = null;
-  if (profile) result = await fetchOsrm(from.latlng, to.latlng, profile);
+  if (costingInfo) result = await fetchValhalla(from.latlng, to.latlng, costingInfo.costing, costingInfo.options);
 
   // Fallback to straight line
   if (!result) {

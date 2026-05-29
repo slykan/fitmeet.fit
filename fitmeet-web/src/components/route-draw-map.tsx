@@ -35,32 +35,60 @@ interface Props {
   onUpdate: (result: DrawResult) => void
 }
 
-// ─── OSRM profile per category ────────────────────────────────────────────────
+// ─── Valhalla routing ─────────────────────────────────────────────────────────
 
-function osrmProfile(category: string): 'foot' | 'bike' | null {
-  if (category === 'cycling') return 'bike'
-  if (['running', 'hiking', 'skiing', 'climbing', 'kayaking'].includes(category)) return 'foot'
+interface ValhallaCosting {
+  costing: string
+  options?: Record<string, unknown>
+}
+
+function valhallaCosting(category: string): ValhallaCosting | null {
+  if (category === 'cycling') return { costing: 'bicycle', options: { use_roads: 1.0, bicycle_type: 'Road' } }
+  if (category === 'running')  return { costing: 'pedestrian', options: { use_roads: 0.9, use_tracks: 0.0 } }
+  if (category === 'hiking')   return { costing: 'pedestrian', options: { use_roads: 0.4 } }
   return null
 }
 
-// ─── OSRM fetch ───────────────────────────────────────────────────────────────
+function decodePolyline6(encoded: string): LatLng[] {
+  const coords: LatLng[] = []
+  let index = 0, lat = 0, lng = 0
+  while (index < encoded.length) {
+    let b: number, shift = 0, result = 0
+    do { b = encoded.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5 } while (b >= 0x20)
+    lat += result & 1 ? ~(result >> 1) : result >> 1
+    shift = result = 0
+    do { b = encoded.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5 } while (b >= 0x20)
+    lng += result & 1 ? ~(result >> 1) : result >> 1
+    coords.push([lat / 1e6, lng / 1e6])
+  }
+  return coords
+}
 
-async function fetchOsrmSegment(
+async function fetchRoutingSegment(
   from: LatLng,
   to: LatLng,
-  profile: 'foot' | 'bike',
+  category: string,
 ): Promise<{ coords: LatLng[]; distanceM: number } | null> {
+  const info = valhallaCosting(category)
+  if (!info) return null
   try {
-    const url = `https://router.project-osrm.org/route/v1/${profile}/${from[1]},${from[0]};${to[1]},${to[0]}?overview=full&geometries=geojson`
-    const res = await fetch(url, { signal: AbortSignal.timeout(8000) })
+    const body = JSON.stringify({
+      locations: [{ lon: from[1], lat: from[0] }, { lon: to[1], lat: to[0] }],
+      costing: info.costing,
+      costing_options: info.options ? { [info.costing]: info.options } : undefined,
+      units: 'km',
+    })
+    const res = await fetch('https://valhalla1.openstreetmap.de/route', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body,
+      signal: AbortSignal.timeout(8000),
+    })
     if (!res.ok) return null
     const data = await res.json()
-    if (!data.routes?.length) return null
-    const route = data.routes[0]
-    const coords: LatLng[] = (route.geometry.coordinates as [number, number][]).map(
-      ([lng, lat]) => [lat, lng],
-    )
-    return { coords, distanceM: route.distance as number }
+    if (!data.trip?.legs?.length) return null
+    const leg = data.trip.legs[0]
+    return { coords: decodePolyline6(leg.shape), distanceM: leg.summary.length * 1000 }
   } catch {
     return null
   }
@@ -239,12 +267,7 @@ export default function RouteDrawMap({ category, height = 500, initialWaypoints,
       map.removeLayer(segs[fromIdx].polyline)
     }
 
-    const profile = osrmProfile(categoryRef.current)
-    let result: { coords: LatLng[]; distanceM: number } | null = null
-
-    if (profile) {
-      result = await fetchOsrmSegment(from, to, profile)
-    }
+    let result: { coords: LatLng[]; distanceM: number } | null = await fetchRoutingSegment(from, to, categoryRef.current)
 
     if (!result) {
       result = straightLine(from, to)
