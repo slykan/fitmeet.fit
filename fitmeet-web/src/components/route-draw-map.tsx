@@ -173,6 +173,7 @@ export default function RouteDrawMap({ category, height = 500, initialWaypoints,
   const pendingRoutingRef = useRef(0)
   const onUpdateRef = useRef(onUpdate)
   onUpdateRef.current = onUpdate
+  const initialLoadedRef = useRef(false)
 
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null)
   const [stats, setStats] = useState({ distanceKm: 0, elevGain: 0 })
@@ -483,12 +484,13 @@ export default function RouteDrawMap({ category, height = 500, initialWaypoints,
 
   useEffect(() => {
     if (!initialWaypoints?.length || !mapRef.current) return
+    if (initialLoadedRef.current) return
+    initialLoadedRef.current = true
     const map = mapRef.current
 
     const loadAsync = async () => {
       for (const latlng of initialWaypoints) {
         addWaypoint(latlng)
-        // Small delay between waypoints to avoid flooding OSRM
         await new Promise(r => setTimeout(r, 80))
       }
       // Fit map to track
@@ -501,7 +503,6 @@ export default function RouteDrawMap({ category, height = 500, initialWaypoints,
     }
 
     loadAsync()
-  // Only run once on mount (initialWaypoints is stable ref from parent)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapRef.current ? 'ready' : 'not-ready'])
 

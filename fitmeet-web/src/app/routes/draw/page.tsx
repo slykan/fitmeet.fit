@@ -98,6 +98,17 @@ function CategoryPicker({
   )
 }
 
+// ─── Downsample waypoints for editing ────────────────────────────────────────
+
+function downsampleWaypoints(pts: LatLng[], max: number): LatLng[] {
+  if (pts.length <= max) return pts
+  const result: LatLng[] = [pts[0]]
+  const step = (pts.length - 1) / (max - 2)
+  for (let i = 1; i < max - 1; i++) result.push(pts[Math.round(i * step)])
+  result.push(pts[pts.length - 1])
+  return result
+}
+
 // ─── Page content ─────────────────────────────────────────────────────────────
 
 function DrawContent() {
@@ -129,7 +140,7 @@ function DrawContent() {
         setCategory(route.category?.value ?? 'running')
         setIsPublic(route.is_public ?? true)
         if (Array.isArray(route.waypoints) && route.waypoints.length >= 2) {
-          setInitialWaypoints(route.waypoints as LatLng[])
+          setInitialWaypoints(downsampleWaypoints(route.waypoints as LatLng[], 25))
           setCategoryLocked(true)
         }
       })
