@@ -160,7 +160,7 @@ function DrawContent() {
     if (!editId) return
 
     api.get(`/routes/${editId}`)
-      .then(({ data }) => {
+      .then(async ({ data }) => {
         const route = data.data
         if (route.creator?.id !== user?.id) { router.replace('/meet'); return }
         setTitle(route.title ?? '')
