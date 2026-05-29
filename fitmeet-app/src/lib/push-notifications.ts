@@ -5,6 +5,7 @@ import { router } from 'expo-router'
 import { Platform } from 'react-native'
 
 import { api } from '@/src/lib/api'
+import { emitChatRefresh } from '@/src/lib/chat-refresh'
 
 export const PUSH_TOKEN_STORAGE_KEY = 'fitmeet-mobile-push-token-v1'
 
@@ -73,6 +74,7 @@ function routeFromNotificationData(data: Record<string, unknown> | undefined) {
   }
 
   if (type === 'new_message') {
+    emitChatRefresh()
     router.push('/(tabs)/messages' as never)
     return
   }
@@ -215,6 +217,15 @@ export function setupPushNotificationRouting() {
   const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
     handleNotificationResponse(response)
   })
+  const receivedSubscription = Notifications.addNotificationReceivedListener((notification) => {
+    const data = notification.request.content.data as Record<string, unknown> | undefined
+    if (data?.type === 'new_message') {
+      emitChatRefresh()
+    }
+  })
 
-  return () => subscription.remove()
+  return () => {
+    subscription.remove()
+    receivedSubscription.remove()
+  }
 }

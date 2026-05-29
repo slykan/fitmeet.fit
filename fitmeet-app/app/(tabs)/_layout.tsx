@@ -6,6 +6,7 @@ import { AppState, BackHandler } from 'react-native'
 import { palette } from '@/src/theme'
 import { useAuthStore } from '@/src/store/auth'
 import { api } from '@/src/lib/api'
+import { emitChatRefresh } from '@/src/lib/chat-refresh'
 
 export const badgeEvents = {
   clearAlerts: () => {},
@@ -113,7 +114,10 @@ export default function TabsLayout() {
         tabPress: (e) => {
           const name = (e.target as string)?.split('-')[0]
           if (name === 'notifications') setNotifCount(0)
-          if (name === 'messages')      setMsgCount(0)
+          if (name === 'messages') {
+            setMsgCount(0)
+            emitChatRefresh()
+          }
         },
       }}
     >

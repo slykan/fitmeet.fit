@@ -23,6 +23,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs'
 
 import { api } from '@/src/lib/api'
+import { subscribeChatRefresh } from '@/src/lib/chat-refresh'
 import { useAuthStore } from '@/src/store/auth'
 import { palette, spacing } from '@/src/theme'
 
@@ -229,20 +230,32 @@ function ThreadView({
   const [selectedAdditions, setSelectedAdditions] = useState<Person[]>([])
   const flatRef = useRef<FlatList>(null)
 
-  useEffect(() => {
-    setConv(conversation)
-  }, [conversation])
-
-  useEffect(() => {
-    setLoading(true)
+  const loadThread = useCallback((showSpinner = false) => {
+    if (showSpinner) setLoading(true)
     api.get(`/messages/conversations/${conversation.id}`)
       .then(({ data }) => {
         setConv(data.conversation ?? conversation)
         setMessages(data.data ?? data.messages ?? [])
       })
       .catch(() => {})
-      .finally(() => setLoading(false))
+      .finally(() => {
+        if (showSpinner) setLoading(false)
+      })
   }, [conversation, conversation.id])
+
+  useEffect(() => {
+    setConv(conversation)
+  }, [conversation])
+
+  useEffect(() => {
+    loadThread(true)
+  }, [loadThread])
+
+  useFocusEffect(useCallback(() => {
+    loadThread(false)
+    const unsubscribe = subscribeChatRefresh(() => loadThread(false))
+    return unsubscribe
+  }, [loadThread]))
 
   useEffect(() => {
     if (!showAddMembers || !conv.is_group) return
@@ -856,6 +869,8 @@ export default function MessagesScreen() {
 
   useFocusEffect(useCallback(() => {
     load()
+    const unsubscribe = subscribeChatRefresh(load)
+    return unsubscribe
   }, [load]))
 
   const filtered = conversations.filter((conv) => {
