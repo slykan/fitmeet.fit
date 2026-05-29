@@ -10,6 +10,7 @@ import api from '@/lib/api'
 import { CATEGORIES, CATEGORY_EMOJI } from '@/lib/categories'
 import { useAuthStore } from '@/store/auth'
 import type { DrawResult, LatLng } from '@/components/route-draw-map'
+import { parseGpx } from '@/lib/parse-gpx'
 
 const RouteDrawMap = dynamic(() => import('@/components/route-draw-map'), { ssr: false })
 
@@ -149,6 +150,7 @@ function DrawContent() {
   const [error, setError] = useState<string | null>(null)
   const [loadingEdit, setLoadingEdit] = useState(!!editId)
   const [initialWaypoints, setInitialWaypoints] = useState<LatLng[] | undefined>(undefined)
+  const [initialTrack, setInitialTrack] = useState<LatLng[] | undefined>(undefined)
   const [categoryLocked, setCategoryLocked] = useState(false)
 
   const drawResultRef = useRef<DrawResult | null>(null)
@@ -167,6 +169,13 @@ function DrawContent() {
         if (Array.isArray(route.waypoints) && route.waypoints.length >= 2) {
           setInitialWaypoints(downsampleWaypoints(route.waypoints as LatLng[], 25))
           setCategoryLocked(true)
+        }
+        if (route.gpx_url) {
+          try {
+            const gpxRes = await api.get(`/routes/${route.id}/gpx`, { responseType: 'text' })
+            const parsed = parseGpx(gpxRes.data)
+            if (parsed.track.length >= 2) setInitialTrack(parsed.track)
+          } catch { /* no track — will re-route */ }
         }
       })
       .catch(() => router.replace('/meet'))
@@ -285,6 +294,7 @@ function DrawContent() {
               category={category}
               height={500}
               initialWaypoints={initialWaypoints}
+              initialTrack={initialTrack}
               onUpdate={result => { drawResultRef.current = result }}
             />
           </Suspense>

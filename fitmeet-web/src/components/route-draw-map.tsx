@@ -32,7 +32,34 @@ interface Props {
   category: string
   height?: number
   initialWaypoints?: LatLng[]
+  initialTrack?: LatLng[]
   onUpdate: (result: DrawResult) => void
+}
+
+// ─── Track helpers ────────────────────────────────────────────────────────────
+
+function findClosestIdx(track: LatLng[], point: LatLng, from = 0): number {
+  let minDist = Infinity
+  let minIdx = from
+  for (let i = from; i < track.length; i++) {
+    const d = Math.hypot(track[i][0] - point[0], track[i][1] - point[1])
+    if (d < minDist) { minDist = d; minIdx = i }
+  }
+  return minIdx
+}
+
+function segmentLength(coords: LatLng[]): number {
+  const R = 6371000
+  let total = 0
+  for (let i = 1; i < coords.length; i++) {
+    const dLat = (coords[i][0] - coords[i - 1][0]) * Math.PI / 180
+    const dLon = (coords[i][1] - coords[i - 1][1]) * Math.PI / 180
+    const a = Math.sin(dLat / 2) ** 2 +
+      Math.cos(coords[i - 1][0] * Math.PI / 180) * Math.cos(coords[i][0] * Math.PI / 180) *
+      Math.sin(dLon / 2) ** 2
+    total += R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+  }
+  return total
 }
 
 // ─── Valhalla routing ─────────────────────────────────────────────────────────
@@ -162,7 +189,7 @@ function straightLine(from: LatLng, to: LatLng): { coords: LatLng[]; distanceM: 
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function RouteDrawMap({ category, height = 500, initialWaypoints, onUpdate }: Props) {
+export default function RouteDrawMap({ category, height = 500, initialWaypoints, initialTrack, onUpdate }: Props) {
   const mapDivRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
   const waypointsRef = useRef<WaypointEntry[]>([])
@@ -174,6 +201,7 @@ export default function RouteDrawMap({ category, height = 500, initialWaypoints,
   const onUpdateRef = useRef(onUpdate)
   onUpdateRef.current = onUpdate
   const initialLoadedRef = useRef(false)
+  const skipRoutingRef = useRef(false)
 
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null)
   const [stats, setStats] = useState({ distanceKm: 0, elevGain: 0 })
@@ -356,7 +384,7 @@ export default function RouteDrawMap({ category, height = 500, initialWaypoints,
     setSelectedIdx(null)
 
     if (idx > 0) {
-      routeSegment(idx - 1)
+      if (!skipRoutingRef.current) routeSegment(idx - 1)
     } else {
       // First waypoint — just publish
       const km = totalDistanceKm()
@@ -489,11 +517,40 @@ export default function RouteDrawMap({ category, height = 500, initialWaypoints,
     const map = mapRef.current
 
     const loadAsync = async () => {
-      for (const latlng of initialWaypoints) {
-        addWaypoint(latlng)
-        await new Promise(r => setTimeout(r, 80))
+      if (initialTrack && initialTrack.length >= 2) {
+        // Pre-populate from existing GPX track — no Valhalla routing needed
+        skipRoutingRef.current = true
+        for (const latlng of initialWaypoints) {
+          addWaypoint(latlng)
+        }
+        skipRoutingRef.current = false
+
+        // Split the GPX track into segments by closest waypoint
+        const wps = waypointsRef.current
+        const segs = segmentsRef.current
+        let prevTrackIdx = 0
+        for (let i = 1; i < wps.length; i++) {
+          const trackIdx = findClosestIdx(initialTrack, wps[i].latlng, prevTrackIdx)
+          const coords = initialTrack.slice(prevTrackIdx, trackIdx + 1)
+          const distanceM = segmentLength(coords)
+          const polyline = L.polyline(coords, { color: '#39ff14', weight: 4, opacity: 0.9, lineJoin: 'round' }).addTo(map)
+          segs[i - 1] = { polyline, coords, distanceM }
+          prevTrackIdx = trackIdx
+        }
+
+        const km = totalDistanceKm()
+        setStats(s => ({ ...s, distanceKm: km }))
+        scheduleElevation()
+        publishResult()
+      } else {
+        // No track — route via Valhalla
+        for (const latlng of initialWaypoints) {
+          addWaypoint(latlng)
+          await new Promise(r => setTimeout(r, 80))
+        }
       }
-      // Fit map to track
+
+      // Fit map
       const wps = waypointsRef.current
       if (wps.length > 1) {
         map.fitBounds(L.latLngBounds(wps.map(w => w.latlng)), { padding: [32, 32] })
