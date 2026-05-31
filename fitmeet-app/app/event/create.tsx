@@ -5,11 +5,11 @@ import * as ImagePicker from 'expo-image-picker'
 import * as Location from 'expo-location'
 import { StravaRoutePicker } from '@/src/components/StravaRoutePicker'
 import { SupportFitMeetCard } from '@/src/components/SupportFitMeetCard'
-import { router, useLocalSearchParams } from 'expo-router'
-import { useEffect, useRef, useState } from 'react'
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, Share,
-  StyleSheet, Text, TextInput, View,
+  BackHandler, StyleSheet, Text, TextInput, View,
 } from 'react-native'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { WebView } from 'react-native-webview'
@@ -294,6 +294,60 @@ export default function CreateEventScreen() {
     gpxTrack[0]?.join(',') ?? '',
     gpxTrack[gpxTrack.length - 1]?.join(',') ?? '',
   ].join('|')
+
+  const hasUnsavedCreateChanges = !editId && !createdEvent && !submitting && (
+    title.trim().length > 0 ||
+    category.length > 0 ||
+    description.trim().length > 0 ||
+    pickedDate !== null ||
+    duration.trim().length > 0 ||
+    lat !== null ||
+    lng !== null ||
+    address.trim().length > 0 ||
+    skillLevel.length > 0 ||
+    maxPax.trim().length > 0 ||
+    isPrivate ||
+    distanceKm.trim().length > 0 ||
+    elevGain.trim().length > 0 ||
+    maxGrade.trim().length > 0 ||
+    maxDowngrade.trim().length > 0 ||
+    pace.trim().length > 0 ||
+    imageUri !== null ||
+    imagePreview !== null ||
+    imageRemoved ||
+    gpxName !== null ||
+    gpxContent !== null ||
+    routeTitle.trim().length > 0 ||
+    fitMeetRouteId !== null ||
+    youtubeUrl.trim().length > 0 ||
+    !joinOnCreate ||
+    !notifyOnJoin
+  )
+
+  const requestLeaveCreate = useCallback(() => {
+    if (!hasUnsavedCreateChanges) {
+      router.back()
+      return
+    }
+
+    Alert.alert(
+      'Leave event creation?',
+      'You have unsaved changes. Do you want to leave this event?',
+      [
+        { text: 'Stay', style: 'cancel' },
+        { text: 'Leave', style: 'destructive', onPress: () => router.back() },
+      ],
+    )
+  }, [hasUnsavedCreateChanges])
+
+  useFocusEffect(useCallback(() => {
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      requestLeaveCreate()
+      return true
+    })
+
+    return () => subscription.remove()
+  }, [requestLeaveCreate]))
 
   useEffect(() => {
     if (!editId) return
@@ -715,7 +769,7 @@ export default function CreateEventScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.topBar}>
-        <Pressable style={styles.backBtn} onPress={() => router.back()}>
+        <Pressable style={styles.backBtn} onPress={requestLeaveCreate}>
           <Ionicons name="arrow-back" size={20} color={palette.text} />
         </Pressable>
         <Text style={styles.heading}>{editId ? 'Edit Event' : 'New Event'}</Text>
