@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { Calendar, MapPin, Info, Settings, Lock, Unlock, LocateFixed, Search, CirclePlay } from 'lucide-react'
 
@@ -76,6 +76,7 @@ function localDatetimeMin(): string {
 export default function CreateEventPage() {
   const { token } = useAuthStore()
   const router    = useRouter()
+  const allowNavigationRef = useRef(false)
   const [saving,   setSaving]   = useState(false)
   const [error,    setError]    = useState<string | null>(null)
   const [locating, setLocating] = useState(false)
@@ -140,6 +141,78 @@ export default function CreateEventPage() {
   const watchedSkill    = watch('skill_level')
   const watchedPrivate  = watch('is_private')
   const watchedDuration = watch('duration_minutes')
+  const watchedForm      = watch()
+
+  const hasUnsavedCreateChanges = !saving && (
+    watchedForm.title?.trim().length > 0 ||
+    watchedForm.category?.length > 0 ||
+    watchedForm.description?.trim().length > 0 ||
+    watchedForm.start_at?.length > 0 ||
+    watchedForm.duration_minutes?.trim().length > 0 ||
+    watchedForm.lat !== null ||
+    watchedForm.lng !== null ||
+    watchedForm.address?.trim().length > 0 ||
+    watchedForm.skill_level?.length > 0 ||
+    watchedForm.max_participants?.trim().length > 0 ||
+    watchedForm.is_private ||
+    watchedForm.distance_km?.trim().length > 0 ||
+    watchedForm.elevation_gain?.trim().length > 0 ||
+    watchedForm.max_grade?.trim().length > 0 ||
+    watchedForm.max_downgrade?.trim().length > 0 ||
+    watchedForm.pace?.trim().length > 0 ||
+    watchedForm.youtube_url?.trim().length > 0 ||
+    gpxFile !== null ||
+    gpxText !== null ||
+    gpxName !== null ||
+    routeTitle.trim().length > 0 ||
+    imageFile !== null ||
+    imagePreview !== null ||
+    fitMeetRouteId !== null
+  )
+
+  const confirmLeaveCreate = useCallback(() => {
+    if (!hasUnsavedCreateChanges) return true
+    return window.confirm('Leave event creation?\n\nYou have unsaved changes. Do you want to leave this event?')
+  }, [hasUnsavedCreateChanges])
+
+  const leaveCreate = useCallback(() => {
+    if (!confirmLeaveCreate()) return
+    allowNavigationRef.current = true
+    router.back()
+  }, [confirmLeaveCreate, router])
+
+  useEffect(() => {
+    if (!hasUnsavedCreateChanges) return
+
+    function handleBeforeUnload(event: BeforeUnloadEvent) {
+      event.preventDefault()
+      event.returnValue = ''
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [hasUnsavedCreateChanges])
+
+  useEffect(() => {
+    if (!hasUnsavedCreateChanges) return
+
+    window.history.pushState({ fitmeetCreateGuard: true }, '', window.location.href)
+
+    function handlePopState() {
+      if (allowNavigationRef.current) return
+
+      if (confirmLeaveCreate()) {
+        allowNavigationRef.current = true
+        window.history.back()
+        return
+      }
+
+      window.history.pushState({ fitmeetCreateGuard: true }, '', window.location.href)
+    }
+
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [confirmLeaveCreate, hasUnsavedCreateChanges])
 
   async function handleMapChange(lat: number, lng: number) {
     setValue('lat', lat)
@@ -743,7 +816,7 @@ export default function CreateEventPage() {
                 variant="ghost"
                 size="lg"
                 className="border"
-                onClick={() => router.back()}
+                onClick={leaveCreate}
               >
                 Cancel
               </Button>
