@@ -42,7 +42,7 @@ export function LatestEventsCarousel({ events }: { events: LatestEvent[] }) {
       events.map((event) => {
         const timing = formatDate(event.schedule.start_at, event.schedule.timezone)
         const past = isPastEvent(event.schedule.start_at, event.schedule.duration_minutes)
-        const href = `/login?redirect=${encodeURIComponent(`/events/share?id=${event.id}`)}`
+        const href = `/login?redirect=${encodeURIComponent(`/events/share/${event.id}`)}`
 
         return (
           <Link

@@ -294,7 +294,7 @@ function EventContent() {
   async function handleShare() {
     if (!event || typeof window === 'undefined') return
     const version = encodeURIComponent(`${event.schedule.start_at}-${event.schedule.timezone}`)
-    const url = `${window.location.origin}/events/share?id=${event.id}&v=${version}`
+    const url = `${window.location.origin}/events/share/${event.id}?v=${version}`
     try {
       if (navigator.share) {
         await navigator.share({

@@ -243,7 +243,7 @@ class EventController extends Controller
     {
         $siteUrl  = 'https://fitmeet.fit';
         $id       = (int) $request->query('id', 0);
-        $shareUrl = $siteUrl . '/events/share/?id=' . $id;
+        $shareUrl = $siteUrl . '/events/share/' . $id;
 
         $event = $id ? Event::find($id) : null;
 

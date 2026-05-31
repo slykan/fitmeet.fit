@@ -17,6 +17,7 @@ export interface SharedEvent {
   id: number
   title: string
   description: string | null
+  image_url: string | null
   category: { value: string; label: string }
   location: { lat: number; lng: number; address: string | null }
   schedule: { start_at: string; timezone: string; duration_minutes: number | null }
@@ -151,12 +152,18 @@ function InfoBadge({ label, value }: { label: string; value: string }) {
   )
 }
 
-function ShareEventContent() {
+function ShareEventContent({
+  id,
+  initialEvent,
+}: {
+  id: string | null
+  initialEvent: SharedEvent | null
+}) {
   const searchParams = useSearchParams()
   const { token } = useAuthStore()
-  const id = searchParams.get('id')
-  const [event, setEvent] = useState<SharedEvent | null>(null)
-  const [loading, setLoading] = useState(true)
+  const eventId = id ?? searchParams.get('id')
+  const [event, setEvent] = useState<SharedEvent | null>(initialEvent)
+  const [loading, setLoading] = useState(!initialEvent)
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [route, setRoute] = useState<GpxResult | null>(null)
@@ -167,13 +174,20 @@ function ShareEventContent() {
   )
 
   useEffect(() => {
-    if (!id) {
+    if (initialEvent) {
+      setEvent(initialEvent)
+      setLoading(false)
+      setError(null)
+      return
+    }
+
+    if (!eventId) {
       setError('Event not found.')
       setLoading(false)
       return
     }
 
-    fetch(`${apiBase}/events/public/${id}`, {
+    fetch(`${apiBase}/events/public/${eventId}`, {
       headers: { Accept: 'application/json' },
     })
       .then(async (res) => {
@@ -183,7 +197,7 @@ function ShareEventContent() {
       .then((data) => setEvent(data.data))
       .catch(() => setError('This event is not available for public sharing.'))
       .finally(() => setLoading(false))
-  }, [apiBase, id])
+  }, [apiBase, eventId, initialEvent])
 
   useEffect(() => {
     let cancelled = false
@@ -222,7 +236,7 @@ function ShareEventContent() {
   async function handleShare() {
     if (!event || typeof window === 'undefined') return
     const version = encodeURIComponent(`${event.schedule.start_at}-${event.schedule.timezone}`)
-    const url = `${window.location.origin}/events/share?id=${event.id}&v=${version}`
+    const url = `${window.location.origin}/events/share/${event.id}?v=${version}`
     try {
       if (navigator.share) {
         await navigator.share({
@@ -351,10 +365,16 @@ function ShareEventContent() {
   )
 }
 
-export default function ShareEventClientPage() {
+export default function ShareEventClientPage({
+  id,
+  initialEvent,
+}: {
+  id: string | null
+  initialEvent: SharedEvent | null
+}) {
   return (
     <Suspense>
-      <ShareEventContent />
+      <ShareEventContent id={id} initialEvent={initialEvent} />
     </Suspense>
   )
 }

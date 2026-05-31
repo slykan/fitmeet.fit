@@ -1,11 +1,12 @@
 import type { MetadataRoute } from 'next'
 import { posts } from '@/lib/posts'
+import { getPublicShareEvents } from '@/app/events/share/share-seo'
 
 export const dynamic = 'force-static'
 
 const BASE = 'https://fitmeet.fit'
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages: MetadataRoute.Sitemap = [
     { url: BASE,                    lastModified: new Date(), changeFrequency: 'weekly',  priority: 1.0 },
     { url: `${BASE}/blog`,          lastModified: new Date(), changeFrequency: 'weekly',  priority: 0.9 },
@@ -23,5 +24,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.8,
   }))
 
-  return [...staticPages, ...blogPages]
+  const eventPages: MetadataRoute.Sitemap = (await getPublicShareEvents(20)).map((event) => ({
+    url: `${BASE}/events/share/${event.id}`,
+    lastModified: new Date(event.created_at ?? event.schedule?.start_at ?? Date.now()),
+    changeFrequency: 'daily',
+    priority: 0.7,
+  }))
+
+  return [...staticPages, ...blogPages, ...eventPages]
 }
