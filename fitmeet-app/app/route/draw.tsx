@@ -118,6 +118,26 @@ function buildDrawRouteHtml(
     display:flex;align-items:center;justify-content:center;
     font-size:18px;cursor:pointer;
   }
+  #layer-wrap{
+    pointer-events:all;position:relative;flex-shrink:0;
+  }
+  #layer-btn{
+    height:38px;padding:0 10px;border-radius:12px;
+    background:rgba(5,8,22,0.88);border:1.5px solid rgba(255,255,255,0.14);
+    color:#f5f7ff;font-size:12px;font-weight:800;cursor:pointer;
+  }
+  #layer-menu{
+    position:absolute;top:44px;right:0;min-width:112px;
+    padding:4px;border-radius:14px;
+    background:rgba(5,8,22,0.94);border:1px solid rgba(255,255,255,0.14);
+    display:none;
+  }
+  #layer-menu.show{display:block;}
+  .layer-option{
+    padding:8px 10px;border-radius:10px;
+    color:#f5f7ff;font-size:12px;font-weight:800;cursor:pointer;
+  }
+  .layer-option.active{background:#6cff2f;color:#031109;}
 
   #bottom-panel{
     position:fixed;bottom:0;left:0;right:0;z-index:1000;
@@ -177,6 +197,10 @@ function buildDrawRouteHtml(
 <div id="top-bar">
   <div id="back-btn" onclick="goBack()">&#8592; Back</div>
   <div id="stats-pill">Tap map to add points</div>
+  <div id="layer-wrap">
+    <button id="layer-btn" onclick="toggleLayerMenu()">Standard</button>
+    <div id="layer-menu"></div>
+  </div>
   <div id="gps-btn" onclick="useGPS()">&#128205;</div>
 </div>
 
@@ -199,10 +223,59 @@ var category  = '${initCategory}';
 var pendingRouting = 0;
 var elevDebounce = null;
 var selectedIdx = null;
+var activeLayerKey = 'standard';
+var activeBaseLayer = null;
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 function send(obj) {
   window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify(obj));
+}
+
+var BASE_LAYERS = {
+  standard: {
+    label: 'Standard',
+    layer: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:19})
+  },
+  satellite: {
+    label: 'Satellite',
+    layer: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {maxZoom:19})
+  },
+  terrain: {
+    label: 'Terrain',
+    layer: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {maxZoom:17})
+  }
+};
+
+function setBaseLayer(key) {
+  var next = BASE_LAYERS[key] ? key : 'standard';
+  if (activeBaseLayer) map.removeLayer(activeBaseLayer);
+  activeLayerKey = next;
+  activeBaseLayer = BASE_LAYERS[next].layer;
+  activeBaseLayer.addTo(map);
+  document.getElementById('layer-btn').textContent = BASE_LAYERS[next].label;
+  renderLayerMenu(false);
+}
+
+function toggleLayerMenu() {
+  var menu = document.getElementById('layer-menu');
+  renderLayerMenu(!menu.classList.contains('show'));
+}
+
+function renderLayerMenu(open) {
+  var menu = document.getElementById('layer-menu');
+  if (!menu) return;
+  menu.innerHTML = '';
+  Object.keys(BASE_LAYERS).forEach(function(key) {
+    var opt = document.createElement('div');
+    opt.className = 'layer-option' + (key === activeLayerKey ? ' active' : '');
+    opt.textContent = BASE_LAYERS[key].label;
+    opt.onclick = function(e) {
+      e.stopPropagation();
+      setBaseLayer(key);
+    };
+    menu.appendChild(opt);
+  });
+  menu.className = open ? 'show' : '';
 }
 
 
@@ -624,7 +697,7 @@ var map = L.map('map', {
   tap: false
 });
 L.control.zoom({position:'bottomright'}).addTo(map);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:19}).addTo(map);
+setBaseLayer('standard');
 
 map.on('click', function(e) {
   if (pendingRouting > 0) return;

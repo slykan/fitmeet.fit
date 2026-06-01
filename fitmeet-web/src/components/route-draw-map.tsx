@@ -36,6 +36,20 @@ interface Props {
   onUpdate: (result: DrawResult) => void
 }
 
+function createMapBaseLayers() {
+  return {
+    Standard: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+    }),
+    Satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      maxZoom: 19,
+    }),
+    Terrain: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+      maxZoom: 17,
+    }),
+  }
+}
+
 // ─── Track helpers ────────────────────────────────────────────────────────────
 
 function findClosestIdx(track: LatLng[], point: LatLng, from = 0): number {
@@ -474,9 +488,14 @@ export default function RouteDrawMap({ category, height = 500, initialWaypoints,
 
     L.control.zoom({ position: 'bottomright' }).addTo(map)
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-    }).addTo(map)
+    const baseLayers = createMapBaseLayers()
+    let activeBaseLayer: L.TileLayer | null = null
+    const setBaseLayer = (name: keyof ReturnType<typeof createMapBaseLayers>) => {
+      if (activeBaseLayer) map.removeLayer(activeBaseLayer)
+      activeBaseLayer = baseLayers[name]
+      activeBaseLayer.addTo(map)
+    }
+    setBaseLayer('Standard')
 
     map.on('click', (e: L.LeafletMouseEvent) => {
       if (pendingRoutingRef.current > 0) return
@@ -486,9 +505,48 @@ export default function RouteDrawMap({ category, height = 500, initialWaypoints,
     mapRef.current = map
 
     // GPS button
+    const layerWrap = document.createElement('div')
+    layerWrap.style.cssText =
+      'position:absolute;top:10px;right:10px;z-index:900;min-width:112px;'
+    const layerBtn = document.createElement('button')
+    layerBtn.type = 'button'
+    layerBtn.textContent = 'Standard'
+    layerBtn.style.cssText =
+      'width:100%;border-radius:999px;border:1px solid rgba(255,255,255,0.16);background:rgba(5,8,22,0.88);color:#f5f7ff;padding:8px 12px;font-size:12px;font-weight:800;box-shadow:0 10px 28px rgba(0,0,0,0.3);backdrop-filter:blur(8px);cursor:pointer;'
+    const layerMenu = document.createElement('div')
+    layerMenu.style.cssText =
+      'display:none;margin-top:8px;border-radius:14px;border:1px solid rgba(255,255,255,0.14);background:rgba(5,8,22,0.94);padding:4px;box-shadow:0 14px 32px rgba(0,0,0,0.35);backdrop-filter:blur(10px);'
+
+    const renderLayerMenu = (open: boolean) => {
+      layerMenu.innerHTML = ''
+      ;(Object.keys(baseLayers) as Array<keyof typeof baseLayers>).forEach(name => {
+        const option = document.createElement('button')
+        option.type = 'button'
+        option.textContent = name
+        option.style.cssText =
+          'display:block;width:100%;border:0;border-radius:10px;background:transparent;color:#f5f7ff;padding:8px 10px;text-align:left;font-size:12px;font-weight:800;cursor:pointer;'
+        option.onclick = (event) => {
+          event.stopPropagation()
+          setBaseLayer(name)
+          layerBtn.textContent = name
+          layerMenu.style.display = 'none'
+        }
+        layerMenu.appendChild(option)
+      })
+      layerMenu.style.display = open ? 'block' : 'none'
+    }
+
+    layerBtn.onclick = (event) => {
+      event.stopPropagation()
+      renderLayerMenu(layerMenu.style.display !== 'block')
+    }
+    layerWrap.appendChild(layerBtn)
+    layerWrap.appendChild(layerMenu)
+    mapDivRef.current.appendChild(layerWrap)
+
     const gpsDiv = document.createElement('div')
     gpsDiv.style.cssText =
-      'position:absolute;top:10px;right:10px;z-index:900;width:36px;height:36px;border-radius:10px;background:rgba(5,8,22,0.88);border:1.5px solid rgba(255,255,255,0.14);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;'
+      'position:absolute;top:58px;right:10px;z-index:900;width:36px;height:36px;border-radius:10px;background:rgba(5,8,22,0.88);border:1.5px solid rgba(255,255,255,0.14);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;'
     gpsDiv.title = 'My location'
     gpsDiv.innerHTML = '📍'
     gpsDiv.onclick = () => {

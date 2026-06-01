@@ -17,6 +17,14 @@ type Props = {
   onMapEnabledChange?: (enabled: boolean) => void
 }
 
+type MapLayer = 'standard' | 'satellite' | 'terrain'
+
+const MAP_LAYER_LABELS: Record<MapLayer, string> = {
+  standard: 'Standard',
+  satellite: 'Satellite',
+  terrain: 'Terrain',
+}
+
 const WIND_CSS = `
   .wo { position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:450; }
   .wo{opacity:0;transition:opacity .45s ease;}
@@ -51,6 +59,7 @@ function buildHtml(
   emoji: string,
   weather: CurrentWeather | null,
   coloredSegments: TrackSegment[],
+  initialLayer: MapLayer,
 ) {
   const wJson = JSON.stringify(weather)
   const segsJson = JSON.stringify(coloredSegments)
@@ -82,7 +91,19 @@ function buildHtml(
     const map = L.map('map',{zoomControl:false,attributionControl:false,preferCanvas:true})
       .setView([${center.lat},${center.lng}],13);
     L.control.zoom({position:'bottomright'}).addTo(map);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18}).addTo(map);
+    const baseLayers = {
+      standard: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}),
+      satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19}),
+      terrain: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{maxZoom:17})
+    };
+    let activeBaseLayer = null;
+    function setBaseLayer(layer) {
+      const next = baseLayers[layer] ? layer : 'standard';
+      if (activeBaseLayer) map.removeLayer(activeBaseLayer);
+      activeBaseLayer = baseLayers[next];
+      activeBaseLayer.addTo(map);
+    }
+    setBaseLayer('${initialLayer}');
     L.tileLayer('https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=${OW_KEY}',{maxZoom:18,opacity:0.9,zIndex:220}).addTo(map);
     L.tileLayer('https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${OW_KEY}',{maxZoom:18,opacity:0.8,zIndex:221}).addTo(map);
 
@@ -172,12 +193,14 @@ function buildHtml(
       try {
         const data = JSON.parse(event.data);
         if (data.type === 'weatherUpdate') renderWeather(data.weather);
+        if (data.type === 'mapLayer') setBaseLayer(data.layer);
       } catch (e) {}
     });
     window.addEventListener('message', (event) => {
       try {
         const data = JSON.parse(event.data);
         if (data.type === 'weatherUpdate') renderWeather(data.weather);
+        if (data.type === 'mapLayer') setBaseLayer(data.layer);
       } catch (e) {}
     });
 
@@ -192,9 +215,11 @@ export function EventMapCard({ lat, lng, emoji = '📍', coloredSegments, onMapE
   const [weather, setWeather] = useState<CurrentWeather | null>(null)
   const [center, setCenter] = useState({ lat, lng })
   const [mapEnabled, setMapEnabled] = useState(false)
+  const [mapLayer, setMapLayer] = useState<MapLayer>('standard')
+  const [layerPickerOpen, setLayerPickerOpen] = useState(false)
   const [weatherRefreshTick, setWeatherRefreshTick] = useState(0)
   const html = useMemo(
-    () => buildHtml(lat, lng, { lat, lng }, emoji, null, coloredSegments ?? []),
+    () => buildHtml(lat, lng, { lat, lng }, emoji, null, coloredSegments ?? [], 'standard'),
     [lat, lng, emoji, coloredSegments],
   )
 
@@ -223,6 +248,10 @@ export function EventMapCard({ lat, lng, emoji = '📍', coloredSegments, onMapE
     webViewRef.current?.postMessage(JSON.stringify({ type: 'weatherUpdate', weather }))
   }, [weather])
 
+  useEffect(() => {
+    webViewRef.current?.postMessage(JSON.stringify({ type: 'mapLayer', layer: mapLayer }))
+  }, [mapLayer])
+
   return (
     <View style={styles.card}>
       <WebView
@@ -239,6 +268,7 @@ export function EventMapCard({ lat, lng, emoji = '📍', coloredSegments, onMapE
               JSON.stringify({ type: 'weatherUpdate', weather: weatherRef.current }),
             )
           }
+          webViewRef.current?.postMessage(JSON.stringify({ type: 'mapLayer', layer: mapLayer }))
         }}
         onMessage={(event) => {
           try {
@@ -266,6 +296,35 @@ export function EventMapCard({ lat, lng, emoji = '📍', coloredSegments, onMapE
           </Text>
         </Pressable>
       </View>
+      <View pointerEvents="box-none" style={styles.layerOverlay}>
+        <Pressable
+          onPress={() => setLayerPickerOpen((current) => !current)}
+          style={styles.layerModeBtn}
+        >
+          <Text style={styles.layerModeBtnText}>{MAP_LAYER_LABELS[mapLayer]}</Text>
+        </Pressable>
+        {layerPickerOpen && (
+          <View style={styles.layerPicker}>
+            {(Object.keys(MAP_LAYER_LABELS) as MapLayer[]).map((layer) => {
+              const active = mapLayer === layer
+              return (
+                <Pressable
+                  key={layer}
+                  onPress={() => {
+                    setMapLayer(layer)
+                    setLayerPickerOpen(false)
+                  }}
+                  style={[styles.layerOption, active && styles.layerOptionActive]}
+                >
+                  <Text style={[styles.layerOptionText, active && styles.layerOptionTextActive]}>
+                    {MAP_LAYER_LABELS[layer]}
+                  </Text>
+                </Pressable>
+              )
+            })}
+          </View>
+        )}
+      </View>
     </View>
   )
 }
@@ -286,6 +345,12 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     padding: 12,
   },
+  layerOverlay: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    alignItems: 'flex-end',
+  },
   mapModeBtn: {
     borderRadius: 999,
     paddingHorizontal: 12,
@@ -304,6 +369,45 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   mapModeBtnTextActive: {
+    color: '#041109',
+  },
+  layerModeBtn: {
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(7,13,28,0.9)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)',
+  },
+  layerModeBtnText: {
+    color: palette.text,
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  layerPicker: {
+    marginTop: 8,
+    borderRadius: 14,
+    padding: 4,
+    gap: 2,
+    backgroundColor: 'rgba(7,13,28,0.94)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)',
+  },
+  layerOption: {
+    minWidth: 104,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  layerOptionActive: {
+    backgroundColor: palette.accent,
+  },
+  layerOptionText: {
+    color: palette.text,
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  layerOptionTextActive: {
     color: '#041109',
   },
 })

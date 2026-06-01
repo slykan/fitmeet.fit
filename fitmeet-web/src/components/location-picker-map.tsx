@@ -30,7 +30,31 @@ interface Props {
   weatherVariant?:  'default' | 'hub'
   showWindOverlay?: boolean
   showCloudOverlay?: boolean
+  showMapLayerControl?: boolean
 }
+
+const MAP_BASE_LAYERS = [
+  {
+    name: 'Standard',
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    maxZoom: 19,
+  },
+  {
+    name: 'Satellite',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    attribution: 'Tiles &copy; Esri',
+    maxZoom: 19,
+  },
+  {
+    name: 'Terrain',
+    url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+    attribution: 'Map data: &copy; OpenStreetMap contributors, SRTM | Map style: &copy; OpenTopoMap',
+    maxZoom: 17,
+  },
+]
+
+type MapBaseLayerName = (typeof MAP_BASE_LAYERS)[number]['name']
 
 function ClickHandler({ onChange }: { onChange: (lat: number, lng: number) => void }) {
   useMapEvents({ click: e => onChange(e.latlng.lat, e.latlng.lng) })
@@ -420,6 +444,7 @@ export default function LocationPickerMap({
   weatherVariant = 'default',
   showWindOverlay = true,
   showCloudOverlay = true,
+  showMapLayerControl = false,
 }: Props) {
   const hasPin      = lat != null && lng != null
   const allCoords   = useMemo(
@@ -427,6 +452,9 @@ export default function LocationPickerMap({
     [coloredSegments, track],
   )
   const hasTrack    = allCoords.length > 1
+  const [selectedLayerName, setSelectedLayerName] = useState<MapBaseLayerName>('Standard')
+  const [layerMenuOpen, setLayerMenuOpen] = useState(false)
+  const selectedLayer = MAP_BASE_LAYERS.find(layer => layer.name === selectedLayerName) ?? MAP_BASE_LAYERS[0]
 
   const center: [number, number] = hasPin
     ? [lat!, lng!]
@@ -444,8 +472,10 @@ export default function LocationPickerMap({
         scrollWheelZoom={false}
       >
         <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          key={showMapLayerControl ? selectedLayer.name : MAP_BASE_LAYERS[0].name}
+          url={showMapLayerControl ? selectedLayer.url : MAP_BASE_LAYERS[0].url}
+          attribution={showMapLayerControl ? selectedLayer.attribution : MAP_BASE_LAYERS[0].attribution}
+          maxZoom={showMapLayerControl ? selectedLayer.maxZoom : MAP_BASE_LAYERS[0].maxZoom}
         />
         {!readOnly && onChange && <ClickHandler onChange={onChange} />}
         {readOnly && <ReadOnlyViewSync onViewChange={onViewChange} onInteractionChange={onInteractionChange} />}
@@ -472,6 +502,78 @@ export default function LocationPickerMap({
           </>
         )}
       </MapContainer>
+      {showMapLayerControl && (
+        <div
+          style={{
+            position: 'absolute',
+            right: 12,
+            top: weather && showWindOverlay ? 54 : 12,
+            zIndex: 820,
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => setLayerMenuOpen(open => !open)}
+            style={{
+              minWidth: 104,
+              borderRadius: 999,
+              border: '1px solid rgba(255,255,255,0.16)',
+              background: 'rgba(5,8,22,0.86)',
+              color: '#f5f7ff',
+              padding: '8px 12px',
+              fontSize: 12,
+              fontWeight: 800,
+              boxShadow: '0 10px 28px rgba(0,0,0,0.3)',
+              backdropFilter: 'blur(8px)',
+            }}
+          >
+            {selectedLayer.name}
+          </button>
+          {layerMenuOpen && (
+            <div
+              style={{
+                marginTop: 8,
+                minWidth: 122,
+                borderRadius: 14,
+                border: '1px solid rgba(255,255,255,0.14)',
+                background: 'rgba(5,8,22,0.94)',
+                padding: 4,
+                boxShadow: '0 14px 32px rgba(0,0,0,0.35)',
+                backdropFilter: 'blur(10px)',
+              }}
+            >
+              {MAP_BASE_LAYERS.map(layer => {
+                const active = layer.name === selectedLayer.name
+                return (
+                  <button
+                    key={layer.name}
+                    type="button"
+                    onClick={() => {
+                      setSelectedLayerName(layer.name)
+                      setLayerMenuOpen(false)
+                    }}
+                    style={{
+                      display: 'block',
+                      width: '100%',
+                      border: 0,
+                      borderRadius: 10,
+                      background: active ? 'var(--primary)' : 'transparent',
+                      color: active ? '#041109' : '#f5f7ff',
+                      padding: '8px 10px',
+                      textAlign: 'left',
+                      fontSize: 12,
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {layer.name}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
       {readOnly && (
         <WindOverlay
           weather={weather}

@@ -658,6 +658,7 @@ function EventContent() {
                 weatherVariant="hub"
                 showWindOverlay={showWindOverlay && !isMapInteracting}
                 showCloudOverlay={showCloudOverlay && !isMapInteracting}
+                showMapLayerControl
                 readOnly
                 height={400}
               />

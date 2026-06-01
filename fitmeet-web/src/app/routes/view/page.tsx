@@ -251,6 +251,7 @@ function RouteContent() {
               height={360}
               showWindOverlay={false}
               showCloudOverlay={false}
+              showMapLayerControl
             />
             {gpxResult && gpxResult.elevationProfile.length >= 2 && (
               <ElevationChart profile={gpxResult.elevationProfile} totalKm={gpxResult.distanceKm} />
