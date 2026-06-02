@@ -54,6 +54,29 @@ function downsampleTrack(pts: [number, number][], max: number): [number, number]
   return result
 }
 
+function normalizeWaypoints(input: unknown): [number, number][] {
+  if (!Array.isArray(input)) return []
+
+  return input
+    .map((point): [number, number] | null => {
+      if (Array.isArray(point) && point.length >= 2) {
+        const lat = Number(point[0])
+        const lng = Number(point[1])
+        return Number.isFinite(lat) && Number.isFinite(lng) ? [lat, lng] : null
+      }
+
+      if (point && typeof point === 'object') {
+        const source = point as { lat?: unknown; lng?: unknown; lon?: unknown; latitude?: unknown; longitude?: unknown }
+        const lat = Number(source.lat ?? source.latitude)
+        const lng = Number(source.lng ?? source.lon ?? source.longitude)
+        return Number.isFinite(lat) && Number.isFinite(lng) ? [lat, lng] : null
+      }
+
+      return null
+    })
+    .filter((point): point is [number, number] => point !== null)
+}
+
 // ─── Reverse geocode ──────────────────────────────────────────────────────────
 
 async function reverseGeocode(lat: number, lng: number): Promise<string> {
@@ -789,23 +812,19 @@ export default function DrawRouteScreen() {
         setTitle(route.title ?? '')
         setInitCategory(route.category?.value ?? 'running')
         setIsPublic(route.is_public ?? true)
-        if (Array.isArray(route.waypoints) && route.waypoints.length >= 2) {
-          const wps: [number, number][] = route.waypoints
-          if (wps.length <= 25) {
-            setInitWaypoints(wps)
-          } else {
-            const step = (wps.length - 1) / 23
-            const sampled: [number, number][] = [wps[0]]
-            for (let i = 1; i <= 23; i++) sampled.push(wps[Math.round(i * step)])
-            sampled.push(wps[wps.length - 1])
-            setInitWaypoints(sampled)
-          }
-        }
+        let loadedWaypoints = normalizeWaypoints(route.waypoints)
+        if (loadedWaypoints.length >= 2) setInitWaypoints(downsampleTrack(loadedWaypoints, 25))
         if (route.gpx_url) {
           try {
             const gpxRes = await api.get(`/routes/${route.id}/gpx`, { responseType: 'text' })
             const track = parseGpxTrack(gpxRes.data as string)
-            if (track.length >= 2) setInitTrack(downsampleTrack(track, 500))
+            if (track.length >= 2) {
+              setInitTrack(downsampleTrack(track, 500))
+              if (loadedWaypoints.length < 2) {
+                loadedWaypoints = downsampleTrack(track, 25)
+                setInitWaypoints(loadedWaypoints)
+              }
+            }
           } catch { /* no track — will re-route */ }
         }
       })
@@ -881,10 +900,12 @@ export default function DrawRouteScreen() {
   }
 
   const html = buildDrawRouteHtml(initCategory, initWaypoints, initTrack, insets.top, insets.bottom)
+  const webViewKey = `${editId ?? 'new'}-${initCategory}-${initWaypoints.length}-${initTrack.length}`
 
   return (
     <View style={styles.root}>
       <WebView
+        key={webViewKey}
         ref={webViewRef}
         source={{ html }}
         style={styles.webview}

@@ -3,7 +3,7 @@
     "name": "FitMeet",
     "slug": "fitmeet-app",
     "scheme": "fitmeet",
-    "version": "1.3.7",
+    "version": "1.3.8",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "icon": "./assets/icon.png",
@@ -43,7 +43,7 @@
       "edgeToEdgeEnabled": true,
       "googleServicesFile": "./google-services.json",
       "package": "app.fitmeet.fit",
-      "versionCode": 137,
+      "versionCode": 138,
       "intentFilters": [
         {
           "action": "VIEW",
