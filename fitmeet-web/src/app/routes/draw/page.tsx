@@ -135,6 +135,27 @@ function downsampleWaypoints(pts: LatLng[], max: number): LatLng[] {
   return result
 }
 
+function normalizeWaypoints(input: unknown): LatLng[] {
+  if (!Array.isArray(input)) return []
+
+  return input.flatMap(point => {
+    if (Array.isArray(point) && Number.isFinite(point[0]) && Number.isFinite(point[1])) {
+      return [[Number(point[0]), Number(point[1])] as LatLng]
+    }
+
+    if (point && typeof point === 'object') {
+      const data = point as Record<string, unknown>
+      const lat = data.lat ?? data.latitude
+      const lng = data.lng ?? data.lon ?? data.longitude
+      if (Number.isFinite(lat) && Number.isFinite(lng)) {
+        return [[Number(lat), Number(lng)] as LatLng]
+      }
+    }
+
+    return []
+  })
+}
+
 // ─── Page content ─────────────────────────────────────────────────────────────
 
 function DrawContent() {
@@ -166,15 +187,23 @@ function DrawContent() {
         setTitle(route.title ?? '')
         setCategory(route.category?.value ?? 'running')
         setIsPublic(route.is_public ?? true)
-        if (Array.isArray(route.waypoints) && route.waypoints.length >= 2) {
-          setInitialWaypoints(downsampleWaypoints(route.waypoints as LatLng[], 25))
+        let loadedWaypoints = normalizeWaypoints(route.waypoints)
+        if (loadedWaypoints.length >= 2) {
+          setInitialWaypoints(downsampleWaypoints(loadedWaypoints, 25))
           setCategoryLocked(true)
         }
         if (route.gpx_url) {
           try {
             const gpxRes = await api.get(`/routes/${route.id}/gpx`, { responseType: 'text' })
             const parsed = parseGpx(gpxRes.data)
-            if (parsed.track.length >= 2) setInitialTrack(parsed.track)
+            if (parsed.track.length >= 2) {
+              setInitialTrack(parsed.track)
+              if (loadedWaypoints.length < 2) {
+                loadedWaypoints = downsampleWaypoints(parsed.track, 25)
+                setInitialWaypoints(loadedWaypoints)
+                setCategoryLocked(true)
+              }
+            }
           } catch { /* no track — will re-route */ }
         }
       })
@@ -291,6 +320,7 @@ function DrawContent() {
           {/* Map */}
           <Suspense fallback={<div style={{ height: 500, borderRadius: 16, background: 'var(--surface)', border: '1px solid var(--border)' }} />}>
             <RouteDrawMap
+              key={`${editId ?? 'new'}-${category}-${initialWaypoints?.length ?? 0}-${initialTrack?.length ?? 0}`}
               category={category}
               height={500}
               initialWaypoints={initialWaypoints}
