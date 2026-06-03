@@ -14,6 +14,7 @@ import ElevationChart from '@/components/elevation-chart'
 import { WikiPhotosStrip } from '@/components/wiki-photos-strip'
 import { shortAddress } from '@/lib/format-address'
 import { formatEventDateTime } from '@/lib/event-time'
+import { getYouTubeVideoId } from '@/lib/youtube'
 import { fetchRelevantEventWeather, windDirectionLabelDetailed, type EventWeather } from '@/lib/weather'
 import api from '@/lib/api'
 import { fetchElevationProfile, parseGpx, GpxResult } from '@/lib/parse-gpx'
@@ -913,7 +914,7 @@ function EventContent() {
 
 function YouTubeEmbed({ url }: { url: string | null | undefined }) {
   if (!url) return null
-  const ytId = url.match(/(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)([\w-]{11})/)?.[1]
+  const ytId = getYouTubeVideoId(url)
   if (!ytId) return null
   return (
     <div className="mb-5 rounded-2xl overflow-hidden border" style={{ borderColor: 'var(--border)', position: 'relative', paddingBottom: '56.25%', height: 0 }}>

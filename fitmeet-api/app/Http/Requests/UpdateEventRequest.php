@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Enums\Category;
+use App\Rules\ValidYoutubeUrl;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -42,7 +43,7 @@ class UpdateEventRequest extends FormRequest
             'gpx_remove'       => ['sometimes', 'boolean'],
             'image_file'       => ['sometimes', 'nullable', 'file', 'max:8192'],
             'image_remove'     => ['sometimes', 'boolean'],
-            'youtube_url'      => ['sometimes', 'nullable', 'string', 'regex:/^https?:\/\/(www\.)?(youtube\.com\/(watch\?v=|shorts\/)|youtu\.be\/)[\w-]{11}/'],
+            'youtube_url'      => ['sometimes', 'nullable', 'string', new ValidYoutubeUrl],
 
             'skill_level'      => ['sometimes', 'nullable', Rule::in(['beginner', 'advanced', 'pro'])],
             'max_participants' => ['sometimes', 'nullable', 'integer', 'min:2'],

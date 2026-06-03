@@ -493,10 +493,9 @@ function EditContent() {
             <div className="relative">
               <CirclePlay size={18} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#ff0033' }} />
               <input
-                {...register('youtube_url', {
-                  validate: v => !v || /^https?:\/\/(www\.)?(youtube\.com\/(watch\?v=|shorts\/)|youtu\.be\/)[\w-]{11}/.test(v) || 'Enter a valid YouTube URL',
-                })}
-                type="url"
+                {...register('youtube_url')}
+                type="text"
+                inputMode="url"
                 placeholder="https://youtube.com/watch?v=..."
                 className={cn(inputCls(!!errors.youtube_url), 'pl-10')}
               />

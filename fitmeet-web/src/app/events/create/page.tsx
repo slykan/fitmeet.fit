@@ -405,7 +405,7 @@ export default function CreateEventPage() {
       else if (gpxText && gpxName) { fd.append('gpx_text', gpxText); fd.append('gpx_name', gpxName) }
       if (!fitMeetRouteId && (gpxFile || gpxText) && routeTitle.trim()) fd.append('route_title', routeTitle.trim())
       if (imageFile)           fd.append('image_file', imageFile)
-      if (data.youtube_url)    fd.append('youtube_url', data.youtube_url)
+      if (data.youtube_url?.trim()) fd.append('youtube_url', data.youtube_url.trim())
 
       const { data: res } = await api.post('/events', fd)
       router.replace(`/events/view?id=${res.data.id}`)
@@ -518,10 +518,9 @@ export default function CreateEventPage() {
                 <div className="relative">
                   <CirclePlay size={18} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#ff0033' }} />
                   <input
-                    {...register('youtube_url', {
-                      validate: v => !v || /^https?:\/\/(www\.)?(youtube\.com\/(watch\?v=|shorts\/)|youtu\.be\/)[\w-]{11}/.test(v) || 'Enter a valid YouTube URL',
-                    })}
-                    type="url"
+                    {...register('youtube_url')}
+                    type="text"
+                    inputMode="url"
                     placeholder="https://youtube.com/watch?v=..."
                     className={cn(inputCls(!!errors.youtube_url), 'pl-10')}
                   />

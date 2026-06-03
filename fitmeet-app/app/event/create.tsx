@@ -18,6 +18,7 @@ import { CATEGORIES } from '@/src/lib/categories'
 import { api } from '@/src/lib/api'
 import { fetchElevationProfile, parseGpxText } from '@/src/lib/gpx'
 import type { GpxParsed } from '@/src/lib/gpx'
+import { isValidYouTubeUrl } from '@/src/lib/youtube'
 import { cloudLabel, EventWeather, fetchEventWeather, weatherIconName } from '@/src/lib/weather'
 import { palette, spacing } from '@/src/theme'
 
@@ -636,7 +637,7 @@ export default function CreateEventScreen() {
     if (!category)        { Alert.alert('Missing', 'Select a category.'); return }
     if (!pickedDate)      { Alert.alert('Missing', 'Set date and time.'); return }
     if (lat === null)     { Alert.alert('Missing', 'Pin a location on the map.'); return }
-    if (youtubeUrl.trim() && !/^https?:\/\/(www\.)?(youtube\.com\/(watch\?v=|shorts\/)|youtu\.be\/)[\w-]{11}/.test(youtubeUrl.trim())) {
+    if (youtubeUrl.trim() && !isValidYouTubeUrl(youtubeUrl)) {
       Alert.alert('Invalid URL', 'Enter a valid YouTube video URL.')
       return
     }
