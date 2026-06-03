@@ -162,6 +162,41 @@ function formatGrade(value: number): string {
   return `${Math.round(value * 10) / 10}%`
 }
 
+function statsFromElevationProfile(profile: GpxResult['elevationProfile']) {
+  let elevationGain = 0
+  let maxGrade = 0
+  let maxDowngrade = 0
+
+  for (let i = 1; i < profile.length; i++) {
+    const distKm = profile[i].km - profile[i - 1].km
+    const eleM = profile[i].ele - profile[i - 1].ele
+    if (eleM > 0) elevationGain += eleM
+    if (distKm > 0) {
+      const grade = (eleM / (distKm * 1000)) * 100
+      if (grade > maxGrade) maxGrade = grade
+      if (grade < maxDowngrade) maxDowngrade = grade
+    }
+  }
+
+  return {
+    elevationGain: Math.round(elevationGain),
+    maxGrade: Math.round(maxGrade * 10) / 10,
+    maxDowngrade: Math.round(maxDowngrade * 10) / 10,
+  }
+}
+
+function withProfileStats(result: GpxResult): GpxResult {
+  if (result.elevationProfile.length < 2) return result
+
+  const profileStats = statsFromElevationProfile(result.elevationProfile)
+  return {
+    ...result,
+    elevationGain: result.elevationGain || profileStats.elevationGain,
+    maxGrade: result.maxGrade || profileStats.maxGrade,
+    maxDowngrade: result.maxDowngrade || profileStats.maxDowngrade,
+  }
+}
+
 function ShareEventContent({
   id,
   initialEvent,
@@ -225,11 +260,11 @@ function ShareEventContent({
       .then((xml) => {
         if (cancelled) return
         const parsed = parseGpx(xml)
-        setRoute(parsed.track.length >= 2 ? parsed : null)
+        setRoute(parsed.track.length >= 2 ? withProfileStats(parsed) : null)
         if (parsed.track.length >= 2 && parsed.elevationProfile.length < 2) {
           fetchElevationProfile(parsed.track)
             .then((profile) => {
-              if (!cancelled) setRoute({ ...parsed, ...profile })
+              if (!cancelled) setRoute(withProfileStats({ ...parsed, ...profile }))
             })
             .catch(() => {})
         }
