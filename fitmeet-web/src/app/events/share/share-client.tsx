@@ -8,6 +8,7 @@ import { Calendar, Lock, MapPin, Share2, Users, Zap } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
 import { Button } from '@/components/ui/button'
+import ElevationChart from '@/components/elevation-chart'
 import { formatEventDateParts, formatEventDateTime } from '@/lib/event-time'
 import { shortAddress } from '@/lib/format-address'
 import { fetchElevationProfile, GpxResult, parseGpx } from '@/lib/parse-gpx'
@@ -21,7 +22,7 @@ export interface SharedEvent {
   category: { value: string; label: string }
   location: { lat: number; lng: number; address: string | null }
   schedule: { start_at: string; timezone: string; duration_minutes: number | null }
-  activity: { distance_km: number | null; elevation_gain: number | null; pace: string | null; max_grade: number | null; max_downgrade: number | null; gpx_url?: string | null }
+  activity: { distance_km: number | null; elevation_gain: number | null; pace: string | null; max_grade: number | string | null; max_downgrade: number | string | null; gpx_url?: string | null }
   skill_level: string | null
   max_participants: number | null
   participants_count: number
@@ -152,6 +153,15 @@ function InfoBadge({ label, value }: { label: string; value: string }) {
   )
 }
 
+function finiteNumber(value: unknown): number | null {
+  const numberValue = typeof value === 'number' ? value : typeof value === 'string' ? Number(value) : NaN
+  return Number.isFinite(numberValue) ? numberValue : null
+}
+
+function formatGrade(value: number): string {
+  return `${Math.round(value * 10) / 10}%`
+}
+
 function ShareEventContent({
   id,
   initialEvent,
@@ -252,6 +262,19 @@ function ShareEventContent({
     } catch {}
   }
 
+  const routeHasElevation = Boolean(route && route.elevationProfile.length >= 2)
+  const activityDistanceKm = route?.distanceKm ?? event?.activity.distance_km ?? null
+  const activityElevationGain = routeHasElevation ? route?.elevationGain ?? null : event?.activity.elevation_gain ?? null
+  const activityMaxGrade = routeHasElevation ? route?.maxGrade ?? null : finiteNumber(event?.activity.max_grade)
+  const activityMinGrade = routeHasElevation ? route?.maxDowngrade ?? null : finiteNumber(event?.activity.max_downgrade)
+  const hasGpxStats = Boolean(event?.activity.gpx_url && (
+    activityDistanceKm ||
+    activityElevationGain ||
+    event?.activity.pace ||
+    activityMaxGrade != null ||
+    activityMinGrade != null
+  ))
+
   return (
     <>
       <Navbar />
@@ -308,19 +331,28 @@ function ShareEventContent({
                         {event.is_full && <span className="ml-2 text-red-400">| Full</span>}
                       </span>
                     </div>
-                    {(event.activity.distance_km || event.activity.elevation_gain || event.activity.pace) && (
+                    {hasGpxStats && (
                       <div className="flex items-start gap-2.5">
                         <Zap size={15} style={{ color: 'var(--primary)', flexShrink: 0, marginTop: 2 }} />
                         <span style={{ color: 'var(--text-muted)' }}>
                           {[
-                            event.activity.distance_km && `${event.activity.distance_km} km`,
-                            event.activity.elevation_gain && `up ${event.activity.elevation_gain} m`,
+                            activityDistanceKm && `${activityDistanceKm} km`,
+                            activityElevationGain && `up ${activityElevationGain} m`,
+                            activityMaxGrade != null && `max ${formatGrade(activityMaxGrade)}`,
+                            activityMinGrade != null && `min ${formatGrade(activityMinGrade)}`,
                             event.activity.pace,
                           ].filter(Boolean).join(' | ')}
                         </span>
                       </div>
                     )}
                   </div>
+
+                  {route && route.elevationProfile.length >= 2 && (
+                    <div>
+                      <p className="text-xs font-medium mb-2 px-1" style={{ color: 'var(--text-muted)' }}>Elevation profile</p>
+                      <ElevationChart profile={route.elevationProfile} totalKm={route.distanceKm} />
+                    </div>
+                  )}
 
                   {event.organizer && (
                     <div className="rounded-xl border px-4 py-3 flex items-center gap-3" style={{ borderColor: 'var(--border)', background: 'var(--background)' }}>
