@@ -3,7 +3,6 @@
 namespace App\Http\Requests;
 
 use App\Enums\Category;
-use App\Rules\ValidYoutubeUrl;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -45,7 +44,54 @@ class StoreEventRequest extends FormRequest
             'skill_level'      => ['nullable', Rule::in(['beginner', 'advanced', 'pro'])],
             'max_participants' => ['nullable', 'integer', 'min:2', 'max:9999'],
             'is_private'       => ['boolean'],
-            'youtube_url'      => ['nullable', 'string', new ValidYoutubeUrl],
+            'youtube_url'      => [
+                'nullable',
+                'string',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if (! is_string($value) || ! $this->isValidYoutubeUrl($value)) {
+                        $fail('Enter a valid YouTube URL.');
+                    }
+                },
+            ],
         ];
+    }
+
+    private function isValidYoutubeUrl(string $value): bool
+    {
+        $input = preg_replace('/\s+/', '', html_entity_decode(trim($value), ENT_QUOTES | ENT_HTML5)) ?? '';
+        $parts = parse_url($input);
+
+        if (is_array($parts)) {
+            $scheme = strtolower($parts['scheme'] ?? '');
+            $host = strtolower($parts['host'] ?? '');
+            $host = preg_replace('/^(www\.|m\.|music\.)/', '', $host) ?? $host;
+            $path = trim($parts['path'] ?? '', '/');
+
+            if (in_array($scheme, ['http', 'https'], true)) {
+                if ($host === 'youtu.be' && $this->isValidYoutubeId(explode('/', $path)[0] ?? null)) {
+                    return true;
+                }
+
+                if (in_array($host, ['youtube.com', 'youtube-nocookie.com'], true)) {
+                    if ($path === 'watch') {
+                        parse_str($parts['query'] ?? '', $query);
+
+                        return $this->isValidYoutubeId($query['v'] ?? null);
+                    }
+
+                    $segments = $path === '' ? [] : explode('/', $path);
+                    if (in_array($segments[0] ?? '', ['shorts', 'embed', 'live'], true)) {
+                        return $this->isValidYoutubeId($segments[1] ?? null);
+                    }
+                }
+            }
+        }
+
+        return (bool) preg_match('/^https?:\/\/(?:www\.|m\.|music\.)?(?:youtube(?:-nocookie)?\.com\/(?:watch\?(?:[^#]*&)?v=|shorts\/|embed\/|live\/)|youtu\.be\/)[A-Za-z0-9_-]{11}(?:[?&#\/].*)?$/i', $input);
+    }
+
+    private function isValidYoutubeId(mixed $value): bool
+    {
+        return is_string($value) && (bool) preg_match('/^[A-Za-z0-9_-]{11}$/', $value);
     }
 }
