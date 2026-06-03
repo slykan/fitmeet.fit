@@ -76,7 +76,7 @@ function RoutePoster({ gpx, event }: { gpx: GpxResult; event: SharedEvent }) {
   const width = 1200
   const height = 620
   const padding = 84
-  const segments = gpx.coloredSegments.length > 0 ? gpx.coloredSegments : [{ coords: gpx.track, color: '#39ff14' }]
+  const segments = [{ coords: gpx.track, color: '#39ff14' }]
   const start = gpx.track[0]
   const end = gpx.track[gpx.track.length - 1]
   const project = createProjector(gpx.track, width, height, padding)
