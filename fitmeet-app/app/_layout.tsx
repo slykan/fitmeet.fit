@@ -61,11 +61,15 @@ export default function RootLayout() {
   }, [refreshMe])
 
   useEffect(() => {
+    if (!hasHydrated || !token) return
+
     const cleanup = setupPushNotificationRouting()
     return cleanup
-  }, [])
+  }, [hasHydrated, token])
 
   useEffect(() => {
+    if (!hasHydrated || !token) return
+
     function openEventUrl(url: string | null) {
       const path = eventPathFromUrl(url)
       if (!path || path === lastDeepLink.current) return
@@ -76,7 +80,7 @@ export default function RootLayout() {
     Linking.getInitialURL().then(openEventUrl).catch(() => {})
     const sub = Linking.addEventListener('url', ({ url }) => openEventUrl(url))
     return () => sub.remove()
-  }, [])
+  }, [hasHydrated, token])
 
   useEffect(() => {
     if (!hasHydrated || !token || !user) return
