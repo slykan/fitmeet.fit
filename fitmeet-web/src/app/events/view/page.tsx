@@ -97,6 +97,8 @@ function statsFromElevationProfile(profile: GpxResult['elevationProfile']) {
   let elevationGain = 0
   let maxGrade = 0
   let maxDowngrade = 0
+  let uphillKm = 0
+  let downhillKm = 0
 
   for (let i = 1; i < profile.length; i++) {
     const distKm = profile[i].km - profile[i - 1].km
@@ -106,6 +108,8 @@ function statsFromElevationProfile(profile: GpxResult['elevationProfile']) {
       const grade = (eleM / (distKm * 1000)) * 100
       if (grade > maxGrade) maxGrade = grade
       if (grade < maxDowngrade) maxDowngrade = grade
+      if (grade > 0) uphillKm += distKm
+      if (grade < 0) downhillKm += distKm
     }
   }
 
@@ -113,6 +117,8 @@ function statsFromElevationProfile(profile: GpxResult['elevationProfile']) {
     elevationGain: Math.round(elevationGain),
     maxGrade: Math.round(maxGrade * 10) / 10,
     maxDowngrade: Math.round(maxDowngrade * 10) / 10,
+    uphillKm: Math.round(uphillKm * 10) / 10,
+    downhillKm: Math.round(downhillKm * 10) / 10,
   }
 }
 
@@ -403,6 +409,9 @@ function EventContent() {
   const activityElevationGain = gpxResult?.elevationGain ?? event?.activity.elevation_gain ?? null
   const activityMaxGrade = gpxResult?.maxGrade ?? event?.activity.max_grade ?? null
   const activityMaxDowngrade = gpxResult?.maxDowngrade ?? event?.activity.max_downgrade ?? null
+  const activityProfileStats = gpxResult?.elevationProfile.length
+    ? statsFromElevationProfile(gpxResult.elevationProfile)
+    : null
 
   return (
     <>
@@ -612,6 +621,11 @@ function EventContent() {
                       activityMaxDowngrade != null && `▼ ${Math.abs(activityMaxDowngrade)}%`,
                       event.activity.pace,
                     ].filter(Boolean).join(' · ')}
+                    {activityProfileStats && (
+                      <span className="block mt-1">
+                        Uphill {activityProfileStats.uphillKm} km · Downhill {activityProfileStats.downhillKm} km
+                      </span>
+                    )}
                   </span>
                 </div>
               )}

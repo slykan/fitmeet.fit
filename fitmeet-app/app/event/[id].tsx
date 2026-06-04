@@ -119,6 +119,8 @@ function statsFromElevationProfile(profile: ElevationPoint[]) {
   let elevGain = 0
   let maxGrade = 0
   let maxDowngrade = 0
+  let uphillKm = 0
+  let downhillKm = 0
 
   for (let i = 1; i < profile.length; i++) {
     const distKm = profile[i].km - profile[i - 1].km
@@ -128,6 +130,8 @@ function statsFromElevationProfile(profile: ElevationPoint[]) {
       const grade = (eleM / (distKm * 1000)) * 100
       if (grade > maxGrade) maxGrade = grade
       if (grade < maxDowngrade) maxDowngrade = grade
+      if (grade > 0) uphillKm += distKm
+      if (grade < 0) downhillKm += distKm
     }
   }
 
@@ -135,6 +139,8 @@ function statsFromElevationProfile(profile: ElevationPoint[]) {
     elevGain: Math.round(elevGain),
     maxGrade: Math.round(maxGrade * 10) / 10,
     maxDowngrade: Math.round(maxDowngrade * 10) / 10,
+    uphillKm: Math.round(uphillKm * 10) / 10,
+    downhillKm: Math.round(downhillKm * 10) / 10,
   }
 }
 
@@ -643,6 +649,9 @@ export default function EventDetailScreen() {
   const activityElevGain = gpxStats?.elevGain ?? event.activity.elevation_gain ?? null
   const activityMaxGrade = gpxStats?.maxGrade ?? event.activity.max_grade ?? null
   const activityMaxDowngrade = gpxStats?.maxDowngrade ?? event.activity.max_downgrade ?? null
+  const activityProfileStats = elevationProfile.length >= 2
+    ? statsFromElevationProfile(elevationProfile)
+    : null
   const wallMembers = [
     ...(event.organizer ? [event.organizer] : []),
     ...event.participants,
@@ -937,6 +946,13 @@ export default function EventDetailScreen() {
                 activityMaxGrade != null && `▲ ${activityMaxGrade}%`,
                 activityMaxDowngrade != null && `▼ ${Math.abs(activityMaxDowngrade)}%`,
               ].filter(Boolean).join('  ')}
+            />
+          ) : null}
+          {activityProfileStats ? (
+            <DetailRow
+              icon="trail-sign-outline"
+              iconColor="#58beff"
+              primary={`Uphill ${activityProfileStats.uphillKm} km · Downhill ${activityProfileStats.downhillKm} km`}
             />
           ) : null}
           {event.views_count > 0 ? (
