@@ -9,19 +9,28 @@ interface WikiPhoto {
   pageUrl: string
 }
 
-async function fetchWikiPhotos(lat: number, lng: number): Promise<WikiPhoto[]> {
+type Point = [number, number]
+
+function sampleRoutePoints(track: Point[], maxPoints = 5): Point[] {
+  if (track.length <= maxPoints) return track
+  const last = track.length - 1
+  return Array.from({ length: maxPoints }, (_, index) => track[Math.round((index / (maxPoints - 1)) * last)])
+}
+
+async function fetchWikiPhotos(points: Point[]): Promise<WikiPhoto[]> {
   const base = 'https://commons.wikimedia.org/w/api.php'
 
-  const geo = await fetch(
-    `${base}?action=query&list=geosearch&gscoord=${lat}|${lng}&gsradius=3000&gslimit=12&gsnamespace=6&format=json&origin=*`
-  ).then(r => r.json())
+  const geoResults = await Promise.all(points.map(([lat, lng]) => fetch(
+    `${base}?action=query&list=geosearch&gscoord=${lat}|${lng}&gsradius=3000&gslimit=8&gsnamespace=6&format=json&origin=*`
+  ).then(r => r.json())))
 
-  const items: Array<{ title: string }> = geo.query?.geosearch ?? []
-  if (!items.length) return []
+  const titles = Array.from(new Set(
+    geoResults.flatMap(geo => (geo.query?.geosearch ?? []).map((item: { title: string }) => item.title)),
+  )).slice(0, 30)
+  if (!titles.length) return []
 
-  const titles = items.map(i => i.title).join('|')
   const info = await fetch(
-    `${base}?action=query&titles=${titles}&prop=imageinfo&iiprop=url&iiurlwidth=400&format=json&origin=*`
+    `${base}?action=query&titles=${encodeURIComponent(titles.join('|'))}&prop=imageinfo&iiprop=url&iiurlwidth=400&format=json&origin=*`
   ).then(r => r.json())
 
   const pages = Object.values(info.query?.pages ?? {}) as Array<{
@@ -39,16 +48,29 @@ async function fetchWikiPhotos(lat: number, lng: number): Promise<WikiPhoto[]> {
     .slice(0, 8)
 }
 
-export function WikiPhotosStrip({ lat, lng }: { lat: number; lng: number }) {
+export function WikiPhotosStrip({ lat, lng, track }: { lat?: number; lng?: number; track?: Point[] }) {
   const [photos, setPhotos] = useState<WikiPhoto[]>([])
   const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
-    fetchWikiPhotos(lat, lng)
+    const points = track?.length
+      ? sampleRoutePoints(track)
+      : lat != null && lng != null
+        ? [[lat, lng] as Point]
+        : []
+
+    if (!points.length) {
+      setPhotos([])
+      setLoaded(true)
+      return
+    }
+
+    setLoaded(false)
+    fetchWikiPhotos(points)
       .then(setPhotos)
       .catch(() => {})
       .finally(() => setLoaded(true))
-  }, [lat, lng])
+  }, [lat, lng, track])
 
   if (!loaded || photos.length < 2) return null
 

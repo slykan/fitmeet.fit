@@ -10,6 +10,14 @@ interface WikiPhoto {
   pageUrl: string
 }
 
+type Point = [number, number]
+
+function sampleRoutePoints(track: Point[], maxPoints = 5): Point[] {
+  if (track.length <= maxPoints) return track
+  const last = track.length - 1
+  return Array.from({ length: maxPoints }, (_, index) => track[Math.round((index / (maxPoints - 1)) * last)])
+}
+
 async function wikiPost(params: Record<string, string>): Promise<unknown> {
   const body = Object.entries(params)
     .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
@@ -31,22 +39,24 @@ async function wikiPost(params: Record<string, string>): Promise<unknown> {
   }
 }
 
-async function fetchWikiPhotos(lat: number, lng: number): Promise<WikiPhoto[]> {
-  const geo = await wikiPost({
+async function fetchWikiPhotos(points: Point[]): Promise<WikiPhoto[]> {
+  const geoResults = await Promise.all(points.map(([lat, lng]) => wikiPost({
     action: 'query',
     list: 'geosearch',
     gscoord: `${lat}|${lng}`,
-    gsradius: '10000',
-    gslimit: '20',
+    gsradius: '5000',
+    gslimit: '8',
     gsnamespace: '6',
     format: 'json',
-  }) as { query?: { geosearch?: Array<{ title: string }> } }
+  }) as Promise<{ query?: { geosearch?: Array<{ title: string }> } }>))
 
-  const items = geo.query?.geosearch ?? []
+  const items = Array.from(new Set(
+    geoResults.flatMap(geo => (geo.query?.geosearch ?? []).map(item => item.title)),
+  )).slice(0, 30)
   if (!items.length) return []
 
   const titles = items
-    .map(i => i.title.replace(/[^\x00-\x7E]/g, c => encodeURIComponent(c)))
+    .map(title => title.replace(/[^\x00-\x7E]/g, c => encodeURIComponent(c)))
     .join('|')
 
   const info = await wikiPost({
@@ -70,22 +80,36 @@ async function fetchWikiPhotos(lat: number, lng: number): Promise<WikiPhoto[]> {
     .slice(0, 8)
 }
 
-export function WikiPhotosStrip({ lat, lng }: { lat: number; lng: number }) {
+export function WikiPhotosStrip({ lat, lng, track }: { lat?: number; lng?: number; track?: Point[] }) {
   const [photos, setPhotos] = useState<WikiPhoto[]>([])
   const [loaded, setLoaded] = useState(false)
   const [err, setErr] = useState<string | null>(null)
 
   useEffect(() => {
-    fetchWikiPhotos(lat, lng)
+    const points = track?.length
+      ? sampleRoutePoints(track)
+      : lat != null && lng != null
+        ? [[lat, lng] as Point]
+        : []
+
+    if (!points.length) {
+      setPhotos([])
+      setLoaded(true)
+      return
+    }
+
+    setLoaded(false)
+    setErr(null)
+    fetchWikiPhotos(points)
       .then(setPhotos)
       .catch(e => setErr(String(e)))
       .finally(() => setLoaded(true))
-  }, [lat, lng])
+  }, [lat, lng, track])
 
   if (!loaded) {
     return (
       <View style={styles.debug}>
-        <Text style={styles.debugText}>📷 Loading nearby photos… ({lat.toFixed(4)}, {lng.toFixed(4)})</Text>
+        <Text style={styles.debugText}>Loading route photos...</Text>
       </View>
     )
   }
@@ -99,11 +123,7 @@ export function WikiPhotosStrip({ lat, lng }: { lat: number; lng: number }) {
   }
 
   if (photos.length === 0) {
-    return (
-      <View style={styles.debug}>
-        <Text style={styles.debugText}>📷 No photos found nearby ({lat.toFixed(4)}, {lng.toFixed(4)})</Text>
-      </View>
-    )
+    return null
   }
 
   return (

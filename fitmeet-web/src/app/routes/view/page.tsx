@@ -40,6 +40,8 @@ function statsFromElevationProfile(profile: GpxResult['elevationProfile']) {
   let elevationGain = 0
   let maxGrade = 0
   let maxDowngrade = 0
+  let uphillKm = 0
+  let downhillKm = 0
 
   for (let i = 1; i < profile.length; i++) {
     const distKm = profile[i].km - profile[i - 1].km
@@ -49,6 +51,8 @@ function statsFromElevationProfile(profile: GpxResult['elevationProfile']) {
       const grade = (eleM / (distKm * 1000)) * 100
       if (grade > maxGrade) maxGrade = grade
       if (grade < maxDowngrade) maxDowngrade = grade
+      if (grade > 0) uphillKm += distKm
+      if (grade < 0) downhillKm += distKm
     }
   }
 
@@ -56,6 +60,8 @@ function statsFromElevationProfile(profile: GpxResult['elevationProfile']) {
     elevationGain: Math.round(elevationGain),
     maxGrade: Math.round(maxGrade * 10) / 10,
     maxDowngrade: Math.round(maxDowngrade * 10) / 10,
+    uphillKm: Math.round(uphillKm * 10) / 10,
+    downhillKm: Math.round(downhillKm * 10) / 10,
   }
 }
 
@@ -142,6 +148,7 @@ function RouteContent() {
   const elevationGain = gpxResult?.elevationGain ?? currentRoute.stats.elevation_gain
   const maxGrade = gpxResult?.maxGrade ?? currentRoute.stats.max_grade
   const maxDowngrade = gpxResult?.maxDowngrade ?? currentRoute.stats.max_downgrade
+  const profileStats = gpxResult?.elevationProfile.length ? statsFromElevationProfile(gpxResult.elevationProfile) : null
 
   async function shareRoute() {
     const url = `${window.location.origin}/routes/view?id=${currentRoute.id}`
@@ -214,12 +221,14 @@ function RouteContent() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {[
               ['Distance', distanceKm != null ? `${distanceKm} km` : '-'],
               ['Elevation', elevationGain != null ? `${elevationGain} m` : '-'],
               ['Max uphill', maxGrade != null ? `${maxGrade}%` : '-'],
               ['Max downhill', maxDowngrade != null ? `${Math.abs(maxDowngrade)}%` : '-'],
+              ['Uphill distance', profileStats ? `${profileStats.uphillKm} km` : '-'],
+              ['Downhill distance', profileStats ? `${profileStats.downhillKm} km` : '-'],
             ].map(([label, value]) => (
               <div key={label} className="rounded-xl border p-3" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
                 <p className="text-[11px] uppercase font-bold" style={{ color: 'var(--text-muted)' }}>{label}</p>
@@ -258,9 +267,7 @@ function RouteContent() {
             )}
           </div>
 
-          {route.location.start_lat != null && route.location.start_lng != null && (
-            <WikiPhotosStrip lat={route.location.start_lat} lng={route.location.start_lng} />
-          )}
+          {gpxResult?.track.length ? <WikiPhotosStrip track={gpxResult.track} /> : null}
         </div>
       </main>
     </>

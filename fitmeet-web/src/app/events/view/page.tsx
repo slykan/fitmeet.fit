@@ -721,9 +721,7 @@ function EventContent() {
             </div>
           )}
 
-          {event.activity.gpx_url && event.location.lat != null && event.location.lng != null && (
-            <WikiPhotosStrip lat={event.location.lat} lng={event.location.lng} />
-          )}
+          {gpxResult?.track.length ? <WikiPhotosStrip track={gpxResult.track} /> : null}
 
           {error && (
             <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-xl px-4 py-3">{error}</div>

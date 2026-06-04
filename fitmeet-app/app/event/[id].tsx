@@ -274,6 +274,7 @@ export default function EventDetailScreen() {
   const [youtubeOpen, setYoutubeOpen] = useState(false)
   const [coloredSegments, setColoredSegments] = useState<TrackSegment[]>([])
   const [elevationProfile, setElevationProfile] = useState<ElevationPoint[]>([])
+  const [gpxTrack, setGpxTrack] = useState<[number, number][]>([])
   const [gpxStats, setGpxStats] = useState<GpxActivityStats | null>(null)
   const [gpxLoading, setGpxLoading] = useState(false)
   const [gpxError, setGpxError] = useState(false)
@@ -376,6 +377,7 @@ export default function EventDetailScreen() {
   useEffect(() => {
     setColoredSegments([])
     setElevationProfile([])
+    setGpxTrack([])
     setGpxStats(null)
     setGpxError(false)
     if (!event?.activity.gpx_url) {
@@ -398,6 +400,7 @@ export default function EventDetailScreen() {
           setGpxError(true)
           return
         }
+        setGpxTrack(parsed.track)
         setGpxStats(gpxStatsFromParsed(parsed))
         if (parsed.coloredSegments.length > 0) setColoredSegments(parsed.coloredSegments)
         if (parsed.elevationProfile.length >= 2) setElevationProfile(parsed.elevationProfile)
@@ -976,9 +979,9 @@ export default function EventDetailScreen() {
           </View>
         )}
 
-        {event.activity.gpx_url != null && event.location.lat != null && event.location.lng != null && (
+        {gpxTrack.length > 0 && (
           <View style={{ paddingHorizontal: spacing.md }}>
-            <WikiPhotosStrip lat={event.location.lat} lng={event.location.lng} />
+            <WikiPhotosStrip track={gpxTrack} />
           </View>
         )}
 

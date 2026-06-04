@@ -42,6 +42,8 @@ function statsFromProfile(profile: GpxParsed['elevationProfile']) {
   let elevGain = 0
   let maxGrade = 0
   let maxDowngrade = 0
+  let uphillKm = 0
+  let downhillKm = 0
 
   for (let i = 1; i < profile.length; i++) {
     const distKm = profile[i].km - profile[i - 1].km
@@ -51,6 +53,8 @@ function statsFromProfile(profile: GpxParsed['elevationProfile']) {
       const grade = (eleM / (distKm * 1000)) * 100
       if (grade > maxGrade) maxGrade = grade
       if (grade < maxDowngrade) maxDowngrade = grade
+      if (grade > 0) uphillKm += distKm
+      if (grade < 0) downhillKm += distKm
     }
   }
 
@@ -58,6 +62,8 @@ function statsFromProfile(profile: GpxParsed['elevationProfile']) {
     elevGain: Math.round(elevGain),
     maxGrade: Math.round(maxGrade * 10) / 10,
     maxDowngrade: Math.round(maxDowngrade * 10) / 10,
+    uphillKm: Math.round(uphillKm * 10) / 10,
+    downhillKm: Math.round(downhillKm * 10) / 10,
   }
 }
 
@@ -164,6 +170,7 @@ export default function RouteViewScreen() {
   const elevGain = gpx?.elevGain ?? route.stats.elevation_gain
   const maxGrade = gpx?.maxGrade ?? route.stats.max_grade
   const maxDowngrade = gpx?.maxDowngrade ?? route.stats.max_downgrade
+  const profileStats = gpx?.elevationProfile.length ? statsFromProfile(gpx.elevationProfile) : null
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -211,6 +218,8 @@ export default function RouteViewScreen() {
             ['Elevation', elevGain != null ? `${elevGain} m` : '-'],
             ['Max uphill', maxGrade != null ? `${maxGrade}%` : '-'],
             ['Max downhill', maxDowngrade != null ? `${Math.abs(maxDowngrade)}%` : '-'],
+            ['Uphill distance', profileStats ? `${profileStats.uphillKm} km` : '-'],
+            ['Downhill distance', profileStats ? `${profileStats.downhillKm} km` : '-'],
           ].map(([label, value]) => (
             <View key={label} style={styles.statCard}>
               <Text style={styles.statLabel}>{label}</Text>
@@ -230,9 +239,7 @@ export default function RouteViewScreen() {
 
         {gpx && gpx.elevationProfile.length >= 2 ? <ElevationChart profile={gpx.elevationProfile} /> : null}
 
-        {route.location.start_lat != null && route.location.start_lng != null && (
-          <WikiPhotosStrip lat={route.location.start_lat} lng={route.location.start_lng} />
-        )}
+        {gpx?.track.length ? <WikiPhotosStrip track={gpx.track} /> : null}
       </ScrollView>
     </SafeAreaView>
   )
