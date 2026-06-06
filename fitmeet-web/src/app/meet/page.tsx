@@ -115,6 +115,56 @@ function Avatar({ user }: { user: UserItem }) {
   )
 }
 
+const COUNTRY_CODE_BY_NAME: Record<string, string> = {
+  croatia: 'HR',
+  hrvatska: 'HR',
+  slovenia: 'SI',
+  slovenija: 'SI',
+  serbia: 'RS',
+  srbija: 'RS',
+  bosnia: 'BA',
+  'bosnia and herzegovina': 'BA',
+  'bosna i hercegovina': 'BA',
+  montenegro: 'ME',
+  'crna gora': 'ME',
+  austria: 'AT',
+  austrija: 'AT',
+  germany: 'DE',
+  njemacka: 'DE',
+  italy: 'IT',
+  italija: 'IT',
+  hungary: 'HU',
+  madarska: 'HU',
+  france: 'FR',
+  francuska: 'FR',
+  spain: 'ES',
+  spanjolska: 'ES',
+  'united kingdom': 'GB',
+  uk: 'GB',
+  'united states': 'US',
+  usa: 'US',
+}
+
+function countryFlag(country?: string | null) {
+  const raw = country?.trim()
+  if (!raw) return null
+
+  const normalized = raw
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+
+  const code = /^[a-z]{2}$/i.test(raw)
+    ? raw.toUpperCase()
+    : COUNTRY_CODE_BY_NAME[normalized]
+
+  if (!code || !/^[A-Z]{2}$/.test(code)) return null
+
+  return String.fromCodePoint(
+    ...code.split('').map((char) => 127397 + char.charCodeAt(0)),
+  )
+}
+
 function FriendButton({ acting, onRemove }: { acting: boolean; onRemove: () => void }) {
   const [hover, setHover] = useState(false)
   return (
@@ -293,6 +343,9 @@ function PeopleTab() {
   const [users,    setUsers]    = useState<UserItem[]>([])
   const [search,   setSearch]   = useState('')
   const [loading,  setLoading]  = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [page, setPage] = useState(1)
+  const [lastPage, setLastPage] = useState(1)
   const [acting,   setActing]   = useState<number | null>(null)
   const [confirmRemoveId, setConfirmRemoveId] = useState<number | null>(null)
   const [addError, setAddError] = useState<string | null>(null)
@@ -300,15 +353,35 @@ function PeopleTab() {
   const [direction,   setDirection]   = useState<'asc' | 'desc'>('desc')
   const [showSort,    setShowSort]    = useState(false)
   const [friendsOnly, setFriendsOnly] = useState(false)
+  const loadMoreRef = useRef<HTMLDivElement | null>(null)
 
-  const load = useCallback((q: string, s: PeopleSort, d: 'asc' | 'desc', fo: boolean) => {
-    setLoading(true)
-    const params: Record<string, string> = { sort: s, direction: d }
+  const load = useCallback((q: string, s: PeopleSort, d: 'asc' | 'desc', fo: boolean, pageNum = 1) => {
+    if (pageNum === 1) setLoading(true)
+    else setLoadingMore(true)
+
+    const params: Record<string, string> = {
+      sort: s,
+      direction: d,
+      page: String(pageNum),
+      per_page: '30',
+    }
     if (q) params.search = q
     if (fo) params.friends_only = '1'
     api.get('/users', { params })
-      .then(({ data }) => setUsers(data.data ?? []))
-      .finally(() => setLoading(false))
+      .then(({ data }) => {
+        const incoming: UserItem[] = data.data ?? []
+        setUsers(current => {
+          if (pageNum === 1) return incoming
+          const seen = new Set(current.map(user => user.id))
+          return [...current, ...incoming.filter(user => !seen.has(user.id))]
+        })
+        setPage(data.meta?.current_page ?? pageNum)
+        setLastPage(data.meta?.last_page ?? pageNum)
+      })
+      .finally(() => {
+        setLoading(false)
+        setLoadingMore(false)
+      })
   }, [])
 
   function handleSortSelect(key: PeopleSort) {
@@ -356,12 +429,31 @@ function PeopleTab() {
     }
   }
 
-  useEffect(() => { load('', sort, direction, friendsOnly) }, [load])
-
   useEffect(() => {
-    const t = setTimeout(() => load(search, sort, direction, friendsOnly), 350)
+    const t = setTimeout(() => load(search, sort, direction, friendsOnly, 1), 350)
     return () => clearTimeout(t)
   }, [search, sort, direction, friendsOnly, load])
+
+  const hasMore = page < lastPage
+
+  const loadNextPage = useCallback(() => {
+    if (loading || loadingMore || !hasMore) return
+    load(search, sort, direction, friendsOnly, page + 1)
+  }, [direction, friendsOnly, hasMore, load, loading, loadingMore, page, search, sort])
+
+  useEffect(() => {
+    if (!hasMore || typeof IntersectionObserver === 'undefined') return
+
+    const node = loadMoreRef.current
+    if (!node) return
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0]?.isIntersecting) loadNextPage()
+    }, { rootMargin: '400px 0px' })
+
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [hasMore, loadNextPage])
 
   async function handleInvite() {
     api.post('/me/invite-tap').catch(() => {})
@@ -467,6 +559,11 @@ function PeopleTab() {
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <a href={`/users/view?id=${u.id}`} className="font-semibold text-sm truncate hover:underline underline-offset-2">{u.name}</a>
+                  {countryFlag(u.home.country) && (
+                    <span className="text-sm leading-none" title={u.home.country ?? undefined}>
+                      {countryFlag(u.home.country)}
+                    </span>
+                  )}
                   {(u.beer_score ?? 0) > 0 && (
                     <span
                       className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md border text-[10px] font-black"
@@ -578,6 +675,23 @@ function PeopleTab() {
           </div>
         </div>
       ))}
+
+      {!loading && users.length > 0 && (
+        <div ref={loadMoreRef} className="flex justify-center py-2">
+          {hasMore ? (
+            <button
+              onClick={loadNextPage}
+              disabled={loadingMore}
+              className="px-4 py-2 rounded-xl border text-sm font-bold transition-opacity hover:opacity-80 disabled:opacity-50"
+              style={{ borderColor: 'rgba(57,255,20,0.25)', color: 'var(--primary)', background: 'rgba(57,255,20,0.06)' }}
+            >
+              {loadingMore ? 'Loading...' : 'Load more'}
+            </button>
+          ) : (
+            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>All people loaded</span>
+          )}
+        </div>
+      )}
     </div>
   )
 }

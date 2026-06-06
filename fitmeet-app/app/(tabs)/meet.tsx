@@ -153,6 +153,56 @@ function isPast(iso: string) {
   return new Date(iso).getTime() <= Date.now()
 }
 
+const COUNTRY_CODE_BY_NAME: Record<string, string> = {
+  croatia: 'HR',
+  hrvatska: 'HR',
+  slovenia: 'SI',
+  slovenija: 'SI',
+  serbia: 'RS',
+  srbija: 'RS',
+  bosnia: 'BA',
+  'bosnia and herzegovina': 'BA',
+  'bosna i hercegovina': 'BA',
+  montenegro: 'ME',
+  'crna gora': 'ME',
+  austria: 'AT',
+  austrija: 'AT',
+  germany: 'DE',
+  njemacka: 'DE',
+  italy: 'IT',
+  italija: 'IT',
+  hungary: 'HU',
+  madarska: 'HU',
+  france: 'FR',
+  francuska: 'FR',
+  spain: 'ES',
+  spanjolska: 'ES',
+  'united kingdom': 'GB',
+  uk: 'GB',
+  'united states': 'US',
+  usa: 'US',
+}
+
+function countryFlag(country?: string | null) {
+  const raw = country?.trim()
+  if (!raw) return null
+
+  const normalized = raw
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+
+  const code = /^[a-z]{2}$/i.test(raw)
+    ? raw.toUpperCase()
+    : COUNTRY_CODE_BY_NAME[normalized]
+
+  if (!code || !/^[A-Z]{2}$/.test(code)) return null
+
+  return String.fromCodePoint(
+    ...code.split('').map((char) => 127397 + char.charCodeAt(0)),
+  )
+}
+
 // ─── Events Tab ───────────────────────────────────────────────────────────────
 
 function EventsTab() {
@@ -777,6 +827,9 @@ function PeopleTab() {
   const [users,        setUsers]        = useState<UserItem[]>([])
   const [search,       setSearch]       = useState('')
   const [loading,      setLoading]      = useState(true)
+  const [loadingMore,  setLoadingMore]  = useState(false)
+  const [page,         setPage]         = useState(1)
+  const [lastPage,     setLastPage]     = useState(1)
   const [acting,       setActing]       = useState<number | null>(null)
   const [zoomAvatar,   setZoomAvatar]   = useState<string | null>(null)
   const [sort,         setSort]         = useState<PeopleSort>('latest')
@@ -784,19 +837,37 @@ function PeopleTab() {
   const [showSort,     setShowSort]     = useState(false)
   const [friendsOnly,  setFriendsOnly]  = useState(false)
 
-  const load = useCallback((q: string, s: PeopleSort, d: 'asc' | 'desc', fo: boolean) => {
-    setLoading(true)
-    const params: Record<string, string> = { sort: s, direction: d }
+  const load = useCallback((q: string, s: PeopleSort, d: 'asc' | 'desc', fo: boolean, pageNum = 1) => {
+    if (pageNum === 1) setLoading(true)
+    else setLoadingMore(true)
+
+    const params: Record<string, string> = {
+      sort: s,
+      direction: d,
+      page: String(pageNum),
+      per_page: '30',
+    }
     if (q) params.search = q
     if (fo) params.friends_only = '1'
     api.get('/users', { params })
-      .then(({ data }) => setUsers(data.data ?? []))
-      .finally(() => setLoading(false))
+      .then(({ data }) => {
+        const incoming: UserItem[] = data.data ?? []
+        setUsers(current => {
+          if (pageNum === 1) return incoming
+          const seen = new Set(current.map(user => user.id))
+          return [...current, ...incoming.filter(user => !seen.has(user.id))]
+        })
+        setPage(data.meta?.current_page ?? pageNum)
+        setLastPage(data.meta?.last_page ?? pageNum)
+      })
+      .finally(() => {
+        setLoading(false)
+        setLoadingMore(false)
+      })
   }, [])
 
-  useEffect(() => { load('', sort, direction, friendsOnly) }, [load])
   useEffect(() => {
-    const t = setTimeout(() => load(search, sort, direction, friendsOnly), 400)
+    const t = setTimeout(() => load(search, sort, direction, friendsOnly, 1), 400)
     return () => clearTimeout(t)
   }, [search, sort, direction, friendsOnly, load])
 
@@ -848,6 +919,12 @@ function PeopleTab() {
   }
 
   const activeSortLabel = PEOPLE_SORT_OPTIONS.find(o => o.key === sort)?.label ?? 'New'
+  const hasMore = page < lastPage
+
+  function loadNextPage() {
+    if (loading || loadingMore || !hasMore) return
+    load(search, sort, direction, friendsOnly, page + 1)
+  }
 
   async function handleInvite() {
     api.post('/me/invite-tap').catch(() => {})
@@ -953,6 +1030,9 @@ function PeopleTab() {
           <View style={{ flex: 1, gap: 2 }}>
             <View style={styles.userNameRow}>
               <Text style={styles.userName} numberOfLines={1}>{u.name}</Text>
+              {countryFlag(u.home.country) && (
+                <Text style={styles.countryFlag}>{countryFlag(u.home.country)}</Text>
+              )}
               {(u.beer_score ?? 0) > 0 && (
                 <View style={styles.beerBadge}>
                   <Ionicons name="beer-outline" size={9} color="#f6c65b" />
@@ -1013,6 +1093,16 @@ function PeopleTab() {
           )}
         </Pressable>
       ))}
+
+      {!loading && users.length > 0 && hasMore && (
+        <Pressable style={styles.loadMoreBtn} onPress={loadNextPage} disabled={loadingMore}>
+          {loadingMore ? (
+            <ActivityIndicator color={palette.accent} />
+          ) : (
+            <Text style={styles.loadMoreText}>Load more</Text>
+          )}
+        </Pressable>
+      )}
     </View>
   )
 }
@@ -1224,6 +1314,7 @@ const styles = StyleSheet.create({
   avatarZoomImg:     { width: 280, height: 280, borderRadius: 140 },
   userNameRow:    { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
   userName:       { color: palette.text, fontSize: 15, fontWeight: '700' },
+  countryFlag:    { fontSize: 14, lineHeight: 18 },
   newUserBadge: {
     borderRadius: 999,
     borderWidth: 1,
