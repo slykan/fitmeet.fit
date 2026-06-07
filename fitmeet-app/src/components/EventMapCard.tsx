@@ -114,7 +114,7 @@ function buildHtml(
       const allBounds = [];
       coloredSegments.forEach(function(seg) {
         if (seg.coords.length > 1) {
-          const poly = L.polyline(seg.coords,{color:seg.color,weight:4,opacity:0.9,lineJoin:'round'}).addTo(map);
+          const poly = L.polyline(seg.coords,{color:seg.color,weight:4,opacity:0.95,lineJoin:'round',dashArray:seg.dashArray||null}).addTo(map);
           allBounds.push(poly.getBounds());
         }
       });

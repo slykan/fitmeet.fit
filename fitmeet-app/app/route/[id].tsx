@@ -11,6 +11,7 @@ import { CATEGORIES } from '@/src/lib/categories'
 import { api } from '@/src/lib/api'
 import { fetchElevationProfile, parseGpxText } from '@/src/lib/gpx'
 import type { GpxParsed } from '@/src/lib/gpx'
+import { analyzeRouteSurface, type SurfaceAnalysis } from '@/src/lib/route-surface'
 import { useAuthStore } from '@/src/store/auth'
 import { palette, spacing } from '@/src/theme'
 
@@ -86,6 +87,7 @@ export default function RouteViewScreen() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [mapEnabled, setMapEnabled] = useState(false)
+  const [surfaceAnalysis, setSurfaceAnalysis] = useState<SurfaceAnalysis | null>(null)
 
   async function openGpxDownload() {
     if (!id) return
@@ -118,6 +120,7 @@ export default function RouteViewScreen() {
 
     async function load() {
       setLoading(true)
+      setSurfaceAnalysis(null)
       try {
         const { data } = await api.get(`/routes/${id}`)
         const loaded = data.data as RouteDetail
@@ -132,7 +135,13 @@ export default function RouteViewScreen() {
             parsed = { ...parsed, ...profile }
           } catch {}
         }
-        if (!cancelled) setGpx(withProfileStats(parsed))
+        const parsedWithStats = withProfileStats(parsed)
+        if (!cancelled) setGpx(parsedWithStats)
+        analyzeRouteSurface(parsedWithStats.track)
+          .then((analysis) => {
+            if (!cancelled) setSurfaceAnalysis(analysis)
+          })
+          .catch(() => {})
       } catch {
         if (!cancelled) setError('Route not found.')
       } finally {
@@ -234,9 +243,23 @@ export default function RouteViewScreen() {
             lat={route.location.start_lat}
             lng={route.location.start_lng}
             emoji={emoji}
-            coloredSegments={gpx?.coloredSegments}
+            coloredSegments={surfaceAnalysis?.segments ?? gpx?.coloredSegments}
             onMapEnabledChange={setMapEnabled}
           />
+        ) : null}
+
+        {surfaceAnalysis?.summary.length ? (
+          <View style={styles.surfaceGrid}>
+            {surfaceAnalysis.summary.map(item => (
+              <View key={item.kind} style={styles.surfaceCard}>
+                <View style={styles.surfaceLabelRow}>
+                  <View style={[styles.surfaceSwatch, { backgroundColor: item.color }]} />
+                  <Text style={styles.surfaceLabel}>{item.label}</Text>
+                </View>
+                <Text style={styles.surfaceMeta}>{item.distanceKm} km · {item.percent}%</Text>
+              </View>
+            ))}
+          </View>
         ) : null}
 
         {gpx && gpx.elevationProfile.length >= 2 ? <ElevationChart profile={gpx.elevationProfile} /> : null}
@@ -303,5 +326,18 @@ const styles = StyleSheet.create({
   },
   statLabel: { color: palette.textMuted, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
   statValue: { color: palette.text, fontSize: 18, fontWeight: '900', marginTop: 4 },
+  surfaceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  surfaceCard: {
+    width: '48%',
+    backgroundColor: palette.panel,
+    borderWidth: 1,
+    borderColor: palette.line,
+    borderRadius: 14,
+    padding: 10,
+  },
+  surfaceLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  surfaceSwatch: { width: 24, height: 8, borderRadius: 999 },
+  surfaceLabel: { color: palette.text, fontSize: 12, fontWeight: '800', flex: 1 },
+  surfaceMeta: { color: palette.textMuted, fontSize: 11, marginTop: 5 },
   emptyText: { color: palette.textMuted, fontSize: 14, textAlign: 'center', paddingVertical: spacing.xl },
 })

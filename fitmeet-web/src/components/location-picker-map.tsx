@@ -487,7 +487,7 @@ export default function LocationPickerMap({
               <Polyline
                 key={i}
                 positions={seg.coords}
-                pathOptions={{ color: seg.color, weight: 4, opacity: 0.9 }}
+                pathOptions={{ color: seg.color, weight: 4, opacity: 0.95, dashArray: seg.dashArray }}
               />
             ))}
             <FitTrack coords={allCoords} />

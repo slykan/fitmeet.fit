@@ -11,6 +11,7 @@ import { WikiPhotosStrip } from '@/components/wiki-photos-strip'
 import api from '@/lib/api'
 import { CATEGORIES, CATEGORY_EMOJI } from '@/lib/categories'
 import { fetchElevationProfile, parseGpx, type GpxResult } from '@/lib/parse-gpx'
+import { analyzeRouteSurface, type SurfaceAnalysis } from '@/lib/route-surface'
 import { useAuthStore } from '@/store/auth'
 
 const LocationPickerMap = dynamic(() => import('@/components/location-picker-map'), { ssr: false })
@@ -86,6 +87,7 @@ function RouteContent() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const [surfaceAnalysis, setSurfaceAnalysis] = useState<SurfaceAnalysis | null>(null)
 
   useEffect(() => {
     if (!token) { router.replace('/login'); return }
@@ -93,20 +95,26 @@ function RouteContent() {
 
     api.get(`/routes/${id}`)
       .then(async ({ data }) => {
+        setSurfaceAnalysis(null)
         const loaded = data.data as ActivityRoute
         setRoute(loaded)
         if (!loaded.gpx_url) return
         const gpx = await api.get(`/routes/${loaded.id}/gpx`, { responseType: 'text' })
         const parsed = parseGpx(gpx.data)
         if (parsed.elevationProfile.length >= 2) {
-          setGpxResult(withProfileStats(parsed))
+          const next = withProfileStats(parsed)
+          setGpxResult(next)
+          analyzeRouteSurface(next.track).then(setSurfaceAnalysis).catch(() => {})
           return
         }
         try {
           const profile = await fetchElevationProfile(parsed.track)
-          setGpxResult(withProfileStats({ ...parsed, ...profile }))
+          const next = withProfileStats({ ...parsed, ...profile })
+          setGpxResult(next)
+          analyzeRouteSurface(next.track).then(setSurfaceAnalysis).catch(() => {})
         } catch {
           setGpxResult(parsed)
+          analyzeRouteSurface(parsed.track).then(setSurfaceAnalysis).catch(() => {})
         }
       })
       .catch(() => setError('Route not found.'))
@@ -255,13 +263,31 @@ function RouteContent() {
               lat={route.location.start_lat}
               lng={route.location.start_lng}
               track={gpxResult?.track}
-              coloredSegments={gpxResult?.coloredSegments}
+              coloredSegments={surfaceAnalysis?.segments ?? gpxResult?.coloredSegments}
               readOnly
               height={360}
               showWindOverlay={false}
               showCloudOverlay={false}
               showMapLayerControl
             />
+            {surfaceAnalysis?.summary.length ? (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {surfaceAnalysis.summary.map(item => (
+                  <div key={item.kind} className="rounded-xl border px-3 py-2" style={{ borderColor: 'var(--border)', background: 'rgba(255,255,255,0.03)' }}>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="inline-block h-2.5 w-7 rounded-full"
+                        style={{ background: item.color }}
+                      />
+                      <span className="text-xs font-bold">{item.label}</span>
+                    </div>
+                    <p className="mt-1 text-xs" style={{ color: 'var(--text-muted)' }}>
+                      {item.distanceKm} km · {item.percent}%
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : null}
             {gpxResult && gpxResult.elevationProfile.length >= 2 && (
               <ElevationChart profile={gpxResult.elevationProfile} totalKm={gpxResult.distanceKm} />
             )}

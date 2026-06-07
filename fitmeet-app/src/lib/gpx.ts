@@ -1,6 +1,7 @@
 export interface TrackSegment {
   coords: [number, number][]
   color: string
+  dashArray?: string
 }
 
 export interface GpxParsed {
