@@ -15,6 +15,45 @@ export interface Post {
 
 export const posts: Post[] = [
   {
+    slug: 'route-surface-mix-event-updates',
+    title: 'Route Surface Mix, Better GPX Views and Cleaner Event Planning',
+    description: 'FitMeet route and event pages now show road surface mix, GPX-linked photos, uphill/downhill details, and better route drawing tools for planning rides, runs and hikes.',
+    publishedAt: '2026-06-07',
+    readTime: 3,
+    category: 'Routes',
+    sections: [
+      {
+        heading: 'Road Surface Mix on Routes and Events',
+        paragraphs: [
+          'Routes are more useful when you know what kind of ground is waiting for you. FitMeet now analyses GPX routes with OpenStreetMap road data and shows the surface mix directly on route and event views.',
+          'That means a route can show something like 10% paved road, 70% unpaved road and 20% trail before people commit to it. The map also uses different line styles so paved roads, gravel, trails and unknown sections are easier to tell apart at a glance.',
+        ],
+      },
+      {
+        heading: 'GPX Details Are Easier to Read',
+        paragraphs: [
+          'Route and event views now show more of the numbers organisers and participants actually care about: distance, elevation gain, max uphill grade, max downhill grade, uphill kilometres and downhill kilometres.',
+          'The goal is to make a GPX route understandable without opening another app. Someone joining a ride or hike should be able to see whether it is mostly flat, climb-heavy, road-focused or more adventurous.',
+        ],
+      },
+      {
+        heading: 'Photos Follow the Route',
+        paragraphs: [
+          'GPX route photos are now tied to the route itself. When a route passes near useful public photo locations, FitMeet can show those images on route and event views so the page feels less abstract than a line on a map.',
+          'For organisers, that makes shared routes easier to sell. For participants, it gives a quick sense of the place before they show up.',
+        ],
+      },
+      {
+        heading: 'Route Drawing Is Getting More Practical',
+        paragraphs: [
+          'The route creation screen has been tightened up with better controls for distance and elevation, current-location support, place search, and an elevation profile while drawing. These changes make route planning less like hunting around a blank map and more like building the route you actually want to share.',
+          'Together with GPX download and reusable FitMeet routes, this makes the route flow stronger from first draft to final event page.',
+        ],
+      },
+    ],
+  },
+
+  {
     slug: 'gpx-routes-create-download-share',
     title: 'Create, Download and Share GPX Routes for Free',
     description: 'Draw routes on the map point by point, export as GPX, send to your Garmin or Wahoo, and share route pages with friends — all from FitMeet for free.',

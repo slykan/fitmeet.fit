@@ -89,44 +89,44 @@ const highlights = [
 const latestFeatures = [
   {
     icon: Route,
-    title: 'Public route library',
-    description: 'Public GPX routes now get their own searchable home with maps, elevation and details.',
-    href: '/meet?tab=routes',
+    title: 'Surface-aware routes',
+    description: 'Route and event GPX maps now show paved, unpaved, trail and unknown surface mix.',
+    href: '/blog/route-surface-mix-event-updates',
   },
   {
     icon: Share2,
-    title: 'Share and download',
-    description: 'Open a route, share the page, or download the GPX for your watch, bike computer or map app.',
-    href: '/blog/fitmeet-routes-gpx-event-planning',
+    title: 'Photos and route stats',
+    description: 'Route views now include GPX-linked photos, uphill/downhill km and clearer elevation details.',
+    href: '/blog/route-surface-mix-event-updates',
   },
   {
     icon: PencilLine,
-    title: 'Add routes to events',
-    description: 'Create and edit events from saved FitMeet routes, without duplicating the original route.',
-    href: '/blog/fitmeet-routes-gpx-event-planning',
+    title: 'Better route drawing',
+    description: 'Create routes with search, current location, cleaner controls and an elevation preview.',
+    href: '/blog/route-surface-mix-event-updates',
   },
 ]
 
 const routeNews = [
   {
     icon: Route,
-    title: 'Routes tab',
-    description: 'Meet now has a dedicated Routes view with categories, search, distance and elevation at a glance.',
+    title: 'Surface mix',
+    description: 'Route and event pages now show the route split by paved road, unpaved road, trail and unknown surface.',
   },
   {
     icon: Download,
-    title: 'GPX download',
-    description: 'Every public route can be downloaded as a GPX file for navigation tools and devices.',
+    title: 'GPX route photos',
+    description: 'Public photos connected to the GPX path can appear on route and event views for more context.',
   },
   {
     icon: Share2,
-    title: 'Share route pages',
-    description: 'Route detail pages are shareable, with the map, elevation profile and key stats in one place.',
+    title: 'Uphill and downhill km',
+    description: 'Max grade and max downhill now sit next to uphill and downhill distance for quicker route reading.',
   },
   {
     icon: PencilLine,
-    title: 'Create from routes',
-    description: 'When creating or editing an event, you can pull in an existing FitMeet route and keep it clean.',
+    title: 'Route builder polish',
+    description: 'The route drawing screen now has better controls, place search, current location and elevation preview.',
   },
 ]
 
@@ -295,7 +295,7 @@ export default async function HomePage() {
                       New in FitMeet
                     </p>
                     <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                      Routes, GPX, sharing
+                      Surface mix, GPX, route tools
                     </span>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-3">
@@ -378,13 +378,13 @@ export default async function HomePage() {
                 <p className="text-sm font-semibold mb-3" style={{ color: 'var(--primary)' }}>
                   What&apos;s new
                 </p>
-                <h2 className="text-3xl md:text-4xl font-bold mb-3">Routes now live beyond one event.</h2>
+                <h2 className="text-3xl md:text-4xl font-bold mb-3">Routes now show what they are made of.</h2>
                 <p className="text-base leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-                  GPX routes from public events are easier to find, reuse, edit, share and download across FitMeet.
+                  GPX routes now show surface mix, route-linked photos, uphill and downhill distance, and cleaner drawing tools.
                 </p>
               </div>
               <Link
-                href="/blog/fitmeet-routes-gpx-event-planning"
+                href="/blog/route-surface-mix-event-updates"
                 className="inline-flex items-center gap-2 text-sm font-semibold transition-opacity hover:opacity-80"
                 style={{ color: 'var(--primary)' }}
               >
