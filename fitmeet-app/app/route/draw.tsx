@@ -119,6 +119,20 @@ function buildDrawRouteHtml(
     display:flex;align-items:center;gap:8px;padding:0 10px;
     pointer-events:none;
   }
+  #search-row{
+    position:fixed;top:${topInset + 54}px;left:10px;right:10px;z-index:1000;
+    display:flex;gap:8px;pointer-events:none;
+  }
+  #search-input{
+    pointer-events:all;min-width:0;flex:1;height:40px;
+    background:rgba(5,8,22,0.9);border:1.5px solid rgba(255,255,255,0.14);
+    border-radius:12px;color:#f5f7ff;padding:0 12px;font-size:14px;font-weight:700;
+    outline:none;
+  }
+  #search-btn{
+    pointer-events:all;height:40px;padding:0 14px;border-radius:12px;border:none;
+    background:#6cff2f;color:#031109;font-size:12px;font-weight:900;
+  }
   #back-btn{
     pointer-events:all;
     background:rgba(5,8,22,0.88);border:1.5px solid rgba(255,255,255,0.14);
@@ -130,10 +144,12 @@ function buildDrawRouteHtml(
     pointer-events:none;
     flex:1;text-align:center;
     background:rgba(5,8,22,0.82);border:1px solid rgba(255,255,255,0.1);
-    border-radius:20px;padding:7px 14px;
-    color:#6cff2f;font-size:13px;font-weight:800;
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    border-radius:16px;padding:7px 10px;
+    color:#6cff2f;font-size:12px;font-weight:800;
+    min-height:38px;
   }
+  .stat-main{display:flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap;}
+  .stat-sub{margin-top:1px;color:#b3bdd7;font-size:10px;font-weight:700;white-space:nowrap;}
   #gps-btn{
     pointer-events:all;
     background:rgba(5,8,22,0.88);border:1.5px solid rgba(255,255,255,0.14);
@@ -167,6 +183,15 @@ function buildDrawRouteHtml(
     background:rgba(5,8,22,0.94);
     border-top:1px solid rgba(255,255,255,0.1);
     padding-bottom:${bottomInset + 6}px;
+  }
+  #elev-panel{
+    padding:8px 10px 2px;
+    display:none;
+  }
+  #elev-panel.show{display:block;}
+  #elev-chart{
+    width:100%;height:54px;border-radius:12px;
+    background:rgba(255,255,255,0.055);
   }
   #cat-row{
     display:flex;gap:6px;padding:10px 10px 4px;
@@ -227,7 +252,13 @@ function buildDrawRouteHtml(
   <div id="gps-btn" onclick="useGPS()">&#128205;</div>
 </div>
 
+<div id="search-row">
+  <input id="search-input" placeholder="Search city or place" onkeydown="if(event.key==='Enter'){searchPlace();}"/>
+  <button id="search-btn" onclick="searchPlace()">Go</button>
+</div>
+
 <div id="bottom-panel">
+  <div id="elev-panel"><svg id="elev-chart" viewBox="0 0 320 54"></svg></div>
   <div id="cat-row"></div>
   <div id="action-row">
     <button id="undo-btn" onclick="undoLast()">&#8617; Undo</button>
@@ -363,6 +394,20 @@ function showLoading(v) {
   document.getElementById('loading-overlay').className = v ? 'show' : '';
 }
 
+function updateStats() {
+  var distKm = Math.round(totalDistM()/100)/10;
+  var pill = document.getElementById('stats-pill');
+  if (waypoints.length === 0) {
+    pill.textContent = 'Tap map to add points';
+  } else if (waypoints.length === 1) {
+    pill.innerHTML = '<div class="stat-main">1 point</div><div class="stat-sub">Keep going for distance and elevation</div>';
+  } else {
+    pill.innerHTML = '<div class="stat-main"><span>'+distKm.toFixed(1)+' km</span><span>'+waypoints.length+' pts</span></div><div class="stat-sub">Calculating elevation...</div>';
+  }
+  var doneBtn = document.getElementById('done-btn');
+  doneBtn.disabled = waypoints.length < 2;
+}
+
 // ── Polyline6 decoder (Valhalla uses precision 6) ────────────────────────
 function decodePolyline6(encoded) {
   var coords = [], index = 0, lat = 0, lng = 0;
@@ -440,6 +485,78 @@ function scheduleElevation() {
 }
 
 // ── Route segment ─────────────────────────────────────────────────────────
+async function fetchElevationData(track) {
+  if (track.length < 2) return {gain:0,elevs:[]};
+  var sampled = sampleTrack(track, 100);
+  var lats = sampled.map(function(p){return p[0].toFixed(5);}).join(',');
+  var lngs = sampled.map(function(p){return p[1].toFixed(5);}).join(',');
+  try {
+    var res = await fetch('https://api.open-meteo.com/v1/elevation?latitude='+lats+'&longitude='+lngs);
+    if (!res.ok) return {gain:0,elevs:[]};
+    var data = await res.json();
+    var elevs = data.elevation || [];
+    var gain = 0;
+    for (var i=1;i<elevs.length;i++) if (elevs[i]>elevs[i-1]) gain+=elevs[i]-elevs[i-1];
+    return {gain:Math.round(gain),elevs:elevs};
+  } catch(e) { return {gain:0,elevs:[]}; }
+}
+
+async function fetchElevGain(track) {
+  var elev = await fetchElevationData(track);
+  return elev.gain;
+}
+
+function renderElevationChart(elevs) {
+  var panel = document.getElementById('elev-panel');
+  var svg = document.getElementById('elev-chart');
+  if (!panel || !svg || !elevs || elevs.length < 2) {
+    if (panel) panel.className = '';
+    return;
+  }
+  var w = 320, h = 54, pad = 6;
+  var min = Math.min.apply(null, elevs);
+  var max = Math.max.apply(null, elevs);
+  var range = Math.max(max-min, 1);
+  var path = elevs.map(function(ele, i) {
+    var x = pad + (i/(elevs.length-1))*(w-pad*2);
+    var y = h - pad - ((ele-min)/range)*(h-pad*2);
+    return (i===0?'M':'L') + x.toFixed(1) + ' ' + y.toFixed(1);
+  }).join(' ');
+  svg.innerHTML =
+    '<path d="'+path+' L '+(w-pad)+' '+(h-pad)+' L '+pad+' '+(h-pad)+' Z" fill="rgba(108,255,47,0.12)"></path>' +
+    '<path d="'+path+'" fill="none" stroke="#6cff2f" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path>';
+  panel.className = 'show';
+}
+
+function scheduleElevation() {
+  if (elevDebounce) clearTimeout(elevDebounce);
+  elevDebounce = setTimeout(async function() {
+    var track = buildFullTrack();
+    var elev = await fetchElevationData(track);
+    var gain = elev.gain;
+    var distKm = Math.round(totalDistM()/100)/10;
+    var pill = document.getElementById('stats-pill');
+    if (waypoints.length >= 2) {
+      pill.innerHTML = '<div class="stat-main"><span>'+distKm.toFixed(1)+' km</span><span>'+gain+' m up</span><span>'+waypoints.length+' pts</span></div><div class="stat-sub">Drag points to reshape route</div>';
+    }
+    renderElevationChart(elev.elevs);
+    window._elevGain = gain;
+  }, 900);
+}
+
+async function searchPlace() {
+  var input = document.getElementById('search-input');
+  var q = input && input.value ? input.value.trim() : '';
+  if (!q) return;
+  try {
+    var res = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(q), {
+      headers: {'Accept-Language':'en'}
+    });
+    var data = await res.json();
+    if (data && data[0]) map.setView([Number(data[0].lat), Number(data[0].lon)], 13);
+  } catch(e) {}
+}
+
 async function routeSegment(fromIdx) {
   var from = waypoints[fromIdx];
   var to   = waypoints[fromIdx+1];

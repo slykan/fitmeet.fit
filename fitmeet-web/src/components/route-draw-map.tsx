@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 
@@ -26,6 +26,11 @@ interface SegmentEntry {
   polyline: L.Polyline
   coords: LatLng[]
   distanceM: number
+}
+
+interface ElevationPoint {
+  km: number
+  ele: number
 }
 
 interface Props {
@@ -145,9 +150,14 @@ function sampleTrack(track: LatLng[], max = 100): LatLng[] {
   return result
 }
 
-async function fetchElevGain(track: LatLng[]): Promise<number> {
-  if (track.length < 2) return 0
+async function fetchElevationProfile(track: LatLng[]): Promise<{ gain: number; profile: ElevationPoint[] }> {
+  if (track.length < 2) return { gain: 0, profile: [] }
   const sampled = sampleTrack(track, 100)
+  let totalM = 0
+  const distances = sampled.map((point, index) => {
+    if (index > 0) totalM += segmentLength([sampled[index - 1], point])
+    return totalM / 1000
+  })
   const lats = sampled.map(p => p[0].toFixed(5)).join(',')
   const lngs = sampled.map(p => p[1].toFixed(5)).join(',')
   try {
@@ -155,17 +165,49 @@ async function fetchElevGain(track: LatLng[]): Promise<number> {
       `https://api.open-meteo.com/v1/elevation?latitude=${lats}&longitude=${lngs}`,
       { signal: AbortSignal.timeout(8000) },
     )
-    if (!res.ok) return 0
+    if (!res.ok) return { gain: 0, profile: [] }
     const data = await res.json()
     const elevs: number[] = data.elevation ?? []
     let gain = 0
     for (let i = 1; i < elevs.length; i++) {
       if (elevs[i] > elevs[i - 1]) gain += elevs[i] - elevs[i - 1]
     }
-    return Math.round(gain)
+    return {
+      gain: Math.round(gain),
+      profile: elevs.map((ele, index) => ({ km: distances[index] ?? 0, ele })),
+    }
   } catch {
-    return 0
+    return { gain: 0, profile: [] }
   }
+}
+
+function ElevationPreview({ profile }: { profile: ElevationPoint[] }) {
+  if (profile.length < 2) return null
+
+  const width = 320
+  const height = 72
+  const pad = 8
+  const maxKm = Math.max(profile[profile.length - 1].km, 1)
+  const minEle = Math.min(...profile.map(point => point.ele))
+  const maxEle = Math.max(...profile.map(point => point.ele))
+  const range = Math.max(maxEle - minEle, 1)
+  const path = profile.map((point, index) => {
+    const x = pad + (point.km / maxKm) * (width - pad * 2)
+    const y = height - pad - ((point.ele - minEle) / range) * (height - pad * 2)
+    return `${index === 0 ? 'M' : 'L'}${x.toFixed(1)} ${y.toFixed(1)}`
+  }).join(' ')
+
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-[72px]" aria-hidden="true">
+      <path
+        d={`${path} L ${width - pad} ${height - pad} L ${pad} ${height - pad} Z`}
+        fill="rgba(57,255,20,0.12)"
+      />
+      <path d={path} fill="none" stroke="#39ff14" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+      <text x={pad} y={height - 4} fill="rgba(255,255,255,0.52)" fontSize="10">{Math.round(minEle)}m</text>
+      <text x={width - pad} y={14} fill="rgba(255,255,255,0.52)" fontSize="10" textAnchor="end">{Math.round(maxEle)}m</text>
+    </svg>
+  )
 }
 
 // ─── Marker icon factory ──────────────────────────────────────────────────────
@@ -219,8 +261,12 @@ export default function RouteDrawMap({ category, height = 500, initialWaypoints,
 
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null)
   const [stats, setStats] = useState({ distanceKm: 0, elevGain: 0 })
+  const [elevProfile, setElevProfile] = useState<ElevationPoint[]>([])
   const [routing, setRouting] = useState(false)
   const [elevLoading, setElevLoading] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searching, setSearching] = useState(false)
+  const [searchError, setSearchError] = useState<string | null>(null)
 
   // ─── Helper: build full track from all segments ──────────────────────────
 
@@ -281,11 +327,51 @@ export default function RouteDrawMap({ category, height = 500, initialWaypoints,
     setElevLoading(true)
     elevDebounceRef.current = setTimeout(async () => {
       const track = buildFullTrack()
-      const gain = await fetchElevGain(track)
+      const { gain, profile } = await fetchElevationProfile(track)
       setElevLoading(false)
+      setElevProfile(profile)
       setStats(s => ({ ...s, elevGain: gain }))
       publishResult(gain)
     }, 600)
+  }
+
+  async function handleSearch(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const map = mapRef.current
+    const query = searchQuery.trim()
+    if (!map || !query) return
+
+    setSearching(true)
+    setSearchError(null)
+    try {
+      const params = new URLSearchParams({
+        q: query,
+        format: 'json',
+        limit: '1',
+      })
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, {
+        headers: { 'Accept-Language': 'en' },
+      })
+      const data: Array<{ lat: string; lon: string }> = await res.json()
+      const first = data[0]
+      if (!first) {
+        setSearchError('Place not found')
+        return
+      }
+      map.setView([Number(first.lat), Number(first.lon)], 13)
+    } catch {
+      setSearchError('Search failed')
+    } finally {
+      setSearching(false)
+    }
+  }
+
+  function goToCurrentLocation() {
+    const map = mapRef.current
+    if (!map || typeof navigator === 'undefined') return
+    navigator.geolocation?.getCurrentPosition(pos => {
+      map.setView([pos.coords.latitude, pos.coords.longitude], 14)
+    })
   }
 
   // ─── Route a single segment (fromIdx → fromIdx+1) ────────────────────────
@@ -655,6 +741,87 @@ export default function RouteDrawMap({ category, height = 500, initialWaypoints,
           position: 'relative',
         }}
       />
+
+      <form
+        onSubmit={handleSearch}
+        className="absolute left-3 top-3 z-[850] flex max-w-[calc(100%-150px)] gap-2"
+      >
+        <div className="min-w-0 flex-1">
+          <input
+            value={searchQuery}
+            onChange={event => setSearchQuery(event.target.value)}
+            placeholder="Search city or place"
+            className="h-10 w-full rounded-xl border px-3 text-sm font-semibold outline-none"
+            style={{
+              background: 'rgba(5,8,22,0.9)',
+              borderColor: 'rgba(255,255,255,0.16)',
+              color: '#f5f7ff',
+              boxShadow: '0 10px 28px rgba(0,0,0,0.28)',
+            }}
+          />
+          {searchError && (
+            <div className="mt-1 rounded-lg px-2 py-1 text-xs font-bold text-red-300"
+              style={{ background: 'rgba(5,8,22,0.9)' }}>
+              {searchError}
+            </div>
+          )}
+        </div>
+        <button
+          type="submit"
+          disabled={searching || !searchQuery.trim()}
+          className="h-10 rounded-xl border px-3 text-xs font-black disabled:opacity-50"
+          style={{ background: 'var(--primary)', borderColor: 'var(--primary)', color: '#031109' }}
+        >
+          {searching ? '...' : 'Go'}
+        </button>
+        <button
+          type="button"
+          onClick={goToCurrentLocation}
+          className="h-10 rounded-xl border px-3 text-xs font-black"
+          style={{
+            background: 'rgba(5,8,22,0.9)',
+            borderColor: 'rgba(255,255,255,0.16)',
+            color: '#f5f7ff',
+          }}
+        >
+          Current
+        </button>
+      </form>
+
+      <div
+        className="absolute bottom-3 left-3 right-3 z-[850] rounded-2xl border p-3"
+        style={{
+          background: 'rgba(5,8,22,0.82)',
+          borderColor: 'rgba(255,255,255,0.14)',
+          backdropFilter: 'blur(12px)',
+          boxShadow: '0 18px 48px rgba(0,0,0,0.35)',
+        }}
+      >
+        <div className="grid grid-cols-3 gap-2">
+          <div className="rounded-xl px-3 py-2" style={{ background: 'rgba(255,255,255,0.06)' }}>
+            <div className="text-[10px] font-black uppercase" style={{ color: 'rgba(255,255,255,0.52)' }}>Distance</div>
+            <div className="text-base font-black" style={{ color: 'var(--primary)' }}>{stats.distanceKm.toFixed(1)} km</div>
+          </div>
+          <div className="rounded-xl px-3 py-2" style={{ background: 'rgba(255,255,255,0.06)' }}>
+            <div className="text-[10px] font-black uppercase" style={{ color: 'rgba(255,255,255,0.52)' }}>Elevation</div>
+            <div className="text-base font-black" style={{ color: '#f5f7ff' }}>{elevLoading ? '...' : `${stats.elevGain} m`}</div>
+          </div>
+          <div className="rounded-xl px-3 py-2" style={{ background: 'rgba(255,255,255,0.06)' }}>
+            <div className="text-[10px] font-black uppercase" style={{ color: 'rgba(255,255,255,0.52)' }}>Points</div>
+            <div className="text-base font-black" style={{ color: '#f5f7ff' }}>{waypointsRef.current.length}</div>
+          </div>
+        </div>
+
+        {elevProfile.length >= 2 ? (
+          <div className="mt-2 overflow-hidden rounded-xl" style={{ background: 'rgba(0,0,0,0.18)' }}>
+            <ElevationPreview profile={elevProfile} />
+          </div>
+        ) : (
+          <div className="mt-2 text-xs" style={{ color: 'rgba(255,255,255,0.58)' }}>
+            {routing ? 'Routing...' : waypointsRef.current.length === 0 ? 'Click on the map to add waypoints.' : 'Add another point to see elevation.'}
+          </div>
+        )}
+      </div>
 
       {/* Stats + controls bar */}
       <div
