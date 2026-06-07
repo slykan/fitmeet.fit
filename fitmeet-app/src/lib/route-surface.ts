@@ -28,6 +28,12 @@ interface OverpassWay {
   geometry?: Array<{ lat: number; lon: number }>
 }
 
+const OVERPASS_ENDPOINTS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass.openstreetmap.ru/api/interpreter',
+]
+
 const SURFACE_META: Record<SurfaceKind, { label: string; color: string; dashArray?: string }> = {
   paved: { label: 'Paved road', color: '#6cff2f' },
   unpaved: { label: 'Gravel / unpaved', color: '#f6c65b', dashArray: '8 8' },
@@ -167,15 +173,50 @@ function buildSummary(segments: SurfaceSegment[]): SurfaceSummaryItem[] {
     .filter(item => item.distanceKm > 0)
 }
 
+async function fetchOverpass(query: string): Promise<{ elements?: OverpassWay[] }> {
+  let lastError: unknown = null
+
+  for (const endpoint of OVERPASS_ENDPOINTS) {
+    try {
+      const getResponse = await fetch(`${endpoint}?data=${encodeURIComponent(query)}`, {
+        headers: {
+          Accept: 'application/json',
+          'User-Agent': 'FitMeet/1.0 route-surface',
+        },
+      })
+      if (getResponse.ok) return await getResponse.json()
+      lastError = new Error(`Overpass GET failed: ${getResponse.status}`)
+    } catch (error) {
+      lastError = error
+    }
+
+    try {
+      const postResponse = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+          'User-Agent': 'FitMeet/1.0 route-surface',
+        },
+        body: `data=${encodeURIComponent(query)}`,
+      })
+      if (postResponse.ok) return await postResponse.json()
+      lastError = new Error(`Overpass POST failed: ${postResponse.status}`)
+    } catch (error) {
+      lastError = error
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error('Overpass request failed')
+}
+
 export async function analyzeRouteSurface(track: Point[]): Promise<SurfaceAnalysis | null> {
   const sampled = sampleTrack(track)
   if (sampled.length < 2) return null
 
   const { south, west, north, east } = bboxFor(sampled)
   const query = `[out:json][timeout:10];way["highway"](${south},${west},${north},${east});out tags geom;`
-  const response = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`)
-  if (!response.ok) throw new Error(`Overpass request failed: ${response.status}`)
-  const data = await response.json() as { elements?: OverpassWay[] }
+  const data = await fetchOverpass(query)
   const ways = data.elements?.filter(way => way.geometry && way.geometry.length >= 2) ?? []
   if (ways.length === 0) return null
 
