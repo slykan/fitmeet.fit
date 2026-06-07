@@ -85,6 +85,7 @@ export default function RouteViewScreen() {
   const [gpx, setGpx] = useState<GpxParsed | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [mapEnabled, setMapEnabled] = useState(false)
 
   async function openGpxDownload() {
     if (!id) return
@@ -174,7 +175,7 @@ export default function RouteViewScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} scrollEnabled={!mapEnabled}>
         <Pressable style={styles.backBtn} onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={18} color={palette.text} />
           <Text style={styles.backText}>Back</Text>
@@ -234,6 +235,7 @@ export default function RouteViewScreen() {
             lng={route.location.start_lng}
             emoji={emoji}
             coloredSegments={gpx?.coloredSegments}
+            onMapEnabledChange={setMapEnabled}
           />
         ) : null}
 
