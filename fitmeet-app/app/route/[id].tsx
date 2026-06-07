@@ -181,6 +181,9 @@ export default function RouteViewScreen() {
   const maxGrade = gpx?.maxGrade ?? route.stats.max_grade
   const maxDowngrade = gpx?.maxDowngrade ?? route.stats.max_downgrade
   const profileStats = gpx?.elevationProfile.length ? statsFromProfile(gpx.elevationProfile) : null
+  const surfaceMixText = surfaceAnalysis?.summary.length
+    ? surfaceAnalysis.summary.map(item => `${item.percent}% ${item.label.toLowerCase()}`).join(' - ')
+    : null
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -249,16 +252,23 @@ export default function RouteViewScreen() {
         ) : null}
 
         {surfaceAnalysis?.summary.length ? (
-          <View style={styles.surfaceGrid}>
-            {surfaceAnalysis.summary.map(item => (
-              <View key={item.kind} style={styles.surfaceCard}>
-                <View style={styles.surfaceLabelRow}>
-                  <View style={[styles.surfaceSwatch, { backgroundColor: item.color }]} />
-                  <Text style={styles.surfaceLabel}>{item.label}</Text>
+          <View style={styles.surfaceSection}>
+            {surfaceMixText ? (
+              <Text style={styles.surfaceMixText}>
+                Surface mix: <Text style={styles.surfaceMixMuted}>{surfaceMixText}</Text>
+              </Text>
+            ) : null}
+            <View style={styles.surfaceGrid}>
+              {surfaceAnalysis.summary.map(item => (
+                <View key={item.kind} style={styles.surfaceCard}>
+                  <View style={styles.surfaceLabelRow}>
+                    <View style={[styles.surfaceSwatch, { backgroundColor: item.color }]} />
+                    <Text style={styles.surfaceLabel}>{item.label}</Text>
+                  </View>
+                  <Text style={styles.surfaceMeta}>{item.distanceKm} km · {item.percent}%</Text>
                 </View>
-                <Text style={styles.surfaceMeta}>{item.distanceKm} km · {item.percent}%</Text>
-              </View>
-            ))}
+              ))}
+            </View>
           </View>
         ) : null}
 
@@ -326,6 +336,9 @@ const styles = StyleSheet.create({
   },
   statLabel: { color: palette.textMuted, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
   statValue: { color: palette.text, fontSize: 18, fontWeight: '900', marginTop: 4 },
+  surfaceSection: { gap: 8 },
+  surfaceMixText: { color: palette.text, fontSize: 13, fontWeight: '900' },
+  surfaceMixMuted: { color: palette.textMuted, fontWeight: '700' },
   surfaceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   surfaceCard: {
     width: '48%',

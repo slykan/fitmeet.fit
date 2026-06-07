@@ -157,6 +157,9 @@ function RouteContent() {
   const maxGrade = gpxResult?.maxGrade ?? currentRoute.stats.max_grade
   const maxDowngrade = gpxResult?.maxDowngrade ?? currentRoute.stats.max_downgrade
   const profileStats = gpxResult?.elevationProfile.length ? statsFromElevationProfile(gpxResult.elevationProfile) : null
+  const surfaceMixText = surfaceAnalysis?.summary.length
+    ? surfaceAnalysis.summary.map(item => `${item.percent}% ${item.label.toLowerCase()}`).join(' - ')
+    : null
 
   async function shareRoute() {
     const url = `${window.location.origin}/routes/view?id=${currentRoute.id}`
@@ -272,6 +275,11 @@ function RouteContent() {
             />
             {surfaceAnalysis?.summary.length ? (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {surfaceMixText && (
+                  <div className="col-span-2 sm:col-span-4 text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
+                    Surface mix: <span style={{ color: 'var(--text-muted)' }}>{surfaceMixText}</span>
+                  </div>
+                )}
                 {surfaceAnalysis.summary.map(item => (
                   <div key={item.kind} className="rounded-xl border px-3 py-2" style={{ borderColor: 'var(--border)', background: 'rgba(255,255,255,0.03)' }}>
                     <div className="flex items-center gap-2">
