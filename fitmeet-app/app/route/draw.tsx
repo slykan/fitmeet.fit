@@ -424,26 +424,34 @@ function decodePolyline6(encoded) {
 }
 
 // ── Valhalla fetch ────────────────────────────────────────────────────────
+var VALHALLA_ENDPOINTS = [
+  'https://valhalla.openstreetmap.de/route',
+  'https://valhalla1.openstreetmap.de/route'
+];
+
 async function fetchValhalla(from, to, costing, options) {
-  try {
-    var body = JSON.stringify({
-      locations: [{ lon: from[1], lat: from[0] }, { lon: to[1], lat: to[0] }],
-      costing: costing,
-      costing_options: options ? { [costing]: options } : undefined,
-      units: 'km',
-    });
-    var res = await fetch('https://valhalla1.openstreetmap.de/route', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: body,
-    });
-    if (!res.ok) return null;
-    var data = await res.json();
-    if (!data.trip || !data.trip.legs || !data.trip.legs.length) return null;
-    var leg = data.trip.legs[0];
-    var coords = decodePolyline6(leg.shape);
-    return { coords: coords, distM: leg.summary.length * 1000 };
-  } catch(e) { return null; }
+  var body = JSON.stringify({
+    locations: [{ lon: from[1], lat: from[0] }, { lon: to[1], lat: to[0] }],
+    costing: costing,
+    costing_options: options ? { [costing]: options } : undefined,
+    units: 'km',
+  });
+  for (var i = 0; i < VALHALLA_ENDPOINTS.length; i++) {
+    try {
+      var res = await fetch(VALHALLA_ENDPOINTS[i], {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: body,
+      });
+      if (!res.ok) continue;
+      var data = await res.json();
+      if (!data.trip || !data.trip.legs || !data.trip.legs.length) continue;
+      var leg = data.trip.legs[0];
+      var coords = decodePolyline6(leg.shape);
+      return { coords: coords, distM: leg.summary.length * 1000 };
+    } catch(e) {}
+  }
+  return null;
 }
 
 function valhallaCosting(cat) {
@@ -451,6 +459,22 @@ function valhallaCosting(cat) {
   if (cat === 'running') return { costing: 'pedestrian', options: {} };
   if (cat === 'hiking')  return { costing: 'pedestrian', options: { max_hiking_difficulty: 1 } };
   return null;
+}
+
+async function fetchOsrmRoad(from, to) {
+  try {
+    var url = 'https://router.project-osrm.org/route/v1/driving/' +
+      from[1] + ',' + from[0] + ';' + to[1] + ',' + to[0] +
+      '?overview=full&geometries=geojson&radiuses=200;200';
+    var res = await fetch(url);
+    if (!res.ok) return null;
+    var data = await res.json();
+    var route = data.routes && data.routes[0];
+    var raw = route && route.geometry && route.geometry.coordinates;
+    if (!raw || raw.length < 2) return null;
+    var coords = raw.map(function(p) { return [p[1], p[0]]; });
+    return { coords: coords, distM: route.distance };
+  } catch(e) { return null; }
 }
 
 // ── Elevation fetch ──────────────────────────────────────────────────────
@@ -578,6 +602,7 @@ async function routeSegment(fromIdx) {
   var costingInfo = valhallaCosting(category);
   var result = null;
   if (costingInfo) result = await fetchValhalla(from.latlng, to.latlng, costingInfo.costing, costingInfo.options);
+  if (!result && category === 'cycling') result = await fetchOsrmRoad(from.latlng, to.latlng);
 
   // Fallback to straight line
   if (!result) {

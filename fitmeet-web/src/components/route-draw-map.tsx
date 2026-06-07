@@ -88,6 +88,11 @@ interface ValhallaCosting {
   options?: Record<string, unknown>
 }
 
+const VALHALLA_ENDPOINTS = [
+  'https://valhalla.openstreetmap.de/route',
+  'https://valhalla1.openstreetmap.de/route',
+]
+
 function valhallaCosting(category: string): ValhallaCosting | null {
   if (category === 'cycling') return { costing: 'bicycle', options: { use_roads: 1.0 } }
   if (category === 'running')  return { costing: 'pedestrian', options: {} }
@@ -110,34 +115,67 @@ function decodePolyline6(encoded: string): LatLng[] {
   return coords
 }
 
-async function fetchRoutingSegment(
+async function fetchValhallaSegment(
   from: LatLng,
   to: LatLng,
   category: string,
 ): Promise<{ coords: LatLng[]; distanceM: number } | null> {
   const info = valhallaCosting(category)
   if (!info) return null
+
+  const body = JSON.stringify({
+    locations: [{ lon: from[1], lat: from[0] }, { lon: to[1], lat: to[0] }],
+    costing: info.costing,
+    costing_options: info.options ? { [info.costing]: info.options } : undefined,
+    units: 'km',
+  })
+
+  for (const endpoint of VALHALLA_ENDPOINTS) {
+    try {
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body,
+        signal: AbortSignal.timeout(8000),
+      })
+      if (!res.ok) continue
+      const data = await res.json()
+      if (!data.trip?.legs?.length) continue
+      const leg = data.trip.legs[0]
+      return { coords: decodePolyline6(leg.shape), distanceM: leg.summary.length * 1000 }
+    } catch {}
+  }
+
+  return null
+}
+
+async function fetchOsrmRoadSegment(from: LatLng, to: LatLng): Promise<{ coords: LatLng[]; distanceM: number } | null> {
   try {
-    const body = JSON.stringify({
-      locations: [{ lon: from[1], lat: from[0] }, { lon: to[1], lat: to[0] }],
-      costing: info.costing,
-      costing_options: info.options ? { [info.costing]: info.options } : undefined,
-      units: 'km',
-    })
-    const res = await fetch('https://valhalla1.openstreetmap.de/route', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body,
-      signal: AbortSignal.timeout(8000),
-    })
+    const url = `https://router.project-osrm.org/route/v1/driving/${from[1]},${from[0]};${to[1]},${to[0]}?overview=full&geometries=geojson&radiuses=200;200`
+    const res = await fetch(url, { signal: AbortSignal.timeout(8000) })
     if (!res.ok) return null
     const data = await res.json()
-    if (!data.trip?.legs?.length) return null
-    const leg = data.trip.legs[0]
-    return { coords: decodePolyline6(leg.shape), distanceM: leg.summary.length * 1000 }
+    const route = data.routes?.[0]
+    const coords = route?.geometry?.coordinates
+    if (!Array.isArray(coords) || coords.length < 2) return null
+    return {
+      coords: coords.map((point: [number, number]) => [point[1], point[0]] as LatLng),
+      distanceM: route.distance,
+    }
   } catch {
     return null
   }
+}
+
+async function fetchRoutingSegment(
+  from: LatLng,
+  to: LatLng,
+  category: string,
+): Promise<{ coords: LatLng[]; distanceM: number } | null> {
+  const valhalla = await fetchValhallaSegment(from, to, category)
+  if (valhalla) return valhalla
+  if (category === 'cycling') return fetchOsrmRoadSegment(from, to)
+  return null
 }
 
 // ─── Elevation via Open-Meteo ─────────────────────────────────────────────────
