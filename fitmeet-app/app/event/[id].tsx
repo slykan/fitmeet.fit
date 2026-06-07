@@ -281,6 +281,8 @@ export default function EventDetailScreen() {
   const [youtubeOpen, setYoutubeOpen] = useState(false)
   const [coloredSegments, setColoredSegments] = useState<TrackSegment[]>([])
   const [surfaceAnalysis, setSurfaceAnalysis] = useState<SurfaceAnalysis | null>(null)
+  const [surfaceLoading, setSurfaceLoading] = useState(false)
+  const [surfaceChecked, setSurfaceChecked] = useState(false)
   const [elevationProfile, setElevationProfile] = useState<ElevationPoint[]>([])
   const [gpxTrack, setGpxTrack] = useState<[number, number][]>([])
   const [gpxStats, setGpxStats] = useState<GpxActivityStats | null>(null)
@@ -385,6 +387,8 @@ export default function EventDetailScreen() {
   useEffect(() => {
     setColoredSegments([])
     setSurfaceAnalysis(null)
+    setSurfaceLoading(false)
+    setSurfaceChecked(false)
     setElevationProfile([])
     setGpxTrack([])
     setGpxStats(null)
@@ -411,12 +415,17 @@ export default function EventDetailScreen() {
         }
         setGpxTrack(parsed.track)
         setGpxStats(gpxStatsFromParsed(parsed))
+        setSurfaceLoading(true)
         analyzeRouteSurface(parsed.track)
           .then((analysis) => {
             setSurfaceAnalysis(analysis)
             if (analysis?.segments.length) setColoredSegments(analysis.segments)
           })
           .catch(() => {})
+          .finally(() => {
+            setSurfaceLoading(false)
+            setSurfaceChecked(true)
+          })
         if (parsed.coloredSegments.length > 0) setColoredSegments(parsed.coloredSegments)
         if (parsed.elevationProfile.length >= 2) setElevationProfile(parsed.elevationProfile)
         else {
@@ -793,6 +802,7 @@ export default function EventDetailScreen() {
   const surfaceMixText = surfaceAnalysis?.summary.length
     ? surfaceAnalysis.summary.map(item => `${item.percent}% ${item.label.toLowerCase()}`).join(' - ')
     : null
+  const showSurfaceSection = Boolean(event.activity.gpx_url && (surfaceLoading || surfaceChecked || surfaceAnalysis?.summary.length))
 
   if (cancelled) {
     actionLabel = 'Event Cancelled'
@@ -1000,24 +1010,27 @@ export default function EventDetailScreen() {
           />
         )}
 
-        {surfaceAnalysis?.summary.length ? (
+        {showSurfaceSection ? (
           <View style={styles.surfaceSection}>
-            {surfaceMixText ? (
-              <Text style={styles.surfaceMixText}>
-                Surface mix: <Text style={styles.surfaceMixMuted}>{surfaceMixText}</Text>
+            <Text style={styles.surfaceMixText}>
+              Surface mix:{' '}
+              <Text style={styles.surfaceMixMuted}>
+                {surfaceMixText ?? (surfaceLoading ? 'checking road surface...' : 'surface data unavailable')}
               </Text>
-            ) : null}
-            <View style={styles.surfaceGrid}>
-              {surfaceAnalysis.summary.map(item => (
-                <View key={item.kind} style={styles.surfaceCard}>
-                  <View style={styles.surfaceLabelRow}>
-                    <View style={[styles.surfaceSwatch, { backgroundColor: item.color }]} />
-                    <Text style={styles.surfaceLabel}>{item.label}</Text>
+            </Text>
+            {surfaceAnalysis?.summary.length ? (
+              <View style={styles.surfaceGrid}>
+                {surfaceAnalysis.summary.map(item => (
+                  <View key={item.kind} style={styles.surfaceCard}>
+                    <View style={styles.surfaceLabelRow}>
+                      <View style={[styles.surfaceSwatch, { backgroundColor: item.color }]} />
+                      <Text style={styles.surfaceLabel}>{item.label}</Text>
+                    </View>
+                    <Text style={styles.surfaceMeta}>{item.distanceKm} km - {item.percent}%</Text>
                   </View>
-                  <Text style={styles.surfaceMeta}>{item.distanceKm} km - {item.percent}%</Text>
-                </View>
-              ))}
-            </View>
+                ))}
+              </View>
+            ) : null}
           </View>
         ) : null}
 

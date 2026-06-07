@@ -88,6 +88,8 @@ export default function RouteViewScreen() {
   const [error, setError] = useState<string | null>(null)
   const [mapEnabled, setMapEnabled] = useState(false)
   const [surfaceAnalysis, setSurfaceAnalysis] = useState<SurfaceAnalysis | null>(null)
+  const [surfaceLoading, setSurfaceLoading] = useState(false)
+  const [surfaceChecked, setSurfaceChecked] = useState(false)
 
   async function openGpxDownload() {
     if (!id) return
@@ -121,6 +123,8 @@ export default function RouteViewScreen() {
     async function load() {
       setLoading(true)
       setSurfaceAnalysis(null)
+      setSurfaceLoading(false)
+      setSurfaceChecked(false)
       try {
         const { data } = await api.get(`/routes/${id}`)
         const loaded = data.data as RouteDetail
@@ -137,11 +141,18 @@ export default function RouteViewScreen() {
         }
         const parsedWithStats = withProfileStats(parsed)
         if (!cancelled) setGpx(parsedWithStats)
+        if (!cancelled) setSurfaceLoading(true)
         analyzeRouteSurface(parsedWithStats.track)
           .then((analysis) => {
             if (!cancelled) setSurfaceAnalysis(analysis)
           })
           .catch(() => {})
+          .finally(() => {
+            if (!cancelled) {
+              setSurfaceLoading(false)
+              setSurfaceChecked(true)
+            }
+          })
       } catch {
         if (!cancelled) setError('Route not found.')
       } finally {
@@ -184,6 +195,7 @@ export default function RouteViewScreen() {
   const surfaceMixText = surfaceAnalysis?.summary.length
     ? surfaceAnalysis.summary.map(item => `${item.percent}% ${item.label.toLowerCase()}`).join(' - ')
     : null
+  const showSurfaceSection = Boolean(gpx?.track.length && (surfaceLoading || surfaceChecked || surfaceAnalysis?.summary.length))
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -251,24 +263,27 @@ export default function RouteViewScreen() {
           />
         ) : null}
 
-        {surfaceAnalysis?.summary.length ? (
+        {showSurfaceSection ? (
           <View style={styles.surfaceSection}>
-            {surfaceMixText ? (
-              <Text style={styles.surfaceMixText}>
-                Surface mix: <Text style={styles.surfaceMixMuted}>{surfaceMixText}</Text>
+            <Text style={styles.surfaceMixText}>
+              Surface mix:{' '}
+              <Text style={styles.surfaceMixMuted}>
+                {surfaceMixText ?? (surfaceLoading ? 'checking road surface...' : 'surface data unavailable')}
               </Text>
-            ) : null}
-            <View style={styles.surfaceGrid}>
-              {surfaceAnalysis.summary.map(item => (
-                <View key={item.kind} style={styles.surfaceCard}>
-                  <View style={styles.surfaceLabelRow}>
-                    <View style={[styles.surfaceSwatch, { backgroundColor: item.color }]} />
-                    <Text style={styles.surfaceLabel}>{item.label}</Text>
+            </Text>
+            {surfaceAnalysis?.summary.length ? (
+              <View style={styles.surfaceGrid}>
+                {surfaceAnalysis.summary.map(item => (
+                  <View key={item.kind} style={styles.surfaceCard}>
+                    <View style={styles.surfaceLabelRow}>
+                      <View style={[styles.surfaceSwatch, { backgroundColor: item.color }]} />
+                      <Text style={styles.surfaceLabel}>{item.label}</Text>
+                    </View>
+                    <Text style={styles.surfaceMeta}>{item.distanceKm} km · {item.percent}%</Text>
                   </View>
-                  <Text style={styles.surfaceMeta}>{item.distanceKm} km · {item.percent}%</Text>
-                </View>
-              ))}
-            </View>
+                ))}
+              </View>
+            ) : null}
           </View>
         ) : null}
 
