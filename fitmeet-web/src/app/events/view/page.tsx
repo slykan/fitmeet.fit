@@ -18,6 +18,7 @@ import { getYouTubeVideoId } from '@/lib/youtube'
 import { fetchRelevantEventWeather, windDirectionLabelDetailed, type EventWeather } from '@/lib/weather'
 import api from '@/lib/api'
 import { fetchElevationProfile, parseGpx, GpxResult } from '@/lib/parse-gpx'
+import { analyzeRouteSurface, type SurfaceAnalysis } from '@/lib/route-surface'
 import { useAuthStore } from '@/store/auth'
 import { Button } from '@/components/ui/button'
 
@@ -147,6 +148,7 @@ function EventContent() {
   const [checkingIn, setCheckingIn] = useState(false)
   const [error,    setError]    = useState<string | null>(null)
   const [gpxResult, setGpxResult] = useState<GpxResult | null>(null)
+  const [surfaceAnalysis, setSurfaceAnalysis] = useState<SurfaceAnalysis | null>(null)
   const [showParticipants, setShowParticipants] = useState(false)
   const [showReminderModal, setShowReminderModal] = useState(false)
   const [selectedOffsets,  setSelectedOffsets]  = useState<Set<string>>(new Set())
@@ -179,6 +181,7 @@ function EventContent() {
           api.get(gpxEndpoint(loadedEvent), { responseType: 'text' })
             .then(async (r) => {
               const parsed = parseGpx(r.data)
+              analyzeRouteSurface(parsed.track).then(setSurfaceAnalysis).catch(() => {})
               if (parsed.elevationProfile.length >= 2) {
                 setGpxResult(withProfileStats(parsed))
                 return
@@ -194,6 +197,9 @@ function EventContent() {
               }
             })
             .catch(() => {})
+        } else {
+          setGpxResult(null)
+          setSurfaceAnalysis(null)
         }
       })
       .catch(() => setError('Event not found.'))
@@ -411,6 +417,9 @@ function EventContent() {
   const activityMaxDowngrade = gpxResult?.maxDowngrade ?? event?.activity.max_downgrade ?? null
   const activityProfileStats = gpxResult?.elevationProfile.length
     ? statsFromElevationProfile(gpxResult.elevationProfile)
+    : null
+  const surfaceMixText = surfaceAnalysis?.summary.length
+    ? surfaceAnalysis.summary.map(item => `${item.percent}% ${item.label.toLowerCase()}`).join(' - ')
     : null
 
   return (
@@ -668,7 +677,7 @@ function EventContent() {
                   })
                 }}
                 onInteractionChange={setIsMapInteracting}
-                coloredSegments={gpxResult?.coloredSegments}
+                coloredSegments={surfaceAnalysis?.segments ?? gpxResult?.coloredSegments}
                 weather={weather}
                 weatherVariant="hub"
                 showWindOverlay={showWindOverlay && !isMapInteracting}
@@ -727,6 +736,25 @@ function EventContent() {
               </div>
             </div>
           )}
+
+          {surfaceAnalysis?.summary.length ? (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {surfaceMixText && (
+                <div className="col-span-2 sm:col-span-4 text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
+                  Surface mix: <span style={{ color: 'var(--text-muted)' }}>{surfaceMixText}</span>
+                </div>
+              )}
+              {surfaceAnalysis.summary.map(item => (
+                <div key={item.kind} className="rounded-xl border p-3" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
+                  <div className="flex items-center gap-2">
+                    <span className="inline-block h-2 w-8 rounded-full" style={{ background: item.color }} />
+                    <span className="text-xs font-bold" style={{ color: 'var(--text-primary)' }}>{item.label}</span>
+                  </div>
+                  <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{item.distanceKm} km - {item.percent}%</p>
+                </div>
+              ))}
+            </div>
+          ) : null}
 
           {gpxResult && gpxResult.elevationProfile.length >= 2 && (
             <div>

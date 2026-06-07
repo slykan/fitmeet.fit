@@ -19,6 +19,7 @@ import { CATEGORIES } from '@/src/lib/categories'
 import { api } from '@/src/lib/api'
 import { fetchElevationProfile, parseGpxText } from '@/src/lib/gpx'
 import type { TrackSegment } from '@/src/lib/gpx'
+import { analyzeRouteSurface, type SurfaceAnalysis } from '@/src/lib/route-surface'
 import { useAuthStore } from '@/src/store/auth'
 import { palette, spacing } from '@/src/theme'
 import { SupportFitMeetCard } from '@/src/components/SupportFitMeetCard'
@@ -279,6 +280,7 @@ export default function EventDetailScreen() {
   const [participantSectionY, setParticipantSectionY] = useState<number | null>(null)
   const [youtubeOpen, setYoutubeOpen] = useState(false)
   const [coloredSegments, setColoredSegments] = useState<TrackSegment[]>([])
+  const [surfaceAnalysis, setSurfaceAnalysis] = useState<SurfaceAnalysis | null>(null)
   const [elevationProfile, setElevationProfile] = useState<ElevationPoint[]>([])
   const [gpxTrack, setGpxTrack] = useState<[number, number][]>([])
   const [gpxStats, setGpxStats] = useState<GpxActivityStats | null>(null)
@@ -382,6 +384,7 @@ export default function EventDetailScreen() {
 
   useEffect(() => {
     setColoredSegments([])
+    setSurfaceAnalysis(null)
     setElevationProfile([])
     setGpxTrack([])
     setGpxStats(null)
@@ -408,6 +411,12 @@ export default function EventDetailScreen() {
         }
         setGpxTrack(parsed.track)
         setGpxStats(gpxStatsFromParsed(parsed))
+        analyzeRouteSurface(parsed.track)
+          .then((analysis) => {
+            setSurfaceAnalysis(analysis)
+            if (analysis?.segments.length) setColoredSegments(analysis.segments)
+          })
+          .catch(() => {})
         if (parsed.coloredSegments.length > 0) setColoredSegments(parsed.coloredSegments)
         if (parsed.elevationProfile.length >= 2) setElevationProfile(parsed.elevationProfile)
         else {
@@ -781,6 +790,9 @@ export default function EventDetailScreen() {
   let actionDisabled = false
   const showActionRow = event.status === 'active' || event.is_joined
   const ytId = youtubeVideoId(event.youtube_url)
+  const surfaceMixText = surfaceAnalysis?.summary.length
+    ? surfaceAnalysis.summary.map(item => `${item.percent}% ${item.label.toLowerCase()}`).join(' - ')
+    : null
 
   if (cancelled) {
     actionLabel = 'Event Cancelled'
@@ -983,10 +995,31 @@ export default function EventDetailScreen() {
             lat={event.location.lat}
             lng={event.location.lng}
             emoji={CATEGORY_EMOJI[event.category.value] ?? '📍'}
-            coloredSegments={coloredSegments.length > 0 ? coloredSegments : undefined}
+            coloredSegments={surfaceAnalysis?.segments ?? (coloredSegments.length > 0 ? coloredSegments : undefined)}
             onMapEnabledChange={setMapEnabled}
           />
         )}
+
+        {surfaceAnalysis?.summary.length ? (
+          <View style={styles.surfaceSection}>
+            {surfaceMixText ? (
+              <Text style={styles.surfaceMixText}>
+                Surface mix: <Text style={styles.surfaceMixMuted}>{surfaceMixText}</Text>
+              </Text>
+            ) : null}
+            <View style={styles.surfaceGrid}>
+              {surfaceAnalysis.summary.map(item => (
+                <View key={item.kind} style={styles.surfaceCard}>
+                  <View style={styles.surfaceLabelRow}>
+                    <View style={[styles.surfaceSwatch, { backgroundColor: item.color }]} />
+                    <Text style={styles.surfaceLabel}>{item.label}</Text>
+                  </View>
+                  <Text style={styles.surfaceMeta}>{item.distanceKm} km - {item.percent}%</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        ) : null}
 
         {/* Elevation profile */}
         {elevationProfile.length >= 2 && (
@@ -1518,6 +1551,23 @@ const styles = StyleSheet.create({
   gpxActionRow:   { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 2 },
   detailPrimary:  { color: palette.textMuted, fontSize: 14, lineHeight: 20 },
   detailSecondary:{ color: palette.textDim, fontSize: 13 },
+
+  surfaceSection: { paddingHorizontal: spacing.md, gap: 8 },
+  surfaceMixText: { color: palette.text, fontSize: 13, fontWeight: '900' },
+  surfaceMixMuted: { color: palette.textMuted, fontWeight: '700' },
+  surfaceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  surfaceCard: {
+    width: '48%',
+    backgroundColor: palette.panel,
+    borderColor: palette.line,
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 10,
+  },
+  surfaceLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  surfaceSwatch: { width: 24, height: 8, borderRadius: 999 },
+  surfaceLabel: { color: palette.text, fontSize: 12, fontWeight: '800', flex: 1 },
+  surfaceMeta: { color: palette.textMuted, fontSize: 11, marginTop: 5 },
 
   description: { color: palette.textMuted, fontSize: 14, lineHeight: 22 },
 
