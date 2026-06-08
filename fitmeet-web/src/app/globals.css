@@ -61,7 +61,7 @@ body {
 }
 
 .users-ticker {
-  animation: users-ticker 20s linear infinite;
+  animation: users-ticker 42s linear infinite;
   width: max-content;
 }
 

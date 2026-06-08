@@ -31,8 +31,8 @@ export function LatestRoutesSection() {
   if (!loaded) return null
 
   return (
-    <section className="py-14 md:py-16 border-b" style={{ borderColor: 'var(--border)' }}>
-      <div className="max-w-6xl mx-auto px-4">
+    <section className="py-14 md:py-16 border-b overflow-hidden" style={{ borderColor: 'var(--border)' }}>
+      <div className="max-w-6xl mx-auto px-4 min-w-0">
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between mb-8">
           <div className="max-w-2xl">
             <p className="text-sm font-semibold mb-3" style={{ color: 'var(--primary)' }}>
@@ -66,10 +66,10 @@ export function LatestRoutesSection() {
                     <Link
                       key={route.id}
                       href={`/routes/view?id=${route.id}`}
-                      className="rounded-2xl border p-4 flex flex-col gap-3 transition-opacity hover:opacity-80"
+                      className="min-w-0 rounded-2xl border p-4 flex flex-col gap-3 overflow-hidden transition-opacity hover:opacity-80"
                       style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
                     >
-                      <div className="flex items-center gap-3">
+                      <div className="flex min-w-0 items-center gap-3">
                         <div
                           className="w-11 h-11 rounded-xl flex items-center justify-center text-xl shrink-0"
                           style={{ background: 'var(--background)', border: '1px solid var(--border)' }}
@@ -77,21 +77,21 @@ export function LatestRoutesSection() {
                           {emoji}
                         </div>
                         <span
-                          className="text-xs px-2 py-0.5 rounded-full border font-medium"
+                          className="min-w-0 truncate text-xs px-2 py-0.5 rounded-full border font-medium"
                           style={{ borderColor: 'var(--primary)', color: 'var(--primary)', background: 'rgba(57,255,20,0.08)' }}
                         >
                           {route.category.label}
                         </span>
                       </div>
-                      <p className="font-bold text-sm leading-snug">{route.title}</p>
-                      <div className="flex items-center gap-3 text-xs" style={{ color: 'var(--text-muted)' }}>
+                      <p className="min-w-0 break-words font-bold text-sm leading-snug">{route.title}</p>
+                      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs" style={{ color: 'var(--text-muted)' }}>
                         {route.stats.distance_km != null && <span>{route.stats.distance_km} km</span>}
                         {route.stats.elevation_gain != null && <span>↑ {route.stats.elevation_gain} m</span>}
                       </div>
                       {route.location.area_label && (
-                        <div className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--text-muted)' }}>
-                          <MapPin size={11} />
-                          <span className="truncate">{route.location.area_label}</span>
+                        <div className="flex min-w-0 items-center gap-1.5 text-xs" style={{ color: 'var(--text-muted)' }}>
+                          <MapPin size={11} className="shrink-0" />
+                          <span className="min-w-0 truncate">{route.location.area_label}</span>
                         </div>
                       )}
                     </Link>
@@ -101,19 +101,19 @@ export function LatestRoutesSection() {
             )}
 
             <div
-              className="rounded-2xl border px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4"
+              className="min-w-0 rounded-2xl border px-4 py-4 sm:px-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 overflow-hidden"
               style={{ borderColor: 'rgba(57,255,20,0.22)', background: 'rgba(57,255,20,0.04)' }}
             >
-              <div className="flex items-center gap-3">
-                <Download size={17} style={{ color: 'var(--primary)' }} />
-                <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+              <div className="flex min-w-0 items-start sm:items-center gap-3">
+                <Download size={17} className="shrink-0 mt-0.5 sm:mt-0" style={{ color: 'var(--primary)' }} />
+                <p className="min-w-0 text-sm leading-relaxed" style={{ color: 'var(--text-muted)' }}>
                   <strong className="font-semibold" style={{ color: 'var(--text-primary)' }}>Download GPX</strong>{' '}
                   — works with Garmin, Wahoo, Komoot, AllTrails and any GPS device.
                 </p>
               </div>
               <Link
                 href="/meet?tab=routes"
-                className="btn-primary inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm whitespace-nowrap"
+                className="btn-primary inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm whitespace-nowrap"
               >
                 Open routes <ArrowRight size={14} />
               </Link>
@@ -121,26 +121,26 @@ export function LatestRoutesSection() {
           </>
         ) : (
           <div
-            className="rounded-2xl border px-8 py-10 flex flex-col sm:flex-row items-center justify-between gap-6"
+            className="min-w-0 rounded-2xl border px-4 py-8 sm:px-8 sm:py-10 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-6 overflow-hidden"
             style={{ borderColor: 'rgba(57,255,20,0.2)', background: 'rgba(57,255,20,0.04)' }}
           >
-            <div className="flex items-center gap-4">
+            <div className="flex min-w-0 items-start sm:items-center gap-4">
               <div
                 className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0"
                 style={{ background: 'rgba(57,255,20,0.1)' }}
               >
                 <Lock size={20} style={{ color: 'var(--primary)' }} />
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="font-bold mb-1">Sign in to access routes</p>
-                <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                <p className="text-sm leading-relaxed" style={{ color: 'var(--text-muted)' }}>
                   Browse public GPX routes, download for your device and share with friends — free with an account.
                 </p>
               </div>
             </div>
             <Link
               href="/login"
-              className="btn-primary inline-flex items-center gap-2 px-7 py-3 rounded-xl font-bold whitespace-nowrap"
+              className="btn-primary inline-flex items-center justify-center gap-2 px-7 py-3 rounded-xl font-bold whitespace-nowrap"
             >
               Sign in free <ArrowRight size={15} />
             </Link>
