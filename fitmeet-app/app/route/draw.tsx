@@ -266,6 +266,7 @@ function buildDrawRouteHtml(
 // ── State ──────────────────────────────────────────────────────────────────
 var waypoints = [];   // [{latlng:[lat,lng], marker}]
 var segments  = [];   // [{fromIdx, toIdx, polyline, coords, distM}]
+var coloredRouteLayers = [];
 var category  = '${initCategory}';
 var pendingRouting = 0;
 var elevDebounce = null;
@@ -352,6 +353,35 @@ function sampleTrack(track, max) {
   var result = [], step = (track.length-1)/(max-1);
   for (var i=0;i<max;i++) result.push(track[Math.round(i*step)]);
   return result;
+}
+
+function slopeColorForGrade(grade) {
+  if (grade < -2) return '#39ff14';
+  if (grade < 3) return '#3399ff';
+  if (grade < 7) return '#ffaa00';
+  return '#ff2200';
+}
+
+function clearColoredRouteLayers() {
+  coloredRouteLayers.forEach(function(layer) { map.removeLayer(layer); });
+  coloredRouteLayers = [];
+}
+
+function renderColoredRouteLayers(sampled, elevs) {
+  clearColoredRouteLayers();
+  if (!sampled || !elevs || sampled.length < 2 || elevs.length < 2) return;
+  for (var i=1;i<Math.min(sampled.length, elevs.length);i++) {
+    var distM = haversineM(sampled[i-1], sampled[i]);
+    var grade = distM > 0 ? ((elevs[i] - elevs[i-1]) / distM) * 100 : 0;
+    var poly = L.polyline([sampled[i-1], sampled[i]], {
+      color: slopeColorForGrade(grade),
+      weight: 5,
+      opacity: 0.98,
+      lineJoin: 'round',
+      lineCap: 'round'
+    }).addTo(map);
+    coloredRouteLayers.push(poly);
+  }
 }
 
 function makeIcon(num, selected, isLast) {
@@ -518,8 +548,8 @@ async function fetchElevationData(track) {
     var elevs = data.elevation || [];
     var gain = 0;
     for (var i=1;i<elevs.length;i++) if (elevs[i]>elevs[i-1]) gain+=elevs[i]-elevs[i-1];
-    return {gain:Math.round(gain),elevs:elevs};
-  } catch(e) { return {gain:0,elevs:[]}; }
+    return {gain:Math.round(gain),elevs:elevs,sampled:sampled};
+  } catch(e) { return {gain:0,elevs:[],sampled:[]}; }
 }
 
 async function fetchElevGain(track) {
@@ -575,6 +605,7 @@ function scheduleElevation() {
       pill.innerHTML = '<div class="stat-main"><span>'+distKm.toFixed(1)+' km</span><span>'+gain+' m up</span><span>'+waypoints.length+' pts</span></div><div class="stat-sub">Drag points to reshape route</div>';
     }
     renderElevationChart(elev.elevs);
+    renderColoredRouteLayers(elev.sampled, elev.elevs);
     window._elevGain = gain;
   }, 900);
 }
@@ -598,6 +629,7 @@ async function routeSegment(fromIdx) {
   if (!from || !to) return;
   pendingRouting++;
   showLoading(pendingRouting > 0);
+  clearColoredRouteLayers();
 
   // Placeholder line
   var placeholder = L.polyline([from.latlng, to.latlng], {

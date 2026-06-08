@@ -258,7 +258,7 @@ export default function RouteViewScreen() {
             lat={route.location.start_lat}
             lng={route.location.start_lng}
             emoji={emoji}
-            coloredSegments={surfaceAnalysis?.segments ?? gpx?.coloredSegments}
+            coloredSegments={gpx?.coloredSegments ?? surfaceAnalysis?.segments}
             onMapEnabledChange={setMapEnabled}
           />
         ) : null}

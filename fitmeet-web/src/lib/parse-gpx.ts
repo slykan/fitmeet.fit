@@ -66,22 +66,23 @@ function buildElevationProfile(track: [number, number][], elevs: number[]): Elev
 
   const coloredSegments: TrackSegment[] = []
   if (profileCoords.length >= 2) {
-    let seg: TrackSegment = { coords: [profileCoords[0]], color: '#39ff14' }
+    let seg: TrackSegment | null = null
     for (let i = 1; i < profileCoords.length; i++) {
       const distKm = elevationProfile[i].km - elevationProfile[i - 1].km
       const eleM = elevationProfile[i].ele - elevationProfile[i - 1].ele
       const grade = distKm > 0 ? (eleM / (distKm * 1000)) * 100 : 0
       const color = slopeColor(grade)
 
-      if (color === seg.color) {
+      if (!seg) {
+        seg = { coords: [profileCoords[i - 1], profileCoords[i]], color }
+      } else if (color === seg.color) {
         seg.coords.push(profileCoords[i])
       } else {
-        seg.coords.push(profileCoords[i])
         coloredSegments.push(seg)
-        seg = { coords: [profileCoords[i]], color }
+        seg = { coords: [profileCoords[i - 1], profileCoords[i]], color }
       }
     }
-    coloredSegments.push(seg)
+    if (seg) coloredSegments.push(seg)
   }
 
   return { elevationProfile, coloredSegments }
@@ -200,7 +201,7 @@ export function parseGpx(xml: string): GpxResult {
   const coloredSegments: TrackSegment[] = []
 
   if (profileCoords.length >= 2) {
-    let seg: TrackSegment = { coords: [profileCoords[0]], color: '#39ff14' }
+    let seg: TrackSegment | null = null
 
     for (let i = 1; i < profileCoords.length; i++) {
       const distKm = elevationProfile[i].km - elevationProfile[i - 1].km
@@ -208,15 +209,16 @@ export function parseGpx(xml: string): GpxResult {
       const grade  = distKm > 0 ? (eleM / (distKm * 1000)) * 100 : 0
       const color  = slopeColor(grade)
 
-      if (color === seg.color) {
+      if (!seg) {
+        seg = { coords: [profileCoords[i - 1], profileCoords[i]], color }
+      } else if (color === seg.color) {
         seg.coords.push(profileCoords[i])
       } else {
-        seg.coords.push(profileCoords[i]) // overlap for seamless join
         coloredSegments.push(seg)
-        seg = { coords: [profileCoords[i]], color }
+        seg = { coords: [profileCoords[i - 1], profileCoords[i]], color }
       }
     }
-    coloredSegments.push(seg)
+    if (seg) coloredSegments.push(seg)
   } else if (track.length >= 2) {
     // No elevation — single green segment
     coloredSegments.push({ coords: track, color: '#39ff14' })

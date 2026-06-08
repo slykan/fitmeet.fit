@@ -29,6 +29,11 @@ interface SegmentEntry {
   distanceM: number
 }
 
+interface ColoredSegment {
+  coords: LatLng[]
+  color: string
+}
+
 interface ElevationPoint {
   km: number
   ele: number
@@ -190,8 +195,8 @@ function sampleTrack(track: LatLng[], max = 100): LatLng[] {
   return result
 }
 
-async function fetchElevationProfile(track: LatLng[]): Promise<{ gain: number; profile: ElevationPoint[] }> {
-  if (track.length < 2) return { gain: 0, profile: [] }
+async function fetchElevationProfile(track: LatLng[]): Promise<{ gain: number; profile: ElevationPoint[]; coloredSegments: ColoredSegment[] }> {
+  if (track.length < 2) return { gain: 0, profile: [], coloredSegments: [] }
   const sampled = sampleTrack(track, 100)
   let totalM = 0
   const distances = sampled.map((point, index) => {
@@ -205,19 +210,41 @@ async function fetchElevationProfile(track: LatLng[]): Promise<{ gain: number; p
       `https://api.open-meteo.com/v1/elevation?latitude=${lats}&longitude=${lngs}`,
       { signal: AbortSignal.timeout(8000) },
     )
-    if (!res.ok) return { gain: 0, profile: [] }
+    if (!res.ok) return { gain: 0, profile: [], coloredSegments: [] }
     const data = await res.json()
     const elevs: number[] = data.elevation ?? []
     let gain = 0
     for (let i = 1; i < elevs.length; i++) {
       if (elevs[i] > elevs[i - 1]) gain += elevs[i] - elevs[i - 1]
     }
+    const profile = elevs.map((ele, index) => ({ km: distances[index] ?? 0, ele }))
+    const coloredSegments: ColoredSegment[] = []
+    if (sampled.length >= 2 && profile.length >= 2) {
+      let seg: ColoredSegment | null = null
+      for (let i = 1; i < Math.min(sampled.length, profile.length); i++) {
+        const distKm = profile[i].km - profile[i - 1].km
+        const eleM = profile[i].ele - profile[i - 1].ele
+        const grade = distKm > 0 ? (eleM / (distKm * 1000)) * 100 : 0
+        const color = slopeColor(grade)
+        if (!seg) {
+          seg = { coords: [sampled[i - 1], sampled[i]], color }
+        } else if (color === seg.color) {
+          seg.coords.push(sampled[i])
+        } else {
+          coloredSegments.push(seg)
+          seg = { coords: [sampled[i - 1], sampled[i]], color }
+        }
+      }
+      if (seg) coloredSegments.push(seg)
+    }
+
     return {
       gain: Math.round(gain),
-      profile: elevs.map((ele, index) => ({ km: distances[index] ?? 0, ele })),
+      profile,
+      coloredSegments,
     }
   } catch {
-    return { gain: 0, profile: [] }
+    return { gain: 0, profile: [], coloredSegments: [] }
   }
 }
 
@@ -313,6 +340,7 @@ export default function RouteDrawMap({ category, height = 500, initialWaypoints,
   const mapRef = useRef<L.Map | null>(null)
   const waypointsRef = useRef<WaypointEntry[]>([])
   const segmentsRef = useRef<SegmentEntry[]>([])
+  const coloredRouteLayersRef = useRef<L.Polyline[]>([])
   const selectedIdxRef = useRef<number | null>(null)
   const categoryRef = useRef(category)
   const elevDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -345,6 +373,28 @@ export default function RouteDrawMap({ category, height = 500, initialWaypoints,
       track.push(waypointsRef.current[0].latlng)
     }
     return track
+  }
+
+  function clearColoredRouteLayers() {
+    const map = mapRef.current
+    if (!map) return
+    coloredRouteLayersRef.current.forEach(layer => map.removeLayer(layer))
+    coloredRouteLayersRef.current = []
+  }
+
+  function renderColoredRouteLayers(coloredSegments: ColoredSegment[]) {
+    const map = mapRef.current
+    clearColoredRouteLayers()
+    if (!map || coloredSegments.length === 0) return
+    coloredRouteLayersRef.current = coloredSegments
+      .filter(segment => segment.coords.length > 1)
+      .map(segment => L.polyline(segment.coords, {
+        color: segment.color,
+        weight: 5,
+        opacity: 0.98,
+        lineJoin: 'round',
+        lineCap: 'round',
+      }).addTo(map))
   }
 
   // ─── Helper: compute total distance ──────────────────────────────────────
@@ -391,9 +441,10 @@ export default function RouteDrawMap({ category, height = 500, initialWaypoints,
     setElevLoading(true)
     elevDebounceRef.current = setTimeout(async () => {
       const track = buildFullTrack()
-      const { gain, profile } = await fetchElevationProfile(track)
+      const { gain, profile, coloredSegments } = await fetchElevationProfile(track)
       setElevLoading(false)
       setElevProfile(profile)
+      renderColoredRouteLayers(coloredSegments)
       setStats(s => ({ ...s, elevGain: gain }))
       publishResult(gain)
     }, 600)
@@ -451,6 +502,7 @@ export default function RouteDrawMap({ category, height = 500, initialWaypoints,
 
     pendingRoutingRef.current += 1
     setRouting(true)
+    clearColoredRouteLayers()
 
     // Draw a dashed placeholder while routing
     const placeholder = L.polyline([from, to], {
@@ -713,6 +765,7 @@ export default function RouteDrawMap({ category, height = 500, initialWaypoints,
     mapDivRef.current.appendChild(gpsDiv)
 
     return () => {
+      clearColoredRouteLayers()
       map.remove()
       mapRef.current = null
       waypointsRef.current = []

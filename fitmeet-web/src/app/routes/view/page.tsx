@@ -266,7 +266,7 @@ function RouteContent() {
               lat={route.location.start_lat}
               lng={route.location.start_lng}
               track={gpxResult?.track}
-              coloredSegments={surfaceAnalysis?.segments ?? gpxResult?.coloredSegments}
+              coloredSegments={gpxResult?.coloredSegments ?? surfaceAnalysis?.segments}
               readOnly
               height={360}
               showWindOverlay={false}
