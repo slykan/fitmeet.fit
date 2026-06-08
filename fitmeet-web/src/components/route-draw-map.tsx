@@ -3,6 +3,7 @@
 import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import { slopeColor } from '@/lib/parse-gpx'
 
 export type LatLng = [number, number]
 
@@ -38,6 +39,7 @@ interface Props {
   height?: number
   initialWaypoints?: LatLng[]
   initialTrack?: LatLng[]
+  undoRequestId?: number
   onUpdate: (result: DrawResult) => void
 }
 
@@ -229,19 +231,42 @@ function ElevationPreview({ profile }: { profile: ElevationPoint[] }) {
   const minEle = Math.min(...profile.map(point => point.ele))
   const maxEle = Math.max(...profile.map(point => point.ele))
   const range = Math.max(maxEle - minEle, 1)
-  const path = profile.map((point, index) => {
+  const points = profile.map(point => {
     const x = pad + (point.km / maxKm) * (width - pad * 2)
     const y = height - pad - ((point.ele - minEle) / range) * (height - pad * 2)
-    return `${index === 0 ? 'M' : 'L'}${x.toFixed(1)} ${y.toFixed(1)}`
-  }).join(' ')
+    return { x, y, point }
+  })
+  const baseline = height - pad
 
   return (
     <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-[72px]" aria-hidden="true">
-      <path
-        d={`${path} L ${width - pad} ${height - pad} L ${pad} ${height - pad} Z`}
-        fill="rgba(57,255,20,0.12)"
-      />
-      <path d={path} fill="none" stroke="#39ff14" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+      {points.slice(1).map((current, index) => {
+        const prev = points[index]
+        const distKm = current.point.km - prev.point.km
+        const eleM = current.point.ele - prev.point.ele
+        const grade = distKm > 0 ? (eleM / (distKm * 1000)) * 100 : 0
+        const color = slopeColor(grade)
+
+        return (
+          <g key={index}>
+            <polygon
+              points={`${prev.x},${baseline} ${prev.x},${prev.y} ${current.x},${current.y} ${current.x},${baseline}`}
+              fill={color}
+              opacity={0.14}
+            />
+            <line
+              x1={prev.x}
+              y1={prev.y}
+              x2={current.x}
+              y2={current.y}
+              stroke={color}
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </g>
+        )
+      })}
       <text x={pad} y={height - 4} fill="rgba(255,255,255,0.52)" fontSize="10">{Math.round(minEle)}m</text>
       <text x={width - pad} y={14} fill="rgba(255,255,255,0.52)" fontSize="10" textAnchor="end">{Math.round(maxEle)}m</text>
     </svg>
@@ -283,7 +308,7 @@ function straightLine(from: LatLng, to: LatLng): { coords: LatLng[]; distanceM: 
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function RouteDrawMap({ category, height = 500, initialWaypoints, initialTrack, onUpdate }: Props) {
+export default function RouteDrawMap({ category, height = 500, initialWaypoints, initialTrack, undoRequestId = 0, onUpdate }: Props) {
   const mapDivRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
   const waypointsRef = useRef<WaypointEntry[]>([])
@@ -305,6 +330,7 @@ export default function RouteDrawMap({ category, height = 500, initialWaypoints,
   const [searchQuery, setSearchQuery] = useState('')
   const [searching, setSearching] = useState(false)
   const [searchError, setSearchError] = useState<string | null>(null)
+  const lastUndoRequestRef = useRef(undoRequestId)
 
   // ─── Helper: build full track from all segments ──────────────────────────
 
@@ -585,6 +611,12 @@ export default function RouteDrawMap({ category, height = 500, initialWaypoints,
     if (wps.length === 0) return
     removeWaypoint(wps.length - 1)
   }, [removeWaypoint])
+
+  useEffect(() => {
+    if (undoRequestId === lastUndoRequestRef.current) return
+    lastUndoRequestRef.current = undoRequestId
+    undoLast()
+  }, [undoRequestId, undoLast])
 
   // ─── Re-route all segments when category changes ──────────────────────────
 
@@ -899,14 +931,6 @@ export default function RouteDrawMap({ category, height = 500, initialWaypoints,
               ✕ Remove point
             </button>
           )}
-          <button
-            onClick={undoLast}
-            disabled={waypointsRef.current.length === 0}
-            className="text-xs px-3 py-1.5 rounded-lg border font-semibold transition-colors disabled:opacity-30"
-            style={{ borderColor: 'var(--border)', color: 'var(--text-muted)', background: 'var(--surface)' }}
-          >
-            ↩ Undo
-          </button>
         </div>
       </div>
     </div>

@@ -173,6 +173,8 @@ function DrawContent() {
   const [initialWaypoints, setInitialWaypoints] = useState<LatLng[] | undefined>(undefined)
   const [initialTrack, setInitialTrack] = useState<LatLng[] | undefined>(undefined)
   const [categoryLocked, setCategoryLocked] = useState(false)
+  const [drawPointCount, setDrawPointCount] = useState(0)
+  const [undoRequestId, setUndoRequestId] = useState(0)
 
   const drawResultRef = useRef<DrawResult | null>(null)
 
@@ -288,15 +290,7 @@ function DrawContent() {
         <div style={{ maxWidth: 860, margin: '0 auto' }} className="space-y-5">
 
           {/* Header */}
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => router.back()}
-              className="flex items-center gap-1.5 text-sm transition-opacity hover:opacity-70"
-              style={{ color: 'var(--text-muted)' }}
-            >
-              <ChevronLeft size={16} />
-              Back
-            </button>
+          <div>
             <h1 className="text-xl font-black">{editId ? 'Edit Route' : 'Draw Route'}</h1>
           </div>
 
@@ -325,7 +319,11 @@ function DrawContent() {
               height={500}
               initialWaypoints={initialWaypoints}
               initialTrack={initialTrack}
-              onUpdate={result => { drawResultRef.current = result }}
+              undoRequestId={undoRequestId}
+              onUpdate={result => {
+                drawResultRef.current = result
+                setDrawPointCount(result.waypoints.length)
+              }}
             />
           </Suspense>
 
@@ -376,15 +374,36 @@ function DrawContent() {
               </p>
             )}
 
-            {/* Save */}
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="w-full py-3 rounded-xl font-bold text-sm transition-opacity hover:opacity-80 disabled:opacity-40"
-              style={{ background: 'var(--primary)', color: '#000' }}
-            >
-              {saving ? 'Saving…' : editId ? 'Save Changes' : 'Save Route'}
-            </button>
+            {/* Actions */}
+            <div className="grid grid-cols-[1fr_1.6fr_1fr] gap-2">
+              <button
+                type="button"
+                onClick={() => router.back()}
+                className="flex items-center justify-center gap-1.5 py-3 rounded-xl border font-bold text-sm transition-opacity hover:opacity-80"
+                style={{ borderColor: 'var(--border)', color: 'var(--text-muted)', background: 'var(--background)' }}
+              >
+                <ChevronLeft size={16} />
+                Back
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="py-3 rounded-xl font-bold text-sm transition-opacity hover:opacity-80 disabled:opacity-40"
+                style={{ background: 'var(--primary)', color: '#000' }}
+              >
+                {saving ? 'Saving...' : editId ? 'Save Changes' : 'Save Route'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setUndoRequestId(id => id + 1)}
+                disabled={drawPointCount === 0}
+                className="py-3 rounded-xl border font-bold text-sm transition-opacity hover:opacity-80 disabled:opacity-40"
+                style={{ borderColor: 'var(--border)', color: 'var(--text-muted)', background: 'var(--background)' }}
+              >
+                Undo
+              </button>
+            </div>
+
           </div>
 
         </div>

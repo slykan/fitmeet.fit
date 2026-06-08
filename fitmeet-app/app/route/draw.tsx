@@ -133,13 +133,6 @@ function buildDrawRouteHtml(
     pointer-events:all;height:40px;padding:0 14px;border-radius:12px;border:none;
     background:#6cff2f;color:#031109;font-size:12px;font-weight:900;
   }
-  #back-btn{
-    pointer-events:all;
-    background:rgba(5,8,22,0.88);border:1.5px solid rgba(255,255,255,0.14);
-    border-radius:12px;padding:8px 14px;
-    color:#f5f7ff;font-size:14px;font-weight:700;cursor:pointer;
-    display:flex;align-items:center;gap:5px;
-  }
   #stats-pill{
     pointer-events:none;
     flex:1;text-align:center;
@@ -212,17 +205,17 @@ function buildDrawRouteHtml(
   #action-row{
     display:flex;gap:8px;padding:4px 10px 6px;
   }
-  #undo-btn{
+  #back-btn,#undo-btn{
     flex:1;padding:10px;border-radius:14px;
     border:1.5px solid rgba(255,255,255,0.15);background:transparent;
     color:#b3bdd7;font-size:13px;font-weight:700;cursor:pointer;
   }
   #done-btn{
-    flex:2;padding:10px;border-radius:14px;
+    flex:1.45;padding:10px;border-radius:14px;
     background:#6cff2f;border:none;
     color:#031109;font-size:14px;font-weight:900;cursor:pointer;
   }
-  #done-btn:disabled{opacity:0.4;}
+  #done-btn:disabled,#undo-btn:disabled{opacity:0.4;}
 
   /* loading overlay */
   #loading-overlay{
@@ -243,7 +236,6 @@ function buildDrawRouteHtml(
 <div id="map"></div>
 
 <div id="top-bar">
-  <div id="back-btn" onclick="goBack()">&#8592; Back</div>
   <div id="stats-pill">Tap map to add points</div>
   <div id="layer-wrap">
     <button id="layer-btn" onclick="toggleLayerMenu()">Standard</button>
@@ -261,8 +253,9 @@ function buildDrawRouteHtml(
   <div id="elev-panel"><svg id="elev-chart" viewBox="0 0 320 54"></svg></div>
   <div id="cat-row"></div>
   <div id="action-row">
-    <button id="undo-btn" onclick="undoLast()">&#8617; Undo</button>
-    <button id="done-btn" onclick="done()" disabled>Done &#8250;</button>
+    <button id="back-btn" onclick="goBack()">&#8592; Back</button>
+    <button id="done-btn" onclick="done()" disabled>Save &#8250;</button>
+    <button id="undo-btn" onclick="undoLast()" disabled>&#8617; Undo</button>
   </div>
 </div>
 
@@ -388,6 +381,8 @@ function updateStats() {
   }
   var doneBtn = document.getElementById('done-btn');
   doneBtn.disabled = waypoints.length < 2;
+  var undoBtn = document.getElementById('undo-btn');
+  undoBtn.disabled = waypoints.length === 0;
 }
 
 function showLoading(v) {
@@ -406,6 +401,8 @@ function updateStats() {
   }
   var doneBtn = document.getElementById('done-btn');
   doneBtn.disabled = waypoints.length < 2;
+  var undoBtn = document.getElementById('undo-btn');
+  undoBtn.disabled = waypoints.length === 0;
 }
 
 // ── Polyline6 decoder (Valhalla uses precision 6) ────────────────────────
@@ -541,14 +538,28 @@ function renderElevationChart(elevs) {
   var min = Math.min.apply(null, elevs);
   var max = Math.max.apply(null, elevs);
   var range = Math.max(max-min, 1);
-  var path = elevs.map(function(ele, i) {
+  var points = elevs.map(function(ele, i) {
     var x = pad + (i/(elevs.length-1))*(w-pad*2);
     var y = h - pad - ((ele-min)/range)*(h-pad*2);
-    return (i===0?'M':'L') + x.toFixed(1) + ' ' + y.toFixed(1);
-  }).join(' ');
-  svg.innerHTML =
-    '<path d="'+path+' L '+(w-pad)+' '+(h-pad)+' L '+pad+' '+(h-pad)+' Z" fill="rgba(108,255,47,0.12)"></path>' +
-    '<path d="'+path+'" fill="none" stroke="#6cff2f" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path>';
+    return {x:x, y:y, ele:ele};
+  });
+  function segmentColor(delta) {
+    if (delta < -2) return '#39ff14';
+    if (delta < 3) return '#3399ff';
+    if (delta < 7) return '#ffaa00';
+    return '#ff2200';
+  }
+  var baseline = h - pad;
+  var fills = '';
+  var lines = '';
+  for (var i=1;i<points.length;i++) {
+    var prev = points[i-1];
+    var cur = points[i];
+    var color = segmentColor(cur.ele - prev.ele);
+    fills += '<polygon points="'+prev.x+','+baseline+' '+prev.x+','+prev.y+' '+cur.x+','+cur.y+' '+cur.x+','+baseline+'" fill="'+color+'" opacity="0.14"></polygon>';
+    lines += '<line x1="'+prev.x+'" y1="'+prev.y+'" x2="'+cur.x+'" y2="'+cur.y+'" stroke="'+color+'" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></line>';
+  }
+  svg.innerHTML = fills + lines;
   panel.className = 'show';
 }
 
