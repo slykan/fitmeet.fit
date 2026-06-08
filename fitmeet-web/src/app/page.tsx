@@ -135,19 +135,16 @@ const steps = [
     step: '01',
     title: 'Sign in and set your vibe',
     caption: 'Pick interests, set your radius and start with a feed that already feels local.',
-    panel: <LoginShot />,
   },
   {
     step: '02',
     title: 'Create or join an event',
     caption: 'Add the place, route, time and details. Then share it out in a way that feels polished.',
-    panel: <EventShot />,
   },
   {
     step: '03',
     title: 'Invite friends, find your crew',
     caption: 'Chat together, coordinate the plan and keep everyone synced before the event starts.',
-    panel: <FriendsShot />,
   },
 ]
 
@@ -443,7 +440,6 @@ export default async function HomePage() {
                   <p className="text-sm leading-relaxed" style={{ color: 'var(--text-muted)' }}>
                     {item.caption}
                   </p>
-                  {item.panel}
                 </div>
               ))}
             </div>
@@ -535,66 +531,3 @@ function MiniStat({ label, value }: { label: string; value: string }) {
   )
 }
 
-function LoginShot() {
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src="/images/welcome1.jpeg"
-      alt="FitMeet welcome screen"
-      className="w-full rounded-[28px] object-cover"
-      style={{ boxShadow: '0 18px 48px rgba(0,0,0,0.28)' }}
-    />
-  )
-}
-
-function EventShot() {
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src="/images/create1.jpg"
-      alt="Create event screen"
-      className="w-full rounded-[28px] object-cover"
-      style={{ boxShadow: '0 18px 48px rgba(0,0,0,0.28)' }}
-    />
-  )
-}
-
-function FriendsShot() {
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src="/images/invite1.jpg"
-      alt="Invite friends screen"
-      className="w-full rounded-[28px] object-cover"
-      style={{ boxShadow: '0 18px 48px rgba(0,0,0,0.28)' }}
-    />
-  )
-}
-
-function FieldMock({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-xl px-3 py-3" style={{ background: 'var(--background)' }}>
-      <p className="text-[11px] uppercase tracking-wide mb-1" style={{ color: 'var(--text-muted)' }}>
-        {label}
-      </p>
-      <p className="text-sm font-medium">{value}</p>
-    </div>
-  )
-}
-
-function Bubble({ text, mine = false }: { text: string; mine?: boolean }) {
-  return (
-    <div className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
-      <div
-        className="max-w-[82%] px-3.5 py-2.5 text-sm"
-        style={{
-          borderRadius: mine ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-          background: mine ? 'var(--primary)' : 'var(--background)',
-          color: mine ? '#000' : 'var(--text-primary)',
-        }}
-      >
-        {text}
-      </div>
-    </div>
-  )
-}
