@@ -268,7 +268,7 @@ function RouteContent() {
               track={gpxResult?.track}
               coloredSegments={gpxResult?.coloredSegments ?? surfaceAnalysis?.segments}
               readOnly
-              height={360}
+              height={720}
               showWindOverlay={false}
               showCloudOverlay={false}
               showMapLayerControl

@@ -331,7 +331,7 @@ export function EventMapCard({ lat, lng, emoji = '📍', coloredSegments, onMapE
 
 const styles = StyleSheet.create({
   card: {
-    height: 220,
+    height: 440,
     borderRadius: 20,
     overflow: 'hidden',
     borderWidth: 1,
