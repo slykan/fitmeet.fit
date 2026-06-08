@@ -677,14 +677,14 @@ function EventContent() {
                   })
                 }}
                 onInteractionChange={setIsMapInteracting}
-                coloredSegments={surfaceAnalysis?.segments ?? gpxResult?.coloredSegments}
+                coloredSegments={gpxResult?.coloredSegments ?? surfaceAnalysis?.segments}
                 weather={weather}
                 weatherVariant="hub"
                 showWindOverlay={showWindOverlay && !isMapInteracting}
                 showCloudOverlay={showCloudOverlay && !isMapInteracting}
                 showMapLayerControl
                 readOnly
-                height={400}
+                height={720}
               />
               <div
                 className="absolute inset-x-0 bottom-0 z-[700] flex items-center justify-between gap-3 border-t px-3 py-2 sm:px-4"

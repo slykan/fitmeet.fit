@@ -1005,7 +1005,7 @@ export default function EventDetailScreen() {
             lat={event.location.lat}
             lng={event.location.lng}
             emoji={CATEGORY_EMOJI[event.category.value] ?? '📍'}
-            coloredSegments={surfaceAnalysis?.segments ?? (coloredSegments.length > 0 ? coloredSegments : undefined)}
+            coloredSegments={coloredSegments.length > 0 ? coloredSegments : surfaceAnalysis?.segments}
             onMapEnabledChange={setMapEnabled}
           />
         )}
