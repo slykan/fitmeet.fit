@@ -187,17 +187,30 @@ async function fetchRoutingSegment(
 
 // ─── Elevation via Open-Meteo ─────────────────────────────────────────────────
 
-function sampleTrack(track: LatLng[], max = 100): LatLng[] {
-  if (track.length <= max) return track
-  const result: LatLng[] = []
+function sampleTrackWithIndexes(track: LatLng[], max = 100): { points: LatLng[]; indexes: number[] } {
+  if (track.length <= max) {
+    return {
+      points: track,
+      indexes: track.map((_, index) => index),
+    }
+  }
+
+  const points: LatLng[] = []
+  const indexes: number[] = []
   const step = (track.length - 1) / (max - 1)
-  for (let i = 0; i < max; i++) result.push(track[Math.round(i * step)])
-  return result
+  for (let i = 0; i < max; i++) {
+    const index = Math.round(i * step)
+    points.push(track[index])
+    indexes.push(index)
+  }
+
+  return { points, indexes }
 }
 
 async function fetchElevationProfile(track: LatLng[]): Promise<{ gain: number; profile: ElevationPoint[]; coloredSegments: ColoredSegment[] }> {
   if (track.length < 2) return { gain: 0, profile: [], coloredSegments: [] }
-  const sampled = sampleTrack(track, 100)
+  const sampledInfo = sampleTrackWithIndexes(track, 100)
+  const sampled = sampledInfo.points
   let totalM = 0
   const distances = sampled.map((point, index) => {
     if (index > 0) totalM += segmentLength([sampled[index - 1], point])
@@ -226,13 +239,17 @@ async function fetchElevationProfile(track: LatLng[]): Promise<{ gain: number; p
         const eleM = profile[i].ele - profile[i - 1].ele
         const grade = distKm > 0 ? (eleM / (distKm * 1000)) * 100 : 0
         const color = slopeColor(grade)
+        const fromIndex = sampledInfo.indexes[i - 1]
+        const toIndex = sampledInfo.indexes[i]
+        const coords = track.slice(fromIndex, toIndex + 1)
+        const segmentCoords = coords.length > 1 ? coords : [sampled[i - 1], sampled[i]]
         if (!seg) {
-          seg = { coords: [sampled[i - 1], sampled[i]], color }
+          seg = { coords: segmentCoords, color }
         } else if (color === seg.color) {
-          seg.coords.push(sampled[i])
+          seg.coords.push(...segmentCoords.slice(1))
         } else {
           coloredSegments.push(seg)
-          seg = { coords: [sampled[i - 1], sampled[i]], color }
+          seg = { coords: segmentCoords, color }
         }
       }
       if (seg) coloredSegments.push(seg)
