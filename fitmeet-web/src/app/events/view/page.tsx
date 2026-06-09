@@ -135,6 +135,12 @@ function withProfileStats(result: GpxResult): GpxResult {
   }
 }
 
+function fullTrackSegments(result: GpxResult | null): GpxResult['coloredSegments'] | undefined {
+  if (!result || result.track.length < 2) return undefined
+  const color = result.coloredSegments[0]?.color ?? '#39ff14'
+  return [{ coords: result.track, color }]
+}
+
 function EventContent() {
   const searchParams = useSearchParams()
   const { token }    = useAuthStore()
@@ -421,6 +427,7 @@ function EventContent() {
   const surfaceMixText = surfaceAnalysis?.summary.length
     ? surfaceAnalysis.summary.map(item => `${item.percent}% ${item.label.toLowerCase()}`).join(' - ')
     : null
+  const mapSegments = fullTrackSegments(gpxResult) ?? surfaceAnalysis?.segments
 
   return (
     <>
@@ -677,7 +684,7 @@ function EventContent() {
                   })
                 }}
                 onInteractionChange={setIsMapInteracting}
-                coloredSegments={gpxResult?.coloredSegments ?? surfaceAnalysis?.segments}
+                coloredSegments={mapSegments}
                 weather={weather}
                 weatherVariant="hub"
                 showWindOverlay={showWindOverlay && !isMapInteracting}
@@ -776,6 +783,13 @@ function EventContent() {
             initialCount={event.comments_count ?? 0}
             canAccess={event.is_joined || event.is_organizer}
             initiallyOpen={wall === '1'}
+            mentionUsers={(event.participants ?? [])
+              .filter(participant => participant.id != null && participant.name)
+              .map(participant => ({
+                id: participant.id,
+                name: participant.name,
+                avatar: participant.avatar,
+              }))}
           />
 
           {event.is_joined && !cancelled && (checkInAvailable || event.checked_in_at) && (

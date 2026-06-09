@@ -11,6 +11,12 @@ interface CommentUser {
   avatar: string | null
 }
 
+interface MentionUser {
+  id: number
+  name: string
+  avatar?: string | null
+}
+
 interface EventComment {
   id: number
   body: string
@@ -20,16 +26,25 @@ interface EventComment {
   can_delete?: boolean
 }
 
+function normalizeMentionText(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+}
+
 export function EventWall({
   eventId,
   initialCount = 0,
   canAccess,
   initiallyOpen = false,
+  mentionUsers = [],
 }: {
   eventId: number
   initialCount?: number
   canAccess: boolean
   initiallyOpen?: boolean
+  mentionUsers?: MentionUser[]
 }) {
   const [open, setOpen] = useState(initiallyOpen)
   const [comments, setComments] = useState<EventComment[]>([])
@@ -39,6 +54,16 @@ export function EventWall({
   const [draft, setDraft] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [pendingDeleteCommentId, setPendingDeleteCommentId] = useState<number | null>(null)
+  const [mentionIds, setMentionIds] = useState<number[]>([])
+
+  const mentionMatch = /@([^\s@]*)$/.exec(draft)
+  const mentionQuery = mentionMatch ? normalizeMentionText(mentionMatch[1]) : null
+  const mentionSuggestions = mentionQuery === null
+    ? []
+    : mentionUsers
+      .filter(user => !mentionIds.includes(user.id))
+      .filter(user => normalizeMentionText(user.name).includes(mentionQuery))
+      .slice(0, 6)
 
   async function loadComments() {
     setLoading(true)
@@ -65,10 +90,14 @@ export function EventWall({
     setPosting(true)
     setError(null)
     try {
-      const { data } = await api.post(`/events/${eventId}/comments`, { body: draft.trim() })
+      const { data } = await api.post(`/events/${eventId}/comments`, {
+        body: draft.trim(),
+        mention_user_ids: mentionIds,
+      })
       setComments((prev) => [...prev, data.data as EventComment])
       setCount((prev) => prev + 1)
       setDraft('')
+      setMentionIds([])
       setOpen(true)
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
@@ -96,6 +125,21 @@ export function EventWall({
       hour: '2-digit',
       minute: '2-digit',
     })
+  }
+
+  function handleDraftChange(value: string) {
+    setDraft(value)
+    setMentionIds(current =>
+      current.filter(id => {
+        const user = mentionUsers.find(item => item.id === id)
+        return user ? value.includes(`@${user.name}`) : false
+      }),
+    )
+  }
+
+  function insertMention(user: MentionUser) {
+    setDraft(current => current.replace(/@([^\s@]*)$/, `@${user.name} `))
+    setMentionIds(current => current.includes(user.id) ? current : [...current, user.id])
   }
 
   return (
@@ -198,7 +242,7 @@ export function EventWall({
               <div className="space-y-2">
                 <textarea
                   value={draft}
-                  onChange={(e) => setDraft(e.target.value)}
+                  onChange={(e) => handleDraftChange(e.target.value)}
                   placeholder="Write a comment…"
                   className="w-full rounded-xl border px-4 py-3 text-sm outline-none resize-none focus:border-[--primary] transition-colors"
                   style={{
@@ -208,6 +252,41 @@ export function EventWall({
                     color: 'var(--text-primary)',
                   }}
                 />
+                {mentionSuggestions.length > 0 && (
+                  <div className="rounded-xl border overflow-hidden" style={{ borderColor: 'var(--border)', background: 'var(--background)' }}>
+                    {mentionSuggestions.map(user => (
+                      <button
+                        key={user.id}
+                        type="button"
+                        onClick={() => insertMention(user)}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-[--surface]"
+                      >
+                        {user.avatar ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={user.avatar} alt="" className="h-6 w-6 rounded-full object-cover" />
+                        ) : (
+                          <span className="flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold text-black" style={{ background: 'var(--primary)' }}>
+                            {user.name.charAt(0).toUpperCase()}
+                          </span>
+                        )}
+                        <span>@{user.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {mentionIds.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {mentionIds.map(id => {
+                      const user = mentionUsers.find(item => item.id === id)
+                      if (!user) return null
+                      return (
+                        <span key={id} className="rounded-full px-2 py-1 text-[11px] font-semibold" style={{ background: 'rgba(57,255,20,0.1)', color: 'var(--primary)' }}>
+                          @{user.name}
+                        </span>
+                      )
+                    })}
+                  </div>
+                )}
                 <div className="flex justify-end">
                   <button
                     type="button"

@@ -79,6 +79,12 @@ function withProfileStats(parsed: GpxParsed): GpxParsed {
   }
 }
 
+function fullTrackSegment(parsed: GpxParsed | null) {
+  if (!parsed?.track.length) return null
+  const color = parsed.coloredSegments[0]?.color ?? '#3399ff'
+  return [{ coords: parsed.track, color }]
+}
+
 export default function RouteViewScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const { user } = useAuthStore()
@@ -196,6 +202,7 @@ export default function RouteViewScreen() {
     ? surfaceAnalysis.summary.map(item => `${item.percent}% ${item.label.toLowerCase()}`).join(' - ')
     : null
   const showSurfaceSection = Boolean(gpx?.track.length && (surfaceLoading || surfaceChecked || surfaceAnalysis?.summary.length))
+  const mapSegments = fullTrackSegment(gpx) ?? surfaceAnalysis?.segments
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -258,7 +265,7 @@ export default function RouteViewScreen() {
             lat={route.location.start_lat}
             lng={route.location.start_lng}
             emoji={emoji}
-            coloredSegments={gpx?.coloredSegments ?? surfaceAnalysis?.segments}
+            coloredSegments={mapSegments}
             onMapEnabledChange={setMapEnabled}
           />
         ) : null}

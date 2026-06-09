@@ -32,6 +32,11 @@ type GpxActivityStats = {
   maxDowngrade: number
 }
 
+function fullTrackSegment(track: [number, number][], fallbackColor = '#3399ff'): TrackSegment[] | null {
+  if (track.length < 2) return null
+  return [{ coords: track, color: fallbackColor }]
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Participant { id: number; name: string; avatar: string | null; checked_in_at?: string | null }
@@ -803,6 +808,7 @@ export default function EventDetailScreen() {
     ? surfaceAnalysis.summary.map(item => `${item.percent}% ${item.label.toLowerCase()}`).join(' - ')
     : null
   const showSurfaceSection = Boolean(event.activity.gpx_url && (surfaceLoading || surfaceChecked || surfaceAnalysis?.summary.length))
+  const mapSegments = fullTrackSegment(gpxTrack, coloredSegments[0]?.color) ?? surfaceAnalysis?.segments
 
   if (cancelled) {
     actionLabel = 'Event Cancelled'
@@ -1005,7 +1011,7 @@ export default function EventDetailScreen() {
             lat={event.location.lat}
             lng={event.location.lng}
             emoji={CATEGORY_EMOJI[event.category.value] ?? '📍'}
-            coloredSegments={coloredSegments.length > 0 ? coloredSegments : surfaceAnalysis?.segments}
+            coloredSegments={mapSegments}
             onMapEnabledChange={setMapEnabled}
           />
         )}
