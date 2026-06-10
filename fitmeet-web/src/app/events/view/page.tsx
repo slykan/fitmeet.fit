@@ -137,7 +137,7 @@ function withProfileStats(result: GpxResult): GpxResult {
 
 function EventContent() {
   const searchParams = useSearchParams()
-  const { token }    = useAuthStore()
+  const { token, hasHydrated } = useAuthStore()
   const router       = useRouter()
   const id           = searchParams.get('id')
   const wall         = searchParams.get('wall')
@@ -167,6 +167,7 @@ function EventContent() {
   const momentInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
+    if (!hasHydrated) return
     if (!token) { router.replace('/login'); return }
     if (!id)    { router.replace('/');      return }
 
@@ -210,7 +211,7 @@ function EventContent() {
       const offsets = (data.data as Record<string, string[]>)[id] ?? []
       setActiveOffsets(offsets)
     }).catch(() => {})
-  }, [id, token, router])
+  }, [hasHydrated, id, token, router])
 
   useEffect(() => {
     if (!event?.location || event.location.lat == null || event.location.lng == null) return
@@ -740,19 +741,19 @@ function EventContent() {
           )}
 
           {surfaceAnalysis?.summary.length ? (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5 sm:gap-2">
               {surfaceMixText && (
-                <div className="col-span-2 sm:col-span-4 text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
+                <div className="col-span-3 sm:col-span-4 text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
                   Surface mix: <span style={{ color: 'var(--text-muted)' }}>{surfaceMixText}</span>
                 </div>
               )}
               {surfaceAnalysis.summary.map(item => (
-                <div key={item.kind} className="rounded-xl border p-3" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
-                  <div className="flex items-center gap-2">
-                    <span className="inline-block h-2 w-8 rounded-full" style={{ background: item.color }} />
-                    <span className="text-xs font-bold" style={{ color: 'var(--text-primary)' }}>{item.label}</span>
+                <div key={item.kind} className="rounded-lg border px-2 py-1.5 sm:rounded-xl sm:p-3" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <span className="inline-block h-2 w-5 flex-shrink-0 rounded-full sm:w-8" style={{ background: item.color }} />
+                    <span className="min-w-0 truncate text-[10px] font-bold leading-tight sm:text-xs" style={{ color: 'var(--text-primary)' }}>{item.label}</span>
                   </div>
-                  <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{item.distanceKm} km - {item.percent}%</p>
+                  <p className="mt-1 truncate text-[10px] sm:text-xs" style={{ color: 'var(--text-muted)' }}>{item.distanceKm} km - {item.percent}%</p>
                 </div>
               ))}
             </div>

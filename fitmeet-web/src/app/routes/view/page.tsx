@@ -80,7 +80,7 @@ function withProfileStats(result: GpxResult): GpxResult {
 function RouteContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { token, user } = useAuthStore()
+  const { token, user, hasHydrated } = useAuthStore()
   const id = searchParams.get('id')
   const [route, setRoute] = useState<ActivityRoute | null>(null)
   const [gpxResult, setGpxResult] = useState<GpxResult | null>(null)
@@ -90,6 +90,7 @@ function RouteContent() {
   const [surfaceAnalysis, setSurfaceAnalysis] = useState<SurfaceAnalysis | null>(null)
 
   useEffect(() => {
+    if (!hasHydrated) return
     if (!token) { router.replace('/login'); return }
     if (!id) { router.replace('/meet'); return }
 
@@ -119,9 +120,9 @@ function RouteContent() {
       })
       .catch(() => setError('Route not found.'))
       .finally(() => setLoading(false))
-  }, [id, router, token])
+  }, [hasHydrated, id, router, token])
 
-  if (!token) return null
+  if (!hasHydrated || !token) return null
 
   if (loading) {
     return (
@@ -275,22 +276,22 @@ function RouteContent() {
               showMapLayerControl
             />
             {surfaceAnalysis?.summary.length ? (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5 sm:gap-2">
                 {surfaceMixText && (
-                  <div className="col-span-2 sm:col-span-4 text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
+                  <div className="col-span-3 sm:col-span-4 text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
                     Surface mix: <span style={{ color: 'var(--text-muted)' }}>{surfaceMixText}</span>
                   </div>
                 )}
                 {surfaceAnalysis.summary.map(item => (
-                  <div key={item.kind} className="rounded-xl border px-3 py-2" style={{ borderColor: 'var(--border)', background: 'rgba(255,255,255,0.03)' }}>
-                    <div className="flex items-center gap-2">
+                  <div key={item.kind} className="rounded-lg border px-2 py-1.5 sm:rounded-xl sm:px-3 sm:py-2" style={{ borderColor: 'var(--border)', background: 'rgba(255,255,255,0.03)' }}>
+                    <div className="flex items-center gap-1.5 sm:gap-2">
                       <span
-                        className="inline-block h-2.5 w-7 rounded-full"
+                        className="inline-block h-2 w-5 flex-shrink-0 rounded-full sm:h-2.5 sm:w-7"
                         style={{ background: item.color }}
                       />
-                      <span className="text-xs font-bold">{item.label}</span>
+                      <span className="min-w-0 truncate text-[10px] font-bold leading-tight sm:text-xs">{item.label}</span>
                     </div>
-                    <p className="mt-1 text-xs" style={{ color: 'var(--text-muted)' }}>
+                    <p className="mt-1 truncate text-[10px] sm:text-xs" style={{ color: 'var(--text-muted)' }}>
                       {item.distanceKm} km · {item.percent}%
                     </p>
                   </div>
