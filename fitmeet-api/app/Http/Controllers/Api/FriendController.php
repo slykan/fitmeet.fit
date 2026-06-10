@@ -7,6 +7,8 @@ use App\Http\Resources\UserResource;
 use App\Jobs\SendPushNotification;
 use App\Mail\FriendAcceptedMail;
 use App\Mail\FriendRequestMail;
+use App\Models\Announcement;
+use App\Models\AnnouncementRead;
 use App\Models\EventNotification;
 use App\Models\EventReminder;
 use App\Models\FriendRequest;
@@ -116,6 +118,12 @@ class FriendController extends Controller
         FriendRequest::where('sender_id', $me->id)->where('status', 'accepted')->whereNull('accepted_read_at')->update(['accepted_read_at' => now()]);
         EventNotification::where('user_id', $me->id)->delete();
         EventReminder::where('user_id', $me->id)->whereNotNull('sent_at')->update(['read_at' => now(), 'sent_at' => now()->subHours(25)]);
+        $unreadAnnouncementIds = Announcement::where('created_at', '>=', now()->subDays(30))
+            ->whereNotIn('id', AnnouncementRead::where('user_id', $me->id)->pluck('announcement_id'))
+            ->pluck('id');
+        foreach ($unreadAnnouncementIds as $announcementId) {
+            AnnouncementRead::firstOrCreate(['user_id' => $me->id, 'announcement_id' => $announcementId], ['read_at' => now()]);
+        }
         return response()->json(['message' => 'Cleared.']);
     }
 
@@ -137,6 +145,15 @@ class FriendController extends Controller
             ->whereNotNull('sent_at')
             ->whereNull('read_at')
             ->update(['read_at' => now()]);
+
+        $readIds = AnnouncementRead::where('user_id', $me->id)->pluck('announcement_id');
+        $unread = Announcement::where('created_at', '>=', now()->subDays(30))
+            ->whereNotIn('id', $readIds)
+            ->where(fn ($q) => $q->whereNull('target_country')->orWhere('target_country', $me->country))
+            ->pluck('id');
+        foreach ($unread as $id) {
+            AnnouncementRead::firstOrCreate(['user_id' => $me->id, 'announcement_id' => $id], ['read_at' => now()]);
+        }
 
         return response()->json(['message' => 'Notifications marked as read.']);
     }
@@ -171,7 +188,13 @@ class FriendController extends Controller
             ->where('created_at', '>=', now()->subHours(48))
             ->count();
 
-        return response()->json(['count' => $pending + $accepted + $reminders + $newEvents + $cancelled + $started + $eventComments + $eventMentions + $momentReminders]);
+        $readAnnouncementIds = AnnouncementRead::where('user_id', $me->id)->pluck('announcement_id');
+        $announcements = Announcement::where('created_at', '>=', now()->subDays(30))
+            ->whereNotIn('id', $readAnnouncementIds)
+            ->where(fn ($q) => $q->whereNull('target_country')->orWhere('target_country', $me->country))
+            ->count();
+
+        return response()->json(['count' => $pending + $accepted + $reminders + $newEvents + $cancelled + $started + $eventComments + $eventMentions + $momentReminders + $announcements]);
     }
 
     // GET /notifications
@@ -367,6 +390,21 @@ class FriendController extends Controller
                 'created_at' => $n->created_at->toDateTimeString(),
             ]);
 
+        $readAnnouncementIds = AnnouncementRead::where('user_id', $me->id)->pluck('announcement_id')->flip();
+        $announcements = Announcement::where('created_at', '>=', now()->subDays(30))
+            ->where(fn ($q) => $q->whereNull('target_country')->orWhere('target_country', $me->country))
+            ->latest()
+            ->get()
+            ->map(fn ($a) => [
+                'id'         => 'ann_' . $a->id,
+                'type'       => 'announcement',
+                'unread'     => !isset($readAnnouncementIds[$a->id]),
+                'title'      => $a->title,
+                'body'       => $a->body,
+                'data'       => $a->data,
+                'created_at' => $a->created_at->toDateTimeString(),
+            ]);
+
         return response()->json([
             'data' => $pending
                 ->concat($accepted)
@@ -377,6 +415,7 @@ class FriendController extends Controller
                 ->concat($eventComments)
                 ->concat($eventMentions)
                 ->concat($momentReminders)
+                ->concat($announcements)
                 ->sortByDesc('created_at')
                 ->values(),
         ]);

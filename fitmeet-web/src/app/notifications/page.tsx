@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { UserPlus, UserCheck, Check, X, Bell, Calendar, MapPin, Zap, PlayCircle, MessageCircle } from 'lucide-react'
+import { UserPlus, UserCheck, Check, X, Bell, Calendar, MapPin, Zap, PlayCircle, MessageCircle, Megaphone } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
 import api from '@/lib/api'
@@ -119,6 +119,16 @@ interface MomentReminderNotif {
   created_at: string
 }
 
+interface AnnouncementNotif {
+  id: string
+  type: 'announcement'
+  unread?: boolean
+  title: string
+  body: string
+  data?: Record<string, string> | null
+  created_at: string
+}
+
 type Notif =
   | FriendRequestNotif
   | FriendAcceptedNotif
@@ -128,6 +138,7 @@ type Notif =
   | EventStartedNotif
   | EventCommentNotif
   | MomentReminderNotif
+  | AnnouncementNotif
 
 function timeAgo(iso: string) {
   const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000)
@@ -456,6 +467,21 @@ export default function NotificationsPage() {
                   </p>
                 </div>
               </a>
+            ) : n.type === 'announcement' ? (
+              <div key={n.id}
+                className="rounded-2xl border p-4 flex items-start gap-3"
+                style={{ background: n.unread ? 'rgba(57,255,20,0.04)' : 'var(--surface)', borderColor: n.unread ? 'rgba(57,255,20,0.35)' : 'var(--border)' }}>
+                <div className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0"
+                  style={{ background: 'rgba(57,255,20,0.12)', border: '1px solid rgba(57,255,20,0.4)' }}>
+                  <Megaphone size={18} style={{ color: 'var(--primary)' }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold mb-0.5" style={{ color: 'var(--primary)' }}>FitMeet</p>
+                  <p className="text-sm font-semibold">{n.title}</p>
+                  <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>{n.body}</p>
+                  <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>{timeAgo(n.created_at)}</p>
+                </div>
+              </div>
             ) : null
             ))}
           </div>

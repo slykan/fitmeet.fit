@@ -21,6 +21,7 @@ export interface User {
   categories: string[]
   skill_level: 'beginner' | 'advanced' | 'pro' | null
   onboarding_complete: boolean
+  is_admin: boolean
 }
 
 interface AuthState {

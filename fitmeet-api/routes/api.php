@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ActivityRouteController;
+use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\BeerDonationController;
 use App\Http\Controllers\Api\LeaderboardController;
 use App\Http\Controllers\Api\MomentsController;
@@ -152,4 +153,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('routes', [ActivityRouteController::class, 'store']);
     Route::put('routes/{activityRoute}', [ActivityRouteController::class, 'update']);
     Route::delete('routes/{activityRoute}', [ActivityRouteController::class, 'destroy']);
+
+    Route::middleware(\App\Http\Middleware\EnsureAdmin::class)->prefix('admin')->group(function () {
+        Route::get('broadcasts', [AdminController::class, 'broadcasts']);
+        Route::post('broadcast', [AdminController::class, 'broadcast']);
+        Route::get('countries', [AdminController::class, 'countries']);
+    });
 });

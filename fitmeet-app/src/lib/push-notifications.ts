@@ -79,7 +79,7 @@ function routeFromNotificationData(data: Record<string, unknown> | undefined) {
     return
   }
 
-  if (type === 'friend_request' || type === 'friend_accepted') {
+  if (type === 'friend_request' || type === 'friend_accepted' || type === 'announcement') {
     router.push('/(tabs)/notifications' as never)
   }
 }

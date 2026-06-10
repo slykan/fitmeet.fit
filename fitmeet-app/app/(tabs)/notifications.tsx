@@ -27,6 +27,7 @@ type Notification =
   | { id: number; type: 'event_comment';   event:   EventInfo; created_at: string; unread?: boolean }
   | { id: number; type: 'event_comment_mention'; event: EventInfo; created_at: string; unread?: boolean }
   | { id: number; type: 'moment_reminder'; event:   EventInfo; created_at: string; unread?: boolean }
+  | { id: string; type: 'announcement';   title: string; body: string; created_at: string; unread?: boolean }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -352,6 +353,21 @@ export default function NotificationsScreen() {
                 subtitle="Upload one photo to your event — it will appear in the Moments gallery."
                 time={timeAgo(n.created_at)}
                 onPress={() => router.push(`/event/${n.event.id}` as never)}
+                unread={n.unread}
+              />
+            )
+          }
+
+          if (n.type === 'announcement') {
+            return (
+              <GenericCard
+                key={`ann-${n.id}`}
+                icon="megaphone-outline"
+                iconColor={palette.accent}
+                iconBg="rgba(57,255,20,0.1)"
+                title={<><Text style={styles.accent}>FitMeet</Text> · {n.title}</>}
+                subtitle={n.body}
+                time={timeAgo(n.created_at)}
                 unread={n.unread}
               />
             )
