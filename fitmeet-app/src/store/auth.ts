@@ -23,6 +23,7 @@ export interface MobileUser {
   categories: string[]
   skill_level: 'beginner' | 'advanced' | 'pro' | null
   onboarding_complete: boolean
+  is_admin: boolean
 }
 
 type AuthState = {
@@ -102,6 +103,7 @@ function normalizeUser(user: MobileUser): MobileUser {
     categories: user.categories ?? [],
     skill_level: user.skill_level ?? null,
     onboarding_complete: user.onboarding_complete ?? false,
+    is_admin: user.is_admin ?? false,
   }
 }
 

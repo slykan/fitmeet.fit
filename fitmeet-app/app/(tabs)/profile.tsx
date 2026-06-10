@@ -140,6 +140,15 @@ export default function ProfileScreen() {
           <Ionicons name="chevron-forward" size={16} color={palette.textDim} />
         </Pressable>
 
+        {/* Admin broadcast */}
+        {user.is_admin && (
+          <Pressable style={styles.settingsLink} onPress={() => router.push('/admin-broadcast' as never)}>
+            <Ionicons name="megaphone-outline" size={18} color={palette.accent} />
+            <Text style={styles.settingsLinkText}>Broadcast</Text>
+            <Ionicons name="chevron-forward" size={16} color={palette.textDim} />
+          </Pressable>
+        )}
+
         {/* Location */}
         {home.city ? (
           <View style={styles.card}>
