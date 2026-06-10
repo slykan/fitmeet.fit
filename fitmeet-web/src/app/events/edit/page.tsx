@@ -572,6 +572,7 @@ function EditContent() {
                     lng={watchedLng ?? null}
                     onChange={mapEnabled ? handleMapChange : undefined}
                     coloredSegments={gpxResult?.coloredSegments}
+                    height={440}
                   />
                   {!mapEnabled && (
                     <div

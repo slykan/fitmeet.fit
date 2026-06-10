@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { MapContainer, TileLayer, Marker, Polyline, useMapEvents, useMap } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Polyline, useMapEvents, useMap, ZoomControl } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import type { TrackSegment } from '@/lib/parse-gpx'
@@ -482,7 +482,9 @@ export default function LocationPickerMap({
         zoom={zoom}
         style={{ height: `${height}px`, width: '100%' }}
         scrollWheelZoom={false}
+        zoomControl={false}
       >
+        <ZoomControl position="bottomright" />
         <TileLayer
           key={showMapLayerControl ? selectedLayer.name : MAP_BASE_LAYERS[0].name}
           url={showMapLayerControl ? selectedLayer.url : MAP_BASE_LAYERS[0].url}

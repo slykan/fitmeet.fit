@@ -602,6 +602,7 @@ export default function CreateEventPage() {
                         lng={watchedLng}
                         onChange={mapEnabled ? handleMapChange : undefined}
                         coloredSegments={gpxResult?.coloredSegments}
+                        height={440}
                       />
                       {!mapEnabled && (
                         <div
