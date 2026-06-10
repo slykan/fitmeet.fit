@@ -51,10 +51,22 @@ function haversineKm(a: Point, b: Point) {
   return radiusKm * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x))
 }
 
-function sampleTrack(track: Point[], maxPoints = 180) {
-  if (track.length <= maxPoints) return track
+function sampleTrackWithIndexes(track: Point[], maxPoints = 180): { points: Point[]; indexes: number[] } {
+  if (track.length <= maxPoints) {
+    return { points: track, indexes: track.map((_, index) => index) }
+  }
+
   const last = track.length - 1
-  return Array.from({ length: maxPoints }, (_, index) => track[Math.round((index / (maxPoints - 1)) * last)])
+  const points: Point[] = []
+  const indexes: number[] = []
+
+  for (let index = 0; index < maxPoints; index++) {
+    const trackIndex = Math.round((index / (maxPoints - 1)) * last)
+    points.push(track[trackIndex])
+    indexes.push(trackIndex)
+  }
+
+  return { points, indexes }
 }
 
 function classifyWay(tags: Record<string, string> | undefined): SurfaceKind {
@@ -117,20 +129,24 @@ function bboxFor(track: Point[]) {
   return { south, west, north, east }
 }
 
-function buildSurfaceSegments(track: Point[], kinds: SurfaceKind[]): SurfaceSegment[] {
-  if (track.length < 2) return []
+function buildSurfaceSegments(track: Point[], kinds: SurfaceKind[], sampleIndexes?: number[]): SurfaceSegment[] {
+  if (track.length < 2 || kinds.length < 2) return []
   const segments: SurfaceSegment[] = []
   let currentKind = kinds[0] ?? 'unknown'
-  let current: Point[] = [track[0]]
+  const indexes = sampleIndexes ?? track.map((_, index) => index)
+  let current: Point[] = [track[indexes[0]] ?? track[0]]
 
-  for (let i = 1; i < track.length; i++) {
+  for (let i = 1; i < kinds.length; i++) {
     const kind = kinds[i] ?? currentKind
-    current.push(track[i])
+    const fromIndex = indexes[i - 1]
+    const toIndex = indexes[i]
+    const coords = track.slice(fromIndex, toIndex + 1)
+    current.push(...(coords.length > 1 ? coords.slice(1) : [track[toIndex]]))
     if (kind !== currentKind) {
       const meta = SURFACE_META[currentKind]
       segments.push({ coords: current, color: meta.color, dashArray: meta.dashArray, surfaceKind: currentKind, label: meta.label })
       currentKind = kind
-      current = [track[i]]
+      current = [track[toIndex]]
     }
   }
 
@@ -167,7 +183,8 @@ function buildSummary(segments: SurfaceSegment[]): SurfaceSummaryItem[] {
 }
 
 export async function analyzeRouteSurface(track: Point[]): Promise<SurfaceAnalysis | null> {
-  const sampled = sampleTrack(track)
+  const sampledInfo = sampleTrackWithIndexes(track)
+  const sampled = sampledInfo.points
   if (sampled.length < 2) return null
 
   const { south, west, north, east } = bboxFor(sampled)
@@ -179,7 +196,7 @@ export async function analyzeRouteSurface(track: Point[]): Promise<SurfaceAnalys
   if (ways.length === 0) return null
 
   const kinds = sampled.map(point => nearestSurfaceKind(point, ways))
-  const segments = buildSurfaceSegments(sampled, kinds)
+  const segments = buildSurfaceSegments(track, kinds, sampledInfo.indexes)
   const summary = buildSummary(segments)
   if (summary.length === 0) return null
   return { segments, summary }

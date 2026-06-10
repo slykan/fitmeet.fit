@@ -135,12 +135,6 @@ function withProfileStats(result: GpxResult): GpxResult {
   }
 }
 
-function fullTrackSegments(result: GpxResult | null): GpxResult['coloredSegments'] | undefined {
-  if (!result || result.track.length < 2) return undefined
-  const color = result.coloredSegments[0]?.color ?? '#39ff14'
-  return [{ coords: result.track, color }]
-}
-
 function EventContent() {
   const searchParams = useSearchParams()
   const { token }    = useAuthStore()
@@ -427,7 +421,6 @@ function EventContent() {
   const surfaceMixText = surfaceAnalysis?.summary.length
     ? surfaceAnalysis.summary.map(item => `${item.percent}% ${item.label.toLowerCase()}`).join(' - ')
     : null
-  const mapSegments = fullTrackSegments(gpxResult) ?? surfaceAnalysis?.segments
 
   return (
     <>
@@ -684,7 +677,9 @@ function EventContent() {
                   })
                 }}
                 onInteractionChange={setIsMapInteracting}
-                coloredSegments={mapSegments}
+                track={gpxResult?.track}
+                elevationSegments={gpxResult?.coloredSegments}
+                surfaceSegments={surfaceAnalysis?.segments}
                 weather={weather}
                 weatherVariant="hub"
                 showWindOverlay={showWindOverlay && !isMapInteracting}

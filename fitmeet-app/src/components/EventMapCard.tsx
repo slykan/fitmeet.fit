@@ -14,6 +14,8 @@ type Props = {
   lng: number
   emoji?: string
   coloredSegments?: TrackSegment[]
+  elevationSegments?: TrackSegment[]
+  surfaceSegments?: TrackSegment[]
   onMapEnabledChange?: (enabled: boolean) => void
 }
 
@@ -59,10 +61,14 @@ function buildHtml(
   emoji: string,
   weather: CurrentWeather | null,
   coloredSegments: TrackSegment[],
+  elevationSegments: TrackSegment[],
+  surfaceSegments: TrackSegment[],
   initialLayer: MapLayer,
 ) {
   const wJson = JSON.stringify(weather)
   const segsJson = JSON.stringify(coloredSegments)
+  const elevSegsJson = JSON.stringify(elevationSegments)
+  const surfaceSegsJson = JSON.stringify(surfaceSegments)
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -88,6 +94,8 @@ function buildHtml(
   <script>
     const weather = ${wJson};
     const coloredSegments = ${segsJson};
+    const elevationSegments = ${elevSegsJson};
+    const surfaceSegments = ${surfaceSegsJson};
     const map = L.map('map',{zoomControl:false,attributionControl:false,preferCanvas:true})
       .setView([${center.lat},${center.lng}],13);
     L.control.zoom({position:'bottomright'}).addTo(map);
@@ -110,14 +118,30 @@ function buildHtml(
     const icon = L.divIcon({className:'fm-marker',html:'<div class="fm-pin">${emoji}</div>',iconSize:[38,38],iconAnchor:[19,19]});
     L.marker([${lat},${lng}],{icon}).addTo(map);
 
-    if (coloredSegments && coloredSegments.length > 0) {
+    const hasLayeredSegments = (surfaceSegments && surfaceSegments.length > 0) || (elevationSegments && elevationSegments.length > 0);
+    if (hasLayeredSegments || (coloredSegments && coloredSegments.length > 0)) {
       const allBounds = [];
-      coloredSegments.forEach(function(seg) {
-        if (seg.coords.length > 1) {
-          const poly = L.polyline(seg.coords,{color:seg.color,weight:4,opacity:0.95,lineJoin:'round',dashArray:seg.dashArray||null}).addTo(map);
-          allBounds.push(poly.getBounds());
-        }
-      });
+      function drawSegments(segments, options) {
+        (segments || []).forEach(function(seg) {
+          if (seg.coords.length > 1) {
+            const poly = L.polyline(seg.coords,{
+              color:seg.color,
+              weight:options.weight,
+              opacity:options.opacity,
+              lineJoin:'round',
+              lineCap:'round',
+              dashArray:seg.dashArray||null
+            }).addTo(map);
+            allBounds.push(poly.getBounds());
+          }
+        });
+      }
+      if (hasLayeredSegments) {
+        drawSegments(surfaceSegments, { weight: 9, opacity: 0.72 });
+        drawSegments(elevationSegments, { weight: 4, opacity: 0.98 });
+      } else {
+        drawSegments(coloredSegments, { weight: 4, opacity: 0.95 });
+      }
       if (allBounds.length > 0) {
         setTimeout(function() {
           map.invalidateSize();
@@ -210,7 +234,7 @@ function buildHtml(
 </html>`
 }
 
-export function EventMapCard({ lat, lng, emoji = '📍', coloredSegments, onMapEnabledChange }: Props) {
+export function EventMapCard({ lat, lng, emoji = '📍', coloredSegments, elevationSegments, surfaceSegments, onMapEnabledChange }: Props) {
   const webViewRef = useRef<WebViewType>(null)
   const [weather, setWeather] = useState<CurrentWeather | null>(null)
   const [center, setCenter] = useState({ lat, lng })
@@ -219,8 +243,8 @@ export function EventMapCard({ lat, lng, emoji = '📍', coloredSegments, onMapE
   const [layerPickerOpen, setLayerPickerOpen] = useState(false)
   const [weatherRefreshTick, setWeatherRefreshTick] = useState(0)
   const html = useMemo(
-    () => buildHtml(lat, lng, { lat, lng }, emoji, null, coloredSegments ?? [], 'standard'),
-    [lat, lng, emoji, coloredSegments],
+    () => buildHtml(lat, lng, { lat, lng }, emoji, null, coloredSegments ?? [], elevationSegments ?? [], surfaceSegments ?? [], 'standard'),
+    [lat, lng, emoji, coloredSegments, elevationSegments, surfaceSegments],
   )
 
   useEffect(() => {

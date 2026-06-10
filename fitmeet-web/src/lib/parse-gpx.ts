@@ -52,15 +52,22 @@ export function slopeColor(grade: number): string {
   return '#ff2200'                  // red    — steep uphill
 }
 
-function buildElevationProfile(track: [number, number][], elevs: number[]): ElevationProfileResult {
+function buildElevationProfile(
+  track: [number, number][],
+  elevs: number[],
+  sourceTrack: [number, number][] = track,
+  sourceIndexes?: number[],
+): ElevationProfileResult {
   const cumKm = cumulativeDistancesKm(track)
   const elevationProfile: { km: number; ele: number }[] = []
   const profileCoords: [number, number][] = []
+  const profileIndexes: number[] = []
 
   for (let i = 0; i < track.length; i++) {
     if (!isNaN(elevs[i])) {
       elevationProfile.push({ km: cumKm[i], ele: elevs[i] })
       profileCoords.push(track[i])
+      profileIndexes.push(sourceIndexes?.[i] ?? i)
     }
   }
 
@@ -72,14 +79,18 @@ function buildElevationProfile(track: [number, number][], elevs: number[]): Elev
       const eleM = elevationProfile[i].ele - elevationProfile[i - 1].ele
       const grade = distKm > 0 ? (eleM / (distKm * 1000)) * 100 : 0
       const color = slopeColor(grade)
+      const fromIndex = profileIndexes[i - 1]
+      const toIndex = profileIndexes[i]
+      const fullCoords = sourceTrack.slice(fromIndex, toIndex + 1)
+      const segmentCoords = fullCoords.length > 1 ? fullCoords : [profileCoords[i - 1], profileCoords[i]]
 
       if (!seg) {
-        seg = { coords: [profileCoords[i - 1], profileCoords[i]], color }
+        seg = { coords: segmentCoords, color }
       } else if (color === seg.color) {
-        seg.coords.push(profileCoords[i])
+        seg.coords.push(...segmentCoords.slice(1))
       } else {
         coloredSegments.push(seg)
-        seg = { coords: [profileCoords[i - 1], profileCoords[i]], color }
+        seg = { coords: segmentCoords, color }
       }
     }
     if (seg) coloredSegments.push(seg)
@@ -88,20 +99,27 @@ function buildElevationProfile(track: [number, number][], elevs: number[]): Elev
   return { elevationProfile, coloredSegments }
 }
 
-function sampleTrack(track: [number, number][], maxPoints = 100): [number, number][] {
-  if (track.length <= maxPoints) return track
-  const sampled: [number, number][] = []
+function sampleTrackWithIndexes(track: [number, number][], maxPoints = 100): { points: [number, number][]; indexes: number[] } {
+  if (track.length <= maxPoints) {
+    return { points: track, indexes: track.map((_, index) => index) }
+  }
+
+  const points: [number, number][] = []
+  const indexes: number[] = []
   const last = track.length - 1
 
   for (let i = 0; i < maxPoints; i++) {
-    sampled.push(track[Math.round((i / (maxPoints - 1)) * last)])
+    const index = Math.round((i / (maxPoints - 1)) * last)
+    points.push(track[index])
+    indexes.push(index)
   }
 
-  return sampled
+  return { points, indexes }
 }
 
 export async function fetchElevationProfile(track: [number, number][]): Promise<ElevationProfileResult> {
-  const sampled = sampleTrack(track)
+  const sampledInfo = sampleTrackWithIndexes(track)
+  const sampled = sampledInfo.points
   if (sampled.length < 2) return { elevationProfile: [], coloredSegments: [] }
 
   const latitudes = sampled.map(([lat]) => lat.toFixed(5)).join(',')
@@ -110,7 +128,7 @@ export async function fetchElevationProfile(track: [number, number][]): Promise<
   if (!response.ok) throw new Error(`Elevation request failed: ${response.status}`)
   const data = await response.json() as { elevation?: number[] }
 
-  return buildElevationProfile(sampled, data.elevation ?? [])
+  return buildElevationProfile(sampled, data.elevation ?? [], track, sampledInfo.indexes)
 }
 
 function readPoints(xml: string, tagNames: string): { coords: [number, number]; ele: number | null }[] {
@@ -165,23 +183,26 @@ export function parseGpx(xml: string): GpxResult {
   const step      = Math.max(1, Math.floor(track.length / maxPoints))
 
   const elevationProfile: { km: number; ele: number }[] = []
-  const profileCoords:    [number, number][]             = []
+  const coloredSegments: TrackSegment[] = []
 
   if (hasEle) {
     const sampledTrack: [number, number][] = []
     const sampledElevs: number[] = []
+    const sampledIndexes: number[] = []
     for (let i = 0; i < track.length; i += step) {
       sampledTrack.push(track[i])
       sampledElevs.push(eleData[i] === -Infinity ? NaN : eleData[i])
+      sampledIndexes.push(i)
     }
     const last = track.length - 1
     if (last % step !== 0) {
       sampledTrack.push(track[last])
       sampledElevs.push(eleData[last] === -Infinity ? NaN : eleData[last])
+      sampledIndexes.push(last)
     }
-    const profile = buildElevationProfile(sampledTrack, sampledElevs)
+    const profile = buildElevationProfile(sampledTrack, sampledElevs, track, sampledIndexes)
     elevationProfile.push(...profile.elevationProfile)
-    profileCoords.push(...sampledTrack.filter((_, index) => !isNaN(sampledElevs[index])))
+    coloredSegments.push(...profile.coloredSegments)
   }
 
   // Max uphill and downhill grade
@@ -197,30 +218,8 @@ export function parseGpx(xml: string): GpxResult {
     }
   }
 
-  // Build colored segments from elevation profile
-  const coloredSegments: TrackSegment[] = []
-
-  if (profileCoords.length >= 2) {
-    let seg: TrackSegment | null = null
-
-    for (let i = 1; i < profileCoords.length; i++) {
-      const distKm = elevationProfile[i].km - elevationProfile[i - 1].km
-      const eleM   = elevationProfile[i].ele - elevationProfile[i - 1].ele
-      const grade  = distKm > 0 ? (eleM / (distKm * 1000)) * 100 : 0
-      const color  = slopeColor(grade)
-
-      if (!seg) {
-        seg = { coords: [profileCoords[i - 1], profileCoords[i]], color }
-      } else if (color === seg.color) {
-        seg.coords.push(profileCoords[i])
-      } else {
-        coloredSegments.push(seg)
-        seg = { coords: [profileCoords[i - 1], profileCoords[i]], color }
-      }
-    }
-    if (seg) coloredSegments.push(seg)
-  } else if (track.length >= 2) {
-    // No elevation — single green segment
+  if (coloredSegments.length === 0 && track.length >= 2) {
+    // No elevation - single green segment
     coloredSegments.push({ coords: track, color: '#39ff14' })
   }
 

@@ -77,12 +77,6 @@ function withProfileStats(result: GpxResult): GpxResult {
   }
 }
 
-function fullTrackSegments(result: GpxResult | null): GpxResult['coloredSegments'] | undefined {
-  if (!result || result.track.length < 2) return undefined
-  const color = result.coloredSegments[0]?.color ?? '#39ff14'
-  return [{ coords: result.track, color }]
-}
-
 function RouteContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -166,7 +160,6 @@ function RouteContent() {
   const surfaceMixText = surfaceAnalysis?.summary.length
     ? surfaceAnalysis.summary.map(item => `${item.percent}% ${item.label.toLowerCase()}`).join(' - ')
     : null
-  const mapSegments = fullTrackSegments(gpxResult) ?? surfaceAnalysis?.segments
 
   async function shareRoute() {
     const url = `${window.location.origin}/routes/view?id=${currentRoute.id}`
@@ -273,7 +266,8 @@ function RouteContent() {
               lat={route.location.start_lat}
               lng={route.location.start_lng}
               track={gpxResult?.track}
-              coloredSegments={mapSegments}
+              elevationSegments={gpxResult?.coloredSegments}
+              surfaceSegments={surfaceAnalysis?.segments}
               readOnly
               height={720}
               showWindOverlay={false}

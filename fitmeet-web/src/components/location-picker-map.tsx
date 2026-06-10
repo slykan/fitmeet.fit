@@ -24,6 +24,8 @@ interface Props {
   onInteractionChange?: (moving: boolean) => void
   track?:           [number, number][]
   coloredSegments?: TrackSegment[]
+  elevationSegments?: TrackSegment[]
+  surfaceSegments?: TrackSegment[]
   readOnly?:        boolean
   height?:          number
   weather?:         EventWeather | null
@@ -438,6 +440,8 @@ export default function LocationPickerMap({
   onInteractionChange,
   track,
   coloredSegments,
+  elevationSegments,
+  surfaceSegments,
   readOnly = false,
   height = 220,
   weather = null,
@@ -448,10 +452,18 @@ export default function LocationPickerMap({
 }: Props) {
   const hasPin      = lat != null && lng != null
   const allCoords   = useMemo(
-    () => coloredSegments?.flatMap(s => s.coords) ?? track ?? [],
-    [coloredSegments, track],
+    () => {
+      const layeredCoords = [
+        ...(surfaceSegments ?? []),
+        ...(elevationSegments ?? []),
+        ...(coloredSegments ?? []),
+      ].flatMap(segment => segment.coords)
+      return layeredCoords.length > 0 ? layeredCoords : track ?? []
+    },
+    [coloredSegments, elevationSegments, surfaceSegments, track],
   )
   const hasTrack    = allCoords.length > 1
+  const hasLayeredSegments = Boolean(surfaceSegments?.length || elevationSegments?.length)
   const [selectedLayerName, setSelectedLayerName] = useState<MapBaseLayerName>('Standard')
   const [layerMenuOpen, setLayerMenuOpen] = useState(false)
   const selectedLayer = MAP_BASE_LAYERS.find(layer => layer.name === selectedLayerName) ?? MAP_BASE_LAYERS[0]
@@ -481,13 +493,31 @@ export default function LocationPickerMap({
         {readOnly && <ReadOnlyViewSync onViewChange={onViewChange} onInteractionChange={onInteractionChange} />}
         {hasPin && <Marker position={[lat!, lng!]} />}
 
-        {coloredSegments && coloredSegments.length > 0 ? (
+        {hasLayeredSegments ? (
+          <>
+            {surfaceSegments?.map((seg, i) => (
+              <Polyline
+                key={`surface-${i}`}
+                positions={seg.coords}
+                pathOptions={{ color: seg.color, weight: 9, opacity: 0.72, dashArray: seg.dashArray, lineCap: 'round', lineJoin: 'round' }}
+              />
+            ))}
+            {elevationSegments?.map((seg, i) => (
+              <Polyline
+                key={`elevation-${i}`}
+                positions={seg.coords}
+                pathOptions={{ color: seg.color, weight: 4, opacity: 0.98, lineCap: 'round', lineJoin: 'round' }}
+              />
+            ))}
+            <FitTrack coords={allCoords} />
+          </>
+        ) : coloredSegments && coloredSegments.length > 0 ? (
           <>
             {coloredSegments.map((seg, i) => (
               <Polyline
                 key={i}
                 positions={seg.coords}
-                pathOptions={{ color: seg.color, weight: 4, opacity: 0.95, dashArray: seg.dashArray }}
+                pathOptions={{ color: seg.color, weight: 4, opacity: 0.95, dashArray: seg.dashArray, lineCap: 'round', lineJoin: 'round' }}
               />
             ))}
             <FitTrack coords={allCoords} />

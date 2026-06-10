@@ -49,15 +49,22 @@ export function slopeColor(grade: number): string {
   return '#ff2200'                  // red    — steep
 }
 
-function buildElevationProfile(track: [number, number][], elevs: number[]): ElevationProfileResult {
+function buildElevationProfile(
+  track: [number, number][],
+  elevs: number[],
+  sourceTrack: [number, number][] = track,
+  sourceIndexes?: number[],
+): ElevationProfileResult {
   const cumM = cumulativeDistancesM(track)
   const elevationProfile: { km: number; ele: number }[] = []
   const profileCoords: [number, number][] = []
+  const profileIndexes: number[] = []
 
   for (let i = 0; i < track.length; i++) {
     if (!isNaN(elevs[i])) {
       elevationProfile.push({ km: cumM[i] / 1000, ele: elevs[i] })
       profileCoords.push(track[i])
+      profileIndexes.push(sourceIndexes?.[i] ?? i)
     }
   }
 
@@ -69,13 +76,17 @@ function buildElevationProfile(track: [number, number][], elevs: number[]): Elev
       const eleM = elevationProfile[i].ele - elevationProfile[i - 1].ele
       const grade = distKm > 0 ? (eleM / (distKm * 1000)) * 100 : 0
       const color = slopeColor(grade)
+      const fromIndex = profileIndexes[i - 1]
+      const toIndex = profileIndexes[i]
+      const fullCoords = sourceTrack.slice(fromIndex, toIndex + 1)
+      const segmentCoords = fullCoords.length > 1 ? fullCoords : [profileCoords[i - 1], profileCoords[i]]
       if (!seg) {
-        seg = { coords: [profileCoords[i - 1], profileCoords[i]], color }
+        seg = { coords: segmentCoords, color }
       } else if (color === seg.color) {
-        seg.coords.push(profileCoords[i])
+        seg.coords.push(...segmentCoords.slice(1))
       } else {
         coloredSegments.push(seg)
-        seg = { coords: [profileCoords[i - 1], profileCoords[i]], color }
+        seg = { coords: segmentCoords, color }
       }
     }
     if (seg) coloredSegments.push(seg)
@@ -84,20 +95,27 @@ function buildElevationProfile(track: [number, number][], elevs: number[]): Elev
   return { elevationProfile, coloredSegments }
 }
 
-function sampleTrack(track: [number, number][], maxPoints = 100): [number, number][] {
-  if (track.length <= maxPoints) return track
-  const sampled: [number, number][] = []
+function sampleTrackWithIndexes(track: [number, number][], maxPoints = 100): { points: [number, number][]; indexes: number[] } {
+  if (track.length <= maxPoints) {
+    return { points: track, indexes: track.map((_, index) => index) }
+  }
+
+  const points: [number, number][] = []
+  const indexes: number[] = []
   const last = track.length - 1
 
   for (let i = 0; i < maxPoints; i++) {
-    sampled.push(track[Math.round((i / (maxPoints - 1)) * last)])
+    const index = Math.round((i / (maxPoints - 1)) * last)
+    points.push(track[index])
+    indexes.push(index)
   }
 
-  return sampled
+  return { points, indexes }
 }
 
 export async function fetchElevationProfile(track: [number, number][]): Promise<ElevationProfileResult> {
-  const sampled = sampleTrack(track)
+  const sampledInfo = sampleTrackWithIndexes(track)
+  const sampled = sampledInfo.points
   if (sampled.length < 2) return { elevationProfile: [], coloredSegments: [] }
 
   const latitudes = sampled.map(([lat]) => lat.toFixed(5)).join(',')
@@ -107,7 +125,7 @@ export async function fetchElevationProfile(track: [number, number][]): Promise<
   const data = await response.json() as { elevation?: number[] }
   const elevs = data.elevation ?? []
 
-  return buildElevationProfile(sampled, elevs)
+  return buildElevationProfile(sampled, elevs, track, sampledInfo.indexes)
 }
 
 function readPoints(xml: string, tagNames: string): { coords: [number, number]; ele: number | null }[] {
@@ -180,16 +198,19 @@ export function parseGpxText(xml: string): GpxParsed {
     const step = Math.max(1, Math.floor(track.length / 300))
     const sampledTrack: [number, number][] = []
     const sampledElevs: number[] = []
+    const sampledIndexes: number[] = []
     for (let i = 0; i < track.length; i += step) {
       sampledTrack.push(track[i])
       sampledElevs.push(elevs[i])
+      sampledIndexes.push(i)
     }
     const last = track.length - 1
     if (last % step !== 0) {
       sampledTrack.push(track[last])
       sampledElevs.push(elevs[last])
+      sampledIndexes.push(last)
     }
-    const profile = buildElevationProfile(sampledTrack, sampledElevs)
+    const profile = buildElevationProfile(sampledTrack, sampledElevs, track, sampledIndexes)
     elevationProfile.push(...profile.elevationProfile)
     coloredSegments.push(...profile.coloredSegments)
   } else if (track.length >= 2) {

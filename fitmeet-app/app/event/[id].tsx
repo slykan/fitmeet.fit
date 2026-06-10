@@ -32,11 +32,6 @@ type GpxActivityStats = {
   maxDowngrade: number
 }
 
-function fullTrackSegment(track: [number, number][], fallbackColor = '#3399ff'): TrackSegment[] | null {
-  if (track.length < 2) return null
-  return [{ coords: track, color: fallbackColor }]
-}
-
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Participant { id: number; name: string; avatar: string | null; checked_in_at?: string | null }
@@ -424,7 +419,6 @@ export default function EventDetailScreen() {
         analyzeRouteSurface(parsed.track)
           .then((analysis) => {
             setSurfaceAnalysis(analysis)
-            if (analysis?.segments.length) setColoredSegments(analysis.segments)
           })
           .catch(() => {})
           .finally(() => {
@@ -808,8 +802,6 @@ export default function EventDetailScreen() {
     ? surfaceAnalysis.summary.map(item => `${item.percent}% ${item.label.toLowerCase()}`).join(' - ')
     : null
   const showSurfaceSection = Boolean(event.activity.gpx_url && (surfaceLoading || surfaceChecked || surfaceAnalysis?.summary.length))
-  const mapSegments = fullTrackSegment(gpxTrack, coloredSegments[0]?.color) ?? surfaceAnalysis?.segments
-
   if (cancelled) {
     actionLabel = 'Event Cancelled'
     actionDisabled = true
@@ -1011,7 +1003,8 @@ export default function EventDetailScreen() {
             lat={event.location.lat}
             lng={event.location.lng}
             emoji={CATEGORY_EMOJI[event.category.value] ?? '📍'}
-            coloredSegments={mapSegments}
+            elevationSegments={coloredSegments}
+            surfaceSegments={surfaceAnalysis?.segments}
             onMapEnabledChange={setMapEnabled}
           />
         )}
@@ -1030,9 +1023,9 @@ export default function EventDetailScreen() {
                   <View key={item.kind} style={styles.surfaceCard}>
                     <View style={styles.surfaceLabelRow}>
                       <View style={[styles.surfaceSwatch, { backgroundColor: item.color }]} />
-                      <Text style={styles.surfaceLabel}>{item.label}</Text>
+                      <Text style={styles.surfaceLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.78}>{item.label}</Text>
                     </View>
-                    <Text style={styles.surfaceMeta}>{item.distanceKm} km - {item.percent}%</Text>
+                    <Text style={styles.surfaceMeta} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>{item.distanceKm} km - {item.percent}%</Text>
                   </View>
                 ))}
               </View>
@@ -1574,19 +1567,21 @@ const styles = StyleSheet.create({
   surfaceSection: { paddingHorizontal: spacing.md, gap: 8 },
   surfaceMixText: { color: palette.text, fontSize: 13, fontWeight: '900' },
   surfaceMixMuted: { color: palette.textMuted, fontWeight: '700' },
-  surfaceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  surfaceGrid: { flexDirection: 'row', flexWrap: 'nowrap', gap: 6 },
   surfaceCard: {
-    width: '48%',
+    flex: 1,
+    minWidth: 0,
     backgroundColor: palette.panel,
     borderColor: palette.line,
     borderWidth: 1,
-    borderRadius: 12,
-    padding: 10,
+    borderRadius: 10,
+    paddingHorizontal: 7,
+    paddingVertical: 8,
   },
-  surfaceLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  surfaceSwatch: { width: 24, height: 8, borderRadius: 999 },
-  surfaceLabel: { color: palette.text, fontSize: 12, fontWeight: '800', flex: 1 },
-  surfaceMeta: { color: palette.textMuted, fontSize: 11, marginTop: 5 },
+  surfaceLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  surfaceSwatch: { width: 18, height: 7, borderRadius: 999 },
+  surfaceLabel: { color: palette.text, fontSize: 10, fontWeight: '800', flex: 1 },
+  surfaceMeta: { color: palette.textMuted, fontSize: 9.5, marginTop: 4 },
 
   description: { color: palette.textMuted, fontSize: 14, lineHeight: 22 },
 
