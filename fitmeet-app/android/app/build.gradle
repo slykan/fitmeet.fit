@@ -93,8 +93,8 @@ android {
         applicationId 'app.fitmeet.fit'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 158
-        versionName "1.3.28"
+        versionCode 159
+        versionName "1.3.30"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
     }

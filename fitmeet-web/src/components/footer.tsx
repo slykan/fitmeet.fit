@@ -17,6 +17,13 @@ export function Footer() {
         </div>
         <div className="flex items-center gap-5">
           <Link
+            href="/contact"
+            className="hover:underline transition-colors"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            Support
+          </Link>
+          <Link
             href="/privacy"
             className="hover:underline transition-colors"
             style={{ color: 'var(--text-muted)' }}
@@ -31,6 +38,21 @@ export function Footer() {
             Child Safety
           </Link>
         </div>
+      </div>
+      <div
+        className="max-w-6xl mx-auto px-4 pb-4 text-xs text-center"
+        style={{ color: 'var(--text-muted)', opacity: 0.45 }}
+      >
+        Powered by{' '}
+        <a
+          href="https://on-click.hr"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hover:underline"
+          style={{ color: 'var(--text-muted)' }}
+        >
+          on-click.hr
+        </a>
       </div>
     </footer>
   )
