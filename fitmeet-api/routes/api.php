@@ -86,6 +86,7 @@ Route::get('routes/{activityRoute}/gpx', [ActivityRouteController::class, 'gpx']
 Route::post('auth/register-mobile',   [AuthController::class, 'registerMobile']);
 Route::post('auth/login-mobile',      [AuthController::class, 'loginMobile']);
 Route::post('auth/google-mobile',     [AuthController::class, 'googleMobile']);
+Route::post('auth/apple-mobile',      [AuthController::class, 'appleMobile']);
 Route::get('events/og',            [EventController::class, 'ogPage']);
 
 // Protected routes

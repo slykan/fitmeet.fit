@@ -35,6 +35,7 @@ type AuthState = {
   register: (input: { name: string; email: string; password: string; turnstileToken: string }) => Promise<void>
   loginWithGoogle: (accessToken: string) => Promise<void>
   loginWithStrava: (code: string) => Promise<void>
+  loginWithApple: (identityToken: string, fullName?: { firstName?: string | null; lastName?: string | null } | null) => Promise<void>
   refreshMe: () => Promise<void>
   logout: () => Promise<void>
   deleteAccount: () => Promise<void>
@@ -170,6 +171,15 @@ export const useAuthStore = create<AuthState>((set) => ({
     const payload = await requestJson<AuthResponse>('/strava/login', {
       method: 'POST',
       body: JSON.stringify({ code }),
+    })
+    const user = normalizeUser(payload.data)
+    await storeSession({ token: payload.token, user })
+    set({ token: payload.token, user })
+  },
+  loginWithApple: async (identityToken, fullName) => {
+    const payload = await requestJson<AuthResponse>('/auth/apple-mobile', {
+      method: 'POST',
+      body: JSON.stringify({ identity_token: identityToken, full_name: fullName }),
     })
     const user = normalizeUser(payload.data)
     await storeSession({ token: payload.token, user })

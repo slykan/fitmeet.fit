@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons'
+import * as AppleAuthentication from 'expo-apple-authentication'
 import { Link, router } from 'expo-router'
 import * as WebBrowser from 'expo-web-browser'
 import { useEffect, useMemo, useState } from 'react'
@@ -23,6 +24,7 @@ export default function LoginScreen() {
   const login            = useAuthStore((s) => s.login)
   const loginWithGoogle  = useAuthStore((s) => s.loginWithGoogle)
   const loginWithStrava  = useAuthStore((s) => s.loginWithStrava)
+  const loginWithApple   = useAuthStore((s) => s.loginWithApple)
   const hasHydrated      = useAuthStore((s) => s.hasHydrated)
   const token            = useAuthStore((s) => s.token)
   const user             = useAuthStore((s) => s.user)
@@ -34,6 +36,7 @@ export default function LoginScreen() {
   const [showCaptcha,   setShowCaptcha]   = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
   const [stravaLoading, setStravaLoading] = useState(false)
+  const [appleLoading,  setAppleLoading]  = useState(false)
 
   useEffect(() => {
     if (!hasHydrated || !token) return
@@ -63,6 +66,30 @@ export default function LoginScreen() {
       setError(e instanceof Error ? e.message : 'Strava login failed.')
     } finally {
       setStravaLoading(false)
+    }
+  }
+
+  async function handleApplePress() {
+    setAppleLoading(true)
+    setError(null)
+    try {
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      })
+      if (!credential.identityToken) throw new Error('No identity token.')
+      await loginWithApple(credential.identityToken, credential.fullName)
+      const user = useAuthStore.getState().user
+      router.replace(user?.onboarding_complete ? '/(tabs)/hub' : '/onboarding')
+    } catch (e: unknown) {
+      const err = e as { code?: string; message?: string }
+      if (err?.code !== 'ERR_REQUEST_CANCELED') {
+        setError(err?.message ?? 'Apple sign-in failed.')
+      }
+    } finally {
+      setAppleLoading(false)
     }
   }
 
@@ -137,6 +164,17 @@ export default function LoginScreen() {
           <Text style={styles.title}>Sign in</Text>
           <Text style={styles.subtitle}>Find your people. Move together.</Text>
         </View>
+
+        {/* Apple button — iOS only */}
+        {Platform.OS === 'ios' && (
+          <AppleAuthentication.AppleAuthenticationButton
+            buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+            buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+            cornerRadius={18}
+            style={[styles.appleBtn, appleLoading && styles.disabledBtn]}
+            onPress={handleApplePress}
+          />
+        )}
 
         {/* Google button */}
         <Pressable
@@ -239,6 +277,7 @@ const styles = StyleSheet.create({
   title:    { color: palette.text, fontSize: 30, lineHeight: 36, fontWeight: '800' },
   subtitle: { color: palette.textMuted, fontSize: 15 },
 
+  appleBtn: { width: '100%', height: 54 },
   googleBtn: {
     height: 54, borderRadius: 18,
     backgroundColor: palette.panel,

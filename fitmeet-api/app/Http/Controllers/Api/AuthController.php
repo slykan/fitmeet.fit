@@ -141,6 +141,108 @@ class AuthController extends Controller
         return response()->json(['token' => $token, 'data' => new UserResource($user)]);
     }
 
+    // POST /api/auth/apple-mobile
+    public function appleMobile(Request $request): JsonResponse
+    {
+        $request->validate(['identity_token' => ['required', 'string']]);
+
+        $claims = $this->verifyAppleToken($request->identity_token);
+
+        if (! $claims || empty($claims['sub'])) {
+            return response()->json(['message' => 'Invalid Apple token.'], 401);
+        }
+
+        $appleId = $claims['sub'];
+        $email   = $claims['email'] ?? null;
+
+        $fullName = $request->input('full_name');
+        $firstName = $fullName['firstName'] ?? null;
+        $lastName  = $fullName['lastName'] ?? null;
+        $name = trim(($firstName ?? '') . ' ' . ($lastName ?? '')) ?: null;
+
+        $user = User::where('apple_id', $appleId)
+            ->orWhere(fn ($q) => $q->whereNotNull('email')->where('email', $email))
+            ->first();
+
+        if ($user) {
+            $update = ['apple_id' => $appleId];
+            $user->update($update);
+        } else {
+            $user = User::create([
+                'name'     => $name ?? ($email ? explode('@', $email)[0] : 'FitMeet User'),
+                'email'    => $email,
+                'apple_id' => $appleId,
+            ]);
+        }
+
+        $token = $user->createToken('fitmeet-mobile')->plainTextToken;
+
+        return response()->json(['token' => $token, 'data' => new UserResource($user)]);
+    }
+
+    private function verifyAppleToken(string $identityToken): ?array
+    {
+        $parts = explode('.', $identityToken);
+        if (count($parts) !== 3) return null;
+
+        $header = json_decode($this->base64UrlDecode($parts[0]), true);
+        if (! $header || empty($header['kid'])) return null;
+
+        $keysRes = Http::get('https://appleid.apple.com/auth/keys');
+        if (! $keysRes->ok()) return null;
+
+        $matchingKey = null;
+        foreach ($keysRes->json('keys') ?? [] as $key) {
+            if ($key['kid'] === $header['kid']) {
+                $matchingKey = $key;
+                break;
+            }
+        }
+        if (! $matchingKey) return null;
+
+        $pem  = $this->jwkToPem($matchingKey);
+        $data = $parts[0] . '.' . $parts[1];
+        $sig  = $this->base64UrlDecode($parts[2]);
+
+        if (openssl_verify($data, $sig, $pem, 'SHA256') !== 1) return null;
+
+        $payload = json_decode($this->base64UrlDecode($parts[1]), true);
+        if (! $payload) return null;
+        if (($payload['iss'] ?? '') !== 'https://appleid.apple.com') return null;
+        if (($payload['aud'] ?? '') !== 'app.fitmeet.fit') return null;
+        if (($payload['exp'] ?? 0) < time()) return null;
+
+        return $payload;
+    }
+
+    private function jwkToPem(array $jwk): string
+    {
+        $n = $this->base64UrlDecode($jwk['n']);
+        $e = $this->base64UrlDecode($jwk['e']);
+
+        if (ord($n[0]) >= 128) $n = "\x00" . $n;
+
+        $encLen = fn(int $len): string => $len < 128
+            ? chr($len)
+            : (fn($t) => chr(0x80 | strlen($t)) . $t)(ltrim(pack('N', $len), "\x00"));
+
+        $seq  = "\x02" . $encLen(strlen($n)) . $n . "\x02" . $encLen(strlen($e)) . $e;
+        $seq  = "\x30" . $encLen(strlen($seq)) . $seq;
+        $bits = "\x00" . $seq;
+        $oid  = "\x30\x0d\x06\x09\x2a\x86\x48\x86\xf7\x0d\x01\x01\x01\x05\x00";
+        $pub  = $oid . "\x03" . $encLen(strlen($bits)) . $bits;
+        $der  = "\x30" . $encLen(strlen($pub)) . $pub;
+
+        return "-----BEGIN PUBLIC KEY-----\n" . chunk_split(base64_encode($der), 64, "\n") . "-----END PUBLIC KEY-----\n";
+    }
+
+    private function base64UrlDecode(string $data): string
+    {
+        $rem = strlen($data) % 4;
+        if ($rem) $data .= str_repeat('=', 4 - $rem);
+        return base64_decode(strtr($data, '-_', '+/'));
+    }
+
     private function turnstileSecret(): string
     {
         $secret = (string) (config('services.turnstile.secret') ?: env('TURNSTILE_SECRET', ''));
