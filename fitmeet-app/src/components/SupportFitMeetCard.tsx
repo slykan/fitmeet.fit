@@ -80,7 +80,7 @@ export function SupportFitMeetCard({
         return
       }
       if (purchaseError?.code === PURCHASES_ERROR_CODE.PAYMENT_PENDING_ERROR) {
-        Alert.alert('Pending', 'Your purchase is pending confirmation in Google Play.')
+        Alert.alert('Pending', 'Your purchase is pending confirmation.')
         return
       }
       Alert.alert('Purchase failed', purchaseError?.message ?? 'Could not complete the purchase right now.')
@@ -105,7 +105,7 @@ export function SupportFitMeetCard({
 
       {!revenueCatReady ? (
         <Text style={styles.hint}>
-          Add the RevenueCat Google public API key in app config to enable support purchases.
+          Support purchases are not available on this platform yet.
         </Text>
       ) : loading ? (
         <View style={styles.loadingRow}>

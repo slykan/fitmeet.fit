@@ -2,4 +2,17 @@ images/
 .claude/scheduled_tasks.lock
 fitmeet-app/node_modules/
 fitmeet-app/.expo/
+fitmeet-app/.expo-home/
+fitmeet-app/.android-home/
+fitmeet-app/.gradle-local/
+fitmeet-app/.sandbox-home/
 fitmeet-app/dist/
+fitmeet-app/dist-check/
+fitmeet-app/android/build/
+fitmeet-app/android/app/build/
+fitmeet-app/android/.gradle/
+
+# Sensitive keys — never commit
+*.p8
+GoogleService-Info.plist
+fitmeet-app/GoogleService-Info.plist
