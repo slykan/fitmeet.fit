@@ -22,7 +22,7 @@
       "supportsTablet": true,
       "icon": "./assets/icon.png",
       "bundleIdentifier": "app.fitmeet.fit",
-      "buildNumber": "1",
+      "buildNumber": "2",
       "associatedDomains": [
         "applinks:fitmeet.fit",
         "applinks:fitmeet.fit"
