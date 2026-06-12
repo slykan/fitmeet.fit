@@ -19,10 +19,10 @@
       "@react-native-community/datetimepicker"
     ],
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "icon": "./assets/icon.png",
       "bundleIdentifier": "app.fitmeet.fit",
-      "buildNumber": "3",
+      "buildNumber": "4",
       "associatedDomains": [
         "applinks:fitmeet.fit",
         "applinks:fitmeet.fit"

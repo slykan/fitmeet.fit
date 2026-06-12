@@ -14,5 +14,3 @@ fitmeet-app/android/.gradle/
 
 # Sensitive keys — never commit
 *.p8
-GoogleService-Info.plist
-fitmeet-app/GoogleService-Info.plist
