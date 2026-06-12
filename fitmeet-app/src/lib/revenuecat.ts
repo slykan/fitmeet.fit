@@ -29,6 +29,10 @@ function getApiKey() {
 }
 
 export function isRevenueCatEnabled() {
+  if (Platform.OS === 'ios') {
+    const version = typeof Platform.Version === 'string' ? parseFloat(Platform.Version) : Platform.Version
+    if (version >= 26) return false
+  }
   return getApiKey().trim().length > 0
 }
 
@@ -37,26 +41,30 @@ export async function setupRevenueCat(appUserId?: string | number | null) {
 
   const nextAppUserId = appUserId == null ? null : String(appUserId)
 
-  if (!configured) {
-    await Purchases.setLogLevel(__DEV__ ? LOG_LEVEL.DEBUG : LOG_LEVEL.WARN)
-    Purchases.configure({
-      apiKey: getApiKey(),
-      appUserID: nextAppUserId ?? undefined,
-    })
-    configured = true
-    currentAppUserId = nextAppUserId
+  try {
+    if (!configured) {
+      await Purchases.setLogLevel(__DEV__ ? LOG_LEVEL.DEBUG : LOG_LEVEL.WARN)
+      Purchases.configure({
+        apiKey: getApiKey(),
+        appUserID: nextAppUserId ?? undefined,
+      })
+      configured = true
+      currentAppUserId = nextAppUserId
+      return true
+    }
+
+    if (nextAppUserId && currentAppUserId !== nextAppUserId) {
+      await Purchases.logIn(nextAppUserId)
+      currentAppUserId = nextAppUserId
+    } else if (!nextAppUserId && currentAppUserId) {
+      await Purchases.logOut()
+      currentAppUserId = null
+    }
+
     return true
+  } catch {
+    return false
   }
-
-  if (nextAppUserId && currentAppUserId !== nextAppUserId) {
-    await Purchases.logIn(nextAppUserId)
-    currentAppUserId = nextAppUserId
-  } else if (!nextAppUserId && currentAppUserId) {
-    await Purchases.logOut()
-    currentAppUserId = null
-  }
-
-  return true
 }
 
 export function revenueCatKeyStatus() {

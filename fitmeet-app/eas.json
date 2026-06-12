@@ -31,9 +31,9 @@
   "submit": {
     "production": {
       "ios": {
-        "appleId": "PLACEHOLDER_APPLE_ID",
-        "ascAppId": "PLACEHOLDER_APP_STORE_CONNECT_APP_ID",
-        "appleTeamId": "PLACEHOLDER_APPLE_TEAM_ID"
+        "appleId": "slynetwork@gmail.com",
+        "ascAppId": "6779087483",
+        "appleTeamId": "N6952NQ29Y"
       }
     }
   }
