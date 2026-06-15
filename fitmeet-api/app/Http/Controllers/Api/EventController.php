@@ -419,7 +419,7 @@ HTML;
     // DELETE /api/events/{event}
     public function destroy(Request $request, Event $event): JsonResponse
     {
-        if (! $event->isOrganizer($request->user())) {
+        if (! $event->isOrganizer($request->user()) && ! $request->user()->is_admin) {
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 

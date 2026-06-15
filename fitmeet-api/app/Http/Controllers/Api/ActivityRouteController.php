@@ -217,7 +217,7 @@ class ActivityRouteController extends Controller
 
     public function destroy(ActivityRoute $activityRoute): JsonResponse
     {
-        abort_unless(auth()->id() === $activityRoute->user_id, 403);
+        abort_unless(auth()->id() === $activityRoute->user_id || auth()->user()->is_admin, 403);
 
         if ($activityRoute->gpx_path && Storage::disk('public')->exists($activityRoute->gpx_path)) {
             Storage::disk('public')->delete($activityRoute->gpx_path);

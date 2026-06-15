@@ -137,7 +137,7 @@ function withProfileStats(result: GpxResult): GpxResult {
 
 function EventContent() {
   const searchParams = useSearchParams()
-  const { token, hasHydrated } = useAuthStore()
+  const { token, user, hasHydrated } = useAuthStore()
   const router       = useRouter()
   const id           = searchParams.get('id')
   const wall         = searchParams.get('wall')
@@ -833,12 +833,14 @@ function EventContent() {
             )
           )}
 
-          {event.is_organizer && event.status === 'active' && (
+          {(event.is_organizer || user?.is_admin) && event.status === 'active' && (
             <div className="flex gap-2">
-              <Button size="lg" variant="ghost" className="flex-1 border flex items-center gap-2"
-                onClick={() => router.push(`/events/edit?id=${event.id}`)}>
-                <Pencil size={15} /> Edit event
-              </Button>
+              {event.is_organizer && (
+                <Button size="lg" variant="ghost" className="flex-1 border flex items-center gap-2"
+                  onClick={() => router.push(`/events/edit?id=${event.id}`)}>
+                  <Pencil size={15} /> Edit event
+                </Button>
+              )}
               <Button size="lg" variant="ghost" loading={cancelling} className="flex-1 border text-red-400 hover:text-red-400 flex items-center gap-2"
                 onClick={handleCancelEvent}>
                 <XCircle size={15} /> Cancel event

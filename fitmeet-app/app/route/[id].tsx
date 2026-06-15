@@ -91,6 +91,23 @@ export default function RouteViewScreen() {
   const [surfaceLoading, setSurfaceLoading] = useState(false)
   const [surfaceChecked, setSurfaceChecked] = useState(false)
 
+  async function deleteRoute() {
+    if (!route) return
+    Alert.alert('Delete route', 'Delete this route permanently?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete', style: 'destructive', onPress: async () => {
+          try {
+            await api.delete(`/routes/${id}`)
+            router.back()
+          } catch {
+            Alert.alert('Error', 'Could not delete route.')
+          }
+        },
+      },
+    ])
+  }
+
   async function openGpxDownload() {
     if (!id) return
     const baseUrl = api.defaults.baseURL ?? 'https://api.fitmeet.fit/api'
@@ -220,6 +237,15 @@ export default function RouteViewScreen() {
               <Ionicons name="pencil-outline" size={17} color={palette.accent} />
             </Pressable>
           )}
+          {user && (route.creator?.id === user.id || user.is_admin) && (
+            <Pressable
+              style={styles.deleteBtn}
+              onPress={deleteRoute}
+              hitSlop={10}
+            >
+              <Ionicons name="trash-outline" size={17} color="#f87171" />
+            </Pressable>
+          )}
           <Pressable style={styles.shareBtn} onPress={shareRoute} hitSlop={10}>
             <Ionicons name="share-social-outline" size={19} color={palette.text} />
           </Pressable>
@@ -314,6 +340,13 @@ const styles = StyleSheet.create({
     width: 42, height: 42, borderRadius: 14,
     backgroundColor: 'rgba(108,255,47,0.1)',
     borderWidth: 1, borderColor: 'rgba(108,255,47,0.28)',
+    alignItems: 'center', justifyContent: 'center',
+    marginRight: 6,
+  },
+  deleteBtn: {
+    width: 42, height: 42, borderRadius: 14,
+    backgroundColor: 'rgba(248,113,113,0.1)',
+    borderWidth: 1, borderColor: 'rgba(248,113,113,0.3)',
     alignItems: 'center', justifyContent: 'center',
     marginRight: 6,
   },

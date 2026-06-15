@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic'
 import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ChevronLeft, Download, Eye, MapPin, PenLine, Share2, Zap } from 'lucide-react'
+import { ChevronLeft, Download, Eye, MapPin, PenLine, Share2, Trash2, Zap } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
 import ElevationChart from '@/components/elevation-chart'
@@ -162,6 +162,16 @@ function RouteContent() {
     ? surfaceAnalysis.summary.map(item => `${item.percent}% ${item.label.toLowerCase()}`).join(' - ')
     : null
 
+  async function handleDeleteRoute() {
+    if (!confirm('Delete this route permanently?')) return
+    try {
+      await api.delete(`/routes/${currentRoute.id}`)
+      router.back()
+    } catch {
+      alert('Could not delete route.')
+    }
+  }
+
   async function shareRoute() {
     const url = `${window.location.origin}/routes/view?id=${currentRoute.id}`
     const text = [
@@ -220,6 +230,16 @@ function RouteContent() {
                   title="Edit route"
                 >
                   <PenLine size={15} /> Edit
+                </button>
+              )}
+              {user && (route.creator?.id === user.id || user.is_admin) && (
+                <button
+                  onClick={handleDeleteRoute}
+                  className="rounded-xl border px-3 py-2 flex items-center gap-1.5 text-sm font-semibold transition-opacity hover:opacity-80"
+                  style={{ background: 'rgba(248,113,113,0.08)', borderColor: 'rgba(248,113,113,0.3)', color: '#f87171' }}
+                  title="Delete route"
+                >
+                  <Trash2 size={15} /> Delete
                 </button>
               )}
               <button

@@ -1280,15 +1280,17 @@ export default function EventDetailScreen() {
         )}
 
         {/* Organizer actions */}
-        {isOrg && !cancelled && (
+        {(isOrg || me?.is_admin) && !cancelled && (
           <View style={{ gap: spacing.sm }}>
-            <Pressable
-              style={styles.editBtn}
-              onPress={() => router.push(`/event/edit/${event.id}` as never)}
-            >
-              <Ionicons name="create-outline" size={16} color={palette.accent} />
-              <Text style={styles.editBtnText}>Edit Event</Text>
-            </Pressable>
+            {isOrg && (
+              <Pressable
+                style={styles.editBtn}
+                onPress={() => router.push(`/event/edit/${event.id}` as never)}
+              >
+                <Ionicons name="create-outline" size={16} color={palette.accent} />
+                <Text style={styles.editBtnText}>Edit Event</Text>
+              </Pressable>
+            )}
             <Pressable
               style={styles.cancelEventBtn}
               onPress={cancelEvent}
