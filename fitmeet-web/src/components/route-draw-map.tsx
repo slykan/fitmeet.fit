@@ -952,16 +952,14 @@ export default function RouteDrawMap({ category, height = 500, initialWaypoints,
           </div>
         </div>
 
-        {elevProfile.length >= 2 ? (
-          <div className="mt-2 overflow-hidden rounded-xl" style={{ background: 'rgba(0,0,0,0.18)' }}>
-            <ElevationPreview profile={elevProfile} />
-          </div>
-        ) : (
-          <div className="mt-2 text-xs" style={{ color: 'rgba(255,255,255,0.58)' }}>
-            {routing ? 'Routing...' : waypointsRef.current.length === 0 ? 'Click on the map to add waypoints.' : 'Add another point to see elevation.'}
-          </div>
-        )}
       </div>
+
+      {/* Elevation chart — below map */}
+      {elevProfile.length >= 2 && (
+        <div className="mt-2 overflow-hidden rounded-xl border" style={{ background: 'rgba(5,8,22,0.82)', borderColor: 'rgba(255,255,255,0.14)' }}>
+          <ElevationPreview profile={elevProfile} />
+        </div>
+      )}
 
       {/* Stats + controls bar */}
       <div
