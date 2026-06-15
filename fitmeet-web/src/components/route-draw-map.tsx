@@ -928,38 +928,39 @@ export default function RouteDrawMap({ category, height = 500, initialWaypoints,
         </button>
       </form>
 
+      {/* Stats + elevation chart — below map */}
       <div
-        className="absolute bottom-3 left-3 right-3 z-[850] rounded-2xl border p-3"
+        className="mt-2 rounded-2xl border p-3"
         style={{
-          background: 'rgba(5,8,22,0.82)',
-          borderColor: 'rgba(255,255,255,0.14)',
-          backdropFilter: 'blur(12px)',
-          boxShadow: '0 18px 48px rgba(0,0,0,0.35)',
+          background: 'var(--surface)',
+          borderColor: 'var(--border)',
         }}
       >
         <div className="grid grid-cols-3 gap-2">
-          <div className="rounded-xl px-3 py-2" style={{ background: 'rgba(255,255,255,0.06)' }}>
-            <div className="text-[10px] font-black uppercase" style={{ color: 'rgba(255,255,255,0.52)' }}>Distance</div>
+          <div className="rounded-xl px-3 py-2" style={{ background: 'rgba(255,255,255,0.04)' }}>
+            <div className="text-[10px] font-black uppercase" style={{ color: 'var(--text-muted)' }}>Distance</div>
             <div className="text-base font-black" style={{ color: 'var(--primary)' }}>{stats.distanceKm.toFixed(1)} km</div>
           </div>
-          <div className="rounded-xl px-3 py-2" style={{ background: 'rgba(255,255,255,0.06)' }}>
-            <div className="text-[10px] font-black uppercase" style={{ color: 'rgba(255,255,255,0.52)' }}>Elevation</div>
-            <div className="text-base font-black" style={{ color: '#f5f7ff' }}>{elevLoading ? '...' : `${stats.elevGain} m`}</div>
+          <div className="rounded-xl px-3 py-2" style={{ background: 'rgba(255,255,255,0.04)' }}>
+            <div className="text-[10px] font-black uppercase" style={{ color: 'var(--text-muted)' }}>Elevation</div>
+            <div className="text-base font-black" style={{ color: 'var(--text)' }}>{elevLoading ? '...' : `${stats.elevGain} m`}</div>
           </div>
-          <div className="rounded-xl px-3 py-2" style={{ background: 'rgba(255,255,255,0.06)' }}>
-            <div className="text-[10px] font-black uppercase" style={{ color: 'rgba(255,255,255,0.52)' }}>Points</div>
-            <div className="text-base font-black" style={{ color: '#f5f7ff' }}>{waypointsRef.current.length}</div>
+          <div className="rounded-xl px-3 py-2" style={{ background: 'rgba(255,255,255,0.04)' }}>
+            <div className="text-[10px] font-black uppercase" style={{ color: 'var(--text-muted)' }}>Points</div>
+            <div className="text-base font-black" style={{ color: 'var(--text)' }}>{waypointsRef.current.length}</div>
           </div>
         </div>
 
+        {elevProfile.length >= 2 ? (
+          <div className="mt-2 overflow-hidden rounded-xl" style={{ background: 'rgba(0,0,0,0.18)' }}>
+            <ElevationPreview profile={elevProfile} />
+          </div>
+        ) : (
+          <div className="mt-2 text-xs" style={{ color: 'var(--text-muted)' }}>
+            {routing ? 'Routing...' : waypointsRef.current.length === 0 ? 'Click on the map to add waypoints.' : 'Add another point to see elevation.'}
+          </div>
+        )}
       </div>
-
-      {/* Elevation chart — below map */}
-      {elevProfile.length >= 2 && (
-        <div className="mt-2 overflow-hidden rounded-xl border" style={{ background: 'rgba(5,8,22,0.82)', borderColor: 'rgba(255,255,255,0.14)' }}>
-          <ElevationPreview profile={elevProfile} />
-        </div>
-      )}
 
       {/* Stats + controls bar */}
       <div
