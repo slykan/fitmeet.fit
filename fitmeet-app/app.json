@@ -20,6 +20,7 @@
       "./plugins/withModularHeaders"
     ],
     "ios": {
+      "newArchEnabled": false,
       "supportsTablet": false,
       "icon": "./assets/icon.png",
       "bundleIdentifier": "app.fitmeet.fit",
