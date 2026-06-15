@@ -80,7 +80,13 @@ export default function LoginScreen() {
         ],
       })
       if (!credential.identityToken) throw new Error('No identity token.')
-      await loginWithApple(credential.identityToken, credential.fullName)
+      const fullName = credential.fullName
+        ? {
+            firstName: credential.fullName.givenName,
+            lastName: credential.fullName.familyName,
+          }
+        : null
+      await loginWithApple(credential.identityToken, fullName)
       const user = useAuthStore.getState().user
       router.replace(user?.onboarding_complete ? '/(tabs)/hub' : '/onboarding')
     } catch (e: unknown) {
