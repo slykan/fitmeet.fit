@@ -27,6 +27,18 @@ class MarketplaceController extends Controller
         return response()->json(['data' => MarketplaceListingResource::collection($listings)]);
     }
 
+    // GET /api/market/public/{listing} (no auth)
+    public function publicShow(MarketplaceListing $listing): JsonResponse
+    {
+        if (! in_array($listing->status, ['active', 'sold'], true)) {
+            return response()->json(['message' => 'Listing not found.'], 404);
+        }
+
+        $listing->load(['seller', 'images']);
+
+        return response()->json(['data' => new MarketplaceListingResource($listing)]);
+    }
+
     // GET /api/market
     public function index(Request $request): JsonResponse
     {

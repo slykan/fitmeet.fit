@@ -82,6 +82,7 @@ Route::get('events/public/{event}',   [EventController::class, 'publicShow']);
 Route::get('events/public/{event}/gpx', [EventController::class, 'publicGpx']);
 Route::get('events/public-latest',    [EventController::class, 'publicLatest']);
 Route::get('market/public-latest',    [MarketplaceController::class, 'publicLatest']);
+Route::get('market/public/{listing}', [MarketplaceController::class, 'publicShow']);
 Route::get('routes', [ActivityRouteController::class, 'index']);
 Route::get('routes/{activityRoute}', [ActivityRouteController::class, 'show']);
 Route::get('routes/{activityRoute}/gpx', [ActivityRouteController::class, 'gpx']);

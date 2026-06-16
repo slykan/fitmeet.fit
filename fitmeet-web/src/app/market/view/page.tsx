@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
-import { ChevronLeft, MapPin, MessageCircle, Pencil, CheckCircle2, Trash2, X } from 'lucide-react'
+import { ChevronLeft, MapPin, MessageCircle, Pencil, CheckCircle2, Trash2, X, Share2 } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
 import api from '@/lib/api'
@@ -12,11 +12,12 @@ import { useAuthStore } from '@/store/auth'
 
 interface MarketListing {
   id: number
+  type: 'sell' | 'buy'
   title: string
   description: string | null
   price: number
   currency: string
-  condition: 'new' | 'used' | 'like_new'
+  condition: 'new' | 'used' | 'like_new' | null
   category: { value: string; label: string }
   status: string
   location: { city: string | null; country: string | null }
@@ -44,6 +45,7 @@ function ViewContent() {
   const [activeImg, setActiveImg] = useState(0)
   const [lightbox, setLightbox]   = useState(false)
   const [acting, setActing] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     if (!token || !id) return
@@ -56,6 +58,29 @@ function ViewContent() {
   async function handleMessage() {
     if (!listing) return
     router.push(`/messages?user=${listing.seller.id}`)
+  }
+
+  async function handleShare() {
+    if (!listing || typeof window === 'undefined') return
+    const url = `${window.location.origin}/market/share/og.php?id=${encodeURIComponent(String(listing.id))}`
+    const priceLabel = listing.price > 0
+      ? `${listing.type === 'buy' ? 'up to ' : ''}${listing.price.toFixed(0)} ${listing.currency}`
+      : listing.type === 'buy' ? 'Wanted on FitMeet' : 'For sale on FitMeet'
+    const text = [priceLabel, listing.description].filter(Boolean).join('\n\n')
+
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: listing.title,
+          text,
+          url,
+        })
+        return
+      }
+      await navigator.clipboard.writeText(url)
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 1800)
+    } catch {}
   }
 
   async function handleSold() {
@@ -188,9 +213,11 @@ function ViewContent() {
                     style={{ borderColor: 'var(--primary)', color: 'var(--primary)', background: 'rgba(57,255,20,0.08)' }}>
                     {emoji} {listing.category.label}
                   </span>
-                  <span className="text-xs px-2 py-0.5 rounded-full border font-medium" style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}>
-                    {CONDITION_LABEL[listing.condition]}
-                  </span>
+                  {listing.condition && (
+                    <span className="text-xs px-2 py-0.5 rounded-full border font-medium" style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}>
+                      {CONDITION_LABEL[listing.condition]}
+                    </span>
+                  )}
                   {sold && (
                     <span className="text-xs px-2 py-0.5 rounded-full border font-medium" style={{ borderColor: '#f87171', color: '#f87171', background: 'rgba(248,113,113,0.08)' }}>
                       Sold
@@ -229,7 +256,14 @@ function ViewContent() {
             </div>
 
             {/* Actions */}
-            <div className="flex gap-2 pt-1">
+            <div className="flex flex-wrap gap-2 pt-1">
+              <button
+                onClick={handleShare}
+                className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border font-bold text-sm transition-opacity hover:opacity-80"
+                style={{ borderColor: 'var(--border)', color: 'var(--text-primary)', background: 'var(--background)' }}
+              >
+                <Share2 size={15} /> {copied ? 'Copied' : 'Share'}
+              </button>
               {!listing.is_mine && !sold && (
                 <button
                   onClick={handleMessage}
