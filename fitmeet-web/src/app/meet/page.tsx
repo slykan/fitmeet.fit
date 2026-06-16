@@ -953,114 +953,128 @@ function EventsTab() {
         </div>
       )}
 
-      {!loading && events.map(ev => {
-        const { past: pastEvent, inProgress } = eventTiming(ev)
-        const mutedEvent = ev.status === 'cancelled' || pastEvent
-        const activityDistanceKm = gpxStats[ev.id]?.distanceKm ?? ev.activity.distance_km
-        const activityElevationGain = gpxStats[ev.id]?.elevationGain ?? ev.activity.elevation_gain
+      {!loading && events.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {events.map(ev => {
+            const { past: pastEvent, inProgress } = eventTiming(ev)
+            const mutedEvent = ev.status === 'cancelled' || pastEvent
+            const activityDistanceKm = gpxStats[ev.id]?.distanceKm ?? ev.activity.distance_km
+            const activityElevationGain = gpxStats[ev.id]?.elevationGain ?? ev.activity.elevation_gain
 
-        return (
-        <div key={ev.id}
-          onClick={() => router.push(`/events/view?id=${ev.id}`)}
-          className="rounded-2xl border p-3 sm:p-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 transition-opacity hover:opacity-80 cursor-pointer"
-          style={{
-            background: 'var(--surface)',
-            borderColor: ev.status === 'cancelled' ? 'rgba(248,113,113,0.35)' : 'var(--border)',
-            opacity: mutedEvent ? 0.68 : 1,
-          }}>
-          {ev.image_url ? (
-            <Image
-              src={ev.image_url}
-              alt={ev.title}
-              width={640}
-              height={360}
-              className="w-full h-44 sm:w-24 sm:h-24 rounded-xl object-cover flex-shrink-0"
-            />
-          ) : (
-            <div className="w-full h-32 sm:w-24 sm:h-24 rounded-xl flex-shrink-0 flex items-center justify-center text-3xl"
-                style={{ background: 'var(--background)', border: '1px solid var(--border)' }}>
-              {CATEGORY_EMOJI[ev.category.value] ?? '•'}
-            </div>
-          )}
-          <div className="w-full flex-1 min-w-0 py-1">
-            <div className="flex items-start justify-between gap-3 mb-1.5">
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                  <span className="text-xs px-2 py-0.5 rounded-full border font-medium"
-                    style={{ borderColor: 'var(--primary)', color: 'var(--primary)', background: 'rgba(57,255,20,0.08)' }}>
-                    {CATEGORY_EMOJI[ev.category.value] ?? ''} {ev.category.label}
-                  </span>
-                  {inProgress && <span className="text-xs font-medium" style={{ color: 'var(--primary)' }}>In progress</span>}
-                  {pastEvent && !inProgress && <span className="text-xs font-medium" style={{ color: 'var(--secondary)' }}>Past</span>}
-                  {ev.status === 'cancelled' && <span className="text-xs text-red-400 font-medium">Cancelled</span>}
-                  {ev.is_full && <span className="text-xs text-red-400 font-medium">Full</span>}
-                  {ev.skill_level && (
-                    <span className="text-xs capitalize" style={{ color: 'var(--text-muted)' }}>{ev.skill_level}</span>
+            return (
+              <div key={ev.id}
+                onClick={() => router.push(`/events/view?id=${ev.id}`)}
+                className="rounded-2xl border overflow-hidden cursor-pointer transition-opacity hover:opacity-80 flex flex-col"
+                style={{
+                  background: 'var(--surface)',
+                  borderColor: ev.status === 'cancelled' ? 'rgba(248,113,113,0.35)' : 'var(--border)',
+                  opacity: mutedEvent ? 0.68 : 1,
+                }}>
+
+                {/* Image */}
+                <div className="relative w-full h-44 flex-shrink-0" style={{ background: 'var(--background)' }}>
+                  {ev.image_url ? (
+                    <Image src={ev.image_url} alt={ev.title} fill className="object-cover" unoptimized />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-4xl">
+                      {CATEGORY_EMOJI[ev.category.value] ?? '•'}
+                    </div>
+                  )}
+                  <div className="absolute top-2 left-2 flex gap-1.5">
+                    {inProgress && (
+                      <span className="text-[10px] font-black px-2 py-0.5 rounded-full"
+                        style={{ background: 'rgba(5,8,22,0.82)', color: 'var(--primary)' }}>Live</span>
+                    )}
+                    {ev.status === 'cancelled' && (
+                      <span className="text-[10px] font-black px-2 py-0.5 rounded-full"
+                        style={{ background: 'rgba(5,8,22,0.82)', color: '#f87171' }}>Cancelled</span>
+                    )}
+                    {ev.is_full && (
+                      <span className="text-[10px] font-black px-2 py-0.5 rounded-full"
+                        style={{ background: 'rgba(5,8,22,0.82)', color: '#f87171' }}>Full</span>
+                    )}
+                    {pastEvent && !inProgress && (
+                      <span className="text-[10px] font-black px-2 py-0.5 rounded-full"
+                        style={{ background: 'rgba(5,8,22,0.82)', color: 'var(--secondary)' }}>Past</span>
+                    )}
+                  </div>
+                  {ev.is_joined && (
+                    <button
+                      onClick={e => openReminder(e, ev)}
+                      title="Set reminder"
+                      disabled={ev.status === 'cancelled' || pastEvent}
+                      className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center transition-colors"
+                      style={{
+                        background: 'rgba(5,8,22,0.7)',
+                        color: (reminderOffsets.get(ev.id)?.length ?? 0) > 0 ? 'var(--primary)' : '#fff',
+                      }}
+                    >
+                      <Bell size={13} fill={(reminderOffsets.get(ev.id)?.length ?? 0) > 0 ? 'var(--primary)' : 'none'} />
+                    </button>
                   )}
                 </div>
-                <p className="font-semibold text-sm truncate">{ev.title}</p>
-              </div>
-              {ev.is_joined && (
-                <button
-                  onClick={e => openReminder(e, ev)}
-                  title="Set reminder"
-                  disabled={ev.status === 'cancelled' || pastEvent}
-                  className="mt-0.5 p-1.5 rounded-lg transition-colors hover:bg-[--border] flex-shrink-0"
-                  style={{ color: (reminderOffsets.get(ev.id)?.length ?? 0) > 0 ? 'var(--primary)' : '#fff' }}
-                >
-                  <Bell size={15} fill={(reminderOffsets.get(ev.id)?.length ?? 0) > 0 ? 'var(--primary)' : 'none'} />
-                </button>
-              )}
-            </div>
-            <div className="space-y-1">
-              <div className="flex items-start gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
-                <Calendar size={11} style={{ marginTop: 2, flexShrink: 0 }} />
-                <div>
-                  <div>{formatDate(ev.schedule.start_at, ev.schedule.timezone).date}</div>
-                  <div>
-                    {formatDate(ev.schedule.start_at, ev.schedule.timezone).time}
-                    {ev.schedule.duration_minutes && <span> · {ev.schedule.duration_minutes} min</span>}
+
+                {/* Content */}
+                <div className="p-3 flex-1 space-y-2">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-[10px] px-2 py-0.5 rounded-full border font-semibold"
+                      style={{ borderColor: 'var(--primary)', color: 'var(--primary)', background: 'rgba(57,255,20,0.08)' }}>
+                      {CATEGORY_EMOJI[ev.category.value] ?? ''} {ev.category.label}
+                    </span>
+                    {ev.skill_level && (
+                      <span className="text-[10px] capitalize" style={{ color: 'var(--text-muted)' }}>{ev.skill_level}</span>
+                    )}
                   </div>
+
+                  <p className="font-bold text-sm leading-snug line-clamp-2">{ev.title}</p>
+
+                  <div className="flex items-start gap-1.5 text-xs" style={{ color: 'var(--text-muted)' }}>
+                    <Calendar size={11} style={{ marginTop: 2, flexShrink: 0 }} />
+                    <span>
+                      {formatDate(ev.schedule.start_at, ev.schedule.timezone).date}
+                      {' · '}
+                      {formatDate(ev.schedule.start_at, ev.schedule.timezone).time}
+                      {ev.schedule.duration_minutes && ` · ${ev.schedule.duration_minutes} min`}
+                    </span>
+                  </div>
+
+                  {ev.location.address && (
+                    <div className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--text-muted)' }}>
+                      <MapPin size={11} />
+                      {shortAddress(ev.location.address)}
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-3 text-xs" style={{ color: 'var(--text-muted)' }}>
+                    <span className="flex items-center gap-1">
+                      <Users size={11} />
+                      {ev.participants_count}{ev.max_participants ? `/${ev.max_participants}` : ''} joined
+                    </span>
+                    {(ev.views_count ?? 0) > 0 && <span>👁 {ev.views_count}</span>}
+                    {(ev.comments_count ?? 0) > 0 && <span>💬 {ev.comments_count}</span>}
+                  </div>
+
+                  {(activityDistanceKm != null || activityElevationGain != null) && (
+                    <div className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--text-muted)' }}>
+                      <Zap size={11} style={{ color: 'var(--primary)' }} />
+                      {[
+                        activityDistanceKm != null && `${activityDistanceKm} km`,
+                        activityElevationGain != null && `↑${activityElevationGain} m`,
+                      ].filter(Boolean).join(' · ')}
+                    </div>
+                  )}
+
+                  {ev.location.lat != null && ev.location.lng != null && (
+                    <WeatherBadge lat={ev.location.lat} lng={ev.location.lng} startAt={ev.schedule.start_at} timezone={ev.schedule.timezone} />
+                  )}
+
+                  <EventCommentsPreview eventId={ev.id} count={ev.comments_count ?? 0} />
                 </div>
               </div>
-              {ev.location.address && (
-                <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
-                  <MapPin size={11} />
-                  {shortAddress(ev.location.address)}
-                </div>
-              )}
-              <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
-                <Users size={11} />
-                {ev.participants_count} joined
-                {ev.max_participants ? ` · max ${ev.max_participants}` : ''}
-                {(ev.views_count ?? 0) > 0 && <span>· 👁 {ev.views_count} seen</span>}
-              </div>
-              {(activityDistanceKm != null || activityElevationGain != null) && (
-                <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
-                  <Zap size={11} style={{ color: 'var(--primary)' }} />
-                  {[
-                    activityDistanceKm != null && `${activityDistanceKm} km`,
-                    activityElevationGain != null && `↑${activityElevationGain} m`,
-                  ].filter(Boolean).join(' · ')}
-                </div>
-              )}
-            </div>
-            {ev.location.lat != null && ev.location.lng != null && (
-              <WeatherBadge
-                lat={ev.location.lat}
-                lng={ev.location.lng}
-                startAt={ev.schedule.start_at}
-                timezone={ev.schedule.timezone}
-              />
-            )}
-            <EventCommentsPreview eventId={ev.id} count={ev.comments_count ?? 0} />
-          </div>
-          <div className="w-full sm:w-auto flex items-center justify-end gap-2 flex-shrink-0 mt-0.5 pt-1 sm:pt-0">
-            <ChevronRight size={16} style={{ color: 'var(--text-muted)' }} />
-          </div>
+            )
+          })}
         </div>
-        )
-      })}
+      )}
 
       {/* Reminder modal */}
       {reminderEvent && (
