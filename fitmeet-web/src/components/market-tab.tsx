@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { MapPin, Plus, ChevronDown } from 'lucide-react'
+import { MapPin, Plus, ChevronDown, Search } from 'lucide-react'
 
 import api from '@/lib/api'
 import { CATEGORIES, CATEGORY_EMOJI } from '@/lib/categories'
@@ -44,6 +44,13 @@ export function MarketTab() {
   const [category,  setCategory]  = useState('')
   const [condition, setCondition] = useState<Condition>('')
   const [showCats,  setShowCats]  = useState(false)
+  const [search,    setSearch]    = useState('')
+  const [searchQ,   setSearchQ]   = useState('')
+
+  useEffect(() => {
+    const timer = setTimeout(() => setSearchQ(search.trim()), 350)
+    return () => clearTimeout(timer)
+  }, [search])
 
   useEffect(() => {
     if (!token) return
@@ -52,11 +59,12 @@ export function MarketTab() {
     if (typeFilter)  params.set('type',      typeFilter)
     if (category)    params.set('category',  category)
     if (condition)   params.set('condition', condition)
+    if (searchQ)     params.set('search',    searchQ)
     api.get(`/market?${params}`)
       .then(({ data }) => setListings(data.data ?? []))
       .catch(() => setListings([]))
       .finally(() => setLoading(false))
-  }, [token, typeFilter, category, condition])
+  }, [token, typeFilter, category, condition, searchQ])
 
   const activeCat = CATEGORIES.find(c => c.value === category)
 
@@ -88,6 +96,18 @@ export function MarketTab() {
         >
           <Plus size={14} /> Post
         </button>
+      </div>
+
+      {/* Search */}
+      <div className="relative">
+        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--text-muted)' }} />
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Search title or description…"
+          className="w-full rounded-xl border pl-9 pr-4 py-2.5 text-sm outline-none focus:border-[--primary] transition-colors"
+          style={{ background: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+        />
       </div>
 
       {/* Filter row: Category + Condition */}
