@@ -1,0 +1,361 @@
+import { Ionicons } from '@expo/vector-icons'
+import { router, useLocalSearchParams } from 'expo-router'
+import { useEffect, useState } from 'react'
+import {
+  ActivityIndicator, Alert, Image, Modal, Pressable,
+  ScrollView, StyleSheet, Text, View,
+} from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
+
+import { api } from '@/src/lib/api'
+import { CATEGORIES } from '@/src/lib/categories'
+import { useAuthStore } from '@/src/store/auth'
+import { palette, spacing } from '@/src/theme'
+
+interface Listing {
+  id: number
+  type: 'sell' | 'buy'
+  title: string
+  description: string | null
+  price: number
+  currency: string
+  condition: 'new' | 'used' | 'like_new' | null
+  category: { value: string; label: string }
+  status: string
+  location: { city: string | null; country: string | null }
+  images: string[]
+  seller: { id: number; name: string; avatar: string | null }
+  is_mine: boolean
+}
+
+const CAT_EMOJI = Object.fromEntries(CATEGORIES.map(c => [c.value, c.emoji]))
+const CONDITION_LABEL: Record<string, string> = { new: 'New', used: 'Used', like_new: 'Like new' }
+const CONDITION_COLOR: Record<string, string> = {
+  new:      '#4ade80',
+  like_new: '#6cff2f',
+  used:     '#94a3b8',
+}
+
+export default function MarketDetailScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>()
+  const user = useAuthStore(s => s.user)
+
+  const [listing, setListing] = useState<Listing | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [acting, setActing] = useState(false)
+  const [activeImg, setActiveImg] = useState(0)
+  const [lightbox, setLightbox] = useState(false)
+
+  useEffect(() => {
+    if (!id) return
+    api.get(`/market/${id}`)
+      .then(({ data }) => setListing(data.data))
+      .catch(() => router.back())
+      .finally(() => setLoading(false))
+  }, [id])
+
+  async function handleMessage() {
+    if (!listing) return
+    setActing(true)
+    try {
+      await api.post('/messages/conversations', {
+        participant_ids: [listing.seller.id],
+        body: `Hi, I'm interested in your listing: ${listing.title}`,
+      })
+      router.push('/(tabs)/messages' as never)
+    } catch {
+      Alert.alert('Error', 'Could not open conversation.')
+    } finally {
+      setActing(false)
+    }
+  }
+
+  async function handleSold() {
+    if (!listing) return
+    Alert.alert('Mark as sold', 'Mark this listing as sold?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Mark sold', style: 'destructive',
+        onPress: async () => {
+          setActing(true)
+          try {
+            await api.post(`/market/${listing.id}/sold`)
+            setListing(l => l ? { ...l, status: 'sold' } : l)
+          } catch {
+            Alert.alert('Error', 'Could not update listing.')
+          } finally {
+            setActing(false)
+          }
+        },
+      },
+    ])
+  }
+
+  async function handleDelete() {
+    if (!listing) return
+    Alert.alert('Delete listing', 'Delete this listing permanently?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete', style: 'destructive',
+        onPress: async () => {
+          setActing(true)
+          try {
+            await api.delete(`/market/${listing.id}`)
+            router.back()
+          } catch {
+            Alert.alert('Error', 'Could not delete listing.')
+            setActing(false)
+          }
+        },
+      },
+    ])
+  }
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <ActivityIndicator color={palette.accent} style={{ marginTop: 60 }} />
+      </SafeAreaView>
+    )
+  }
+
+  if (!listing) return null
+
+  const emoji   = CAT_EMOJI[listing.category.value] ?? '🏷️'
+  const sold    = listing.status === 'sold'
+  const canEdit = listing.is_mine || user?.is_admin
+
+  return (
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      {/* Lightbox */}
+      <Modal visible={lightbox} transparent animationType="fade" onRequestClose={() => setLightbox(false)}>
+        <View style={styles.lightboxBg}>
+          <Pressable style={styles.lightboxClose} onPress={() => setLightbox(false)}>
+            <Ionicons name="close" size={22} color="#fff" />
+          </Pressable>
+          <Image
+            source={{ uri: listing.images[activeImg] }}
+            style={styles.lightboxImage}
+            resizeMode="contain"
+          />
+          {listing.images.length > 1 && (
+            <View style={styles.lightboxThumbs}>
+              {listing.images.map((src, i) => (
+                <Pressable key={i} onPress={() => setActiveImg(i)}>
+                  <Image
+                    source={{ uri: src }}
+                    style={[styles.lightboxThumb, i === activeImg && styles.lightboxThumbActive]}
+                    resizeMode="cover"
+                  />
+                </Pressable>
+              ))}
+            </View>
+          )}
+        </View>
+      </Modal>
+
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+
+        {/* Back */}
+        <Pressable onPress={() => router.back()} style={styles.backBtn}>
+          <Ionicons name="chevron-back" size={20} color={palette.accent} />
+          <Text style={styles.backText}>Back</Text>
+        </Pressable>
+
+        {/* Images */}
+        {listing.images.length > 0 ? (
+          <View style={{ gap: 8 }}>
+            <Pressable onPress={() => setLightbox(true)} style={styles.mainImage}>
+              <Image source={{ uri: listing.images[activeImg] }} style={styles.mainImage} resizeMode="cover" />
+              {sold && (
+                <View style={styles.soldOverlay}>
+                  <Text style={styles.soldText}>SOLD</Text>
+                </View>
+              )}
+              <View style={styles.zoomHint}>
+                <Ionicons name="expand-outline" size={14} color="#fff" />
+              </View>
+            </Pressable>
+            {listing.images.length > 1 && (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -spacing.lg }} contentContainerStyle={{ paddingHorizontal: spacing.lg, gap: 8 }}>
+                {listing.images.map((src, i) => (
+                  <Pressable key={i} onPress={() => setActiveImg(i)}>
+                    <Image
+                      source={{ uri: src }}
+                      style={[styles.thumb, activeImg === i && styles.thumbActive]}
+                      resizeMode="cover"
+                    />
+                  </Pressable>
+                ))}
+              </ScrollView>
+            )}
+          </View>
+        ) : (
+          <View style={styles.noImageBox}>
+            <Text style={{ fontSize: 56 }}>{emoji}</Text>
+          </View>
+        )}
+
+        {/* Info card */}
+        <View style={styles.card}>
+
+          {/* Title + price */}
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
+            <View style={{ flex: 1, gap: 6 }}>
+              <Text style={styles.listingTitle}>{listing.title}</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                <View style={styles.catBadge}>
+                  <Text style={styles.catBadgeText}>{emoji} {listing.category.label}</Text>
+                </View>
+                {listing.condition && (
+                  <View style={[styles.condBadge, { borderColor: CONDITION_COLOR[listing.condition] + '55' }]}>
+                    <Text style={[styles.condBadgeText, { color: CONDITION_COLOR[listing.condition] }]}>
+                      {CONDITION_LABEL[listing.condition]}
+                    </Text>
+                  </View>
+                )}
+                {listing.type === 'buy' && (
+                  <View style={styles.wantedBadge}>
+                    <Text style={styles.wantedBadgeText}>WANTED</Text>
+                  </View>
+                )}
+                {sold && (
+                  <View style={styles.soldBadge}>
+                    <Text style={styles.soldBadgeText}>Sold</Text>
+                  </View>
+                )}
+              </View>
+            </View>
+            {listing.price > 0 && (
+              <Text style={styles.price}>
+                {listing.price.toFixed(0)}{' '}
+                <Text style={styles.currency}>{listing.currency}</Text>
+              </Text>
+            )}
+          </View>
+
+          {/* Description */}
+          {listing.description ? (
+            <Text style={styles.description}>{listing.description}</Text>
+          ) : null}
+
+          {/* Location */}
+          {(listing.location.city || listing.location.country) && (
+            <View style={styles.locationRow}>
+              <Ionicons name="location-outline" size={14} color={palette.textDim} />
+              <Text style={styles.locationText}>
+                {[listing.location.city, listing.location.country].filter(Boolean).join(', ')}
+              </Text>
+            </View>
+          )}
+
+          {/* Seller */}
+          <View style={styles.sellerRow}>
+            <View style={styles.sellerAvatar}>
+              {listing.seller.avatar ? (
+                <Image source={{ uri: listing.seller.avatar }} style={{ width: 36, height: 36, borderRadius: 18 }} resizeMode="cover" />
+              ) : (
+                <Text style={styles.sellerAvatarText}>{listing.seller.name.charAt(0).toUpperCase()}</Text>
+              )}
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.sellerLabel}>Seller</Text>
+              <Text style={styles.sellerName}>{listing.seller.name}</Text>
+            </View>
+          </View>
+
+          {/* Actions */}
+          <View style={styles.actions}>
+            {!listing.is_mine && !sold && (
+              <Pressable style={styles.btnPrimary} onPress={handleMessage} disabled={acting}>
+                <Ionicons name="chatbubble-outline" size={16} color="#031109" />
+                <Text style={styles.btnPrimaryText}>Message seller</Text>
+              </Pressable>
+            )}
+            {listing.is_mine && !sold && (
+              <>
+                <Pressable
+                  style={styles.btnOutline}
+                  onPress={() => router.push(`/market/create?id=${listing.id}` as never)}
+                >
+                  <Ionicons name="pencil-outline" size={15} color={palette.text} />
+                  <Text style={styles.btnOutlineText}>Edit</Text>
+                </Pressable>
+                <Pressable style={styles.btnSold} onPress={handleSold} disabled={acting}>
+                  <Ionicons name="checkmark-circle-outline" size={15} color="#4ade80" />
+                  <Text style={styles.btnSoldText}>Mark sold</Text>
+                </Pressable>
+              </>
+            )}
+            {canEdit && (
+              <Pressable style={styles.btnDelete} onPress={handleDelete} disabled={acting}>
+                <Ionicons name="trash-outline" size={15} color="#f87171" />
+              </Pressable>
+            )}
+          </View>
+        </View>
+
+      </ScrollView>
+    </SafeAreaView>
+  )
+}
+
+const styles = StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: palette.bg },
+  content:  { padding: spacing.lg, gap: spacing.md, paddingBottom: 40 },
+
+  backBtn:  { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  backText: { color: palette.accent, fontWeight: '700', fontSize: 14 },
+
+  mainImage: { width: '100%', height: 280, borderRadius: 20, overflow: 'hidden', backgroundColor: palette.panel },
+  soldOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center' },
+  soldText: { color: '#f87171', fontWeight: '900', fontSize: 28, borderWidth: 2, borderColor: '#f87171', paddingHorizontal: 20, paddingVertical: 6, borderRadius: 12 },
+  zoomHint: { position: 'absolute', bottom: 10, right: 10, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 8, padding: 6 },
+  thumb:       { width: 64, height: 64, borderRadius: 14, borderWidth: 2, borderColor: palette.line },
+  thumbActive: { borderColor: palette.accent },
+
+  noImageBox: { height: 180, borderRadius: 20, backgroundColor: palette.panel, borderWidth: 1, borderColor: palette.line, alignItems: 'center', justifyContent: 'center' },
+
+  card: { backgroundColor: palette.panel, borderRadius: 22, borderWidth: 1, borderColor: palette.line, padding: spacing.md, gap: 14 },
+
+  listingTitle: { color: palette.text, fontSize: 22, fontWeight: '900', lineHeight: 28 },
+
+  catBadge:     { backgroundColor: 'rgba(108,255,47,0.1)', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2, borderWidth: 1, borderColor: 'rgba(108,255,47,0.3)' },
+  catBadgeText: { color: palette.accent, fontSize: 11, fontWeight: '700' },
+  condBadge:    { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2, borderWidth: 1 },
+  condBadgeText:{ fontSize: 11, fontWeight: '700' },
+  wantedBadge:  { backgroundColor: 'rgba(96,165,250,0.15)', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 },
+  wantedBadgeText: { color: '#60a5fa', fontSize: 10, fontWeight: '900' },
+  soldBadge:    { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2, borderWidth: 1, borderColor: 'rgba(248,113,113,0.4)', backgroundColor: 'rgba(248,113,113,0.08)' },
+  soldBadgeText:{ color: '#f87171', fontSize: 11, fontWeight: '700' },
+
+  price:    { color: palette.accent, fontSize: 26, fontWeight: '900', flexShrink: 0 },
+  currency: { fontSize: 16, fontWeight: '700' },
+
+  description: { color: palette.textMuted, fontSize: 14, lineHeight: 22 },
+
+  locationRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  locationText:{ color: palette.textDim, fontSize: 13 },
+
+  sellerRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingTop: 4, borderTopWidth: 1, borderTopColor: palette.line },
+  sellerAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: palette.accent, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  sellerAvatarText: { color: '#031109', fontWeight: '900', fontSize: 16 },
+  sellerLabel: { color: palette.textMuted, fontSize: 11, fontWeight: '600' },
+  sellerName:  { color: palette.text, fontWeight: '700', fontSize: 14 },
+
+  actions: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+  btnPrimary:     { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: palette.accent, borderRadius: 14, paddingVertical: 12 },
+  btnPrimaryText: { color: '#031109', fontWeight: '800', fontSize: 14 },
+  btnOutline:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 16, borderWidth: 1, borderColor: palette.line, backgroundColor: palette.panelRaised },
+  btnOutlineText: { color: palette.text, fontWeight: '700', fontSize: 13 },
+  btnSold:        { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: 14, paddingVertical: 12, backgroundColor: 'rgba(74,222,128,0.1)', borderWidth: 1, borderColor: 'rgba(74,222,128,0.3)' },
+  btnSoldText:    { color: '#4ade80', fontWeight: '800', fontSize: 13 },
+  btnDelete:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 14, backgroundColor: 'rgba(248,113,113,0.08)', borderWidth: 1, borderColor: 'rgba(248,113,113,0.3)' },
+
+  lightboxBg:     { flex: 1, backgroundColor: 'rgba(0,0,0,0.93)', alignItems: 'center', justifyContent: 'center' },
+  lightboxClose:  { position: 'absolute', top: 50, right: 20, width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', zIndex: 10 },
+  lightboxImage:  { width: '100%', height: '70%' },
+  lightboxThumbs: { flexDirection: 'row', gap: 8, marginTop: 16, paddingHorizontal: 20 },
+  lightboxThumb:  { width: 56, height: 56, borderRadius: 12, borderWidth: 2, borderColor: 'rgba(255,255,255,0.25)' },
+  lightboxThumbActive: { borderColor: palette.accent },
+})

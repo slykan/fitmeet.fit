@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
-import { ChevronLeft, MapPin, Tag, MessageCircle, Pencil, CheckCircle2, Trash2 } from 'lucide-react'
+import { ChevronLeft, MapPin, MessageCircle, Pencil, CheckCircle2, Trash2, X } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
 import api from '@/lib/api'

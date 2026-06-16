@@ -1107,11 +1107,268 @@ function PeopleTab() {
   )
 }
 
+// ─── Market Tab ───────────────────────────────────────────────────────────────
+
+interface MarketItem {
+  id: number
+  type: 'sell' | 'buy'
+  title: string
+  price: number
+  currency: string
+  condition: 'new' | 'used' | 'like_new' | null
+  category: { value: string; label: string }
+  status: string
+  location: { city: string | null; country: string | null }
+  images: string[]
+  seller: { id: number; name: string }
+  is_mine: boolean
+}
+
+const CAT_EMOJI = Object.fromEntries(CATEGORIES.map(c => [c.value, c.emoji]))
+const CONDITION_LABEL_MAP: Record<string, string> = { new: 'New', used: 'Used', like_new: 'Like new' }
+type MarketType = '' | 'sell' | 'buy'
+type MarketCond = '' | 'new' | 'used' | 'like_new'
+
+function MarketTab() {
+  const [items, setItems] = useState<MarketItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [typeFilter, setTypeFilter] = useState<MarketType>('')
+  const [category, setCategory] = useState('')
+  const [condition, setCondition] = useState<MarketCond>('')
+  const [search, setSearch] = useState('')
+  const [showCats, setShowCats] = useState(false)
+  const searchRef = useRef('')
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try {
+      const params: Record<string, string> = {}
+      if (typeFilter) params.type = typeFilter
+      if (category) params.category = category
+      if (condition) params.condition = condition
+      if (searchRef.current.trim()) params.search = searchRef.current.trim()
+      const { data } = await api.get('/market', { params })
+      setItems(data.data ?? [])
+    } catch {
+      setItems([])
+    } finally {
+      setLoading(false)
+    }
+  }, [typeFilter, category, condition])
+
+  useFocusEffect(useCallback(() => { load() }, [load]))
+
+  useEffect(() => {
+    searchRef.current = search
+    const t = setTimeout(() => load(), search ? 350 : 0)
+    return () => clearTimeout(t)
+  }, [search, load])
+
+  const activeCat = CATEGORIES.find(c => c.value === category)
+
+  return (
+    <View style={{ gap: spacing.md }}>
+
+      {/* Sell/Buy toggle + Post button */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <View style={[styles.tabBar, { flex: 1, padding: 3 }]}>
+          {(['', 'sell', 'buy'] as MarketType[]).map(v => (
+            <Pressable
+              key={v}
+              style={[styles.tabBtn, typeFilter === v && styles.tabBtnActive]}
+              onPress={() => setTypeFilter(v)}
+            >
+              <Text style={[styles.tabLabel, { fontSize: 12 }, typeFilter === v && styles.tabLabelActive]}>
+                {v === '' ? 'All' : v === 'sell' ? 'Selling' : 'Buying'}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+        <Pressable style={styles.createBtn} onPress={() => router.push('/market/create' as never)}>
+          <Ionicons name="add" size={22} color="#041109" />
+        </Pressable>
+      </View>
+
+      {/* Search */}
+      <View style={styles.searchBar}>
+        <Ionicons name="search-outline" size={16} color={palette.textDim} />
+        <TextInput
+          style={styles.searchInput}
+          value={search}
+          onChangeText={setSearch}
+          placeholder="Search title or description…"
+          placeholderTextColor={palette.textDim}
+          autoCapitalize="none"
+          returnKeyType="search"
+        />
+        {search.length > 0 && (
+          <Pressable onPress={() => setSearch('')} hitSlop={8}>
+            <Ionicons name="close-circle" size={16} color={palette.textDim} />
+          </Pressable>
+        )}
+      </View>
+
+      {/* Category + Condition filters */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -spacing.lg }} contentContainerStyle={{ paddingHorizontal: spacing.lg, gap: 6 }}>
+        <Pressable
+          onPress={() => setShowCats(!showCats)}
+          style={[styles.filterBtn, !!category && styles.filterBtnActive]}
+        >
+          <Text style={[styles.filterBtnLabel, !!category && styles.filterBtnLabelActive]}>
+            {category ? `${activeCat?.emoji} ${activeCat?.label}` : 'Category'}
+          </Text>
+          <Ionicons name="chevron-down" size={12} color={category ? '#031109' : palette.textMuted} />
+        </Pressable>
+
+        {typeFilter !== 'buy' && (['new', 'like_new', 'used'] as MarketCond[]).map(v => (
+          <Pressable
+            key={v}
+            onPress={() => setCondition(condition === v ? '' : v)}
+            style={[styles.filterBtn, condition === v && styles.filterBtnActive]}
+          >
+            <Text style={[styles.filterBtnLabel, condition === v && styles.filterBtnLabelActive]}>
+              {CONDITION_LABEL_MAP[v]}
+            </Text>
+          </Pressable>
+        ))}
+      </ScrollView>
+
+      {/* Category dropdown */}
+      {showCats && (
+        <View style={styles.filterDropdown}>
+          <ScrollView style={{ maxHeight: 260 }} showsVerticalScrollIndicator={false}>
+            <Pressable
+              onPress={() => { setCategory(''); setShowCats(false) }}
+              style={{ paddingVertical: 10, paddingHorizontal: 4 }}
+            >
+              <Text style={{ color: !category ? palette.accent : palette.textMuted, fontWeight: '700', fontSize: 13 }}>
+                All categories
+              </Text>
+            </Pressable>
+            {CATEGORIES.map(cat => (
+              <Pressable
+                key={cat.value}
+                onPress={() => { setCategory(cat.value); setShowCats(false) }}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 9, paddingHorizontal: 4 }}
+              >
+                <Text style={{ fontSize: 18 }}>{cat.emoji}</Text>
+                <Text style={{ color: category === cat.value ? palette.accent : palette.text, fontWeight: '700', fontSize: 13 }}>
+                  {cat.label}
+                </Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+      )}
+
+      {/* Content */}
+      {loading ? (
+        <ActivityIndicator color={palette.accent} style={{ marginTop: 24 }} />
+      ) : items.length === 0 ? (
+        <View style={{ alignItems: 'center', paddingVertical: 32, gap: 8 }}>
+          <Text style={{ fontSize: 40 }}>🏪</Text>
+          <Text style={{ color: palette.text, fontWeight: '800', fontSize: 15 }}>No listings yet</Text>
+          <Text style={{ color: palette.textMuted, fontSize: 13, textAlign: 'center' }}>
+            {typeFilter === 'buy' ? 'No requests posted yet.' : 'Be the first to list your gear.'}
+          </Text>
+          <Pressable
+            style={[styles.createRouteBtn, { marginTop: 8, paddingHorizontal: 20 }]}
+            onPress={() => router.push('/market/create' as never)}
+          >
+            <Ionicons name="add" size={16} color={palette.accent} />
+            <Text style={styles.createRouteBtnText}>{typeFilter === 'buy' ? 'Post request' : 'List something'}</Text>
+          </Pressable>
+        </View>
+      ) : (
+        <View style={{ gap: 10 }}>
+          {items.map(item => (
+            <Pressable
+              key={item.id}
+              onPress={() => router.push(`/market/${item.id}` as never)}
+              style={[styles.eventCard, item.type === 'buy' && { borderColor: 'rgba(96,165,250,0.35)' }]}
+            >
+              {item.type === 'buy' ? (
+                <View style={{ gap: 6 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <View style={{ backgroundColor: 'rgba(96,165,250,0.15)', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 }}>
+                      <Text style={{ color: '#60a5fa', fontSize: 10, fontWeight: '900' }}>WANTED</Text>
+                    </View>
+                    <Text style={{ color: palette.textMuted, fontSize: 12 }}>{item.category.label}</Text>
+                  </View>
+                  <Text style={styles.eventTitle} numberOfLines={2}>{item.title}</Text>
+                  {item.price > 0 && (
+                    <Text style={{ color: '#60a5fa', fontSize: 14, fontWeight: '800' }}>
+                      up to {item.price.toFixed(0)} {item.currency}
+                    </Text>
+                  )}
+                  {(item.location.city || item.location.country) && (
+                    <View style={styles.detailRow}>
+                      <Ionicons name="location-outline" size={12} color={palette.textDim} />
+                      <Text style={styles.detailText}>
+                        {[item.location.city, item.location.country].filter(Boolean).join(', ')}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              ) : (
+                <View style={{ gap: 8 }}>
+                  {item.images[0] ? (
+                    <View>
+                      <Image source={{ uri: item.images[0] }} style={styles.eventImage} resizeMode="cover" />
+                      {item.condition && (
+                        <View style={{ position: 'absolute', top: 8, left: 8, backgroundColor: 'rgba(5,8,22,0.82)', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 }}>
+                          <Text style={{ color: item.condition === 'new' ? '#4ade80' : item.condition === 'like_new' ? palette.accent : palette.textMuted, fontSize: 10, fontWeight: '900' }}>
+                            {CONDITION_LABEL_MAP[item.condition]}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  ) : (
+                    <View style={{ height: 100, borderRadius: 14, backgroundColor: palette.panelRaised, alignItems: 'center', justifyContent: 'center' }}>
+                      <Text style={{ fontSize: 36 }}>{CAT_EMOJI[item.category.value] ?? '🏷️'}</Text>
+                    </View>
+                  )}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                    <Text style={[styles.eventTitle, { flex: 1 }]} numberOfLines={1}>{item.title}</Text>
+                    <Text style={{ color: palette.accent, fontSize: 16, fontWeight: '900' }}>
+                      {item.price.toFixed(0)} <Text style={{ fontSize: 12, fontWeight: '700' }}>{item.currency}</Text>
+                    </Text>
+                  </View>
+                  <View style={styles.tagRow}>
+                    <View style={styles.catTag}>
+                      <Text style={styles.catTagText}>{CAT_EMOJI[item.category.value]} {item.category.label}</Text>
+                    </View>
+                    {(item.location.city || item.location.country) && (
+                      <View style={styles.detailRow}>
+                        <Ionicons name="location-outline" size={12} color={palette.textDim} />
+                        <Text style={styles.detailText} numberOfLines={1}>
+                          {[item.location.city, item.location.country].filter(Boolean).join(', ')}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+              )}
+            </Pressable>
+          ))}
+        </View>
+      )}
+    </View>
+  )
+}
+
 // ─── Screen ───────────────────────────────────────────────────────────────────
+
+const TAB_LABELS: Record<'events' | 'routes' | 'people' | 'market', string> = {
+  events:  'Events',
+  routes:  'Routes',
+  people:  'People',
+  market:  'Market',
+}
 
 export default function MeetScreen() {
   const tabBarHeight = useBottomTabBarHeight()
-  const [tab, setTab] = useState<'events' | 'people' | 'routes'>('events')
+  const [tab, setTab] = useState<'events' | 'people' | 'routes' | 'market'>('events')
   const [showCalendar, setShowCalendar] = useState(false)
 
   return (
@@ -1121,7 +1378,7 @@ export default function MeetScreen() {
         <View style={styles.header}>
           <View>
             <Text style={styles.eyebrow}>Meet</Text>
-            <Text style={styles.title}>New events</Text>
+            <Text style={styles.title}>{tab === 'market' ? 'Marketplace' : 'New events'}</Text>
           </View>
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <Pressable style={styles.calendarBtn} onPress={() => setShowCalendar(true)}>
@@ -1140,20 +1397,23 @@ export default function MeetScreen() {
 
         {/* Tab switcher */}
         <View style={styles.tabBar}>
-          {(['events', 'people', 'routes'] as const).map(t => (
+          {(['events', 'routes', 'people', 'market'] as const).map(t => (
             <Pressable
               key={t}
               style={[styles.tabBtn, tab === t && styles.tabBtnActive]}
               onPress={() => setTab(t)}
             >
-              <Text style={[styles.tabLabel, tab === t && styles.tabLabelActive]}>
-                {t === 'events' ? 'Events' : t === 'routes' ? 'Routes' : 'People'}
+              <Text style={[styles.tabLabel, { fontSize: 12 }, tab === t && styles.tabLabelActive]}>
+                {TAB_LABELS[t]}
               </Text>
             </Pressable>
           ))}
         </View>
 
-        {tab === 'events' ? <EventsTab /> : tab === 'routes' ? <RoutesTab /> : <PeopleTab />}
+        {tab === 'events' ? <EventsTab />
+          : tab === 'routes' ? <RoutesTab />
+          : tab === 'people' ? <PeopleTab />
+          : <MarketTab />}
 
       </ScrollView>
     </SafeAreaView>
