@@ -84,7 +84,6 @@ function CreateContent() {
       if (images.length) images.forEach(f => form.append('images[]', f))
 
       if (editId) {
-        form.append('_method', 'PUT')
         await api.post(`/market/${editId}`, form, { headers: { 'Content-Type': 'multipart/form-data' } })
         router.push(`/market/view?id=${editId}`)
       } else {

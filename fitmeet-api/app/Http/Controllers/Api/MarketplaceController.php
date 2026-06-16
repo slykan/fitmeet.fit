@@ -144,16 +144,19 @@ class MarketplaceController extends Controller
         }
 
         $data = $request->validate([
+            'type'        => ['nullable', Rule::in(['sell', 'buy'])],
             'title'       => 'sometimes|string|max:200',
             'description' => 'nullable|string|max:2000',
             'price'       => 'nullable|numeric|min:0|max:99999',
+            'currency'    => 'nullable|string|size:3',
             'condition'   => ['nullable', Rule::in(['new', 'used', 'like_new'])],
             'category'    => ['sometimes', Rule::in(\App\Enums\Category::values())],
             'images'      => 'nullable|array|max:5',
             'images.*'    => 'image|max:5120',
         ]);
 
-        $listing->update(array_filter($data, fn ($v, $k) => !in_array($k, ['images']), ARRAY_FILTER_USE_BOTH));
+        unset($data['images']);
+        $listing->update($data);
 
         if ($request->hasFile('images')) {
             foreach ($listing->images as $img) {

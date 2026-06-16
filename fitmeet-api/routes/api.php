@@ -163,6 +163,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('market/{listing}', [MarketplaceController::class, 'show']);
     Route::post('market', [MarketplaceController::class, 'store']);
     Route::post('market/{listing}', [MarketplaceController::class, 'update']);
+    Route::put('market/{listing}', [MarketplaceController::class, 'update']);
     Route::post('market/{listing}/sold', [MarketplaceController::class, 'markSold']);
     Route::delete('market/{listing}', [MarketplaceController::class, 'destroy']);
 
