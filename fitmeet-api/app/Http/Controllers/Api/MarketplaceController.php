@@ -20,6 +20,10 @@ class MarketplaceController extends Controller
             ->where('status', 'active')
             ->latest();
 
+        if ($request->filled('type') && in_array($request->type, ['sell', 'buy'])) {
+            $query->where('type', $request->type);
+        }
+
         if ($request->filled('category')) {
             $query->where('category', $request->category);
         }
@@ -71,11 +75,12 @@ class MarketplaceController extends Controller
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
+            'type'        => ['nullable', Rule::in(['sell', 'buy'])],
             'title'       => 'required|string|max:200',
             'description' => 'nullable|string|max:2000',
-            'price'       => 'required|numeric|min:0|max:99999',
+            'price'       => 'nullable|numeric|min:0|max:99999',
             'currency'    => 'nullable|string|size:3',
-            'condition'   => ['required', Rule::in(['new', 'used', 'like_new'])],
+            'condition'   => ['nullable', Rule::in(['new', 'used', 'like_new'])],
             'category'    => ['required', Rule::in(\App\Enums\Category::values())],
             'images'      => 'nullable|array|max:5',
             'images.*'    => 'image|max:5120',
@@ -85,11 +90,12 @@ class MarketplaceController extends Controller
 
         $listing = MarketplaceListing::create([
             'user_id'          => $user->id,
+            'type'             => $data['type'] ?? 'sell',
             'title'            => $data['title'],
             'description'      => $data['description'] ?? null,
-            'price'            => $data['price'],
+            'price'            => $data['price'] ?? 0,
             'currency'         => $data['currency'] ?? 'EUR',
-            'condition'        => $data['condition'],
+            'condition'        => $data['condition'] ?? null,
             'category'         => $data['category'],
             'location_city'    => $user->home_city ?? null,
             'location_country' => $user->home_country ?? null,
@@ -114,8 +120,8 @@ class MarketplaceController extends Controller
         $data = $request->validate([
             'title'       => 'sometimes|string|max:200',
             'description' => 'nullable|string|max:2000',
-            'price'       => 'sometimes|numeric|min:0|max:99999',
-            'condition'   => ['sometimes', Rule::in(['new', 'used', 'like_new'])],
+            'price'       => 'nullable|numeric|min:0|max:99999',
+            'condition'   => ['nullable', Rule::in(['new', 'used', 'like_new'])],
             'category'    => ['sometimes', Rule::in(\App\Enums\Category::values())],
             'images'      => 'nullable|array|max:5',
             'images.*'    => 'image|max:5120',

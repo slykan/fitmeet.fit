@@ -11,6 +11,7 @@ class MarketplaceListingResource extends JsonResource
     {
         return [
             'id'          => $this->id,
+            'type'        => $this->type ?? 'sell',
             'title'       => $this->title,
             'description' => $this->description,
             'price'       => $this->price,
