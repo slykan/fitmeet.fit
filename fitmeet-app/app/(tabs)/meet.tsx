@@ -1378,7 +1378,12 @@ export default function MeetScreen() {
         <View style={styles.header}>
           <View>
             <Text style={styles.eyebrow}>Meet</Text>
-            <Text style={styles.title}>{tab === 'market' ? 'Marketplace' : 'New events'}</Text>
+            <Text style={styles.title}>
+              {tab === 'events' ? 'New events'
+                : tab === 'routes' ? 'Routes'
+                : tab === 'people' ? 'People'
+                : 'Marketplace'}
+            </Text>
           </View>
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <Pressable style={styles.calendarBtn} onPress={() => setShowCalendar(true)}>
