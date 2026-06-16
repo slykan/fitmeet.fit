@@ -5,7 +5,7 @@ import { useTheme } from 'next-themes'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Moon, Sun, Plus, LogOut, User, CalendarDays, Bell, Users, MessageSquare, Settings, Trophy, ShieldCheck } from 'lucide-react'
+import { Moon, Sun, Plus, LogOut, User, CalendarDays, Bell, Users, MessageSquare, Settings, Trophy, ShieldCheck, Megaphone } from 'lucide-react'
 import { Button } from './ui/button'
 import api from '@/lib/api'
 import { useEffect, useRef, useState } from 'react'
@@ -211,6 +211,9 @@ export function Navbar() {
                       <MenuItem icon={<Settings size={15} />}     label="Settings"     onClick={() => navigate('/profile')} />
                       <MenuItem icon={<Users size={15} />}        label="Meet"         onClick={() => navigate('/meet')} />
                       <MenuItem icon={<CalendarDays size={15} />} label="My Events"    onClick={() => navigate('/events/my')} />
+                      {user.is_admin && (
+                        <MenuItem icon={<Megaphone size={15} />} label="Admin" onClick={() => navigate('/admin')} />
+                      )}
                     </div>
 
                     <div className="border-t py-1" style={{ borderColor: 'var(--border)' }}>
