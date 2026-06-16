@@ -205,29 +205,27 @@ function ViewContent() {
 
           {/* Info */}
           <div className="rounded-2xl border p-5 space-y-4" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
-            <div className="flex items-start justify-between gap-3">
-              <div className="space-y-1 min-w-0">
-                <h1 className="text-2xl font-black leading-tight">{listing.title}</h1>
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs px-2 py-0.5 rounded-full border font-medium"
-                    style={{ borderColor: 'var(--primary)', color: 'var(--primary)', background: 'rgba(57,255,20,0.08)' }}>
-                    {emoji} {listing.category.label}
-                  </span>
-                  {listing.condition && (
-                    <span className="text-xs px-2 py-0.5 rounded-full border font-medium" style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}>
-                      {CONDITION_LABEL[listing.condition]}
-                    </span>
-                  )}
-                  {sold && (
-                    <span className="text-xs px-2 py-0.5 rounded-full border font-medium" style={{ borderColor: '#f87171', color: '#f87171', background: 'rgba(248,113,113,0.08)' }}>
-                      Sold
-                    </span>
-                  )}
-                </div>
-              </div>
-              <p className="text-3xl font-black flex-shrink-0" style={{ color: 'var(--primary)' }}>
-                {listing.price.toFixed(0)} <span className="text-lg">{listing.currency}</span>
+            <div className="space-y-1">
+              <h1 className="text-lg font-black leading-snug">{listing.title}</h1>
+              <p className="text-2xl font-black" style={{ color: 'var(--primary)' }}>
+                {listing.price > 0 ? <>{listing.price.toFixed(0)} <span className="text-base">{listing.currency}</span></> : (listing.type === 'buy' ? 'Wanted' : 'For sale')}
               </p>
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <span className="text-xs px-2 py-0.5 rounded-full border font-medium"
+                  style={{ borderColor: 'var(--primary)', color: 'var(--primary)', background: 'rgba(57,255,20,0.08)' }}>
+                  {emoji} {listing.category.label}
+                </span>
+                {listing.condition && (
+                  <span className="text-xs px-2 py-0.5 rounded-full border font-medium" style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}>
+                    {CONDITION_LABEL[listing.condition]}
+                  </span>
+                )}
+                {sold && (
+                  <span className="text-xs px-2 py-0.5 rounded-full border font-medium" style={{ borderColor: '#f87171', color: '#f87171', background: 'rgba(248,113,113,0.08)' }}>
+                    Sold
+                  </span>
+                )}
+              </div>
             </div>
 
             {listing.description && (
