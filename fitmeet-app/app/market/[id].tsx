@@ -3,7 +3,7 @@ import { router, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
 import {
   ActivityIndicator, Alert, Image, Modal, Pressable,
-  ScrollView, StyleSheet, Text, View,
+  ScrollView, Share, StyleSheet, Text, View,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
@@ -68,6 +68,21 @@ export default function MarketDetailScreen() {
     } finally {
       setActing(false)
     }
+  }
+
+  async function handleShare() {
+    if (!listing) return
+    const url = `https://fitmeet.fit/market/share/og.php?id=${encodeURIComponent(String(listing.id))}`
+    const priceLabel = listing.price > 0
+      ? `${listing.type === 'buy' ? 'up to ' : ''}${listing.price.toFixed(0)} ${listing.currency}`
+      : listing.type === 'buy' ? 'Wanted on FitMeet' : 'For sale on FitMeet'
+    const message = [listing.title, priceLabel, listing.description, url].filter(Boolean).join('\n\n')
+
+    await Share.share({
+      title: listing.title,
+      message,
+      url,
+    }).catch(() => {})
   }
 
   async function handleSold() {
@@ -266,6 +281,10 @@ export default function MarketDetailScreen() {
 
           {/* Actions */}
           <View style={styles.actions}>
+            <Pressable style={styles.btnShare} onPress={handleShare}>
+              <Ionicons name="share-social-outline" size={15} color={palette.accent} />
+              <Text style={styles.btnShareText}>Share</Text>
+            </Pressable>
             {!listing.is_mine && !sold && (
               <Pressable style={styles.btnPrimary} onPress={handleMessage} disabled={acting}>
                 <Ionicons name="chatbubble-outline" size={16} color="#031109" />
@@ -344,6 +363,8 @@ const styles = StyleSheet.create({
   sellerName:  { color: palette.text, fontWeight: '700', fontSize: 14 },
 
   actions: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+  btnShare:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 16, borderWidth: 1, borderColor: 'rgba(108,255,47,0.35)', backgroundColor: 'rgba(108,255,47,0.08)' },
+  btnShareText:   { color: palette.accent, fontWeight: '800', fontSize: 13 },
   btnPrimary:     { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: palette.accent, borderRadius: 14, paddingVertical: 12 },
   btnPrimaryText: { color: '#031109', fontWeight: '800', fontSize: 14 },
   btnOutline:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 16, borderWidth: 1, borderColor: palette.line, backgroundColor: palette.panelRaised },
