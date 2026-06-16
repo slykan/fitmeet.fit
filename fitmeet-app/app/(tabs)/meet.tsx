@@ -1381,7 +1381,7 @@ function MarketTab() {
                     </View>
                   )}
                   <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                    <Text style={[styles.eventTitle, { flex: 1 }]} numberOfLines={1}>{item.title}</Text>
+                    <Text style={[styles.eventTitle, { flex: 1, minHeight: 44, lineHeight: 22 }]} numberOfLines={2}>{item.title}</Text>
                     <Text style={{ color: palette.accent, fontSize: 16, fontWeight: '900' }}>
                       {item.price.toFixed(0)} <Text style={{ fontSize: 12, fontWeight: '700' }}>{item.currency}</Text>
                     </Text>
