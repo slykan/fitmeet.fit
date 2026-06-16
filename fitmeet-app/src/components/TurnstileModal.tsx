@@ -26,23 +26,25 @@ export function TurnstileModal({
           <Text style={styles.title}>Security check</Text>
           <Text style={styles.subtitle}>Verify you're not a robot</Text>
           <View style={styles.webviewWrap}>
-            <WebView
-              source={{ uri: TURNSTILE_URL }}
-              style={styles.webview}
-              javaScriptEnabled
-              originWhitelist={['*']}
-              onMessage={e => {
-                try {
-                  const msg = JSON.parse(e.nativeEvent.data)
-                  if (msg.type === 'token' && msg.token) {
-                    onToken(msg.token)
-                  }
-                } catch {}
-              }}
-              scrollEnabled={false}
-              showsVerticalScrollIndicator={false}
-              showsHorizontalScrollIndicator={false}
-            />
+            {visible && (
+              <WebView
+                source={{ uri: TURNSTILE_URL }}
+                style={styles.webview}
+                javaScriptEnabled
+                originWhitelist={['*']}
+                onMessage={e => {
+                  try {
+                    const msg = JSON.parse(e.nativeEvent.data)
+                    if (msg.type === 'token' && msg.token) {
+                      onToken(msg.token)
+                    }
+                  } catch {}
+                }}
+                scrollEnabled={false}
+                showsVerticalScrollIndicator={false}
+                showsHorizontalScrollIndicator={false}
+              />
+            )}
           </View>
           <Pressable onPress={onDismiss} style={styles.cancelBtn}>
             <Text style={styles.cancelText}>Cancel</Text>

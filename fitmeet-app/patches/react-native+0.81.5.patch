@@ -1,3 +1,141 @@
+diff --git a/node_modules/react-native/React/Base/RCTAssert.m b/node_modules/react-native/React/Base/RCTAssert.m
+index ca8542e..6d1e7fe 100644
+--- a/node_modules/react-native/React/Base/RCTAssert.m
++++ b/node_modules/react-native/React/Base/RCTAssert.m
+@@ -127,27 +127,32 @@ void RCTFatal(NSError *error)
+   if (fatalHandler) {
+     fatalHandler(error);
+   } else {
+-#if DEBUG
+-    @try {
+-#endif
+-      NSString *name = [NSString stringWithFormat:@"%@: %@", RCTFatalExceptionName, error.localizedDescription];
++    NSString *name = [NSString stringWithFormat:@"%@: %@", RCTFatalExceptionName, error.localizedDescription];
+ 
+-      // Truncate the localized description to 175 characters to avoid wild screen overflows
+-      NSString *message = RCTFormatError(error.localizedDescription, error.userInfo[RCTJSStackTraceKey], 175);
++    // Truncate the localized description to 175 characters to avoid wild screen overflows
++    NSString *message = RCTFormatError(error.localizedDescription, error.userInfo[RCTJSStackTraceKey], 175);
+ 
+-      // Attach an untruncated copy of the description to the userInfo, in case it is needed
+-      NSMutableDictionary *userInfo = [error.userInfo mutableCopy];
+-      [userInfo setObject:RCTFormatError(error.localizedDescription, error.userInfo[RCTJSStackTraceKey], -1)
+-                   forKey:RCTUntruncatedMessageKey];
++    // Attach an untruncated copy of the description to the userInfo, in case it is needed
++    NSMutableDictionary *userInfo = [error.userInfo mutableCopy];
++    [userInfo setObject:RCTFormatError(error.localizedDescription, error.userInfo[RCTJSStackTraceKey], -1)
++                 forKey:RCTUntruncatedMessageKey];
+ 
+-      // Expected resulting exception information:
+-      // name: RCTFatalException: <underlying error description>
+-      // reason: <underlying error description plus JS stack trace, truncated to 175 characters>
+-      // userInfo: <underlying error userinfo, plus untruncated description plus JS stack trace>
+-      @throw [[NSException alloc] initWithName:name reason:message userInfo:userInfo];
++    // Expected resulting exception information:
++    // name: RCTFatalException: <underlying error description>
++    // reason: <underlying error description plus JS stack trace, truncated to 175 characters>
++    // userInfo: <underlying error userinfo, plus untruncated description plus JS stack trace>
+ #if DEBUG
++    @try {
++      @throw [[NSException alloc] initWithName:name reason:message userInfo:userInfo];
+     } @catch (NSException *e) {
+     }
++#else
++    // On iOS 26+, @throw propagates via objc_exception_rethrow through C++ dispatch queues
++    // causing _objc_terminate() → abort(). Return early to prevent the crash.
++    if (@available(iOS 26.0, *)) {
++      return;
++    }
++    @throw [[NSException alloc] initWithName:name reason:message userInfo:userInfo];
+ #endif
+   }
+ }
+@@ -213,11 +218,16 @@ void RCTFatalException(NSException *exception)
+   } else {
+ #if DEBUG
+     @try {
+-#endif
+       @throw exception;
+-#if DEBUG
+     } @catch (NSException *e) {
+     }
++#else
++    // On iOS 26+, @throw propagates via objc_exception_rethrow through C++ dispatch queues
++    // causing _objc_terminate() → abort(). Return early to prevent the crash.
++    if (@available(iOS 26.0, *)) {
++      return;
++    }
++    @throw exception;
+ #endif
+   }
+ }
+diff --git a/node_modules/react-native/React/CxxModule/RCTNativeModule.mm b/node_modules/react-native/React/CxxModule/RCTNativeModule.mm
+index 6150f31..5b580ba 100644
+--- a/node_modules/react-native/React/CxxModule/RCTNativeModule.mm
++++ b/node_modules/react-native/React/CxxModule/RCTNativeModule.mm
+@@ -188,6 +188,9 @@ static MethodCallResult invokeInner(
+       RCTProfileTagAlways,
+       @"[RCTNativeModule invokeInner]",
+       @{@"method" : [NSString stringWithUTF8String:method.JSMethodName]});
++  // On iOS 26, @throw inside a C++ @catch block triggers objc_exception_rethrow
++  // → _objc_terminate() → abort(). Capture and handle the exception outside @catch.
++  NSException *caughtOldArchException = nil;
+   @try {
+     if (context == Sync) {
+       BridgeNativeModulePerfLogger::syncMethodCallExecutionStart(moduleName, methodName);
+@@ -211,26 +214,36 @@ static MethodCallResult invokeInner(
+     } else {
+       BridgeNativeModulePerfLogger::asyncMethodCallExecutionFail(moduleName, methodName, (int32_t)callId);
+     }
++    caughtOldArchException = exception;
++  } @finally {
++    RCT_PROFILE_END_EVENT(RCTProfileTagAlways, @"");
++  }
+ 
+-    // Pass on JS exceptions
+-    if ([exception.name hasPrefix:RCTFatalExceptionName]) {
+-      @throw exception;
+-    }
+-
++  if (caughtOldArchException) {
++    // Pass on JS exceptions. With RCTAssert.m patched for iOS 26,
++    // RCTFatalException() returns without throwing, preventing the crash.
++    if ([caughtOldArchException.name hasPrefix:RCTFatalExceptionName]) {
++      RCTFatalException(caughtOldArchException);
++    } else {
+ #if RCT_DEBUG
+-    NSString *message = [NSString
+-        stringWithFormat:@"Exception '%@' was thrown while invoking %s on target %@ with params %@\ncallstack: %@",
+-                         exception,
+-                         method.JSMethodName,
+-                         moduleData.name,
+-                         objcParams,
+-                         exception.callStackSymbols];
+-    RCTFatal(RCTErrorWithMessage(message));
++      NSArray *stackSymbols;
++      if (@available(iOS 26.0, *)) {
++        stackSymbols = @[];
++      } else {
++        stackSymbols = caughtOldArchException.callStackSymbols;
++      }
++      NSString *message = [NSString
++          stringWithFormat:@"Exception '%@' was thrown while invoking %s on target %@ with params %@\ncallstack: %@",
++                           caughtOldArchException,
++                           method.JSMethodName,
++                           moduleData.name,
++                           objcParams,
++                           stackSymbols];
++      RCTFatal(RCTErrorWithMessage(message));
+ #else
+-    RCTFatalException(exception);
++      RCTFatalException(caughtOldArchException);
+ #endif
+-  } @finally {
+-    RCT_PROFILE_END_EVENT(RCTProfileTagAlways, @"");
++    }
+   }
+ 
+   return std::nullopt;
 diff --git a/node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios/ReactCommon/RCTTurboModule.mm b/node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios/ReactCommon/RCTTurboModule.mm
 index 2a67797..ab69dc9 100644
 --- a/node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios/ReactCommon/RCTTurboModule.mm
