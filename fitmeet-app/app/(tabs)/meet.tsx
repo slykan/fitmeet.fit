@@ -1122,6 +1122,9 @@ interface MarketItem {
   images: string[]
   seller: { id: number; name: string }
   is_mine: boolean
+  views_count?: number
+  saves_count?: number
+  is_saved?: boolean
 }
 
 const CAT_EMOJI = Object.fromEntries(CATEGORIES.map(c => [c.value, c.emoji]))
@@ -1137,24 +1140,30 @@ function MarketTab() {
   const [condition, setCondition] = useState<MarketCond>('')
   const [search, setSearch] = useState('')
   const [showCats, setShowCats] = useState(false)
+  const [savedOnly, setSavedOnly] = useState(false)
   const searchRef = useRef('')
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const params: Record<string, string> = {}
-      if (typeFilter) params.type = typeFilter
-      if (category) params.category = category
-      if (condition) params.condition = condition
-      if (searchRef.current.trim()) params.search = searchRef.current.trim()
-      const { data } = await api.get('/market', { params })
-      setItems(data.data ?? [])
+      if (savedOnly) {
+        const { data } = await api.get('/market/saved')
+        setItems(data.data ?? [])
+      } else {
+        const params: Record<string, string> = {}
+        if (typeFilter) params.type = typeFilter
+        if (category) params.category = category
+        if (condition) params.condition = condition
+        if (searchRef.current.trim()) params.search = searchRef.current.trim()
+        const { data } = await api.get('/market', { params })
+        setItems(data.data ?? [])
+      }
     } catch {
       setItems([])
     } finally {
       setLoading(false)
     }
-  }, [typeFilter, category, condition])
+  }, [typeFilter, category, condition, savedOnly])
 
   useFocusEffect(useCallback(() => { load() }, [load]))
 
@@ -1164,26 +1173,44 @@ function MarketTab() {
     return () => clearTimeout(t)
   }, [search, load])
 
+  async function handleToggleSave(e: { stopPropagation: () => void }, item: MarketItem) {
+    e.stopPropagation()
+    try {
+      const { data } = await api.post(`/market/${item.id}/save`)
+      setItems(prev => prev.map(i =>
+        i.id === item.id
+          ? { ...i, is_saved: data.is_saved, saves_count: (i.saves_count ?? 0) + (data.is_saved ? 1 : -1) }
+          : i
+      ))
+    } catch {}
+  }
+
   const activeCat = CATEGORIES.find(c => c.value === category)
 
   return (
     <View style={{ gap: spacing.md }}>
 
-      {/* Sell/Buy toggle + Post button */}
+      {/* Sell/Buy toggle + Saved + Post button */}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <View style={[styles.tabBar, { flex: 1, padding: 3 }]}>
           {(['', 'sell', 'buy'] as MarketType[]).map(v => (
             <Pressable
               key={v}
-              style={[styles.tabBtn, typeFilter === v && styles.tabBtnActive]}
-              onPress={() => setTypeFilter(v)}
+              style={[styles.tabBtn, !savedOnly && typeFilter === v && styles.tabBtnActive]}
+              onPress={() => { setTypeFilter(v); setSavedOnly(false) }}
             >
-              <Text style={[styles.tabLabel, { fontSize: 12 }, typeFilter === v && styles.tabLabelActive]}>
+              <Text style={[styles.tabLabel, { fontSize: 12 }, !savedOnly && typeFilter === v && styles.tabLabelActive]}>
                 {v === '' ? 'All' : v === 'sell' ? 'Selling' : 'Buying'}
               </Text>
             </Pressable>
           ))}
         </View>
+        <Pressable
+          style={[styles.filterBtn, savedOnly && styles.marketSavedActive]}
+          onPress={() => setSavedOnly(v => !v)}
+        >
+          <Ionicons name={savedOnly ? 'heart' : 'heart-outline'} size={15} color={savedOnly ? '#f87171' : palette.text} />
+        </Pressable>
         <Pressable style={styles.createBtn} onPress={() => router.push('/market/create' as never)}>
           <Ionicons name="add" size={22} color="#041109" />
         </Pressable>
@@ -1322,6 +1349,19 @@ function MarketTab() {
                           </Text>
                         </View>
                       )}
+                      {!item.is_mine && (
+                        <Pressable
+                          onPress={e => handleToggleSave(e, item)}
+                          style={{ position: 'absolute', top: 8, right: 8, width: 30, height: 30, borderRadius: 15, backgroundColor: 'rgba(5,8,22,0.7)', alignItems: 'center', justifyContent: 'center' }}
+                          hitSlop={6}
+                        >
+                          <Ionicons
+                            name={item.is_saved ? 'heart' : 'heart-outline'}
+                            size={15}
+                            color={item.is_saved ? '#f87171' : '#fff'}
+                          />
+                        </Pressable>
+                      )}
                     </View>
                   ) : (
                     <View style={{ height: 100, borderRadius: 14, backgroundColor: palette.panelRaised, alignItems: 'center', justifyContent: 'center' }}>
@@ -1344,6 +1384,18 @@ function MarketTab() {
                         <Text style={styles.detailText} numberOfLines={1}>
                           {[item.location.city, item.location.country].filter(Boolean).join(', ')}
                         </Text>
+                      </View>
+                    )}
+                    {(item.views_count ?? 0) > 0 && (
+                      <View style={styles.detailRow}>
+                        <Ionicons name="eye-outline" size={11} color={palette.textDim} />
+                        <Text style={styles.detailText}>{item.views_count}</Text>
+                      </View>
+                    )}
+                    {(item.saves_count ?? 0) > 0 && (
+                      <View style={styles.detailRow}>
+                        <Ionicons name="heart-outline" size={11} color={palette.textDim} />
+                        <Text style={styles.detailText}>{item.saves_count}</Text>
                       </View>
                     )}
                   </View>
@@ -1616,4 +1668,6 @@ const styles = StyleSheet.create({
   friendBtnActive:     { borderColor: palette.accent, backgroundColor: 'rgba(108,255,47,0.1)' },
   friendBtnText:       { color: palette.textMuted, fontSize: 12, fontWeight: '700' },
   friendBtnActiveText: { color: palette.accent, fontSize: 12, fontWeight: '700' },
+
+  marketSavedActive: { borderColor: 'rgba(248,113,113,0.4)', backgroundColor: 'rgba(248,113,113,0.08)' },
 })

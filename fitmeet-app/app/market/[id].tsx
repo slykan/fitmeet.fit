@@ -26,6 +26,9 @@ interface Listing {
   images: string[]
   seller: { id: number; name: string; avatar: string | null }
   is_mine: boolean
+  views_count: number
+  saves_count: number
+  is_saved: boolean
 }
 
 const CAT_EMOJI = Object.fromEntries(CATEGORIES.map(c => [c.value, c.emoji]))
@@ -43,6 +46,7 @@ export default function MarketDetailScreen() {
   const [listing, setListing] = useState<Listing | null>(null)
   const [loading, setLoading] = useState(true)
   const [acting, setActing] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [activeImg, setActiveImg] = useState(0)
   const [lightbox, setLightbox] = useState(false)
 
@@ -53,6 +57,20 @@ export default function MarketDetailScreen() {
       .catch(() => router.back())
       .finally(() => setLoading(false))
   }, [id])
+
+  async function handleToggleSave() {
+    if (!listing || saving) return
+    setSaving(true)
+    try {
+      const { data } = await api.post(`/market/${listing.id}/save`)
+      setListing(l => l ? {
+        ...l,
+        is_saved: data.is_saved,
+        saves_count: l.saves_count + (data.is_saved ? 1 : -1),
+      } : l)
+    } catch {}
+    finally { setSaving(false) }
+  }
 
   async function handleMessage() {
     if (!listing) return
@@ -264,6 +282,24 @@ export default function MarketDetailScreen() {
             </View>
           )}
 
+          {/* Views + saves */}
+          {((listing.views_count ?? 0) > 0 || (listing.saves_count ?? 0) > 0) && (
+            <View style={styles.statsRow}>
+              {(listing.views_count ?? 0) > 0 && (
+                <View style={styles.statItem}>
+                  <Ionicons name="eye-outline" size={13} color={palette.textDim} />
+                  <Text style={styles.statText}>{listing.views_count}</Text>
+                </View>
+              )}
+              {(listing.saves_count ?? 0) > 0 && (
+                <View style={styles.statItem}>
+                  <Ionicons name="heart-outline" size={13} color={palette.textDim} />
+                  <Text style={styles.statText}>{listing.saves_count} saved</Text>
+                </View>
+              )}
+            </View>
+          )}
+
           {/* Seller */}
           <View style={styles.sellerRow}>
             <View style={styles.sellerAvatar}>
@@ -285,6 +321,22 @@ export default function MarketDetailScreen() {
               <Ionicons name="share-social-outline" size={15} color={palette.accent} />
               <Text style={styles.btnShareText}>Share</Text>
             </Pressable>
+            {!listing.is_mine && (
+              <Pressable
+                style={[styles.btnShare, listing.is_saved && styles.btnSaveActive]}
+                onPress={handleToggleSave}
+                disabled={saving}
+              >
+                <Ionicons
+                  name={listing.is_saved ? 'heart' : 'heart-outline'}
+                  size={15}
+                  color={listing.is_saved ? '#f87171' : palette.accent}
+                />
+                <Text style={[styles.btnShareText, listing.is_saved && { color: '#f87171' }]}>
+                  {listing.is_saved ? 'Saved' : 'Save'}
+                </Text>
+              </Pressable>
+            )}
             {!listing.is_mine && !sold && (
               <Pressable style={styles.btnPrimary} onPress={handleMessage} disabled={acting}>
                 <Ionicons name="chatbubble-outline" size={16} color="#031109" />
@@ -379,4 +431,10 @@ const styles = StyleSheet.create({
   lightboxThumbs: { flexDirection: 'row', gap: 8, marginTop: 16, paddingHorizontal: 20 },
   lightboxThumb:  { width: 56, height: 56, borderRadius: 12, borderWidth: 2, borderColor: 'rgba(255,255,255,0.25)' },
   lightboxThumbActive: { borderColor: palette.accent },
+
+  statsRow:  { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  statItem:  { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  statText:  { color: palette.textDim, fontSize: 12 },
+
+  btnSaveActive: { borderColor: 'rgba(248,113,113,0.4)', backgroundColor: 'rgba(248,113,113,0.08)' },
 })
