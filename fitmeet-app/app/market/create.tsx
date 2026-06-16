@@ -90,7 +90,7 @@ export default function MarketCreateScreen() {
       const fd = new FormData()
       fd.append('type', type)
       fd.append('title', title.trim())
-      if (desc.trim()) fd.append('description', desc.trim())
+      fd.append('description', desc.trim())
       if (price) fd.append('price', price)
       fd.append('currency', currency)
       if (type === 'sell') fd.append('condition', condition)
@@ -100,7 +100,6 @@ export default function MarketCreateScreen() {
       })
 
       if (editId) {
-        fd.append('_method', 'PUT')
         await api.post(`/market/${editId}`, fd, { headers: { 'Content-Type': 'multipart/form-data' } })
         router.replace(`/market/${editId}` as never)
       } else {
