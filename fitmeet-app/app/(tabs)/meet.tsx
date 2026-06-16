@@ -1187,29 +1187,25 @@ function MarketTab() {
 
   const activeCat = CATEGORIES.find(c => c.value === category)
 
+  const marketFilterCount =
+    (typeFilter ? 1 : 0) + (category ? 1 : 0) + (condition ? 1 : 0) + (savedOnly ? 1 : 0)
+
   return (
     <View style={{ gap: spacing.md }}>
 
-      {/* Sell/Buy toggle + Saved + Post button */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        <View style={[styles.tabBar, { flex: 1, padding: 3 }]}>
-          {(['', 'sell', 'buy'] as MarketType[]).map(v => (
-            <Pressable
-              key={v}
-              style={[styles.tabBtn, !savedOnly && typeFilter === v && styles.tabBtnActive]}
-              onPress={() => { setTypeFilter(v); setSavedOnly(false) }}
-            >
-              <Text style={[styles.tabLabel, { fontSize: 12 }, !savedOnly && typeFilter === v && styles.tabLabelActive]}>
-                {v === '' ? 'All' : v === 'sell' ? 'Selling' : 'Buying'}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
+      {/* Toolbar: Filter + Post */}
+      <View style={styles.filterToolbar}>
         <Pressable
-          style={[styles.filterBtn, savedOnly && styles.marketSavedActive]}
-          onPress={() => setSavedOnly(v => !v)}
+          style={[styles.filterBtn, marketFilterCount > 0 && styles.filterBtnActive]}
+          onPress={() => setShowCats(v => !v)}
         >
-          <Ionicons name={savedOnly ? 'heart' : 'heart-outline'} size={15} color={savedOnly ? '#f87171' : palette.text} />
+          <Ionicons name="options-outline" size={15} color={marketFilterCount > 0 ? '#031109' : palette.text} />
+          <Text style={[styles.filterBtnLabel, marketFilterCount > 0 && styles.filterBtnLabelActive]}>Filter</Text>
+          {marketFilterCount > 0 && (
+            <View style={styles.filterBadge}>
+              <Text style={styles.filterBadgeText}>{marketFilterCount}</Text>
+            </View>
+          )}
         </Pressable>
         <Pressable style={styles.createBtn} onPress={() => router.push('/market/create' as never)}>
           <Ionicons name="add" size={22} color="#041109" />
@@ -1235,56 +1231,72 @@ function MarketTab() {
         )}
       </View>
 
-      {/* Category + Condition filters */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -spacing.lg }} contentContainerStyle={{ paddingHorizontal: spacing.lg, gap: 6 }}>
-        <Pressable
-          onPress={() => setShowCats(!showCats)}
-          style={[styles.filterBtn, !!category && styles.filterBtnActive]}
-        >
-          <Text style={[styles.filterBtnLabel, !!category && styles.filterBtnLabelActive]}>
-            {category ? `${activeCat?.emoji} ${activeCat?.label}` : 'Category'}
-          </Text>
-          <Ionicons name="chevron-down" size={12} color={category ? '#031109' : palette.textMuted} />
-        </Pressable>
-
-        {typeFilter !== 'buy' && (['new', 'like_new', 'used'] as MarketCond[]).map(v => (
-          <Pressable
-            key={v}
-            onPress={() => setCondition(condition === v ? '' : v)}
-            style={[styles.filterBtn, condition === v && styles.filterBtnActive]}
-          >
-            <Text style={[styles.filterBtnLabel, condition === v && styles.filterBtnLabelActive]}>
-              {CONDITION_LABEL_MAP[v]}
-            </Text>
-          </Pressable>
-        ))}
-      </ScrollView>
-
-      {/* Category dropdown */}
+      {/* Filter dropdown */}
       {showCats && (
         <View style={styles.filterDropdown}>
-          <ScrollView style={{ maxHeight: 260 }} showsVerticalScrollIndicator={false}>
+
+          <Text style={styles.filterSectionLabel}>Type</Text>
+          <View style={styles.filterRow}>
+            {([['', 'All'], ['sell', 'Selling'], ['buy', 'Buying']] as [MarketType, string][]).map(([v, label]) => (
+              <Pressable
+                key={v}
+                style={[styles.filterChip, !savedOnly && typeFilter === v && styles.filterChipActive]}
+                onPress={() => { setTypeFilter(v); setSavedOnly(false) }}
+              >
+                <Text style={[styles.filterLabel, !savedOnly && typeFilter === v && styles.filterLabelActive]}>{label}</Text>
+              </Pressable>
+            ))}
+          </View>
+
+          <Text style={styles.filterSectionLabel}>Category</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.filterRow, { flexWrap: 'nowrap' }]}>
             <Pressable
-              onPress={() => { setCategory(''); setShowCats(false) }}
-              style={{ paddingVertical: 10, paddingHorizontal: 4 }}
+              style={[styles.filterChip, !category && styles.filterChipActive]}
+              onPress={() => setCategory('')}
             >
-              <Text style={{ color: !category ? palette.accent : palette.textMuted, fontWeight: '700', fontSize: 13 }}>
-                All categories
-              </Text>
+              <Text style={[styles.filterLabel, !category && styles.filterLabelActive]}>All</Text>
             </Pressable>
             {CATEGORIES.map(cat => (
               <Pressable
                 key={cat.value}
-                onPress={() => { setCategory(cat.value); setShowCats(false) }}
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 9, paddingHorizontal: 4 }}
+                style={[styles.filterChip, category === cat.value && styles.filterChipActive]}
+                onPress={() => setCategory(category === cat.value ? '' : cat.value)}
               >
-                <Text style={{ fontSize: 18 }}>{cat.emoji}</Text>
-                <Text style={{ color: category === cat.value ? palette.accent : palette.text, fontWeight: '700', fontSize: 13 }}>
-                  {cat.label}
+                <Text style={[styles.filterLabel, category === cat.value && styles.filterLabelActive]}>
+                  {cat.emoji} {cat.label}
                 </Text>
               </Pressable>
             ))}
           </ScrollView>
+
+          {typeFilter !== 'buy' && (
+            <>
+              <Text style={styles.filterSectionLabel}>Condition</Text>
+              <View style={styles.filterRow}>
+                {([['', 'Any'], ['new', 'New'], ['like_new', 'Like new'], ['used', 'Used']] as [MarketCond, string][]).map(([v, label]) => (
+                  <Pressable
+                    key={v}
+                    style={[styles.filterChip, condition === v && styles.filterChipActive]}
+                    onPress={() => setCondition(v)}
+                  >
+                    <Text style={[styles.filterLabel, condition === v && styles.filterLabelActive]}>{label}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            </>
+          )}
+
+          <Text style={styles.filterSectionLabel}>Saved</Text>
+          <View style={styles.filterRow}>
+            <Pressable
+              style={[styles.filterChip, savedOnly && { backgroundColor: 'rgba(248,113,113,0.12)', borderColor: 'rgba(248,113,113,0.4)' }]}
+              onPress={() => setSavedOnly(v => !v)}
+            >
+              <Ionicons name={savedOnly ? 'heart' : 'heart-outline'} size={13} color={savedOnly ? '#f87171' : palette.text} />
+              <Text style={[styles.filterLabel, savedOnly && { color: '#f87171' }]}>Saved only</Text>
+            </Pressable>
+          </View>
+
         </View>
       )}
 
@@ -1392,10 +1404,18 @@ function MarketTab() {
                         <Text style={styles.detailText}>{item.views_count}</Text>
                       </View>
                     )}
-                    {(item.saves_count ?? 0) > 0 && (
+                    {!item.is_mine && (
                       <View style={styles.detailRow}>
-                        <Ionicons name="heart-outline" size={11} color={palette.textDim} />
-                        <Text style={styles.detailText}>{item.saves_count}</Text>
+                        <Ionicons
+                          name={item.is_saved ? 'heart' : 'heart-outline'}
+                          size={11}
+                          color={item.is_saved ? '#f87171' : palette.textDim}
+                        />
+                        {(item.saves_count ?? 0) > 0 && (
+                          <Text style={[styles.detailText, item.is_saved && { color: '#f87171' }]}>
+                            {item.saves_count}
+                          </Text>
+                        )}
                       </View>
                     )}
                   </View>

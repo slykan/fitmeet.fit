@@ -315,8 +315,8 @@ export default function MarketDetailScreen() {
             </View>
           </View>
 
-          {/* Actions */}
-          <View style={styles.actions}>
+          {/* Actions — row 1: secondary buttons */}
+          <View style={styles.actionsRow}>
             <Pressable style={styles.btnShare} onPress={handleShare}>
               <Ionicons name="share-social-outline" size={15} color={palette.accent} />
               <Text style={styles.btnShareText}>Share</Text>
@@ -337,26 +337,14 @@ export default function MarketDetailScreen() {
                 </Text>
               </Pressable>
             )}
-            {!listing.is_mine && !sold && (
-              <Pressable style={styles.btnPrimary} onPress={handleMessage} disabled={acting}>
-                <Ionicons name="chatbubble-outline" size={16} color="#031109" />
-                <Text style={styles.btnPrimaryText}>Message seller</Text>
-              </Pressable>
-            )}
             {listing.is_mine && !sold && (
-              <>
-                <Pressable
-                  style={styles.btnOutline}
-                  onPress={() => router.push(`/market/create?id=${listing.id}` as never)}
-                >
-                  <Ionicons name="pencil-outline" size={15} color={palette.text} />
-                  <Text style={styles.btnOutlineText}>Edit</Text>
-                </Pressable>
-                <Pressable style={styles.btnSold} onPress={handleSold} disabled={acting}>
-                  <Ionicons name="checkmark-circle-outline" size={15} color="#4ade80" />
-                  <Text style={styles.btnSoldText}>Mark sold</Text>
-                </Pressable>
-              </>
+              <Pressable
+                style={[styles.btnShare, { flex: 1 }]}
+                onPress={() => router.push(`/market/create?id=${listing.id}` as never)}
+              >
+                <Ionicons name="pencil-outline" size={15} color={palette.accent} />
+                <Text style={styles.btnShareText}>Edit</Text>
+              </Pressable>
             )}
             {canEdit && (
               <Pressable style={styles.btnDelete} onPress={handleDelete} disabled={acting}>
@@ -364,6 +352,20 @@ export default function MarketDetailScreen() {
               </Pressable>
             )}
           </View>
+
+          {/* Actions — row 2: primary action */}
+          {!listing.is_mine && !sold && (
+            <Pressable style={styles.btnPrimaryFull} onPress={handleMessage} disabled={acting}>
+              <Ionicons name="chatbubble-outline" size={16} color="#031109" />
+              <Text style={styles.btnPrimaryText}>Send msg</Text>
+            </Pressable>
+          )}
+          {listing.is_mine && !sold && (
+            <Pressable style={styles.btnSoldFull} onPress={handleSold} disabled={acting}>
+              <Ionicons name="checkmark-circle-outline" size={15} color="#4ade80" />
+              <Text style={styles.btnSoldText}>Mark sold</Text>
+            </Pressable>
+          )}
         </View>
 
       </ScrollView>
@@ -415,13 +417,16 @@ const styles = StyleSheet.create({
   sellerName:  { color: palette.text, fontWeight: '700', fontSize: 14 },
 
   actions: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+  actionsRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   btnShare:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 16, borderWidth: 1, borderColor: 'rgba(108,255,47,0.35)', backgroundColor: 'rgba(108,255,47,0.08)' },
   btnShareText:   { color: palette.accent, fontWeight: '800', fontSize: 13 },
   btnPrimary:     { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: palette.accent, borderRadius: 14, paddingVertical: 12 },
+  btnPrimaryFull: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: palette.accent, borderRadius: 14, paddingVertical: 13 },
   btnPrimaryText: { color: '#031109', fontWeight: '800', fontSize: 14 },
   btnOutline:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 16, borderWidth: 1, borderColor: palette.line, backgroundColor: palette.panelRaised },
   btnOutlineText: { color: palette.text, fontWeight: '700', fontSize: 13 },
   btnSold:        { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: 14, paddingVertical: 12, backgroundColor: 'rgba(74,222,128,0.1)', borderWidth: 1, borderColor: 'rgba(74,222,128,0.3)' },
+  btnSoldFull:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: 14, paddingVertical: 13, backgroundColor: 'rgba(74,222,128,0.1)', borderWidth: 1, borderColor: 'rgba(74,222,128,0.3)' },
   btnSoldText:    { color: '#4ade80', fontWeight: '800', fontSize: 13 },
   btnDelete:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 14, backgroundColor: 'rgba(248,113,113,0.08)', borderWidth: 1, borderColor: 'rgba(248,113,113,0.3)' },
 
