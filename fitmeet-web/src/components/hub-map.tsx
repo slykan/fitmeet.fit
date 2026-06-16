@@ -640,11 +640,11 @@ export default function HubMap() {
             boxShadow: '0 6px 22px rgba(0,0,0,0.35)',
           }}
         >
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-hide md:gap-2">
+          <div className="filter-chip-scroll items-center md:gap-2" aria-label="Interest filters">
             <button
               type="button"
               onClick={() => setSelectedCategories(new Set())}
-              className="flex-shrink-0 text-[11px] px-2.5 py-1.5 rounded-full border font-semibold transition-colors md:text-xs md:px-3"
+              className="text-[11px] px-2.5 py-1.5 rounded-full border font-semibold transition-colors md:text-xs md:px-3"
               style={{
                 borderColor: categoryCount === 0 ? 'var(--primary)' : 'var(--border)',
                 color: categoryCount === 0 ? 'var(--primary)' : 'var(--text-muted)',
@@ -660,7 +660,7 @@ export default function HubMap() {
                   key={c.value}
                   type="button"
                   onClick={() => toggleCategory(c.value)}
-                  className="flex-shrink-0 text-[11px] px-2.5 py-1.5 rounded-full border font-semibold transition-colors md:text-xs md:px-3"
+                  className="text-[11px] px-2.5 py-1.5 rounded-full border font-semibold transition-colors md:text-xs md:px-3"
                   style={{
                     borderColor: active ? 'var(--primary)' : 'var(--border)',
                     color: active ? 'var(--primary)' : 'var(--text-muted)',

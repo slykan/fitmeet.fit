@@ -703,14 +703,14 @@ const ALL_CATS = [{ value: '', label: 'All' }, ...CATEGORIES]
 
 function CategoryFilter({ category, setCategory }: { category: string; setCategory: (v: string) => void }) {
   return (
-    <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+    <div className="filter-chip-scroll" aria-label="Event category filters">
       {ALL_CATS.map(c => {
         const active = category === c.value
         return (
           <button
             key={c.value}
             onClick={() => setCategory(c.value)}
-            className="flex-shrink-0 text-xs px-3 py-1.5 rounded-full border font-medium transition-colors"
+            className="text-xs px-3 py-1.5 rounded-full border font-medium transition-colors"
             style={{
               borderColor: active ? 'var(--primary)' : 'var(--border)',
               color:       active ? 'var(--primary)' : 'var(--text-muted)',

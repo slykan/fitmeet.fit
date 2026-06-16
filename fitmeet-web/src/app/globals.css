@@ -90,3 +90,37 @@ body {
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
+.filter-chip-scroll {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.5rem;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 0.35rem;
+  overscroll-behavior-x: contain;
+  scroll-padding-inline: 0.75rem;
+  scrollbar-color: color-mix(in srgb, var(--primary) 55%, transparent) transparent;
+  scrollbar-width: thin;
+  touch-action: pan-x;
+  -webkit-overflow-scrolling: touch;
+}
+
+.filter-chip-scroll::-webkit-scrollbar {
+  height: 6px;
+}
+
+.filter-chip-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.filter-chip-scroll::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--primary) 45%, transparent);
+  border-radius: 999px;
+}
+
+.filter-chip-scroll > * {
+  flex: 0 0 auto;
+}
