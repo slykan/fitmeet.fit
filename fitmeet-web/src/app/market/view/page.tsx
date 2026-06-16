@@ -42,6 +42,7 @@ function ViewContent() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [activeImg, setActiveImg] = useState(0)
+  const [lightbox, setLightbox]   = useState(false)
   const [acting, setActing] = useState(false)
 
   useEffect(() => {
@@ -121,17 +122,41 @@ function ViewContent() {
             <ChevronLeft size={16} /> Back
           </button>
 
+          {/* Lightbox */}
+          {lightbox && (
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center"
+              style={{ background: 'rgba(0,0,0,0.92)' }}
+              onClick={() => setLightbox(false)}
+            >
+              <button
+                className="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center"
+                style={{ background: 'rgba(255,255,255,0.12)' }}
+                onClick={() => setLightbox(false)}
+              >
+                <X size={20} color="#fff" />
+              </button>
+              <div className="relative w-full h-full max-w-4xl max-h-[90vh] m-4">
+                <Image src={listing.images[activeImg]} alt={listing.title} fill className="object-contain" unoptimized />
+              </div>
+            </div>
+          )}
+
           {/* Images */}
           {listing.images.length > 0 ? (
             <div className="space-y-2">
-              <div className="relative w-full rounded-2xl overflow-hidden" style={{ height: 340, background: 'var(--surface)' }}>
+              <button
+                className="relative w-full rounded-2xl overflow-hidden cursor-zoom-in"
+                style={{ height: 340, background: 'var(--surface)' }}
+                onClick={() => setLightbox(true)}
+              >
                 <Image src={listing.images[activeImg]} alt={listing.title} fill className="object-contain" unoptimized />
                 {sold && (
                   <div className="absolute inset-0 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.55)' }}>
                     <span className="text-2xl font-black px-6 py-3 rounded-2xl border-2" style={{ color: '#f87171', borderColor: '#f87171', background: 'rgba(248,113,113,0.1)' }}>SOLD</span>
                   </div>
                 )}
-              </div>
+              </button>
               {listing.images.length > 1 && (
                 <div className="flex gap-2">
                   {listing.images.map((src, i) => (
