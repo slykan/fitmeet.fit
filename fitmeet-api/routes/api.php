@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ActivityRouteController;
+use App\Http\Controllers\Api\MarketplaceController;
 use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\BeerDonationController;
 use App\Http\Controllers\Api\LeaderboardController;
@@ -154,6 +155,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('routes', [ActivityRouteController::class, 'store']);
     Route::put('routes/{activityRoute}', [ActivityRouteController::class, 'update']);
     Route::delete('routes/{activityRoute}', [ActivityRouteController::class, 'destroy']);
+
+    Route::get('market', [MarketplaceController::class, 'index']);
+    Route::get('market/my', [MarketplaceController::class, 'my']);
+    Route::get('market/{listing}', [MarketplaceController::class, 'show']);
+    Route::post('market', [MarketplaceController::class, 'store']);
+    Route::post('market/{listing}', [MarketplaceController::class, 'update']);
+    Route::post('market/{listing}/sold', [MarketplaceController::class, 'markSold']);
+    Route::delete('market/{listing}', [MarketplaceController::class, 'destroy']);
 
     Route::middleware(\App\Http\Middleware\EnsureAdmin::class)->prefix('admin')->group(function () {
         Route::get('broadcasts', [AdminController::class, 'broadcasts']);

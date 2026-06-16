@@ -20,6 +20,7 @@ import { CATEGORIES, CATEGORY_EMOJI, FILTER_FEATURED } from '@/lib/categories'
 import { sortEventsBySchedule } from '@/lib/event-order'
 import { fetchGpxActivityStats, type GpxActivityStats } from '@/lib/gpx-activity-stats'
 import { RoutesTab } from '@/components/routes-tab'
+import { MarketTab } from '@/components/market-tab'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1127,7 +1128,7 @@ function EventsTab() {
 export default function MeetPage() {
   const { token } = useAuthStore()
   const router    = useRouter()
-  const [tab, setTab] = useState<'people' | 'events' | 'routes'>('events')
+  const [tab, setTab] = useState<'people' | 'events' | 'routes' | 'market'>('events')
   const [showCalendar, setShowCalendar] = useState(false)
 
   useEffect(() => {
@@ -1172,8 +1173,8 @@ export default function MeetPage() {
           {showCalendar && <CalendarModal onClose={() => setShowCalendar(false)} />}
 
           {/* Tabs */}
-          <div className="grid grid-cols-3 gap-1 p-1 rounded-xl mb-6 w-full" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-            {(['events', 'people', 'routes'] as const).map(t => (
+          <div className="grid grid-cols-4 gap-1 p-1 rounded-xl mb-6 w-full" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+            {(['events', 'routes', 'people', 'market'] as const).map(t => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
@@ -1183,12 +1184,12 @@ export default function MeetPage() {
                   color:      tab === t ? '#000' : 'var(--text-muted)',
                 }}
               >
-                {t === 'people' ? 'People' : t === 'routes' ? 'Routes' : 'Events'}
+                {t === 'people' ? 'People' : t === 'routes' ? 'Routes' : t === 'market' ? 'Market' : 'Events'}
               </button>
             ))}
           </div>
 
-          {tab === 'people' ? <PeopleTab /> : tab === 'routes' ? <RoutesTab /> : <EventsTab />}
+          {tab === 'people' ? <PeopleTab /> : tab === 'routes' ? <RoutesTab /> : tab === 'market' ? <MarketTab /> : <EventsTab />}
 
         </div>
       </main>
