@@ -228,7 +228,7 @@ export default async function HomePage() {
           />
 
           <div className="relative max-w-6xl mx-auto px-4 pt-16 pb-14 md:pt-20 md:pb-20">
-            <div className="grid gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
+            <div className="grid gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
               <div>
                 <div className="flex items-center gap-3 mb-6">
                   <Image
@@ -305,8 +305,46 @@ export default async function HomePage() {
                   </a>
                 </div>
 
+                <div className="flex flex-wrap gap-2">
+                  {categories.map((label) => (
+                    <Link
+                      key={label}
+                      href="/login"
+                      className="inline-flex items-center gap-2 border px-4 py-2 rounded-full text-sm font-medium transition-all"
+                      style={{ borderColor: 'var(--border)', background: 'var(--surface)', color: 'var(--text-primary)' }}
+                    >
+                      {label}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+
+              <div className="min-w-0">
                 <div
-                  className="mb-8 rounded-2xl border p-4"
+                  className="rounded-[28px] border p-4 md:p-5"
+                  style={{
+                    borderColor: 'rgba(57,255,20,0.18)',
+                    background: 'linear-gradient(180deg, rgba(11,16,21,0.98), rgba(8,10,15,0.96))',
+                    boxShadow: '0 20px 70px rgba(0,0,0,0.35)',
+                  }}
+                >
+                  <div className="flex items-center justify-between mb-3 px-1">
+                    <div>
+                      <p className="text-xs uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
+                        Hub preview
+                      </p>
+                      <p className="text-sm font-semibold">Explore nearby events and groups</p>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
+                      <CheckCircle2 size={14} style={{ color: 'var(--primary)' }} />
+                      Filters, reminders, chat
+                    </div>
+                  </div>
+                  <HeroMap />
+                </div>
+
+                <div
+                  className="mt-4 rounded-2xl border p-4"
                   style={{
                     borderColor: 'rgba(57,255,20,0.16)',
                     background: 'linear-gradient(180deg, rgba(57,255,20,0.055), rgba(255,255,255,0.025))',
@@ -346,43 +384,6 @@ export default async function HomePage() {
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-2">
-                  {categories.map((label) => (
-                    <Link
-                      key={label}
-                      href="/login"
-                      className="inline-flex items-center gap-2 border px-4 py-2 rounded-full text-sm font-medium transition-all"
-                      style={{ borderColor: 'var(--border)', background: 'var(--surface)', color: 'var(--text-primary)' }}
-                    >
-                      {label}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-
-              <div className="min-w-0">
-                <div
-                  className="rounded-[28px] border p-4 md:p-5"
-                  style={{
-                    borderColor: 'rgba(57,255,20,0.18)',
-                    background: 'linear-gradient(180deg, rgba(11,16,21,0.98), rgba(8,10,15,0.96))',
-                    boxShadow: '0 20px 70px rgba(0,0,0,0.35)',
-                  }}
-                >
-                  <div className="flex items-center justify-between mb-3 px-1">
-                    <div>
-                      <p className="text-xs uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
-                        Hub preview
-                      </p>
-                      <p className="text-sm font-semibold">Explore nearby events and groups</p>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
-                      <CheckCircle2 size={14} style={{ color: 'var(--primary)' }} />
-                      Filters, reminders, chat
-                    </div>
-                  </div>
-                  <HeroMap />
-                </div>
                 <LatestUsersTicker />
               </div>
             </div>
