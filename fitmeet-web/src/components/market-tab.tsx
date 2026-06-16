@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { MapPin, Plus, ChevronDown, Search } from 'lucide-react'
+import { MapPin, Plus, ChevronDown, Search, Heart, Eye } from 'lucide-react'
 
 import api from '@/lib/api'
 import { CATEGORIES, CATEGORY_EMOJI } from '@/lib/categories'
@@ -22,6 +22,9 @@ interface MarketListing {
   images: string[]
   seller: { id: number; name: string; avatar: string | null }
   is_mine: boolean
+  views_count: number
+  saves_count: number
+  is_saved: boolean
 }
 
 const CONDITION_LABEL: Record<string, string> = { new: 'New', used: 'Used', like_new: 'Like new' }
@@ -38,14 +41,15 @@ export function MarketTab() {
   const router = useRouter()
   const { token } = useAuthStore()
 
-  const [listings,  setListings]  = useState<MarketListing[]>([])
-  const [loading,   setLoading]   = useState(true)
-  const [typeFilter, setType]     = useState<ListingType>('')
-  const [category,  setCategory]  = useState('')
-  const [condition, setCondition] = useState<Condition>('')
-  const [showCats,  setShowCats]  = useState(false)
-  const [search,    setSearch]    = useState('')
-  const [searchQ,   setSearchQ]   = useState('')
+  const [listings,   setListings]  = useState<MarketListing[]>([])
+  const [loading,    setLoading]   = useState(true)
+  const [typeFilter, setType]      = useState<ListingType>('')
+  const [category,   setCategory]  = useState('')
+  const [condition,  setCondition] = useState<Condition>('')
+  const [showCats,   setShowCats]  = useState(false)
+  const [savedOnly,  setSavedOnly] = useState(false)
+  const [search,     setSearch]    = useState('')
+  const [searchQ,    setSearchQ]   = useState('')
 
   useEffect(() => {
     const timer = setTimeout(() => setSearchQ(search.trim()), 350)
@@ -55,6 +59,13 @@ export function MarketTab() {
   useEffect(() => {
     if (!token) return
     setLoading(true)
+    if (savedOnly) {
+      api.get('/market/saved')
+        .then(({ data }) => setListings(data.data ?? []))
+        .catch(() => setListings([]))
+        .finally(() => setLoading(false))
+      return
+    }
     const params = new URLSearchParams()
     if (typeFilter)  params.set('type',      typeFilter)
     if (category)    params.set('category',  category)
@@ -64,24 +75,36 @@ export function MarketTab() {
       .then(({ data }) => setListings(data.data ?? []))
       .catch(() => setListings([]))
       .finally(() => setLoading(false))
-  }, [token, typeFilter, category, condition, searchQ])
+  }, [token, typeFilter, category, condition, searchQ, savedOnly])
+
+  async function handleToggleSave(e: React.MouseEvent, listing: MarketListing) {
+    e.stopPropagation()
+    try {
+      const { data } = await api.post(`/market/${listing.id}/save`)
+      setListings(prev => prev.map(l =>
+        l.id === listing.id
+          ? { ...l, is_saved: data.is_saved, saves_count: l.saves_count + (data.is_saved ? 1 : -1) }
+          : l
+      ))
+    } catch {}
+  }
 
   const activeCat = CATEGORIES.find(c => c.value === category)
 
   return (
     <div className="space-y-4">
 
-      {/* Top row: S/B toggle + Sell button */}
+      {/* Top row: S/B toggle + Saved + Sell button */}
       <div className="flex items-center justify-between gap-3">
         <div className="flex gap-1 p-1 rounded-xl" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
           {([['', 'All'], ['sell', 'Selling'], ['buy', 'Buying']] as [ListingType, string][]).map(([v, label]) => (
             <button
               key={v}
-              onClick={() => setType(v)}
+              onClick={() => { setType(v); setSavedOnly(false) }}
               className="px-3 py-1.5 text-xs font-bold rounded-lg transition-colors"
               style={{
-                background: typeFilter === v ? 'var(--primary)' : 'transparent',
-                color:      typeFilter === v ? '#000' : 'var(--text-muted)',
+                background: !savedOnly && typeFilter === v ? 'var(--primary)' : 'transparent',
+                color:      !savedOnly && typeFilter === v ? '#000' : 'var(--text-muted)',
               }}
             >
               {label}
@@ -89,13 +112,26 @@ export function MarketTab() {
           ))}
         </div>
 
-        <button
-          onClick={() => router.push('/market/create')}
-          className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl font-bold flex-shrink-0 transition-opacity hover:opacity-80"
-          style={{ background: 'var(--primary)', color: '#000' }}
-        >
-          <Plus size={14} /> Post
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setSavedOnly(v => !v)}
+            className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl font-bold flex-shrink-0 transition-opacity hover:opacity-80"
+            style={{
+              background: savedOnly ? 'rgba(248,113,113,0.12)' : 'var(--surface)',
+              border: `1px solid ${savedOnly ? '#f87171' : 'var(--border)'}`,
+              color: savedOnly ? '#f87171' : 'var(--text-muted)',
+            }}
+          >
+            <Heart size={13} fill={savedOnly ? '#f87171' : 'none'} /> Saved
+          </button>
+          <button
+            onClick={() => router.push('/market/create')}
+            className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl font-bold flex-shrink-0 transition-opacity hover:opacity-80"
+            style={{ background: 'var(--primary)', color: '#000' }}
+          >
+            <Plus size={14} /> Post
+          </button>
+        </div>
       </div>
 
       {/* Search */}
@@ -237,22 +273,43 @@ export function MarketTab() {
                         {CONDITION_LABEL[listing.condition]}
                       </span>
                     )}
+                    {!listing.is_mine && (
+                      <button
+                        onClick={e => handleToggleSave(e, listing)}
+                        className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center transition-colors"
+                        style={{ background: 'rgba(5,8,22,0.7)' }}
+                      >
+                        <Heart size={14} fill={listing.is_saved ? '#f87171' : 'none'} color={listing.is_saved ? '#f87171' : '#fff'} />
+                      </button>
+                    )}
                   </div>
                   <div className="p-3 space-y-1.5">
                     <p className="font-bold text-sm truncate">{listing.title}</p>
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-base font-black" style={{ color: 'var(--primary)' }}>
-                        {listing.price.toFixed(0)} {listing.currency}
+                        {listing.price > 0 ? `${listing.price.toFixed(0)} ${listing.currency}` : 'For sale'}
                       </span>
                       <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
                         {CATEGORY_EMOJI[listing.category.value]} {listing.category.label}
                       </span>
                     </div>
-                    {(listing.location.city || listing.location.country) && (
-                      <p className="flex items-center gap-1 text-xs" style={{ color: 'var(--text-muted)' }}>
-                        <MapPin size={11} /> {[listing.location.city, listing.location.country].filter(Boolean).join(', ')}
-                      </p>
-                    )}
+                    <div className="flex items-center gap-3 text-xs" style={{ color: 'var(--text-muted)' }}>
+                      {(listing.location.city || listing.location.country) && (
+                        <span className="flex items-center gap-1">
+                          <MapPin size={11} /> {[listing.location.city, listing.location.country].filter(Boolean).join(', ')}
+                        </span>
+                      )}
+                      {(listing.views_count ?? 0) > 0 && (
+                        <span className="flex items-center gap-1 ml-auto">
+                          <Eye size={11} /> {listing.views_count}
+                        </span>
+                      )}
+                      {(listing.saves_count ?? 0) > 0 && (
+                        <span className="flex items-center gap-1">
+                          <Heart size={11} /> {listing.saves_count}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </>
               )}

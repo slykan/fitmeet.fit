@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\Category;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class MarketplaceListing extends Model
@@ -43,5 +44,10 @@ class MarketplaceListing extends Model
     public function images(): HasMany
     {
         return $this->hasMany(MarketplaceListingImage::class, 'listing_id')->orderBy('sort_order');
+    }
+
+    public function savedByUsers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'marketplace_listing_saves', 'listing_id', 'user_id')->withTimestamps();
     }
 }

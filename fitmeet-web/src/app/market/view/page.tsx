@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
-import { ChevronLeft, MapPin, MessageCircle, Pencil, CheckCircle2, Trash2, X, Share2 } from 'lucide-react'
+import { ChevronLeft, MapPin, MessageCircle, Pencil, CheckCircle2, Trash2, X, Share2, Heart, Eye } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
 import api from '@/lib/api'
@@ -24,6 +24,9 @@ interface MarketListing {
   images: string[]
   seller: { id: number; name: string; avatar: string | null }
   is_mine: boolean
+  views_count: number
+  saves_count: number
+  is_saved: boolean
   created_at: string
 }
 
@@ -54,6 +57,14 @@ function ViewContent() {
       .catch(() => setError('Listing not found.'))
       .finally(() => setLoading(false))
   }, [token, id])
+
+  async function handleSave() {
+    if (!listing) return
+    try {
+      const { data } = await api.post(`/market/${listing.id}/save`)
+      setListing(l => l ? { ...l, is_saved: data.is_saved, saves_count: l.saves_count + (data.is_saved ? 1 : -1) } : l)
+    } catch {}
+  }
 
   async function handleMessage() {
     if (!listing) return
@@ -239,6 +250,15 @@ function ViewContent() {
               </div>
             )}
 
+            <div className="flex items-center gap-4 text-xs" style={{ color: 'var(--text-muted)' }}>
+              {(listing.views_count ?? 0) > 0 && (
+                <span className="flex items-center gap-1"><Eye size={13} /> {listing.views_count} views</span>
+              )}
+              {(listing.saves_count ?? 0) > 0 && (
+                <span className="flex items-center gap-1"><Heart size={13} /> {listing.saves_count} saved</span>
+              )}
+            </div>
+
             {/* Seller */}
             <div className="flex items-center gap-3 pt-1 border-t" style={{ borderColor: 'var(--border)' }}>
               <div className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center font-black text-sm"
@@ -262,6 +282,20 @@ function ViewContent() {
               >
                 <Share2 size={15} /> {copied ? 'Copied' : 'Share'}
               </button>
+              {!listing.is_mine && (
+                <button
+                  onClick={handleSave}
+                  className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border font-bold text-sm transition-opacity hover:opacity-80"
+                  style={{
+                    borderColor: listing.is_saved ? '#f87171' : 'var(--border)',
+                    color: listing.is_saved ? '#f87171' : 'var(--text-primary)',
+                    background: listing.is_saved ? 'rgba(248,113,113,0.08)' : 'var(--background)',
+                  }}
+                >
+                  <Heart size={15} fill={listing.is_saved ? '#f87171' : 'none'} />
+                  {listing.is_saved ? 'Saved' : 'Save'}
+                </button>
+              )}
               {!listing.is_mine && !sold && (
                 <button
                   onClick={handleMessage}

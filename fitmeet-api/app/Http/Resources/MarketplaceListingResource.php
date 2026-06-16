@@ -31,6 +31,11 @@ class MarketplaceListingResource extends JsonResource
             ),
             'seller'      => new UserResource($this->whenLoaded('seller')),
             'is_mine'     => $request->user()?->id === $this->user_id,
+            'views_count' => $this->views_count ?? 0,
+            'saves_count' => $this->whenLoaded('savedByUsers', fn () => $this->savedByUsers->count(), 0),
+            'is_saved'    => $this->whenLoaded('savedByUsers', fn () =>
+                $this->savedByUsers->contains('id', $request->user()?->id), false
+            ),
             'created_at'  => $this->created_at?->toDateTimeString(),
         ];
     }

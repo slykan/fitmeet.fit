@@ -161,10 +161,12 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('market', [MarketplaceController::class, 'index']);
     Route::get('market/my', [MarketplaceController::class, 'my']);
+    Route::get('market/saved', [MarketplaceController::class, 'saved']);
     Route::get('market/{listing}', [MarketplaceController::class, 'show']);
     Route::post('market', [MarketplaceController::class, 'store']);
     Route::post('market/{listing}', [MarketplaceController::class, 'update']);
     Route::put('market/{listing}', [MarketplaceController::class, 'update']);
+    Route::post('market/{listing}/save', [MarketplaceController::class, 'toggleSave']);
     Route::post('market/{listing}/sold', [MarketplaceController::class, 'markSold']);
     Route::delete('market/{listing}', [MarketplaceController::class, 'destroy']);
 

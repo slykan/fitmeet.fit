@@ -155,12 +155,42 @@ HTML;
         return response()->json(['data' => MarketplaceListingResource::collection($listings)]);
     }
 
+    // GET /api/market/saved
+    public function saved(Request $request): JsonResponse
+    {
+        $listings = MarketplaceListing::with(['seller', 'images', 'savedByUsers'])
+            ->whereHas('savedByUsers', fn ($q) => $q->where('user_id', $request->user()->id))
+            ->latest()
+            ->get();
+
+        return response()->json(['data' => MarketplaceListingResource::collection($listings)]);
+    }
+
     // GET /api/market/{listing}
     public function show(Request $request, MarketplaceListing $listing): JsonResponse
     {
-        $listing->load(['seller', 'images']);
+        $listing->load(['seller', 'images', 'savedByUsers']);
+
+        if ($listing->user_id !== $request->user()->id) {
+            $listing->increment('views_count');
+        }
 
         return response()->json(['data' => new MarketplaceListingResource($listing)]);
+    }
+
+    // POST /api/market/{listing}/save
+    public function toggleSave(Request $request, MarketplaceListing $listing): JsonResponse
+    {
+        $userId = $request->user()->id;
+        $saved  = $listing->savedByUsers()->where('user_id', $userId)->exists();
+
+        if ($saved) {
+            $listing->savedByUsers()->detach($userId);
+        } else {
+            $listing->savedByUsers()->attach($userId);
+        }
+
+        return response()->json(['is_saved' => ! $saved]);
     }
 
     // POST /api/market
