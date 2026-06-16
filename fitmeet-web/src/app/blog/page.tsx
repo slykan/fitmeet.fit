@@ -1,6 +1,5 @@
 import Link from 'next/link'
-import { ArrowRight, BookOpen, Download, MapPin, PencilLine, Route, Share2, Sparkles, Users } from 'lucide-react'
-// Route, Share2 kept for Novosti sidebar cards
+import { ArrowRight, BookOpen, Download, MapPin, MessageCircle, PencilLine, Route, Share2, ShoppingBag, Sparkles, Tag, Users } from 'lucide-react'
 import { Navbar } from '@/components/navbar'
 import { posts } from '@/lib/posts'
 
@@ -57,21 +56,102 @@ export default function BlogPage() {
               <p className="text-sm font-bold uppercase tracking-widest" style={{ color: 'var(--primary)' }}>News</p>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-3 mb-4">
+              {/* Marketplace — featured news */}
               <Link
-                href="/blog/gpx-routes-create-download-share"
+                href="/blog/fitmeet-marketplace-buy-sell-sports-gear"
                 className="md:col-span-2 rounded-2xl border p-6 flex flex-col gap-4 transition-opacity hover:opacity-90"
                 style={{
-                  background: 'linear-gradient(135deg, rgba(57,255,20,0.1) 0%, rgba(57,255,20,0.03) 100%)',
-                  borderColor: 'rgba(57,255,20,0.28)',
+                  background: 'linear-gradient(135deg, rgba(251,113,133,0.09) 0%, rgba(251,113,133,0.02) 100%)',
+                  borderColor: 'rgba(251,113,133,0.28)',
                 }}
               >
                 <div className="flex items-center gap-3">
                   <span
                     className="text-xs font-bold px-3 py-1 rounded-full"
-                    style={{ background: 'rgba(57,255,20,0.18)', color: '#39ff14' }}
+                    style={{ background: 'rgba(251,113,133,0.18)', color: '#fb7185' }}
                   >
-                    Novo · Routes
+                    New · Marketplace
+                  </span>
+                  <span className="text-xs" style={{ color: 'var(--text-muted)' }}>16 June 2026</span>
+                </div>
+                <h2 className="text-xl font-bold leading-snug">
+                  Buy and sell sports gear with your local community
+                </h2>
+                <p className="text-sm leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+                  List gear you no longer need, post a wanted request, or browse what athletes near you are selling — bikes, shoes, kit and more. Contact sellers directly through FitMeet messages.
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {[
+                    { icon: ShoppingBag, label: 'Sell gear' },
+                    { icon: Tag,         label: 'Buy requests' },
+                    { icon: MessageCircle, label: 'DM sellers' },
+                    { icon: MapPin,      label: 'Local first' },
+                  ].map(({ icon: Icon, label }) => (
+                    <div key={label} className="flex items-center gap-1.5 text-xs font-semibold">
+                      <Icon size={12} style={{ color: '#fb7185' }} /> {label}
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center gap-1.5 text-xs font-semibold mt-auto" style={{ color: '#fb7185' }}>
+                  Read more <ArrowRight size={12} />
+                </div>
+              </Link>
+
+              <div className="flex flex-col gap-3">
+                {[
+                  {
+                    icon: ShoppingBag,
+                    title: 'Sell listings',
+                    desc: 'Post photos, price, condition and category. Listings go live instantly.',
+                  },
+                  {
+                    icon: Tag,
+                    title: 'Wanted posts',
+                    desc: 'Looking for something specific? Post a request with max budget.',
+                  },
+                  {
+                    icon: MessageCircle,
+                    title: 'Built-in messaging',
+                    desc: 'Contact sellers directly through FitMeet — no external accounts needed.',
+                  },
+                ].map(({ icon: Icon, title, desc }) => (
+                  <div
+                    key={title}
+                    className="rounded-xl border p-4 flex gap-3"
+                    style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
+                  >
+                    <div
+                      className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                      style={{ background: 'rgba(251,113,133,0.1)' }}
+                    >
+                      <Icon size={14} style={{ color: '#fb7185' }} />
+                    </div>
+                    <div>
+                      <p className="font-bold text-sm mb-0.5">{title}</p>
+                      <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>{desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Previous news — GPX routes */}
+            <div className="grid gap-4 md:grid-cols-3">
+              <Link
+                href="/blog/gpx-routes-create-download-share"
+                className="md:col-span-2 rounded-2xl border p-6 flex flex-col gap-4 transition-opacity hover:opacity-90"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(57,255,20,0.07) 0%, rgba(57,255,20,0.01) 100%)',
+                  borderColor: 'rgba(57,255,20,0.18)',
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  <span
+                    className="text-xs font-bold px-3 py-1 rounded-full"
+                    style={{ background: 'rgba(57,255,20,0.12)', color: '#39ff14' }}
+                  >
+                    Routes
                   </span>
                   <span className="text-xs" style={{ color: 'var(--text-muted)' }}>28 May 2026</span>
                 </div>
@@ -79,7 +159,7 @@ export default function BlogPage() {
                   Create, download and share GPX routes for free
                 </h2>
                 <p className="text-sm leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-                  Draw routes point by point with road snapping, export as GPX and send directly to your Garmin, Wahoo or any navigation app. Share route pages with friends before the event.
+                  Draw routes point by point with road snapping, export as GPX and send directly to your Garmin, Wahoo or any navigation app.
                 </p>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {[

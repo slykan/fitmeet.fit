@@ -15,6 +15,45 @@ export interface Post {
 
 export const posts: Post[] = [
   {
+    slug: 'fitmeet-marketplace-buy-sell-sports-gear',
+    title: 'Introducing the FitMeet Marketplace: Buy and Sell Sports Gear Within Your Community',
+    description: 'FitMeet now has a built-in marketplace for sports gear. List what you no longer use, find what you need, and deal directly with people from your local sports community.',
+    publishedAt: '2026-06-16',
+    readTime: 3,
+    category: 'Community',
+    sections: [
+      {
+        heading: 'Sports Gear That Goes to the Right People',
+        paragraphs: [
+          'Most sports gear spends more time in a cupboard than on a bike, trail or court. A pair of cycling shoes that no longer fit. A wetsuit after the triathlon season. Ski boots collecting dust until next winter. The FitMeet Marketplace is a place to move that gear on — and find what you need — without leaving the community you are already part of.',
+          'Listings are posted by real athletes: people who run, ride, hike and train. That context matters. Someone selling a road bike has actually ridden it. Someone looking for a size 43 trail shoe knows what they are asking for.',
+        ],
+      },
+      {
+        heading: 'Sell What You Have. Find What You Need.',
+        paragraphs: [
+          'Selling is straightforward: pick a category, add photos (up to five), set a price, choose the condition — new, like new, or used — and post. Listings go live immediately and are visible to anyone on FitMeet.',
+          'If you are looking for something specific, post a buy request instead. A "wanted" listing lets others know what you are after, with an optional max budget. It works for niche items that rarely appear on general second-hand platforms — specific race kit, older component standards, discontinued footwear.',
+        ],
+      },
+      {
+        heading: 'Filtered by Category, Condition and Type',
+        paragraphs: [
+          'The marketplace is organised with the same categories as FitMeet events: running, cycling, hiking, fitness, yoga, climbing, and the rest. Filter by sell or buy listings, narrow to a condition, and search by title or description if you know what you are looking for.',
+          'Listings show location based on where sellers are based, so you can see at a glance whether something is local or further away. Contacting a seller goes through the existing FitMeet messages system — no external accounts, no public phone numbers.',
+        ],
+      },
+      {
+        heading: 'Available on Web and Android',
+        paragraphs: [
+          'The marketplace is available now on fitmeet.fit under the Meet tab, and in the Android app. Creating a listing, browsing and messaging sellers all work from both platforms.',
+          'iOS support is coming. If you have gear to move or something you have been looking for, the marketplace is open.',
+        ],
+      },
+    ],
+  },
+
+  {
     slug: 'route-surface-mix-event-updates',
     title: 'Route Surface Mix, Better GPX Views and Cleaner Event Planning',
     description: 'FitMeet route and event pages now show road surface mix, GPX-linked photos, uphill/downhill details, and better route drawing tools for planning rides, runs and hikes.',

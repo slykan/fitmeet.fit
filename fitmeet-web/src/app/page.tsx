@@ -20,6 +20,7 @@ import { LatestUsersTicker } from '@/components/latest-users-ticker'
 import { PublicStatsSection } from '@/components/public-stats'
 import { PublicCommentsSection } from '@/components/public-comments'
 import { LatestRoutesSection } from '@/components/latest-routes-section'
+import { LatestMarketCarousel } from '@/components/latest-market-carousel'
 
 const categories = [
   'Running',
@@ -163,20 +164,28 @@ type HomeEvent = {
   organizer: { id: number; name: string } | null
 }
 
-
-
+type HomeListing = {
+  id: number
+  type: 'sell' | 'buy'
+  title: string
+  price: number
+  currency: string
+  condition: 'new' | 'used' | 'like_new' | null
+  category: { value: string; label: string }
+  status: string
+  location: { city: string | null; country: string | null }
+  images: string[]
+  seller: { id: number; name: string }
+}
 
 async function getLatestEvents(): Promise<HomeEvent[]> {
   const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.fitmeet.fit/api'
-
   try {
     const response = await fetch(`${apiBase}/events/public-latest?limit=10`, {
       headers: { Accept: 'application/json' },
       next: { revalidate: 300 },
     })
-
     if (!response.ok) return []
-
     const payload = (await response.json()) as { data?: HomeEvent[] }
     return payload.data ?? []
   } catch {
@@ -184,9 +193,25 @@ async function getLatestEvents(): Promise<HomeEvent[]> {
   }
 }
 
+async function getLatestListings(): Promise<HomeListing[]> {
+  const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.fitmeet.fit/api'
+  try {
+    const response = await fetch(`${apiBase}/market/public-latest?limit=10`, {
+      headers: { Accept: 'application/json' },
+      next: { revalidate: 300 },
+    })
+    if (!response.ok) return []
+    const payload = (await response.json()) as { data?: HomeListing[] }
+    return payload.data ?? []
+  } catch {
+    return []
+  }
+}
+
 export default async function HomePage() {
-  const [latestEvents] = await Promise.all([
+  const [latestEvents, latestListings] = await Promise.all([
     getLatestEvents(),
+    getLatestListings(),
   ])
 
   return (
@@ -365,6 +390,8 @@ export default async function HomePage() {
         </section>
 
         <LatestEventsCarousel events={latestEvents} />
+
+        <LatestMarketCarousel listings={latestListings} />
 
         <LatestRoutesSection />
 

@@ -13,6 +13,20 @@ use Illuminate\Validation\Rule;
 
 class MarketplaceController extends Controller
 {
+    // GET /api/market/public-latest (no auth)
+    public function publicLatest(Request $request): JsonResponse
+    {
+        $limit = min((int) ($request->query('limit', 10)), 20);
+
+        $listings = MarketplaceListing::with(['seller', 'images'])
+            ->where('status', 'active')
+            ->latest()
+            ->limit($limit)
+            ->get();
+
+        return response()->json(['data' => MarketplaceListingResource::collection($listings)]);
+    }
+
     // GET /api/market
     public function index(Request $request): JsonResponse
     {
