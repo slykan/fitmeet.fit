@@ -183,8 +183,16 @@ export function BeerTickerBanner() {
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', state => {
-      if (state === 'active' && Date.now() - lastLoadedAt.current > 30000) {
-        loadDonors()
+      if (state === 'active') {
+        if (Date.now() - lastLoadedAt.current > 30000) {
+          loadDonors()
+        } else if (sequenceWidth.current > 0) {
+          // Native animation freezes in background — force restart on resume
+          started.current = false
+          tryStart()
+        }
+      } else if (state === 'background') {
+        animRef.current?.stop()
       }
     })
 
