@@ -39,6 +39,72 @@ class MarketplaceController extends Controller
         return response()->json(['data' => new MarketplaceListingResource($listing)]);
     }
 
+    // GET /api/market/og?id=X — OG meta HTML for social crawlers
+    public function ogPage(Request $request): \Illuminate\Http\Response
+    {
+        $siteUrl  = 'https://fitmeet.fit';
+        $id       = (int) $request->query('id', 0);
+        $shareUrl = $siteUrl . '/market/share/?id=' . $id;
+
+        $listing = $id ? MarketplaceListing::with(['images'])->find($id) : null;
+
+        if (! $listing || ! in_array($listing->status, ['active', 'sold'], true)) {
+            return response(
+                '<html><head><meta http-equiv="refresh" content="0;url=' . e($shareUrl) . '"></head><body></body></html>',
+                200, ['Content-Type' => 'text/html']
+            );
+        }
+
+        $price      = (float) ($listing->price ?? 0);
+        $type       = $listing->type ?? 'sell';
+        $currency   = $listing->currency ?? 'EUR';
+        $priceLabel = $price > 0
+            ? (($type === 'buy' ? 'up to ' : '') . number_format($price, 0) . ' ' . $currency)
+            : ($type === 'buy' ? 'Wanted' : 'For sale');
+
+        $conditionMap = ['new' => 'New', 'used' => 'Used', 'like_new' => 'Like new'];
+        $category  = $listing->category?->label() ?? $listing->category?->value ?? 'Market';
+        $condition = $conditionMap[$listing->condition ?? ''] ?? null;
+        $location  = implode(', ', array_filter([$listing->location_city, $listing->location_country]));
+
+        $title = ($listing->title ?? 'FitMeet Market') . ' — ' . $priceLabel . ' | FitMeet Market';
+        $parts = array_filter([$priceLabel, $category, $condition, $location, $listing->description]);
+        $description = mb_substr(implode(' | ', $parts), 0, 300);
+
+        $image = $siteUrl . '/logo_full.png';
+        if ($listing->images->isNotEmpty()) {
+            $image = url('/storage/' . $listing->images->first()->path);
+        }
+
+        $h    = fn($s) => htmlspecialchars((string) $s, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $html = <<<HTML
+<!DOCTYPE html><html><head>
+<meta charset="UTF-8">
+<title>{$h($title)}</title>
+<meta name="description" content="{$h($description)}">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="FitMeet">
+<meta property="og:title" content="{$h($title)}">
+<meta property="og:description" content="{$h($description)}">
+<meta property="og:url" content="{$h($shareUrl)}">
+<meta property="og:image" content="{$h($image)}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{$h($title)}">
+<meta name="twitter:description" content="{$h($description)}">
+<meta name="twitter:image" content="{$h($image)}">
+<meta http-equiv="refresh" content="0;url={$h($shareUrl)}">
+</head><body>
+<h1>{$h($listing->title)}</h1>
+<p>{$h($description)}</p>
+<a href="{$h($shareUrl)}">Open in FitMeet</a>
+</body></html>
+HTML;
+
+        return response($html, 200, ['Content-Type' => 'text/html; charset=UTF-8']);
+    }
+
     // GET /api/market
     public function index(Request $request): JsonResponse
     {

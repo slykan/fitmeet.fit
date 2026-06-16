@@ -62,7 +62,7 @@ function ViewContent() {
 
   async function handleShare() {
     if (!listing || typeof window === 'undefined') return
-    const url = `${window.location.origin}/market/share/og.php?id=${encodeURIComponent(String(listing.id))}`
+    const url = `${window.location.origin}/market/share/?id=${encodeURIComponent(String(listing.id))}`
     const priceLabel = listing.price > 0
       ? `${listing.type === 'buy' ? 'up to ' : ''}${listing.price.toFixed(0)} ${listing.currency}`
       : listing.type === 'buy' ? 'Wanted on FitMeet' : 'For sale on FitMeet'

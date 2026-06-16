@@ -91,6 +91,7 @@ Route::post('auth/login-mobile',      [AuthController::class, 'loginMobile']);
 Route::post('auth/google-mobile',     [AuthController::class, 'googleMobile']);
 Route::post('auth/apple-mobile',      [AuthController::class, 'appleMobile']);
 Route::get('events/og',            [EventController::class, 'ogPage']);
+Route::get('market/og',            [MarketplaceController::class, 'ogPage']);
 
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
