@@ -72,7 +72,7 @@ export default function MarketDetailScreen() {
 
   async function handleShare() {
     if (!listing) return
-    const url = `https://fitmeet.fit/market/share/og.php?id=${encodeURIComponent(String(listing.id))}`
+    const url = `https://fitmeet.fit/market/share/?id=${encodeURIComponent(String(listing.id))}`
     const priceLabel = listing.price > 0
       ? `${listing.type === 'buy' ? 'up to ' : ''}${listing.price.toFixed(0)} ${listing.currency}`
       : listing.type === 'buy' ? 'Wanted on FitMeet' : 'For sale on FitMeet'
