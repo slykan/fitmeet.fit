@@ -233,38 +233,36 @@ export default function MarketDetailScreen() {
         <View style={styles.card}>
 
           {/* Title + price */}
-          <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
-            <View style={{ flex: 1, gap: 6 }}>
-              <Text style={styles.listingTitle}>{listing.title}</Text>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-                <View style={styles.catBadge}>
-                  <Text style={styles.catBadgeText}>{emoji} {listing.category.label}</Text>
-                </View>
-                {listing.condition && (
-                  <View style={[styles.condBadge, { borderColor: CONDITION_COLOR[listing.condition] + '55' }]}>
-                    <Text style={[styles.condBadgeText, { color: CONDITION_COLOR[listing.condition] }]}>
-                      {CONDITION_LABEL[listing.condition]}
-                    </Text>
-                  </View>
-                )}
-                {listing.type === 'buy' && (
-                  <View style={styles.wantedBadge}>
-                    <Text style={styles.wantedBadgeText}>WANTED</Text>
-                  </View>
-                )}
-                {sold && (
-                  <View style={styles.soldBadge}>
-                    <Text style={styles.soldBadgeText}>Sold</Text>
-                  </View>
-                )}
-              </View>
-            </View>
+          <View style={{ gap: 6 }}>
+            <Text style={styles.listingTitle}>{listing.title}</Text>
             {listing.price > 0 && (
               <Text style={styles.price}>
                 {listing.price.toFixed(0)}{' '}
                 <Text style={styles.currency}>{listing.currency}</Text>
               </Text>
             )}
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+              <View style={styles.catBadge}>
+                <Text style={styles.catBadgeText}>{emoji} {listing.category.label}</Text>
+              </View>
+              {listing.condition && (
+                <View style={[styles.condBadge, { borderColor: CONDITION_COLOR[listing.condition] + '55' }]}>
+                  <Text style={[styles.condBadgeText, { color: CONDITION_COLOR[listing.condition] }]}>
+                    {CONDITION_LABEL[listing.condition]}
+                  </Text>
+                </View>
+              )}
+              {listing.type === 'buy' && (
+                <View style={styles.wantedBadge}>
+                  <Text style={styles.wantedBadgeText}>WANTED</Text>
+                </View>
+              )}
+              {sold && (
+                <View style={styles.soldBadge}>
+                  <Text style={styles.soldBadgeText}>Sold</Text>
+                </View>
+              )}
+            </View>
           </View>
 
           {/* Description */}
