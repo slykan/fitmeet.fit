@@ -52,11 +52,36 @@ function CreateContent() {
     }).catch(() => router.replace('/meet'))
   }, [editId, router, token])
 
-  function pickImages(files: FileList | null) {
+  async function compressImage(file: File): Promise<File> {
+    return new Promise((resolve) => {
+      const img = document.createElement('img')
+      const url = URL.createObjectURL(file)
+      img.onload = () => {
+        URL.revokeObjectURL(url)
+        const MAX = 1280
+        let { width, height } = img
+        if (width > MAX || height > MAX) {
+          if (width > height) { height = Math.round(height * MAX / width); width = MAX }
+          else                { width  = Math.round(width  * MAX / height); height = MAX }
+        }
+        const canvas = document.createElement('canvas')
+        canvas.width = width; canvas.height = height
+        canvas.getContext('2d')!.drawImage(img, 0, 0, width, height)
+        canvas.toBlob(blob => {
+          resolve(blob ? new File([blob], file.name, { type: 'image/jpeg' }) : file)
+        }, 'image/jpeg', 0.82)
+      }
+      img.onerror = () => { URL.revokeObjectURL(url); resolve(file) }
+      img.src = url
+    })
+  }
+
+  async function pickImages(files: FileList | null) {
     if (!files) return
-    const next = [...images, ...Array.from(files)].slice(0, 5)
-    setImages(next)
-    setPreviews(next.map(f => URL.createObjectURL(f)))
+    const raw = [...images, ...Array.from(files)].slice(0, 5)
+    const compressed = await Promise.all(raw.map((f, i) => i < images.length ? f : compressImage(f)))
+    setImages(compressed)
+    setPreviews(compressed.map(f => URL.createObjectURL(f)))
   }
 
   function removeImage(idx: number) {
