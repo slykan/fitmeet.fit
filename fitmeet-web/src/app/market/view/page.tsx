@@ -240,7 +240,7 @@ function ViewContent() {
             </div>
 
             {listing.description && (
-              <p className="text-sm leading-relaxed" style={{ color: 'var(--text-muted)' }}>{listing.description}</p>
+              <p className="text-sm leading-relaxed" style={{ color: 'var(--text-muted)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{listing.description}</p>
             )}
 
             {(listing.location.city || listing.location.country) && (
