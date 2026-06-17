@@ -188,7 +188,7 @@ export default function RanksPage() {
         {loading ? (
           <div className="text-center py-16 opacity-40">Loading…</div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
             {SECTIONS.map(s => (
               <Section
                 key={s.key}
