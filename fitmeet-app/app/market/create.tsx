@@ -1,15 +1,16 @@
 import { Ionicons } from '@expo/vector-icons'
 import * as ImagePicker from 'expo-image-picker'
 import { router, useLocalSearchParams } from 'expo-router'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
-  ActivityIndicator, Alert, Image, Pressable, ScrollView,
-  StyleSheet, Text, TextInput, View,
+  ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView,
+  StyleSheet, Text, TextInput, TouchableOpacity, View,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { api } from '@/src/lib/api'
 import { CATEGORIES } from '@/src/lib/categories'
+import { SupportFitMeetCard } from '@/src/components/SupportFitMeetCard'
 import { useAuthStore } from '@/src/store/auth'
 import { palette, spacing } from '@/src/theme'
 
@@ -42,6 +43,8 @@ export default function MarketCreateScreen() {
   const [saving,    setSaving]   = useState(false)
   const [error,     setError]    = useState<string | null>(null)
   const [loadingEdit, setLoadingEdit] = useState(!!editId)
+  const [showBeer,  setShowBeer] = useState(false)
+  const createdId = useRef<number | null>(null)
 
   useEffect(() => {
     if (!token) { router.replace('/(tabs)/meet' as never); return }
@@ -104,13 +107,19 @@ export default function MarketCreateScreen() {
         router.replace(`/market/${editId}` as never)
       } else {
         const { data } = await api.post('/market', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
-        router.replace(`/market/${data.data.id}` as never)
+        createdId.current = data.data.id
+        setShowBeer(true)
       }
     } catch {
       setError('Could not save listing. Please try again.')
     } finally {
       setSaving(false)
     }
+  }
+
+  function goToListing() {
+    setShowBeer(false)
+    if (createdId.current) router.replace(`/market/${createdId.current}` as never)
   }
 
   if (loadingEdit) {
@@ -123,6 +132,31 @@ export default function MarketCreateScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
+
+      {/* Beer donation modal — shown after successful listing creation */}
+      <Modal visible={showBeer} transparent animationType="slide" onRequestClose={goToListing}>
+        <Pressable style={styles.modalOverlay} onPress={goToListing} />
+        <View style={styles.sheet}>
+          <View style={styles.sheetHandle} />
+          <View style={styles.sheetHeader}>
+            <Text style={styles.sheetTitle}>🎉 Listing posted!</Text>
+            <TouchableOpacity onPress={goToListing} hitSlop={12}>
+              <Ionicons name="close" size={20} color="rgba(255,255,255,0.5)" />
+            </TouchableOpacity>
+          </View>
+          <View style={styles.sheetBody}>
+            <SupportFitMeetCard
+              title="Buy me a beer 🍺"
+              subtitle="FitMeet stays free. If the app saved you time, consider buying a beer!"
+              onPurchased={() => goToListing()}
+            />
+            <Pressable style={styles.skipBtn} onPress={goToListing}>
+              <Text style={styles.skipText}>Maybe later</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
         {/* Header */}
@@ -361,4 +395,29 @@ const styles = StyleSheet.create({
   btnSave:    { backgroundColor: palette.accent },
   btnCancelText: { color: palette.textMuted, fontWeight: '800', fontSize: 14 },
   btnSaveText:   { color: '#031109', fontWeight: '900', fontSize: 14 },
+
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)' },
+  sheet: {
+    backgroundColor: '#0c0a14',
+    borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    borderTopWidth: 1, borderTopColor: 'rgba(246,198,91,0.25)',
+    paddingBottom: 32,
+  },
+  sheetHandle: {
+    width: 36, height: 4, borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignSelf: 'center', marginTop: 10, marginBottom: 6,
+  },
+  sheetHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 20, paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(255,255,255,0.08)',
+  },
+  sheetTitle: { color: '#fff', fontSize: 17, fontWeight: '800' },
+  sheetBody: { padding: 16, gap: 12 },
+  skipBtn: {
+    alignItems: 'center', paddingVertical: 14, borderRadius: 14,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+  },
+  skipText: { color: 'rgba(255,255,255,0.45)', fontSize: 14, fontWeight: '600' },
 })
