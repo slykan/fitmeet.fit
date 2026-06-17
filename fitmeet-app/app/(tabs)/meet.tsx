@@ -1443,6 +1443,24 @@ export default function MeetScreen() {
   const [tab, setTab] = useState<'events' | 'people' | 'routes' | 'market'>('events')
   const [showCalendar, setShowCalendar] = useState(false)
 
+  function handleHeaderPlus() {
+    if (tab === 'events')  return router.push('/event/create' as never)
+    if (tab === 'routes')  return router.push('/route/draw' as never)
+    if (tab === 'market')  return router.push('/market/create' as never)
+    // people → invite
+    api.post('/me/invite-tap').catch(() => {})
+    Share.share({
+      message: 'Join me on FitMeet — find sports events and active people near you! 💪 https://fitmeet.fit',
+    })
+  }
+
+  const plusIcon: Record<typeof tab, string> = {
+    events:  'add',
+    routes:  'pencil-outline',
+    people:  'person-add-outline',
+    market:  'add',
+  }
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: tabBarHeight + 8 }]} showsVerticalScrollIndicator={false}>
@@ -1464,8 +1482,8 @@ export default function MeetScreen() {
             <Pressable style={styles.calendarBtn} onPress={() => router.push('/moments' as never)}>
               <Ionicons name="images-outline" size={18} color={palette.accent} />
             </Pressable>
-            <Pressable style={styles.createBtn} onPress={() => router.push('/event/create' as never)}>
-              <Ionicons name="add" size={22} color="#041109" />
+            <Pressable style={styles.createBtn} onPress={handleHeaderPlus}>
+              <Ionicons name={plusIcon[tab] as keyof typeof Ionicons.glyphMap} size={tab === 'people' ? 18 : 22} color="#041109" />
             </Pressable>
           </View>
         </View>
