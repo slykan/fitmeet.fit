@@ -18,6 +18,7 @@ class LeaderboardController extends Controller
             'legend'      => $this->localLegends(),
             'social'      => $this->socialAnimals(),
             'late'        => $this->alwaysLate(),
+            'marketplace' => $this->marketplaceSellers(),
         ]);
     }
 
@@ -150,6 +151,27 @@ class LeaderboardController extends Controller
             SELECT u.id, u.name, u.avatar, COUNT(ec.id) AS count
             FROM users u
             JOIN event_comments ec ON ec.user_id = u.id
+            WHERE u.id NOT IN (__EXCLUDE__)
+            GROUP BY u.id, u.name, u.avatar
+            ORDER BY count DESC
+        ");
+    }
+
+    private function marketplaceSellers(): array
+    {
+        $recent = DB::select("
+            SELECT u.id, u.name, u.avatar, COUNT(ml.id) AS count
+            FROM users u
+            JOIN marketplace_listings ml ON ml.user_id = u.id
+                AND ml.created_at >= NOW() - INTERVAL 30 DAY
+            GROUP BY u.id, u.name, u.avatar
+            ORDER BY count DESC
+            LIMIT 5
+        ");
+        return $this->withFallback($recent, "
+            SELECT u.id, u.name, u.avatar, COUNT(ml.id) AS count
+            FROM users u
+            JOIN marketplace_listings ml ON ml.user_id = u.id
             WHERE u.id NOT IN (__EXCLUDE__)
             GROUP BY u.id, u.name, u.avatar
             ORDER BY count DESC

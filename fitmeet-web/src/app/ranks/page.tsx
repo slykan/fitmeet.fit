@@ -60,6 +60,7 @@ interface Entry { id: number; name: string; avatar: string | null; count: number
 interface Data {
   beer: Entry[]; consistency: Entry[]; creator: Entry[]
   connector: Entry[]; legend: Entry[]; social: Entry[]; late: Entry[]
+  marketplace: Entry[]
 }
 
 const SECTIONS: { key: keyof Data; emoji: string; title: string; desc: string; unit: string }[] = [
@@ -70,6 +71,7 @@ const SECTIONS: { key: keyof Data; emoji: string; title: string; desc: string; u
   { key: 'legend',      emoji: '📍', title: 'Local Legend',        desc: 'Check-in king',                    unit: 'check-ins' },
   { key: 'social',      emoji: '💬', title: 'Social Animal',       desc: 'Most comments',                    unit: 'comments'  },
   { key: 'late',        emoji: '⏰', title: 'Always Late',          desc: 'Joined but never checked in 😄',   unit: 'skips'     },
+  { key: 'marketplace', emoji: '🛒', title: 'Top Seller',           desc: 'Garage sale champion 💪',           unit: 'ads'       },
 ]
 
 const MEDALS = ['🥇', '🥈', '🥉']
@@ -167,7 +169,7 @@ export default function RanksPage() {
   return (
     <>
       <Navbar />
-      <main className="max-w-xl mx-auto px-4 py-10">
+      <main className="max-w-3xl mx-auto px-4 py-10">
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-2xl font-black">🏆 Community Badges</h1>
@@ -186,7 +188,7 @@ export default function RanksPage() {
         {loading ? (
           <div className="text-center py-16 opacity-40">Loading…</div>
         ) : (
-          <div className="flex flex-col gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {SECTIONS.map(s => (
               <Section
                 key={s.key}

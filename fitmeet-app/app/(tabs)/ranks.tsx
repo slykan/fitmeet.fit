@@ -13,6 +13,7 @@ interface Entry { id: number; name: string; avatar: string | null; count: number
 interface Data {
   beer: Entry[]; consistency: Entry[]; creator: Entry[]
   connector: Entry[]; legend: Entry[]; social: Entry[]; late: Entry[]
+  marketplace: Entry[]
 }
 
 const SECTIONS: {
@@ -29,6 +30,7 @@ const SECTIONS: {
   { key: 'legend',      emoji: '📍', title: 'Local Legend',       desc: 'Check-in king',                 unit: 'check-ins'},
   { key: 'social',      emoji: '💬', title: 'Social Animal',      desc: 'Most comments',                 unit: 'comments' },
   { key: 'late',        emoji: '⏰', title: 'Always Late',         desc: 'Joined but never checked in 😄', unit: 'skips'   },
+  { key: 'marketplace', emoji: '🛒', title: 'Top Seller',          desc: 'Garage sale champion 💪',         unit: 'ads'     },
 ]
 
 function RankIcon({ rank }: { rank: number }) {
