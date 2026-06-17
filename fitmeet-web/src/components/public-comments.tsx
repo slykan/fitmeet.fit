@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { MessageSquareText } from 'lucide-react'
+import { MessageSquareText, ChevronLeft, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.fitmeet.fit/api'
@@ -49,6 +49,7 @@ function Avatar({ user }: { user: PublicComment['user'] }) {
 
 export function PublicCommentsSection() {
   const [comments, setComments] = useState<PublicComment[]>([])
+  const [slide, setSlide] = useState(0)
 
   useEffect(() => {
     fetch(`${API_URL}/comments/public-latest`, { cache: 'no-store' })
@@ -59,17 +60,57 @@ export function PublicCommentsSection() {
 
   if (!comments.length) return null
 
+  const PER_SLIDE = 3
+  const slides: PublicComment[][] = []
+  for (let i = 0; i < comments.length; i += PER_SLIDE) {
+    slides.push(comments.slice(i, i + PER_SLIDE))
+  }
+  const total = slides.length
+  const prev = () => setSlide(s => (s - 1 + total) % total)
+  const next = () => setSlide(s => (s + 1) % total)
+
   return (
     <section className="py-16 md:py-20 border-b" style={{ borderColor: 'var(--border)' }}>
       <div className="max-w-6xl mx-auto px-4">
-        <div className="flex items-center gap-3 mb-3">
-          <MessageSquareText size={18} style={{ color: 'var(--primary)' }} />
-          <p className="text-sm font-semibold" style={{ color: 'var(--primary)' }}>Community buzz</p>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-3">
+            <MessageSquareText size={18} style={{ color: 'var(--primary)' }} />
+            <p className="text-sm font-semibold" style={{ color: 'var(--primary)' }}>Community buzz</p>
+          </div>
+          {total > 1 && (
+            <div className="flex items-center gap-2">
+              <button onClick={prev}
+                className="w-8 h-8 rounded-full border flex items-center justify-center transition-opacity hover:opacity-70"
+                style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}>
+                <ChevronLeft size={16} />
+              </button>
+              <button onClick={next}
+                className="w-8 h-8 rounded-full border flex items-center justify-center transition-opacity hover:opacity-70"
+                style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}>
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          )}
         </div>
-        <h2 className="text-3xl md:text-4xl font-bold mb-10">What people are saying.</h2>
+
+        <div className="flex items-end justify-between mb-10">
+          <h2 className="text-3xl md:text-4xl font-bold">What people are saying.</h2>
+          {total > 1 && (
+            <div className="flex gap-1.5 pb-1">
+              {slides.map((_, i) => (
+                <button key={i} onClick={() => setSlide(i)}
+                  className="rounded-full transition-all"
+                  style={{
+                    width: i === slide ? 20 : 8, height: 8,
+                    background: i === slide ? 'var(--primary)' : 'var(--border)',
+                  }} />
+              ))}
+            </div>
+          )}
+        </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {comments.map(c => (
+          {slides[slide]?.map(c => (
             <Link
               key={c.id}
               href={`/events/view?id=${c.event.id}`}
