@@ -6,7 +6,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import {
   Search, Phone, UserPlus, UserCheck, UserMinus, Calendar, MapPin, Users, Zap, ChevronRight,
-  Bell, Check, X, ArrowUpDown, ChevronUp, ChevronDown, Share2, Images,
+  Bell, Check, X, ArrowUpDown, ChevronUp, ChevronDown, Share2, Images, Plus, Pencil,
 } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
@@ -1151,6 +1151,28 @@ export default function MeetPage() {
 
   if (!token) return null
 
+  function handleHeaderPlus() {
+    if (tab === 'events') return router.push('/events/create')
+    if (tab === 'routes') return router.push('/routes/create')
+    if (tab === 'market') return router.push('/market/create')
+    // people → invite
+    api.post('/me/invite-tap').catch(() => {})
+    const text = 'Join me on FitMeet — find sports events and active people near you! 💪'
+    const url  = 'https://fitmeet.fit'
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      navigator.share({ title: 'FitMeet', text, url }).catch(() => {})
+    } else if (typeof navigator !== 'undefined') {
+      navigator.clipboard?.writeText(`${text} ${url}`).catch(() => {})
+    }
+  }
+
+  const tabPlusLabel: Record<typeof tab, { icon: React.ReactNode; label: string }> = {
+    events: { icon: <Plus size={15} />,       label: 'New Event' },
+    routes: { icon: <Pencil size={14} />,     label: 'New Route' },
+    people: { icon: <UserPlus size={14} />,   label: 'Invite' },
+    market: { icon: <Plus size={15} />,       label: 'Post' },
+  }
+
   return (
     <>
       <Navbar />
@@ -1175,11 +1197,12 @@ export default function MeetPage() {
                 <Images size={15} /> <span className="hidden sm:inline">Moments</span>
               </a>
               <button
-                onClick={() => router.push('/events/create')}
+                onClick={handleHeaderPlus}
                 className="flex items-center gap-2 text-sm px-3 py-2 rounded-xl font-semibold transition-opacity hover:opacity-80"
                 style={{ background: 'var(--primary)', color: '#000' }}
               >
-                <span className="text-base leading-none">+</span> <span className="hidden sm:inline">New Event</span>
+                {tabPlusLabel[tab].icon}
+                <span className="hidden sm:inline">{tabPlusLabel[tab].label}</span>
               </button>
             </div>
           </div>
