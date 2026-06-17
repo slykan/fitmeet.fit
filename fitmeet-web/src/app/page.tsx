@@ -480,7 +480,7 @@ export default async function HomePage() {
 
         <section className="py-16 md:py-20">
           <div className="max-w-6xl mx-auto px-4">
-            <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
+            <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-stretch">
               <div>
                 <p className="text-sm font-semibold mb-3" style={{ color: 'var(--primary)' }}>
                   Built for real organising
@@ -519,7 +519,7 @@ export default async function HomePage() {
                 </div>
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-rows-2 lg:h-full">
                 {highlights.map(({ icon: Icon, title, description }) => (
                   <div
                     key={title}
