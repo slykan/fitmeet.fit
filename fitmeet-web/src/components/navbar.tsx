@@ -99,6 +99,53 @@ export function Navbar() {
               />
             )}
           </Link>
+          {user && (
+            <>
+              <Link href="/meet"
+                className="hidden md:block text-sm font-medium transition-colors hover:opacity-80"
+                style={{ color: 'var(--text-muted)' }}>
+                Meet
+              </Link>
+              <Link href="/ranks"
+                className="hidden md:block text-sm font-medium transition-colors hover:opacity-80"
+                style={{ color: 'var(--text-muted)' }}>
+                Ranks
+              </Link>
+              <Link href="/notifications"
+                className="hidden md:relative md:block text-sm font-medium transition-colors hover:opacity-80"
+                style={{ color: 'var(--text-muted)' }}
+                onClick={() => {
+                  if (user && typeof window !== 'undefined') {
+                    window.localStorage.setItem(notificationsSeenKey(user.id), new Date().toISOString())
+                    setNotifCount(0)
+                    window.dispatchEvent(new Event('fitmeet-notifications-seen'))
+                  }
+                }}>
+                <span className="relative">
+                  Alerts
+                  {notifCount > 0 && (
+                    <span className="absolute -top-1.5 -right-3.5 min-w-[16px] h-4 rounded-full flex items-center justify-center text-[10px] font-bold px-1"
+                      style={{ background: '#ef4444', color: '#fff' }}>
+                      {notifCount > 99 ? '99+' : notifCount}
+                    </span>
+                  )}
+                </span>
+              </Link>
+              <Link href="/messages"
+                className="hidden md:block text-sm font-medium transition-colors hover:opacity-80"
+                style={{ color: 'var(--text-muted)' }}>
+                <span className="relative">
+                  Messages
+                  {msgCount > 0 && (
+                    <span className="absolute -top-1.5 -right-3.5 min-w-[16px] h-4 rounded-full flex items-center justify-center text-[10px] font-bold px-1"
+                      style={{ background: '#ef4444', color: '#fff' }}>
+                      {msgCount > 99 ? '99+' : msgCount}
+                    </span>
+                  )}
+                </span>
+              </Link>
+            </>
+          )}
           <Link
             href="/blog"
             className="hidden sm:block text-sm font-medium transition-colors hover:opacity-80"
