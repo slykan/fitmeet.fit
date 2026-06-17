@@ -1141,6 +1141,8 @@ function MarketTab() {
   const [search, setSearch] = useState('')
   const [showCats, setShowCats] = useState(false)
   const [savedOnly, setSavedOnly] = useState(false)
+  const [myOnly, setMyOnly] = useState(false)
+  const [soldOnly, setSoldOnly] = useState(false)
   const searchRef = useRef('')
 
   const load = useCallback(async () => {
@@ -1155,6 +1157,8 @@ function MarketTab() {
         if (category) params.category = category
         if (condition) params.condition = condition
         if (searchRef.current.trim()) params.search = searchRef.current.trim()
+        if (myOnly) params.my = '1'
+        if (soldOnly) params.status = 'sold'
         const { data } = await api.get('/market', { params })
         setItems(data.data ?? [])
       }
@@ -1163,7 +1167,7 @@ function MarketTab() {
     } finally {
       setLoading(false)
     }
-  }, [typeFilter, category, condition, savedOnly])
+  }, [typeFilter, category, condition, savedOnly, myOnly, soldOnly])
 
   useFocusEffect(useCallback(() => { load() }, [load]))
 
@@ -1188,7 +1192,7 @@ function MarketTab() {
   const activeCat = CATEGORIES.find(c => c.value === category)
 
   const marketFilterCount =
-    (typeFilter ? 1 : 0) + (category ? 1 : 0) + (condition ? 1 : 0) + (savedOnly ? 1 : 0)
+    (typeFilter ? 1 : 0) + (category ? 1 : 0) + (condition ? 1 : 0) + (savedOnly ? 1 : 0) + (myOnly ? 1 : 0) + (soldOnly ? 1 : 0)
 
   return (
     <View style={{ gap: spacing.md }}>
@@ -1286,14 +1290,32 @@ function MarketTab() {
             </>
           )}
 
-          <Text style={styles.filterSectionLabel}>Saved</Text>
+          <Text style={styles.filterSectionLabel}>My Ads / Saved</Text>
           <View style={styles.filterRow}>
             <Pressable
+              style={[styles.filterChip, myOnly && styles.filterChipActive]}
+              onPress={() => { setMyOnly(v => !v); setSavedOnly(false) }}
+            >
+              <Ionicons name={myOnly ? 'person' : 'person-outline'} size={13} color={myOnly ? '#031109' : palette.text} />
+              <Text style={[styles.filterLabel, myOnly && styles.filterLabelActive]}>My Ads</Text>
+            </Pressable>
+            <Pressable
               style={[styles.filterChip, savedOnly && { backgroundColor: 'rgba(248,113,113,0.12)', borderColor: 'rgba(248,113,113,0.4)' }]}
-              onPress={() => setSavedOnly(v => !v)}
+              onPress={() => { setSavedOnly(v => !v); setMyOnly(false) }}
             >
               <Ionicons name={savedOnly ? 'heart' : 'heart-outline'} size={13} color={savedOnly ? '#f87171' : palette.text} />
               <Text style={[styles.filterLabel, savedOnly && { color: '#f87171' }]}>Saved only</Text>
+            </Pressable>
+          </View>
+
+          <Text style={styles.filterSectionLabel}>Status</Text>
+          <View style={styles.filterRow}>
+            <Pressable
+              style={[styles.filterChip, soldOnly && { backgroundColor: 'rgba(248,113,113,0.12)', borderColor: 'rgba(248,113,113,0.4)' }]}
+              onPress={() => setSoldOnly(v => !v)}
+            >
+              <Ionicons name={soldOnly ? 'checkmark-circle' : 'checkmark-circle-outline'} size={13} color={soldOnly ? '#f87171' : palette.text} />
+              <Text style={[styles.filterLabel, soldOnly && { color: '#f87171' }]}>Sold</Text>
             </Pressable>
           </View>
 
@@ -1354,6 +1376,11 @@ function MarketTab() {
                   {item.images[0] ? (
                     <View>
                       <Image source={{ uri: item.images[0] }} style={styles.eventImage} resizeMode="cover" />
+                      {item.status === 'sold' && (
+                        <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center', borderRadius: 14 }}>
+                          <Text style={{ color: '#f87171', fontWeight: '900', fontSize: 16, borderWidth: 1.5, borderColor: '#f87171', paddingHorizontal: 12, paddingVertical: 3, borderRadius: 8, backgroundColor: 'rgba(248,113,113,0.1)' }}>SOLD</Text>
+                        </View>
+                      )}
                       {item.condition && (
                         <View style={{ position: 'absolute', top: 8, left: 8, backgroundColor: 'rgba(5,8,22,0.82)', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 }}>
                           <Text style={{ color: item.condition === 'new' ? '#4ade80' : item.condition === 'like_new' ? palette.accent : palette.textMuted, fontSize: 10, fontWeight: '900' }}>

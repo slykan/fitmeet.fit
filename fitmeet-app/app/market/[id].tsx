@@ -103,25 +103,31 @@ export default function MarketDetailScreen() {
     }).catch(() => {})
   }
 
-  async function handleSold() {
+  async function handleToggleSold() {
     if (!listing) return
-    Alert.alert('Mark as sold', 'Mark this listing as sold?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Mark sold', style: 'destructive',
-        onPress: async () => {
-          setActing(true)
-          try {
-            await api.post(`/market/${listing.id}/sold`)
-            setListing(l => l ? { ...l, status: 'sold' } : l)
-          } catch {
-            Alert.alert('Error', 'Could not update listing.')
-          } finally {
-            setActing(false)
-          }
+    const isSold = listing.status === 'sold'
+    Alert.alert(
+      isSold ? 'Mark as active' : 'Mark as sold',
+      isSold ? 'Re-activate this listing?' : 'Mark this listing as sold?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: isSold ? 'Activate' : 'Mark sold',
+          style: isSold ? 'default' : 'destructive',
+          onPress: async () => {
+            setActing(true)
+            try {
+              const { data } = await api.post(`/market/${listing.id}/sold`)
+              setListing(l => l ? { ...l, ...data.data, status: data.data.status } : l)
+            } catch {
+              Alert.alert('Error', 'Could not update listing.')
+            } finally {
+              setActing(false)
+            }
+          },
         },
-      },
-    ])
+      ],
+    )
   }
 
   async function handleDelete() {
@@ -344,6 +350,16 @@ export default function MarketDetailScreen() {
                 <Text style={styles.btnShareText}>Edit</Text>
               </Pressable>
             )}
+            {listing.is_mine && sold && (
+              <Pressable
+                style={[styles.btnShare, { flex: 1, borderColor: 'rgba(96,165,250,0.4)', backgroundColor: 'rgba(96,165,250,0.08)' }]}
+                onPress={handleToggleSold}
+                disabled={acting}
+              >
+                <Ionicons name="refresh-outline" size={15} color="#60a5fa" />
+                <Text style={[styles.btnShareText, { color: '#60a5fa' }]}>Mark active</Text>
+              </Pressable>
+            )}
             {canEdit && (
               <Pressable style={styles.btnDelete} onPress={handleDelete} disabled={acting}>
                 <Ionicons name="trash-outline" size={15} color="#f87171" />
@@ -359,7 +375,7 @@ export default function MarketDetailScreen() {
             </Pressable>
           )}
           {listing.is_mine && !sold && (
-            <Pressable style={styles.btnSoldFull} onPress={handleSold} disabled={acting}>
+            <Pressable style={styles.btnSoldFull} onPress={handleToggleSold} disabled={acting}>
               <Ionicons name="checkmark-circle-outline" size={15} color="#4ade80" />
               <Text style={styles.btnSoldText}>Mark sold</Text>
             </Pressable>

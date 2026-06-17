@@ -94,12 +94,14 @@ function ViewContent() {
     } catch {}
   }
 
-  async function handleSold() {
-    if (!listing || !confirm('Mark this listing as sold?')) return
+  async function handleToggleSold() {
+    if (!listing) return
+    const isSold = listing.status === 'sold'
+    if (!confirm(isSold ? 'Mark this listing as active again?' : 'Mark this listing as sold?')) return
     setActing(true)
     try {
-      await api.post(`/market/${listing.id}/sold`)
-      setListing(l => l ? { ...l, status: 'sold' } : l)
+      const { data } = await api.post(`/market/${listing.id}/sold`)
+      setListing(l => l ? { ...l, ...data.data, status: data.data.status } : l)
     } catch {
       alert('Could not update listing.')
     } finally {
@@ -305,22 +307,27 @@ function ViewContent() {
                   <MessageCircle size={16} /> Message seller
                 </button>
               )}
-              {listing.is_mine && !sold && (
+              {listing.is_mine && (
                 <>
+                  {!sold && (
+                    <button
+                      onClick={() => router.push(`/market/create?id=${listing.id}`)}
+                      className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border font-bold text-sm transition-opacity hover:opacity-80"
+                      style={{ borderColor: 'var(--border)', color: 'var(--text)' }}
+                    >
+                      <Pencil size={15} /> Edit
+                    </button>
+                  )}
                   <button
-                    onClick={() => router.push(`/market/create?id=${listing.id}`)}
-                    className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border font-bold text-sm transition-opacity hover:opacity-80"
-                    style={{ borderColor: 'var(--border)', color: 'var(--text)' }}
-                  >
-                    <Pencil size={15} /> Edit
-                  </button>
-                  <button
-                    onClick={handleSold}
+                    onClick={handleToggleSold}
                     disabled={acting}
                     className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-opacity hover:opacity-80 disabled:opacity-40"
-                    style={{ background: 'rgba(74,222,128,0.12)', border: '1px solid rgba(74,222,128,0.3)', color: '#4ade80' }}
+                    style={sold
+                      ? { background: 'rgba(96,165,250,0.12)', border: '1px solid rgba(96,165,250,0.3)', color: '#60a5fa' }
+                      : { background: 'rgba(74,222,128,0.12)', border: '1px solid rgba(74,222,128,0.3)', color: '#4ade80' }
+                    }
                   >
-                    <CheckCircle2 size={15} /> Mark as sold
+                    <CheckCircle2 size={15} /> {sold ? 'Mark as active' : 'Mark as sold'}
                   </button>
                 </>
               )}

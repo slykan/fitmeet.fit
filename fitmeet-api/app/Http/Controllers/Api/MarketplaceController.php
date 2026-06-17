@@ -109,8 +109,17 @@ HTML;
     public function index(Request $request): JsonResponse
     {
         $query = MarketplaceListing::with(['seller', 'images'])
-            ->where('status', 'active')
             ->latest();
+
+        if ($request->filled('my') && $request->my) {
+            $query->where('user_id', $request->user()->id);
+        }
+
+        if ($request->filled('status') && in_array($request->status, ['active', 'sold'])) {
+            $query->where('status', $request->status);
+        } else if (! $request->filled('my') || ! $request->my) {
+            $query->whereIn('status', ['active', 'sold']);
+        }
 
         if ($request->filled('type') && in_array($request->type, ['sell', 'buy'])) {
             $query->where('type', $request->type);
@@ -274,9 +283,15 @@ HTML;
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
-        $listing->update(['status' => 'sold']);
+        $newStatus = $listing->status === 'sold' ? 'active' : 'sold';
+        $listing->update(['status' => $newStatus]);
 
-        return response()->json(['message' => 'Marked as sold.']);
+        $listing->load(['seller', 'images', 'savedByUsers']);
+
+        return response()->json([
+            'message' => $newStatus === 'sold' ? 'Marked as sold.' : 'Marked as active.',
+            'data'    => new MarketplaceListingResource($listing),
+        ]);
     }
 
     // DELETE /api/market/{listing}

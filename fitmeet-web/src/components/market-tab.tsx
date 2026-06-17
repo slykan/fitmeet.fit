@@ -48,6 +48,8 @@ export function MarketTab() {
   const [condition,  setCondition] = useState<Condition>('')
   const [showCats,   setShowCats]  = useState(false)
   const [savedOnly,  setSavedOnly] = useState(false)
+  const [myOnly,     setMyOnly]    = useState(false)
+  const [soldOnly,   setSoldOnly]  = useState(false)
   const [search,     setSearch]    = useState('')
   const [searchQ,    setSearchQ]   = useState('')
 
@@ -71,11 +73,13 @@ export function MarketTab() {
     if (category)    params.set('category',  category)
     if (condition)   params.set('condition', condition)
     if (searchQ)     params.set('search',    searchQ)
+    if (myOnly)      params.set('my',        '1')
+    if (soldOnly)    params.set('status',    'sold')
     api.get(`/market?${params}`)
       .then(({ data }) => setListings(data.data ?? []))
       .catch(() => setListings([]))
       .finally(() => setLoading(false))
-  }, [token, typeFilter, category, condition, searchQ, savedOnly])
+  }, [token, typeFilter, category, condition, searchQ, savedOnly, myOnly, soldOnly])
 
   async function handleToggleSave(e: React.MouseEvent, listing: MarketListing) {
     e.stopPropagation()
@@ -114,7 +118,18 @@ export function MarketTab() {
 
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setSavedOnly(v => !v)}
+            onClick={() => { setMyOnly(v => !v); setSavedOnly(false) }}
+            className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl font-bold flex-shrink-0 transition-opacity hover:opacity-80"
+            style={{
+              background: myOnly ? 'rgba(57,255,20,0.12)' : 'var(--surface)',
+              border: `1px solid ${myOnly ? 'var(--primary)' : 'var(--border)'}`,
+              color: myOnly ? 'var(--primary)' : 'var(--text-muted)',
+            }}
+          >
+            My Ads
+          </button>
+          <button
+            onClick={() => { setSavedOnly(v => !v); setMyOnly(false) }}
             className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl font-bold flex-shrink-0 transition-opacity hover:opacity-80"
             style={{
               background: savedOnly ? 'rgba(248,113,113,0.12)' : 'var(--surface)',
@@ -210,6 +225,19 @@ export function MarketTab() {
             ))}
           </>
         )}
+
+        {/* Sold filter */}
+        <button
+          onClick={() => setSoldOnly(v => !v)}
+          className="text-xs px-3 py-1.5 rounded-full border font-semibold transition-colors"
+          style={{
+            borderColor: soldOnly ? '#f87171' : 'var(--border)',
+            color:       soldOnly ? '#f87171' : 'var(--text-muted)',
+            background:  soldOnly ? 'rgba(248,113,113,0.08)' : 'transparent',
+          }}
+        >
+          Sold
+        </button>
       </div>
 
       {/* Results */}
@@ -265,6 +293,11 @@ export function MarketTab() {
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-4xl">
                         {CATEGORY_EMOJI[listing.category.value] ?? '🏷️'}
+                      </div>
+                    )}
+                    {listing.status === 'sold' && (
+                      <div className="absolute inset-0 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.5)' }}>
+                        <span className="text-sm font-black px-3 py-1 rounded-lg border" style={{ color: '#f87171', borderColor: '#f87171', background: 'rgba(248,113,113,0.1)' }}>SOLD</span>
                       </div>
                     )}
                     {listing.condition && (
