@@ -27,6 +27,10 @@ const sections = [
     title: 'Your Control',
     body: 'You can update your profile information, notification preferences, avatar, and event participation from inside the app. If you no longer want to use FitMeet, contact the FitMeet team to request account deletion or data removal support.',
   },
+  {
+    title: 'Marketplace Listings — Disclaimer',
+    body: 'FitMeet provides a marketplace feature that allows users to post and browse listings for sports equipment and related items. FitMeet acts solely as a platform connecting buyers and sellers and is not a party to any transaction. FitMeet does not verify the accuracy of listings, the condition of items, the identity of users beyond basic registration, or the completion of any sale. All transactions, including the agreed price, method of payment, and method of pickup or delivery, are arranged exclusively between the buyer and seller. FitMeet assumes no responsibility or liability for any loss, damage, dispute, fraud, or harm arising from a transaction between users. Users are advised to exercise caution, meet in safe public locations, and inspect items before completing a purchase.',
+  },
 ]
 
 export default function PrivacyPage() {
