@@ -68,7 +68,7 @@ function CreateContent() {
 
   async function handleSave() {
     if (!title.trim()) { setError('Enter a title.'); return }
-    if (!price || isNaN(Number(price)) || Number(price) < 0) { setError('Enter a valid price.'); return }
+    if (type === 'sell' && (!price || isNaN(Number(price)) || Number(price) < 0)) { setError('Enter a valid price.'); return }
     setError(null)
     setSaving(true)
 
@@ -84,10 +84,10 @@ function CreateContent() {
       if (images.length) images.forEach(f => form.append('images[]', f))
 
       if (editId) {
-        await api.post(`/market/${editId}`, form, { headers: { 'Content-Type': 'multipart/form-data' } })
+        await api.post(`/market/${editId}`, form)
         router.push(`/market/view?id=${editId}`)
       } else {
-        const { data } = await api.post('/market', form, { headers: { 'Content-Type': 'multipart/form-data' } })
+        const { data } = await api.post('/market', form)
         router.push(`/market/view?id=${data.data.id}`)
       }
     } catch {
@@ -187,7 +187,7 @@ function CreateContent() {
                 onChange={e => setDesc(e.target.value)}
                 placeholder={type === 'buy' ? 'Size, brand, budget range, any specifics…' : 'Describe the item, size, usage, reason for selling…'}
                 maxLength={2000}
-                rows={3}
+                rows={6}
                 className="w-full rounded-xl border px-4 py-2.5 text-sm outline-none focus:border-[--primary] transition-colors resize-none"
                 style={{ background: 'var(--background)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
               />
