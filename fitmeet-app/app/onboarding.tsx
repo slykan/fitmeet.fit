@@ -75,10 +75,6 @@ export default function OnboardingScreen() {
       setError('Name is required.')
       return
     }
-    if (!phone.trim()) {
-      setError('Phone is required.')
-      return
-    }
     if (!city.trim() || !country.trim()) {
       setError('City and country are required.')
       return
@@ -149,7 +145,7 @@ export default function OnboardingScreen() {
         </Section>
 
         {/* Phone */}
-        <Section label="Phone *">
+        <Section label="Phone">
           <TextInput
             style={styles.input}
             value={phone}

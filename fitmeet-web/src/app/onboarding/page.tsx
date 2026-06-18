@@ -270,7 +270,7 @@ export default function OnboardingPage() {
                 />
               </Field>
 
-              <Field label="Phone number *" error={errors.phone?.message}>
+              <Field label="Phone number" error={errors.phone?.message}>
                 <div className="relative">
                   <Phone
                     size={14}
@@ -278,7 +278,7 @@ export default function OnboardingPage() {
                     style={{ color: 'var(--text-muted)' }}
                   />
                   <input
-                    {...register('phone', { required: 'Phone number is required' })}
+                    {...register('phone')}
                     placeholder="+385 91 234 5678"
                     className={cn(inputCls(!!errors.phone), 'pl-9')}
                   />
