@@ -15,7 +15,13 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (res) => res,
   (err) => {
-    if (err.response?.status === 401 && typeof window !== 'undefined') {
+    const requestUrl = String(err.config?.url ?? '')
+    const isAuthAttempt =
+      requestUrl.includes('/auth/login') ||
+      requestUrl.includes('/auth/forgot-password') ||
+      requestUrl.includes('/auth/reset-password')
+
+    if (err.response?.status === 401 && typeof window !== 'undefined' && !isAuthAttempt) {
       useAuthStore.getState().logout()
       window.location.href = '/login'
     }

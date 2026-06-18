@@ -224,31 +224,35 @@ export default function RouteViewScreen() {
 
         <View style={styles.header}>
           <Text style={styles.emoji}>{emoji}</Text>
-          <View style={{ flex: 1 }}>
+          <View style={styles.headerText}>
             <Text style={styles.title}>{route.title}</Text>
             <Text style={styles.meta}>{route.category.label}{route.views_count ? ` · ${route.views_count} views` : ''}</Text>
           </View>
+        </View>
+
+        <View style={styles.actionRow}>
+          <Pressable style={styles.shareBtn} onPress={shareRoute}>
+            <Ionicons name="share-social-outline" size={17} color={palette.text} />
+            <Text style={styles.shareBtnText}>Share</Text>
+          </Pressable>
           {user && route.creator?.id === user.id && (
             <Pressable
               style={styles.editBtn}
               onPress={() => router.push(`/route/draw?id=${route.id}` as never)}
-              hitSlop={10}
             >
               <Ionicons name="pencil-outline" size={17} color={palette.accent} />
+              <Text style={styles.editBtnText}>Edit</Text>
             </Pressable>
           )}
           {user && (route.creator?.id === user.id || user.is_admin) && (
             <Pressable
               style={styles.deleteBtn}
               onPress={deleteRoute}
-              hitSlop={10}
             >
               <Ionicons name="trash-outline" size={17} color="#f87171" />
+              <Text style={styles.deleteBtnText}>Delete</Text>
             </Pressable>
           )}
-          <Pressable style={styles.shareBtn} onPress={shareRoute} hitSlop={10}>
-            <Ionicons name="share-social-outline" size={19} color={palette.text} />
-          </Pressable>
         </View>
 
         <Pressable style={styles.downloadBtn} onPress={openGpxDownload}>
@@ -327,39 +331,50 @@ const styles = StyleSheet.create({
   content: { padding: spacing.lg, gap: spacing.md },
   backBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start' },
   backText: { color: palette.text, fontSize: 14, fontWeight: '700' },
-  header: { flexDirection: 'row', gap: 12, alignItems: 'center' },
+  header: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
+  headerText: { flex: 1, minWidth: 0 },
   emoji: {
     width: 50, height: 50, borderRadius: 16,
     backgroundColor: palette.panelRaised,
     textAlign: 'center', textAlignVertical: 'center',
     fontSize: 24,
   },
-  title: { color: palette.text, fontSize: 22, fontWeight: '900' },
+  title: { color: palette.text, fontSize: 24, lineHeight: 30, fontWeight: '900' },
   meta: { color: palette.textMuted, fontSize: 13, marginTop: 3 },
+  actionRow: { flexDirection: 'row', gap: 8 },
   editBtn: {
-    width: 42, height: 42, borderRadius: 14,
+    flex: 1,
+    minHeight: 42,
+    borderRadius: 14,
     backgroundColor: 'rgba(108,255,47,0.1)',
     borderWidth: 1, borderColor: 'rgba(108,255,47,0.28)',
     alignItems: 'center', justifyContent: 'center',
-    marginRight: 6,
+    flexDirection: 'row', gap: 7,
   },
+  editBtnText: { color: palette.accent, fontSize: 13, fontWeight: '900' },
   deleteBtn: {
-    width: 42, height: 42, borderRadius: 14,
+    flex: 1,
+    minHeight: 42,
+    borderRadius: 14,
     backgroundColor: 'rgba(248,113,113,0.1)',
     borderWidth: 1, borderColor: 'rgba(248,113,113,0.3)',
     alignItems: 'center', justifyContent: 'center',
-    marginRight: 6,
+    flexDirection: 'row', gap: 7,
   },
+  deleteBtnText: { color: '#f87171', fontSize: 13, fontWeight: '900' },
   shareBtn: {
-    width: 42,
-    height: 42,
+    flex: 1,
+    minHeight: 42,
     borderRadius: 14,
     backgroundColor: palette.panel,
     borderWidth: 1,
     borderColor: palette.line,
     alignItems: 'center',
     justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 7,
   },
+  shareBtnText: { color: palette.text, fontSize: 13, fontWeight: '900' },
   downloadBtn: {
     flexDirection: 'row',
     alignItems: 'center',

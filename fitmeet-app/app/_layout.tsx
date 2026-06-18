@@ -89,9 +89,9 @@ export default function RootLayout() {
   }, [hasHydrated, token, user?.id, user?.push_notifications])
 
   useEffect(() => {
-    if (!hasHydrated) return
-    setupRevenueCat(user?.id ?? null).catch(() => {})
-  }, [hasHydrated, user?.id])
+    if (!hasHydrated || !token || !user) return
+    setupRevenueCat(user.id).catch(() => {})
+  }, [hasHydrated, token, user?.id])
 
   return (
     <>

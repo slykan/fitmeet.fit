@@ -40,13 +40,14 @@ export async function setupRevenueCat(appUserId?: string | number | null) {
   if (!isRevenueCatEnabled()) return false
 
   const nextAppUserId = appUserId == null ? null : String(appUserId)
+  if (!nextAppUserId) return false
 
   try {
     if (!configured) {
       await Purchases.setLogLevel(__DEV__ ? LOG_LEVEL.DEBUG : LOG_LEVEL.WARN)
       Purchases.configure({
         apiKey: getApiKey(),
-        appUserID: nextAppUserId ?? undefined,
+        appUserID: nextAppUserId,
       })
       configured = true
       currentAppUserId = nextAppUserId
@@ -56,12 +57,24 @@ export async function setupRevenueCat(appUserId?: string | number | null) {
     if (nextAppUserId && currentAppUserId !== nextAppUserId) {
       await Purchases.logIn(nextAppUserId)
       currentAppUserId = nextAppUserId
-    } else if (!nextAppUserId && currentAppUserId) {
-      await Purchases.logOut()
-      currentAppUserId = null
     }
 
     return true
+  } catch {
+    return false
+  }
+}
+
+export async function ensureRevenueCatUser(appUserId?: string | number | null) {
+  const nextAppUserId = appUserId == null ? null : String(appUserId)
+  if (!nextAppUserId) return false
+
+  const ready = await setupRevenueCat(nextAppUserId)
+  if (!ready) return false
+
+  try {
+    const activeAppUserId = await Purchases.getAppUserID()
+    return activeAppUserId === nextAppUserId
   } catch {
     return false
   }

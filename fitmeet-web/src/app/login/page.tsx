@@ -70,8 +70,12 @@ function LoginContent() {
       setAuth(res.token, res.data)
       router.replace(res.data.onboarding_complete ? (redirect || '/hub') : '/onboarding')
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
-      setError(msg ?? 'Invalid email or password.')
+      const e = err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } }
+      const msg =
+        e?.response?.data?.message ??
+        Object.values(e?.response?.data?.errors ?? {})[0]?.[0] ??
+        'Invalid email or password.'
+      setError(msg)
     }
   }
 
@@ -162,6 +166,14 @@ function LoginContent() {
               </div>
               {errors.password && <p className="text-red-400 text-xs mt-1">{errors.password.message}</p>}
             </div>
+
+            <Link
+              href="/forgot-password"
+              className="self-end text-xs font-semibold"
+              style={{ color: 'var(--primary)' }}
+            >
+              Forgot password?
+            </Link>
 
             <Button type="submit" size="lg" loading={isSubmitting} className="w-full mt-1">
               Sign in

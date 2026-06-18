@@ -9,7 +9,8 @@ import Purchases, {
 } from 'react-native-purchases'
 
 import { api } from '@/src/lib/api'
-import { revenueCatKeyStatus, SUPPORT_PRODUCT_IDS } from '@/src/lib/revenuecat'
+import { ensureRevenueCatUser, revenueCatKeyStatus, SUPPORT_PRODUCT_IDS } from '@/src/lib/revenuecat'
+import { useAuthStore } from '@/src/store/auth'
 import { palette, spacing } from '@/src/theme'
 
 type Props = {
@@ -33,8 +34,11 @@ export function SupportFitMeetCard({
   const [loading, setLoading] = useState(true)
   const [purchasingId, setPurchasingId] = useState<string | null>(null)
   const [thanksMessage, setThanksMessage] = useState<string | null>(null)
+  const token = useAuthStore((state) => state.token)
+  const userId = useAuthStore((state) => state.user?.id)
 
   const revenueCatReady = revenueCatKeyStatus().enabled
+  const canBuy = revenueCatReady && Boolean(token && userId)
 
   const orderedProducts = useMemo(() => {
     const order = new Map(SUPPORT_PRODUCT_IDS.map((id, index) => [id, index]))
@@ -45,12 +49,19 @@ export function SupportFitMeetCard({
     let alive = true
 
     async function load() {
-      if (!revenueCatReady) {
+      if (!canBuy) {
         setLoading(false)
+        setProducts([])
         return
       }
 
       try {
+        const identified = await ensureRevenueCatUser(userId)
+        if (!identified) {
+          if (alive) setProducts([])
+          return
+        }
+
         const found = await Purchases.getProducts([...SUPPORT_PRODUCT_IDS], PURCHASE_TYPE.INAPP)
         if (alive) setProducts(found)
       } catch {
@@ -62,13 +73,19 @@ export function SupportFitMeetCard({
 
     load()
     return () => { alive = false }
-  }, [revenueCatReady])
+  }, [canBuy, userId])
 
   async function handlePurchase(product: PurchasesStoreProduct) {
     setPurchasingId(product.identifier)
     try {
+      const identified = await ensureRevenueCatUser(userId)
+      if (!identified) {
+        Alert.alert('Sign in required', 'Please sign in again before supporting FitMeet.')
+        return
+      }
+
       await Purchases.purchaseProduct(product.identifier, undefined, PURCHASE_TYPE.INAPP)
-      api.post('/beer-donations', { product_id: product.identifier }).catch(() => {})
+      await api.post('/beer-donations', { product_id: product.identifier })
       setThanksMessage(`Thanks for supporting FitMeet with ${product.priceString}.`)
       onPurchased?.(product.identifier)
     } catch (error) {
@@ -83,7 +100,7 @@ export function SupportFitMeetCard({
         Alert.alert('Pending', 'Your purchase is pending confirmation.')
         return
       }
-      Alert.alert('Purchase failed', purchaseError?.message ?? 'Could not complete the purchase right now.')
+      Alert.alert('Purchase failed', purchaseError?.message ?? 'Could not complete or record the purchase right now.')
     } finally {
       setPurchasingId(null)
     }
@@ -106,6 +123,10 @@ export function SupportFitMeetCard({
       {!revenueCatReady ? (
         <Text style={styles.hint}>
           Support purchases are not available on this platform yet.
+        </Text>
+      ) : !token || !userId ? (
+        <Text style={styles.hint}>
+          Sign in to support FitMeet.
         </Text>
       ) : loading ? (
         <View style={styles.loadingRow}>
