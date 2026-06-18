@@ -24,7 +24,7 @@
       "supportsTablet": false,
       "icon": "./assets/icon.png",
       "bundleIdentifier": "app.fitmeet.fit",
-      "buildNumber": "12",
+      "buildNumber": "16",
       "associatedDomains": [
         "applinks:fitmeet.fit",
         "applinks:fitmeet.fit"
@@ -48,7 +48,7 @@
       "edgeToEdgeEnabled": true,
       "googleServicesFile": "./google-services.json",
       "package": "app.fitmeet.fit",
-      "versionCode": 169,
+      "versionCode": 182,
       "intentFilters": [
         {
           "action": "VIEW",
@@ -68,6 +68,11 @@
               "scheme": "https",
               "host": "fitmeet.fit",
               "pathPrefix": "/events/check-in"
+            },
+            {
+              "scheme": "https",
+              "host": "fitmeet.fit",
+              "pathPrefix": "/reset-password"
             }
           ],
           "category": [
