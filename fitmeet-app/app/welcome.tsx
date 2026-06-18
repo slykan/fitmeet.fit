@@ -44,7 +44,7 @@ export default function WelcomeScreen() {
           useNativeDriver: true,
         }),
       ]).start()
-    }, 3000)
+    }, 800)
 
     return () => clearTimeout(timer)
   }, [ctaOpacity, ctaShift, heroShift])

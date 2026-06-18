@@ -2,6 +2,7 @@ import { Stack } from 'expo-router'
 import { router } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import * as Linking from 'expo-linking'
+import * as SplashScreen from 'expo-splash-screen'
 import { useEffect, useRef } from 'react'
 import { AppState } from 'react-native'
 
@@ -11,12 +12,30 @@ import { setupRevenueCat } from '@/src/lib/revenuecat'
 import { useAuthStore } from '@/src/store/auth'
 import { palette } from '@/src/theme'
 
-function eventPathFromUrl(url: string | null) {
+SplashScreen.preventAutoHideAsync()
+
+function appPathFromUrl(url: string | null, hasToken: boolean) {
   if (!url) return null
 
   try {
     const parsed = new URL(url)
     const host = parsed.hostname.replace(/^www\./, '')
+
+    if (host === 'fitmeet.fit' && parsed.pathname === '/reset-password') {
+      const token = parsed.searchParams.get('token')
+      const email = parsed.searchParams.get('email')
+      if (!token || !email) return null
+      return `/reset-password?token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`
+    }
+
+    if (parsed.protocol === 'fitmeet:' && parsed.hostname === 'reset-password') {
+      const token = parsed.searchParams.get('token')
+      const email = parsed.searchParams.get('email')
+      if (!token || !email) return null
+      return `/reset-password?token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`
+    }
+
+    if (!hasToken) return null
 
     if (host === 'fitmeet.fit' && ['/events/share', '/events/view', '/events/check-in'].includes(parsed.pathname)) {
       const id = parsed.searchParams.get('id')
@@ -48,6 +67,10 @@ export default function RootLayout() {
     hydrate()
   }, [hydrate])
 
+  useEffect(() => {
+    if (hasHydrated) SplashScreen.hideAsync()
+  }, [hasHydrated])
+
   // Refresh user data when app comes back to foreground (catches avatar/profile changes made on web)
   useEffect(() => {
     const sub = AppState.addEventListener('change', (nextState) => {
@@ -68,17 +91,17 @@ export default function RootLayout() {
   }, [hasHydrated, token])
 
   useEffect(() => {
-    if (!hasHydrated || !token) return
+    if (!hasHydrated) return
 
-    function openEventUrl(url: string | null) {
-      const path = eventPathFromUrl(url)
+    function openAppUrl(url: string | null) {
+      const path = appPathFromUrl(url, Boolean(token))
       if (!path || path === lastDeepLink.current) return
       lastDeepLink.current = path
       router.push(path as never)
     }
 
-    Linking.getInitialURL().then(openEventUrl).catch(() => {})
-    const sub = Linking.addEventListener('url', ({ url }) => openEventUrl(url))
+    Linking.getInitialURL().then(openAppUrl).catch(() => {})
+    const sub = Linking.addEventListener('url', ({ url }) => openAppUrl(url))
     return () => sub.remove()
   }, [hasHydrated, token])
 
