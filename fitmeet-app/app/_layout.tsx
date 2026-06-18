@@ -3,8 +3,9 @@ import { router } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import * as Linking from 'expo-linking'
 import * as SplashScreen from 'expo-splash-screen'
-import { useEffect, useRef } from 'react'
-import { AppState } from 'react-native'
+import { Component, useEffect, useRef } from 'react'
+import { AppState, Pressable, Text, View } from 'react-native'
+import type { ReactNode, ErrorInfo } from 'react'
 
 import { BeerTickerBanner, BEER_TICKER_HEIGHT } from '@/src/components/BeerTickerBanner'
 import { setupPushNotificationRouting, syncPushToken } from '@/src/lib/push-notifications'
@@ -13,6 +14,26 @@ import { useAuthStore } from '@/src/store/auth'
 import { palette } from '@/src/theme'
 
 SplashScreen.preventAutoHideAsync()
+
+class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+  state = { hasError: false }
+  static getDerivedStateFromError() { return { hasError: true } }
+  componentDidCatch(_error: Error, _info: ErrorInfo) { SplashScreen.hideAsync() }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={{ flex: 1, backgroundColor: '#000', alignItems: 'center', justifyContent: 'center', padding: 32 }}>
+          <Text style={{ color: '#fff', fontSize: 18, fontWeight: '800', marginBottom: 8 }}>Something went wrong</Text>
+          <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, textAlign: 'center', marginBottom: 24 }}>Please restart the app.</Text>
+          <Pressable onPress={() => this.setState({ hasError: false })} style={{ backgroundColor: '#39FF14', borderRadius: 14, paddingVertical: 14, paddingHorizontal: 32 }}>
+            <Text style={{ color: '#000', fontWeight: '800', fontSize: 15 }}>Try again</Text>
+          </Pressable>
+        </View>
+      )
+    }
+    return this.props.children
+  }
+}
 
 function appPathFromUrl(url: string | null, hasToken: boolean) {
   if (!url) return null
@@ -117,7 +138,7 @@ export default function RootLayout() {
   }, [hasHydrated, token, user?.id])
 
   return (
-    <>
+    <ErrorBoundary>
       <StatusBar style="light" />
       <Stack
         screenOptions={{
@@ -127,6 +148,6 @@ export default function RootLayout() {
         }}
       />
       <BeerTickerBanner />
-    </>
+    </ErrorBoundary>
   )
 }
