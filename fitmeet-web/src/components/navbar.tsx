@@ -160,6 +160,13 @@ export function Navbar() {
           >
             About
           </Link>
+          <Link
+            href="/press"
+            className="hidden sm:block text-sm font-medium transition-colors hover:opacity-80"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            Press
+          </Link>
         </div>
 
         <div className="flex items-center gap-2">
