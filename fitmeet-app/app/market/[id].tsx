@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons'
 import * as FileSystem from 'expo-file-system'
 import * as MediaLibrary from 'expo-media-library'
 import { router, useLocalSearchParams } from 'expo-router'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   ActivityIndicator, Alert, Dimensions, Image, Modal, Pressable,
   ScrollView, Share, StyleSheet, Text, View,
@@ -55,7 +55,6 @@ export default function MarketDetailScreen() {
   const [activeImg, setActiveImg] = useState(0)
   const [lightbox, setLightbox] = useState(false)
   const [downloading, setDownloading] = useState(false)
-  const zoomRef = useRef<ScrollView>(null)
 
   useEffect(() => {
     if (!id) return
@@ -215,27 +214,17 @@ export default function MarketDetailScreen() {
               <Ionicons name="close" size={22} color="#fff" />
             </Pressable>
           </View>
-          <ScrollView
-            ref={zoomRef}
-            key={activeImg}
-            maximumZoomScale={5}
-            minimumZoomScale={1}
-            showsHorizontalScrollIndicator={false}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.lightboxZoomContainer}
-            centerContent
-            bouncesZoom
-          >
+          <View style={styles.lightboxZoomContainer}>
             <Image
               source={{ uri: listing.images[activeImg] }}
               style={{ width: SCREEN_WIDTH, height: SCREEN_HEIGHT * 0.7 }}
               resizeMode="contain"
             />
-          </ScrollView>
+          </View>
           {listing.images.length > 1 && (
             <View style={styles.lightboxThumbs}>
               {listing.images.map((src, i) => (
-                <Pressable key={i} onPress={() => { setActiveImg(i); zoomRef.current?.scrollTo({ animated: false }) }}>
+                <Pressable key={i} onPress={() => setActiveImg(i)}>
                   <Image
                     source={{ uri: src }}
                     style={[styles.lightboxThumb, i === activeImg && styles.lightboxThumbActive]}
