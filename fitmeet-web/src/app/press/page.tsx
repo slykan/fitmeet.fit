@@ -1,4 +1,4 @@
-import { Download, Newspaper } from 'lucide-react'
+import { BookOpen, Download, Newspaper } from 'lucide-react'
 import { Navbar } from '@/components/navbar'
 import type { Metadata } from 'next'
 
@@ -33,6 +33,7 @@ const covers = [
 ]
 
 const pdfs = [
+  { href: '/press/fitmeet_brand_book_en.pdf', label: 'FitMeet Brand Book - PDF' },
   { href: '/press/fitmeet_logo_transparent.pdf', label: 'Logo (Green) — PDF' },
   { href: '/press/fitmeet_logo_transparent.black.pdf', label: 'Logo (Black) — PDF' },
 ]
@@ -53,6 +54,34 @@ export default function PressPage() {
               Download official FitMeet logos, icons, and cover images for press, media, and partnership use.
               Please do not alter the logos or use them in a misleading way.
             </p>
+          </div>
+        </section>
+
+        {/* Brand Guidelines */}
+        <section className="py-12 md:py-16 border-b" style={{ borderColor: 'var(--border)' }}>
+          <div className="max-w-4xl mx-auto px-4">
+            <div className="rounded-2xl border p-6 md:p-8" style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}>
+              <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <div className="flex items-center gap-2 mb-3" style={{ color: 'var(--primary)' }}>
+                    <BookOpen size={18} />
+                    <p className="text-sm font-semibold">Brand Details &amp; Usage</p>
+                  </div>
+                  <h2 className="text-2xl font-bold mb-2">FitMeet Brand Guidelines</h2>
+                  <p className="text-sm leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+                    View the complete brand book with logo usage, colors, typography, voice, and digital application guidance.
+                  </p>
+                </div>
+                <a
+                  href="/press/brand-details/"
+                  className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl border text-sm font-medium transition-colors hover:bg-[--border] shrink-0"
+                  style={{ borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+                >
+                  <BookOpen size={16} style={{ color: 'var(--primary)' }} />
+                  Open brand details
+                </a>
+              </div>
+            </div>
           </div>
         </section>
 
