@@ -29,6 +29,12 @@ class MarketplaceListingResource extends JsonResource
             'images'      => $this->whenLoaded('images', fn () =>
                 $this->images->map(fn ($img) => url('/storage/' . $img->path))->values()
             ),
+            'images_meta' => $this->whenLoaded('images', fn () =>
+                $this->images->map(fn ($img) => [
+                    'id'  => $img->id,
+                    'url' => url('/storage/' . $img->path),
+                ])->values()
+            ),
             'seller'      => new UserResource($this->whenLoaded('seller')),
             'is_mine'     => $request->user()?->id === $this->user_id,
             'views_count' => $this->views_count ?? 0,

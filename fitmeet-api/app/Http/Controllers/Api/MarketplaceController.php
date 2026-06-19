@@ -249,26 +249,43 @@ HTML;
         }
 
         $data = $request->validate([
-            'type'        => ['nullable', Rule::in(['sell', 'buy'])],
-            'title'       => 'sometimes|string|max:200',
-            'description' => 'nullable|string|max:2000',
-            'price'       => 'nullable|numeric|min:0|max:99999',
-            'currency'    => 'nullable|string|size:3',
-            'condition'   => ['nullable', Rule::in(['new', 'used', 'like_new'])],
-            'category'    => ['sometimes', Rule::in(\App\Enums\Category::values())],
-            'images'      => 'nullable|array|max:5',
-            'images.*'    => 'image|max:5120',
+            'type'             => ['nullable', Rule::in(['sell', 'buy'])],
+            'title'            => 'sometimes|string|max:200',
+            'description'      => 'nullable|string|max:2000',
+            'price'            => 'nullable|numeric|min:0|max:99999',
+            'currency'         => 'nullable|string|size:3',
+            'condition'        => ['nullable', Rule::in(['new', 'used', 'like_new'])],
+            'category'         => ['sometimes', Rule::in(\App\Enums\Category::values())],
+            'images'           => 'nullable|array|max:5',
+            'images.*'         => 'image|max:5120',
+            'keep_image_ids'   => 'nullable|array',
+            'keep_image_ids.*' => 'integer',
         ]);
 
-        unset($data['images']);
+        unset($data['images'], $data['keep_image_ids']);
         $listing->update($data);
 
-        if ($request->hasFile('images')) {
+        $keepIds = $request->input('keep_image_ids');
+        if ($keepIds !== null || $request->hasFile('images')) {
+            $keepIds = $keepIds ?? [];
             foreach ($listing->images as $img) {
-                Storage::disk('public')->delete($img->path);
-                $img->delete();
+                if (! in_array($img->id, $keepIds, false)) {
+                    Storage::disk('public')->delete($img->path);
+                    $img->delete();
+                }
             }
-            $this->storeImages($request, $listing);
+
+            if ($request->hasFile('images')) {
+                $nextOrder = count($keepIds);
+                foreach ($request->file('images') as $file) {
+                    $path = $file->store('marketplace', 'public');
+                    MarketplaceListingImage::create([
+                        'listing_id' => $listing->id,
+                        'path'       => $path,
+                        'sort_order' => $nextOrder++,
+                    ]);
+                }
+            }
         }
 
         $listing->load(['seller', 'images']);

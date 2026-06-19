@@ -240,7 +240,7 @@ function CreateContent() {
                     className="rounded-xl border px-2 py-2.5 text-sm outline-none"
                     style={{ background: 'var(--background)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
                   >
-                    <option>EUR</option><option>USD</option><option>HRK</option><option>GBP</option>
+                    <option>EUR</option><option>GBP</option><option>USD</option><option>CNY</option>
                   </select>
                 </div>
               </div>

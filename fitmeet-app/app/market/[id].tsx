@@ -1,8 +1,10 @@
 import { Ionicons } from '@expo/vector-icons'
+import * as FileSystem from 'expo-file-system'
+import * as MediaLibrary from 'expo-media-library'
 import { router, useLocalSearchParams } from 'expo-router'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
-  ActivityIndicator, Alert, Image, Modal, Pressable,
+  ActivityIndicator, Alert, Dimensions, Image, Modal, Pressable,
   ScrollView, Share, StyleSheet, Text, View,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -11,6 +13,9 @@ import { api } from '@/src/lib/api'
 import { CATEGORIES } from '@/src/lib/categories'
 import { useAuthStore } from '@/src/store/auth'
 import { palette, spacing } from '@/src/theme'
+
+const SCREEN_WIDTH = Dimensions.get('window').width
+const SCREEN_HEIGHT = Dimensions.get('window').height
 
 interface Listing {
   id: number
@@ -49,6 +54,8 @@ export default function MarketDetailScreen() {
   const [saving, setSaving] = useState(false)
   const [activeImg, setActiveImg] = useState(0)
   const [lightbox, setLightbox] = useState(false)
+  const [downloading, setDownloading] = useState(false)
+  const zoomRef = useRef<ScrollView>(null)
 
   useEffect(() => {
     if (!id) return
@@ -101,6 +108,29 @@ export default function MarketDetailScreen() {
       message,
       url,
     }).catch(() => {})
+  }
+
+  async function handleDownloadImage() {
+    if (!listing || downloading) return
+    const url = listing.images[activeImg]
+    if (!url) return
+    setDownloading(true)
+    try {
+      const { status } = await MediaLibrary.requestPermissionsAsync()
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Allow access to save images to your gallery.')
+        return
+      }
+      const ext = url.split('.').pop()?.split('?')[0] ?? 'jpg'
+      const localUri = FileSystem.cacheDirectory + `fitmeet_${Date.now()}.${ext}`
+      const { uri } = await FileSystem.downloadAsync(url, localUri)
+      await MediaLibrary.saveToLibraryAsync(uri)
+      Alert.alert('Saved', 'Image saved to your gallery.')
+    } catch {
+      Alert.alert('Error', 'Could not save image.')
+    } finally {
+      setDownloading(false)
+    }
   }
 
   async function handleToggleSold() {
@@ -169,18 +199,43 @@ export default function MarketDetailScreen() {
       {/* Lightbox */}
       <Modal visible={lightbox} transparent animationType="fade" onRequestClose={() => setLightbox(false)}>
         <View style={styles.lightboxBg}>
-          <Pressable style={styles.lightboxClose} onPress={() => setLightbox(false)}>
-            <Ionicons name="close" size={22} color="#fff" />
-          </Pressable>
-          <Image
-            source={{ uri: listing.images[activeImg] }}
-            style={styles.lightboxImage}
-            resizeMode="contain"
-          />
+          <View style={styles.lightboxTopBar}>
+            <Pressable
+              style={styles.lightboxAction}
+              onPress={handleDownloadImage}
+              disabled={downloading}
+            >
+              {downloading ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Ionicons name="download-outline" size={22} color="#fff" />
+              )}
+            </Pressable>
+            <Pressable style={styles.lightboxAction} onPress={() => setLightbox(false)}>
+              <Ionicons name="close" size={22} color="#fff" />
+            </Pressable>
+          </View>
+          <ScrollView
+            ref={zoomRef}
+            key={activeImg}
+            maximumZoomScale={5}
+            minimumZoomScale={1}
+            showsHorizontalScrollIndicator={false}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.lightboxZoomContainer}
+            centerContent
+            bouncesZoom
+          >
+            <Image
+              source={{ uri: listing.images[activeImg] }}
+              style={{ width: SCREEN_WIDTH, height: SCREEN_HEIGHT * 0.7 }}
+              resizeMode="contain"
+            />
+          </ScrollView>
           {listing.images.length > 1 && (
             <View style={styles.lightboxThumbs}>
               {listing.images.map((src, i) => (
-                <Pressable key={i} onPress={() => setActiveImg(i)}>
+                <Pressable key={i} onPress={() => { setActiveImg(i); zoomRef.current?.scrollTo({ animated: false }) }}>
                   <Image
                     source={{ uri: src }}
                     style={[styles.lightboxThumb, i === activeImg && styles.lightboxThumbActive]}
@@ -444,10 +499,11 @@ const styles = StyleSheet.create({
   btnSoldText:    { color: '#4ade80', fontWeight: '800', fontSize: 13 },
   btnDelete:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 14, backgroundColor: 'rgba(248,113,113,0.08)', borderWidth: 1, borderColor: 'rgba(248,113,113,0.3)' },
 
-  lightboxBg:     { flex: 1, backgroundColor: 'rgba(0,0,0,0.93)', alignItems: 'center', justifyContent: 'center' },
-  lightboxClose:  { position: 'absolute', top: 50, right: 20, width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', zIndex: 10 },
-  lightboxImage:  { width: '100%', height: '70%' },
-  lightboxThumbs: { flexDirection: 'row', gap: 8, marginTop: 16, paddingHorizontal: 20 },
+  lightboxBg:     { flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', justifyContent: 'center' },
+  lightboxTopBar: { position: 'absolute', top: 50, right: 20, flexDirection: 'row', gap: 10, zIndex: 10 },
+  lightboxAction: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' },
+  lightboxZoomContainer: { alignItems: 'center', justifyContent: 'center', minHeight: SCREEN_HEIGHT * 0.7 },
+  lightboxThumbs: { flexDirection: 'row', gap: 8, justifyContent: 'center', paddingVertical: 16, paddingHorizontal: 20 },
   lightboxThumb:  { width: 56, height: 56, borderRadius: 12, borderWidth: 2, borderColor: 'rgba(255,255,255,0.25)' },
   lightboxThumbActive: { borderColor: palette.accent },
 
