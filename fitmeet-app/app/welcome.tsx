@@ -110,13 +110,13 @@ const styles = StyleSheet.create({
   heroWrap: {
     alignItems: 'center',
     paddingHorizontal: 48,
-    paddingTop: 34,
+    paddingTop: 20,
   },
   logo: {
-    width: '44%',
-    maxWidth: 168,
+    width: '36%',
+    maxWidth: 140,
     aspectRatio: 439 / 448,
-    marginTop: -2,
+    marginTop: -4,
   },
   safe: {
     ...StyleSheet.absoluteFillObject,

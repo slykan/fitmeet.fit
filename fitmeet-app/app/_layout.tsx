@@ -15,17 +15,17 @@ import { palette } from '@/src/theme'
 
 SplashScreen.preventAutoHideAsync()
 
-class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
-  state = { hasError: false }
-  static getDerivedStateFromError() { return { hasError: true } }
+class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; errorMsg: string }> {
+  state = { hasError: false, errorMsg: '' }
+  static getDerivedStateFromError(error: Error) { return { hasError: true, errorMsg: error?.message ?? 'Unknown error' } }
   componentDidCatch(_error: Error, _info: ErrorInfo) { SplashScreen.hideAsync() }
   render() {
     if (this.state.hasError) {
       return (
         <View style={{ flex: 1, backgroundColor: '#000', alignItems: 'center', justifyContent: 'center', padding: 32 }}>
           <Text style={{ color: '#fff', fontSize: 18, fontWeight: '800', marginBottom: 8 }}>Something went wrong</Text>
-          <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, textAlign: 'center', marginBottom: 24 }}>Please restart the app.</Text>
-          <Pressable onPress={() => this.setState({ hasError: false })} style={{ backgroundColor: '#39FF14', borderRadius: 14, paddingVertical: 14, paddingHorizontal: 32 }}>
+          <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, textAlign: 'center', marginBottom: 16 }}>{this.state.errorMsg}</Text>
+          <Pressable onPress={() => this.setState({ hasError: false, errorMsg: '' })} style={{ backgroundColor: '#39FF14', borderRadius: 14, paddingVertical: 14, paddingHorizontal: 32 }}>
             <Text style={{ color: '#000', fontWeight: '800', fontSize: 15 }}>Try again</Text>
           </Pressable>
         </View>
