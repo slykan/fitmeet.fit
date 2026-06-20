@@ -26,7 +26,7 @@
       "supportsTablet": false,
       "icon": "./assets/icon.png",
       "bundleIdentifier": "app.fitmeet.fit",
-      "buildNumber": "17",
+      "buildNumber": "18",
       "associatedDomains": [
         "applinks:fitmeet.fit",
         "applinks:fitmeet.fit"
@@ -50,7 +50,7 @@
       "edgeToEdgeEnabled": true,
       "googleServicesFile": "./google-services.json",
       "package": "app.fitmeet.fit",
-      "versionCode": 192,
+      "versionCode": 193,
       "intentFilters": [
         {
           "action": "VIEW",
