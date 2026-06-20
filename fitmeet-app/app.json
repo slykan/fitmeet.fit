@@ -17,7 +17,9 @@
       "expo-notifications",
       "expo-apple-authentication",
       "@react-native-community/datetimepicker",
-      "./plugins/withModularHeaders"
+      "./plugins/withModularHeaders",
+      "expo-font",
+      "expo-router"
     ],
     "ios": {
       "newArchEnabled": false,
@@ -48,7 +50,7 @@
       "edgeToEdgeEnabled": true,
       "googleServicesFile": "./google-services.json",
       "package": "app.fitmeet.fit",
-      "versionCode": 185,
+      "versionCode": 191,
       "intentFilters": [
         {
           "action": "VIEW",

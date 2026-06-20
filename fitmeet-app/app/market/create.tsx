@@ -20,12 +20,17 @@ const CONDITIONS = [
   { value: 'used',     label: 'Used' },
 ]
 
-const CURRENCIES = ['EUR', 'USD', 'HRK', 'GBP']
+const CURRENCIES = ['EUR', 'GBP', 'USD', 'CNY']
 
 interface ImageAsset {
   uri: string
   name: string
   type: string
+}
+
+interface ExistingImage {
+  id: number
+  url: string
 }
 
 export default function MarketCreateScreen() {
@@ -40,6 +45,7 @@ export default function MarketCreateScreen() {
   const [condition, setCond]     = useState('used')
   const [category,  setCategory] = useState('running')
   const [images,    setImages]   = useState<ImageAsset[]>([])
+  const [existingImages, setExistingImages] = useState<ExistingImage[]>([])
   const [saving,    setSaving]   = useState(false)
   const [error,     setError]    = useState<string | null>(null)
   const [loadingEdit, setLoadingEdit] = useState(!!editId)
@@ -58,23 +64,34 @@ export default function MarketCreateScreen() {
       setCurrency(l.currency ?? 'EUR')
       setCond(l.condition ?? 'used')
       setCategory(l.category?.value ?? 'running')
+      if (l.images_meta?.length) {
+        setExistingImages(l.images_meta.map((m: { id: number; url: string }) => ({ id: m.id, url: m.url })))
+      }
     }).catch(() => router.back()).finally(() => setLoadingEdit(false))
   }, [editId, token])
 
+  const totalImages = existingImages.length + images.length
+
   async function pickImages() {
+    const remaining = 5 - totalImages
+    if (remaining <= 0) return
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsMultipleSelection: true,
       quality: 0.85,
-      selectionLimit: 5 - images.length,
+      selectionLimit: remaining,
     })
     if (result.canceled) return
     const next = [...images, ...result.assets.map(a => ({
       uri:  a.uri,
       name: a.fileName ?? `image_${Date.now()}.jpg`,
       type: a.mimeType ?? 'image/jpeg',
-    }))].slice(0, 5)
+    }))].slice(0, 5 - existingImages.length)
     setImages(next)
+  }
+
+  function removeExistingImage(id: number) {
+    setExistingImages(prev => prev.filter(img => img.id !== id))
   }
 
   function removeImage(idx: number) {
@@ -98,6 +115,11 @@ export default function MarketCreateScreen() {
       fd.append('currency', currency)
       if (type === 'sell') fd.append('condition', condition)
       fd.append('category', category)
+      if (editId) {
+        existingImages.forEach(img => {
+          fd.append('keep_image_ids[]', String(img.id))
+        })
+      }
       images.forEach(img => {
         fd.append('images[]', { uri: img.uri, name: img.name, type: img.type } as never)
       })
@@ -192,6 +214,14 @@ export default function MarketCreateScreen() {
               Photos <Text style={{ fontWeight: '400', color: palette.textMuted }}>(max 5)</Text>
             </Text>
             <View style={styles.imageRow}>
+              {existingImages.map(img => (
+                <View key={`ex-${img.id}`} style={styles.imageThumb}>
+                  <Image source={{ uri: img.url }} style={styles.imageThumbImg} resizeMode="cover" />
+                  <Pressable style={styles.imageRemove} onPress={() => removeExistingImage(img.id)} hitSlop={4}>
+                    <Ionicons name="close" size={12} color="#fff" />
+                  </Pressable>
+                </View>
+              ))}
               {images.map((img, i) => (
                 <View key={i} style={styles.imageThumb}>
                   <Image source={{ uri: img.uri }} style={styles.imageThumbImg} resizeMode="cover" />
@@ -200,7 +230,7 @@ export default function MarketCreateScreen() {
                   </Pressable>
                 </View>
               ))}
-              {images.length < 5 && (
+              {totalImages < 5 && (
                 <Pressable style={styles.imagePicker} onPress={pickImages}>
                   <Ionicons name="add" size={26} color={palette.textMuted} />
                 </Pressable>
@@ -235,37 +265,37 @@ export default function MarketCreateScreen() {
               placeholderTextColor={palette.textDim}
               maxLength={2000}
               multiline
-              numberOfLines={3}
+              numberOfLines={6}
               textAlignVertical="top"
             />
           </View>
 
-          {/* Price + Currency */}
-          <View style={styles.row}>
-            <View style={[styles.field, { flex: 1 }]}>
-              <Text style={styles.fieldLabel}>{type === 'buy' ? 'Max budget (optional)' : 'Price *'}</Text>
-              <TextInput
-                style={styles.input}
-                value={price}
-                onChangeText={setPrice}
-                placeholder="0"
-                placeholderTextColor={palette.textDim}
-                keyboardType="decimal-pad"
-              />
-            </View>
-            <View style={[styles.field, { width: 100 }]}>
-              <Text style={styles.fieldLabel}>Currency</Text>
-              <View style={[styles.input, styles.currencyPicker]}>
-                {CURRENCIES.map(c => (
-                  <Pressable
-                    key={c}
-                    onPress={() => setCurrency(c)}
-                    style={[styles.currencyOpt, currency === c && styles.currencyOptActive]}
-                  >
-                    <Text style={[styles.currencyOptText, currency === c && styles.currencyOptTextActive]}>{c}</Text>
-                  </Pressable>
-                ))}
-              </View>
+          {/* Price */}
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>{type === 'buy' ? 'Max budget (optional)' : 'Price *'}</Text>
+            <TextInput
+              style={styles.input}
+              value={price}
+              onChangeText={setPrice}
+              placeholder="0"
+              placeholderTextColor={palette.textDim}
+              keyboardType="decimal-pad"
+            />
+          </View>
+
+          {/* Currency */}
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>Currency</Text>
+            <View style={styles.currencyRow}>
+              {CURRENCIES.map(c => (
+                <Pressable
+                  key={c}
+                  onPress={() => setCurrency(c)}
+                  style={[styles.currencyChip, currency === c && styles.currencyChipActive]}
+                >
+                  <Text style={[styles.currencyChipText, currency === c && styles.currencyChipTextActive]}>{c}</Text>
+                </Pressable>
+              ))}
             </View>
           </View>
 
@@ -365,15 +395,15 @@ const styles = StyleSheet.create({
     backgroundColor: palette.panelRaised, borderRadius: 14, borderWidth: 1, borderColor: palette.line,
     paddingHorizontal: 14, paddingVertical: 12, color: palette.text, fontSize: 14,
   },
-  textarea: { minHeight: 80, paddingTop: 12 },
+  textarea: { minHeight: 160, paddingTop: 12 },
 
   row: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
 
-  currencyPicker: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, padding: 6, height: 'auto' },
-  currencyOpt:     { flex: 1, paddingVertical: 5, borderRadius: 8, alignItems: 'center', backgroundColor: palette.panel },
-  currencyOptActive: { backgroundColor: palette.accent },
-  currencyOptText:   { color: palette.textMuted, fontSize: 11, fontWeight: '700' },
-  currencyOptTextActive: { color: '#031109' },
+  currencyRow: { flexDirection: 'row', gap: 8 },
+  currencyChip: { flex: 1, paddingVertical: 10, borderRadius: 12, alignItems: 'center', backgroundColor: palette.panelRaised, borderWidth: 1, borderColor: palette.line },
+  currencyChipActive: { backgroundColor: 'rgba(108,255,47,0.12)', borderColor: 'rgba(108,255,47,0.45)' },
+  currencyChipText: { color: palette.textMuted, fontSize: 14, fontWeight: '800' },
+  currencyChipTextActive: { color: palette.accent },
 
   chip:        { flex: 1, paddingVertical: 10, borderRadius: 12, alignItems: 'center', backgroundColor: palette.panelRaised, borderWidth: 1, borderColor: palette.line },
   chipActive:  { backgroundColor: 'rgba(108,255,47,0.12)', borderColor: 'rgba(108,255,47,0.45)' },
