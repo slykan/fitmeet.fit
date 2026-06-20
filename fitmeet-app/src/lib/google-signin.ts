@@ -32,6 +32,7 @@ export async function signInWithGoogleNative(): Promise<string | null> {
 export function useGoogleBrowserAuth() {
   return GoogleAuthSession.useAuthRequest({
     androidClientId: googleOAuthConfig.androidClientId,
+    iosClientId: googleOAuthConfig.webClientId,
     webClientId: googleOAuthConfig.webClientId,
     redirectUri: 'fitmeet://oauthredirect',
   })

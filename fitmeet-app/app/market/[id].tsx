@@ -7,6 +7,7 @@ import {
   ActivityIndicator, Alert, Dimensions, Image, Modal, Pressable,
   ScrollView, Share, StyleSheet, Text, View,
 } from 'react-native'
+import { ReactNativeZoomableView } from '@openspacelabs/react-native-zoomable-view'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { api } from '@/src/lib/api'
@@ -216,20 +217,20 @@ export default function MarketDetailScreen() {
               <Ionicons name="close" size={22} color="#fff" />
             </Pressable>
           </View>
-          <ScrollView
+          <ReactNativeZoomableView
             key={activeImg}
-            maximumZoomScale={5}
-            minimumZoomScale={1}
-            showsHorizontalScrollIndicator={false}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.lightboxZoomContainer}
+            maxZoom={5}
+            minZoom={1}
+            initialZoom={1}
+            bindToBorders
+            style={styles.lightboxZoomContainer}
           >
             <Image
               source={{ uri: listing.images[activeImg] }}
               style={{ width: SCREEN_WIDTH, height: SCREEN_HEIGHT * 0.7 }}
               resizeMode="contain"
             />
-          </ScrollView>
+          </ReactNativeZoomableView>
           {listing.images.length > 1 && (
             <View style={styles.lightboxThumbs}>
               {listing.images.map((src, i) => (
