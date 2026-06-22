@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useFocusEffect } from 'expo-router'
 import * as ImagePicker from 'expo-image-picker'
 import * as MediaLibrary from 'expo-media-library'
-import * as FileSystem from 'expo-file-system/legacy'
+import { File, Paths } from 'expo-file-system/next'
 import {
   ActivityIndicator,
   Alert,
@@ -27,7 +27,7 @@ import { subscribeChatRefresh } from '@/src/lib/chat-refresh'
 import { useAuthStore } from '@/src/store/auth'
 import { palette, spacing } from '@/src/theme'
 
-const fileSystemPaths = FileSystem as typeof FileSystem & {
+const fileSystemPaths = { cacheDirectory: Paths.cache.uri, documentDirectory: Paths.document.uri } as {
   cacheDirectory?: string
   documentDirectory?: string
 }
@@ -295,9 +295,18 @@ function ThreadView({
         Alert.alert('Error', 'Could not access local storage.')
         return
       }
-      const localUri = `${storageRoot}${filename}`
-      await FileSystem.downloadAsync(url, localUri)
-      await MediaLibrary.saveToLibraryAsync(localUri)
+      const dest = new File(Paths.cache, filename)
+      const response = await fetch(url)
+      if (!response.ok) throw new Error('Download failed')
+      const blob = await response.blob()
+      const reader = new FileReader()
+      const base64 = await new Promise<string>((resolve, reject) => {
+        reader.onloadend = () => resolve((reader.result as string).split(',')[1])
+        reader.onerror = reject
+        reader.readAsDataURL(blob)
+      })
+      dest.write(base64, { encoding: 'base64' })
+      await MediaLibrary.saveToLibraryAsync(dest.uri)
       Alert.alert('Saved', 'Image saved to gallery.')
     } catch {
       Alert.alert('Error', 'Could not save image.')

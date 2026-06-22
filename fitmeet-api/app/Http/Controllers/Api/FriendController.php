@@ -118,11 +118,13 @@ class FriendController extends Controller
         FriendRequest::where('sender_id', $me->id)->where('status', 'accepted')->whereNull('accepted_read_at')->update(['accepted_read_at' => now()]);
         EventNotification::where('user_id', $me->id)->delete();
         EventReminder::where('user_id', $me->id)->whereNotNull('sent_at')->update(['read_at' => now(), 'sent_at' => now()->subHours(25)]);
-        $unreadAnnouncementIds = Announcement::where('created_at', '>=', now()->subDays(30))
-            ->whereNotIn('id', AnnouncementRead::where('user_id', $me->id)->pluck('announcement_id'))
-            ->pluck('id');
-        foreach ($unreadAnnouncementIds as $announcementId) {
-            AnnouncementRead::firstOrCreate(['user_id' => $me->id, 'announcement_id' => $announcementId], ['read_at' => now()]);
+        $allAnnouncementIds = Announcement::where('created_at', '>=', now()->subDays(30))->pluck('id');
+        foreach ($allAnnouncementIds as $announcementId) {
+            $read = AnnouncementRead::firstOrCreate(
+                ['user_id' => $me->id, 'announcement_id' => $announcementId],
+                ['read_at' => now()]
+            );
+            $read->update(['dismissed_at' => now()]);
         }
         return response()->json(['message' => 'Cleared.']);
     }
@@ -390,15 +392,17 @@ class FriendController extends Controller
                 'created_at' => $n->created_at->toDateTimeString(),
             ]);
 
-        $readAnnouncementIds = AnnouncementRead::where('user_id', $me->id)->pluck('announcement_id')->flip();
+        $announcementReads = AnnouncementRead::where('user_id', $me->id)->get()->keyBy('announcement_id');
+        $dismissedIds = $announcementReads->filter(fn ($r) => $r->dismissed_at !== null)->keys()->all();
         $announcements = Announcement::where('created_at', '>=', now()->subDays(30))
+            ->whereNotIn('id', $dismissedIds)
             ->where(fn ($q) => $q->whereNull('target_country')->orWhere('target_country', $me->country))
             ->latest()
             ->get()
             ->map(fn ($a) => [
                 'id'         => 'ann_' . $a->id,
                 'type'       => 'announcement',
-                'unread'     => !isset($readAnnouncementIds[$a->id]),
+                'unread'     => !isset($announcementReads[$a->id]),
                 'title'      => $a->title,
                 'body'       => $a->body,
                 'data'       => $a->data,

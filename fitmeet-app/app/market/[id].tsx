@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons'
-import * as FileSystem from 'expo-file-system'
+import { File, Paths } from 'expo-file-system/next'
 import * as MediaLibrary from 'expo-media-library'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
@@ -116,20 +116,22 @@ export default function MarketDetailScreen() {
     if (!url) return
     setDownloading(true)
     try {
-      const { status } = await MediaLibrary.requestPermissionsAsync()
-      if (status !== 'granted') {
-        Alert.alert('Permission needed', 'Allow access to save images to your gallery.')
-        setDownloading(false)
-        return
-      }
       const filename = `fitmeet_${Date.now()}.jpg`
-      const localUri = FileSystem.cacheDirectory + filename
-      const result = await FileSystem.downloadAsync(url, localUri)
-      if (result.status !== 200) throw new Error('Download failed')
-      await MediaLibrary.saveToLibraryAsync(result.uri)
+      const dest = new File(Paths.cache, filename)
+      const response = await fetch(url)
+      if (!response.ok) throw new Error('Download failed')
+      const blob = await response.blob()
+      const reader = new FileReader()
+      const base64 = await new Promise<string>((resolve, reject) => {
+        reader.onloadend = () => resolve((reader.result as string).split(',')[1])
+        reader.onerror = reject
+        reader.readAsDataURL(blob)
+      })
+      dest.write(base64, { encoding: 'base64' })
+      await MediaLibrary.saveToLibraryAsync(dest.uri)
       Alert.alert('Saved', 'Image saved to your gallery.')
-    } catch (e) {
-      Alert.alert('Error', 'Could not save image. Check storage permissions.')
+    } catch (e: any) {
+      Alert.alert('Error', e?.message ?? 'Could not save image.')
     } finally {
       setDownloading(false)
     }
@@ -501,7 +503,7 @@ const styles = StyleSheet.create({
   lightboxBg:     { flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', justifyContent: 'center' },
   lightboxTopBar: { position: 'absolute', top: 50, right: 20, flexDirection: 'row', gap: 10, zIndex: 10 },
   lightboxAction: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' },
-  lightboxZoomContainer: { alignItems: 'center', justifyContent: 'center', minHeight: SCREEN_HEIGHT * 0.7 },
+  lightboxZoomContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   lightboxThumbs: { flexDirection: 'row', gap: 8, justifyContent: 'center', paddingVertical: 16, paddingHorizontal: 20 },
   lightboxThumb:  { width: 56, height: 56, borderRadius: 12, borderWidth: 2, borderColor: 'rgba(255,255,255,0.25)' },
   lightboxThumbActive: { borderColor: palette.accent },

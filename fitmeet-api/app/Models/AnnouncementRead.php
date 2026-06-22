@@ -9,9 +9,9 @@ class AnnouncementRead extends Model
 {
     public $timestamps = false;
 
-    protected $fillable = ['user_id', 'announcement_id', 'read_at'];
+    protected $fillable = ['user_id', 'announcement_id', 'read_at', 'dismissed_at'];
 
-    protected $casts = ['read_at' => 'datetime'];
+    protected $casts = ['read_at' => 'datetime', 'dismissed_at' => 'datetime'];
 
     public function announcement(): BelongsTo
     {

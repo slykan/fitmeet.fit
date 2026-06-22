@@ -19,7 +19,15 @@
       "@react-native-community/datetimepicker",
       "./plugins/withModularHeaders",
       "expo-font",
-      "expo-router"
+      "expo-router",
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "FitMeet needs photo access to save images.",
+          "savePhotosPermission": "FitMeet needs access to save images to your gallery.",
+          "isAccessMediaLocationEnabled": true
+        }
+      ]
     ],
     "ios": {
       "newArchEnabled": false,
@@ -50,7 +58,7 @@
       "edgeToEdgeEnabled": true,
       "googleServicesFile": "./google-services.json",
       "package": "app.fitmeet.fit",
-      "versionCode": 193,
+      "versionCode": 194,
       "intentFilters": [
         {
           "action": "VIEW",
