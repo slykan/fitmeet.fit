@@ -70,9 +70,14 @@ export default function MomentsScreen() {
           <Text style={styles.headerSub}>Real events, real people</Text>
           <Text style={styles.headerNote}>Organizers can add one photo after each event ends.</Text>
         </View>
-        <Pressable onPress={handleShare} hitSlop={12}>
-          <Ionicons name="share-social-outline" size={22} color={palette.accent} />
-        </Pressable>
+        <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
+          <Pressable onPress={() => router.push('/moments-slideshow' as never)} hitSlop={12}>
+            <Ionicons name="play-circle-outline" size={26} color={palette.accent} />
+          </Pressable>
+          <Pressable onPress={handleShare} hitSlop={12}>
+            <Ionicons name="share-social-outline" size={22} color={palette.accent} />
+          </Pressable>
+        </View>
       </View>
 
       {loading ? (
