@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>FitMeet Brand Book</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #fff; }
+  .page-wrapper { page-break-after: always; }
+  .page-wrapper:last-child { page-break-after: auto; }
+  .page-wrapper iframe {
+    width: 1080px;
+    height: 1527px;
+    border: 0;
+    display: block;
+    margin: 0 auto;
+  }
+  .loading {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: #000; color: #fff;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    z-index: 999;
+  }
+  .loading h2 { font-size: 24px; font-weight: 800; margin-bottom: 12px; }
+  .loading p { color: rgba(255,255,255,0.5); font-size: 14px; }
+
+  @media print {
+    .loading { display: none !important; }
+    body { background: #fff; }
+    .page-wrapper {
+      page-break-after: always;
+      width: 100%;
+      overflow: hidden;
+    }
+    .page-wrapper:last-child { page-break-after: auto; }
+    .page-wrapper iframe {
+      transform-origin: top left;
+      transform: scale(0.74);
+      width: 1080px;
+      height: 1527px;
+    }
+    @page {
+      size: A4 portrait;
+      margin: 0;
+    }
+  }
+
+  @media screen {
+    body { background: #333; padding: 20px 0; }
+    .page-wrapper {
+      margin: 0 auto 20px;
+      width: 1080px;
+      box-shadow: 0 4px 30px rgba(0,0,0,0.5);
+    }
+  }
+</style>
+</head>
+<body>
+<div class="loading" id="loading">
+  <h2>Preparing Brand Book...</h2>
+  <p>Loading all pages for PDF export</p>
+</div>
+
+<script>
+const PAGES = 14;
+let loaded = 0;
+
+for (let i = 1; i <= PAGES; i++) {
+  const page = String(i).padStart(2, '0');
+  const wrapper = document.createElement('div');
+  wrapper.className = 'page-wrapper';
+  const iframe = document.createElement('iframe');
+  iframe.src = `pages/page${page}.html`;
+  iframe.title = `Page ${page}`;
+  iframe.loading = 'eager';
+  iframe.onload = function() {
+    loaded++;
+    if (loaded === PAGES) {
+      setTimeout(function() {
+        document.getElementById('loading').style.display = 'none';
+        window.print();
+      }, 1500);
+    }
+  };
+  wrapper.appendChild(iframe);
+  document.body.appendChild(wrapper);
+}
+</script>
+</body>
+</html>

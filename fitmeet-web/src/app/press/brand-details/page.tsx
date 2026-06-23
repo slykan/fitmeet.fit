@@ -33,12 +33,12 @@ export default function BrandDetailsPage() {
               </p>
             </div>
             <a
-              href="/press/fitmeet_brand_book_en.pdf"
-              download
+              href="/press/brand-book/print.html"
+              target="_blank"
               className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/15 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/10"
             >
               <Download size={16} className="text-[--primary]" />
-              Download PDF
+              Save as PDF
             </a>
           </div>
         </section>
