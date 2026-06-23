@@ -67,20 +67,20 @@ export default function SlideshowPage() {
 
   const animations = useMemo(() => {
     return moments.map(() => ANIMATIONS[Math.floor(Math.random() * ANIMATIONS.length)])
-  }, [moments.length])
+  }, [moments])
 
   const load = useCallback(async () => {
     try {
       let all: Moment[] = []
       let p = 1
       let hasMore = true
-      while (hasMore) {
+      while (hasMore && p <= 20) {
         const r = await api.get(`/moments?page=${p}`)
-        all = [...all, ...r.data.data]
-        hasMore = r.data.has_more
+        const data = r.data.data ?? []
+        all = [...all, ...data]
+        hasMore = !!r.data.has_more && data.length > 0
         p++
       }
-      // shuffle
       for (let i = all.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [all[i], all[j]] = [all[j], all[i]]
@@ -161,7 +161,7 @@ export default function SlideshowPage() {
       <div className="min-h-screen flex flex-col items-center justify-center gap-6" style={{ background: '#000', color: '#fff' }}>
         <div className="grid grid-cols-3 gap-1 w-64 h-64 rounded-2xl overflow-hidden opacity-40">
           {moments.slice(0, 9).map((m, i) => (
-            <div key={i} className="relative">
+            <div key={i} className="relative aspect-square">
               <Image src={m.image_url} alt="" fill sizes="85px" className="object-cover" />
             </div>
           ))}
@@ -252,19 +252,18 @@ export default function SlideshowPage() {
         </div>
 
         {/* Progress */}
-        <div className="flex gap-0.5 mt-4 max-w-2xl mx-auto">
-          {moments.map((_, i) => (
-            <div key={i} className="flex-1 h-0.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.15)' }}>
-              <div
-                className="h-full rounded-full"
-                style={{
-                  background: '#39ff14',
-                  width: i < slideIndex ? '100%' : i === slideIndex ? '100%' : '0%',
-                  transition: i === slideIndex ? 'width 3s linear' : 'none',
-                }}
-              />
-            </div>
-          ))}
+        <div className="mt-4 max-w-2xl mx-auto">
+          <div className="h-0.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.15)' }}>
+            <div
+              className="h-full rounded-full"
+              style={{
+                background: '#39ff14',
+                width: `${((slideIndex + 1) / moments.length) * 100}%`,
+                transition: 'width 0.4s ease',
+              }}
+            />
+          </div>
+          <p className="text-center text-xs text-white/30 mt-2">{slideIndex + 1} / {moments.length}</p>
         </div>
 
         {/* Branding */}
