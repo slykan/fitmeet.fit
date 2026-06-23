@@ -186,7 +186,7 @@ export default function SlideshowPage() {
   const currentAnim = animations[slideIndex] || 'zoom-in'
 
   return (
-    <div className="fixed inset-0" style={{ background: '#000' }}>
+    <div className="absolute inset-0" style={{ background: '#000' }}>
       {/* Image */}
       <div
         className="absolute inset-0 z-0 transition-opacity duration-400"
