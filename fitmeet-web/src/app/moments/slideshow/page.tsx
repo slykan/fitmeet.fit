@@ -189,7 +189,7 @@ export default function SlideshowPage() {
     <div className="fixed inset-0" style={{ background: '#000' }}>
       {/* Image */}
       <div
-        className="absolute inset-0 transition-opacity duration-400"
+        className="absolute inset-0 z-0 transition-opacity duration-400"
         style={{ opacity: slideFade ? 1 : 0 }}
       >
         <div className="absolute inset-0 overflow-hidden">
@@ -264,11 +264,6 @@ export default function SlideshowPage() {
             />
           </div>
           <p className="text-center text-xs text-white/30 mt-2">{slideIndex + 1} / {moments.length}</p>
-        </div>
-
-        {/* Branding */}
-        <div className="flex items-center justify-center gap-2 mt-4 opacity-50">
-          <Image src="/logo_full.png" alt="FitMeet" width={80} height={24} className="brightness-0 invert" />
         </div>
       </div>
     </div>
