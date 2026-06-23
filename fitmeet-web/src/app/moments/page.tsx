@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Share2, X, ArrowRight } from 'lucide-react'
+import { Share2, X, ArrowRight, Play, Pause } from 'lucide-react'
 import { Navbar } from '@/components/navbar'
 import api from '@/lib/api'
 
@@ -30,6 +30,47 @@ export default function MomentsPage() {
   const [hasMore, setHasMore] = useState(false)
   const [page, setPage] = useState(1)
   const [lightbox, setLightbox] = useState<Moment | null>(null)
+  const [slideshow, setSlideshow] = useState(false)
+  const [slideIndex, setSlideIndex] = useState(0)
+  const [slideFade, setSlideFade] = useState(true)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+
+  const startSlideshow = () => {
+    if (moments.length === 0) return
+    setSlideIndex(0)
+    setSlideFade(true)
+    setSlideshow(true)
+    if (!audioRef.current) {
+      audioRef.current = new Audio('/moments-music.mp3')
+      audioRef.current.loop = true
+    }
+    audioRef.current.currentTime = 0
+    audioRef.current.play().catch(() => {})
+  }
+
+  const stopSlideshow = () => {
+    setSlideshow(false)
+    if (audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current.currentTime = 0
+    }
+  }
+
+  useEffect(() => {
+    if (!slideshow || moments.length === 0) return
+    const interval = setInterval(() => {
+      setSlideFade(false)
+      setTimeout(() => {
+        setSlideIndex(i => (i + 1) % moments.length)
+        setSlideFade(true)
+      }, 300)
+    }, 2500)
+    return () => clearInterval(interval)
+  }, [slideshow, moments.length])
+
+  useEffect(() => {
+    return () => { audioRef.current?.pause() }
+  }, [])
 
   const load = useCallback(async (p: number) => {
     if (p === 1) setLoading(true); else setLoadingMore(true)
@@ -69,13 +110,23 @@ export default function MomentsPage() {
               Event organizers can add one photo after each event ends.
             </p>
           </div>
-          <button
-            onClick={handleShare}
-            className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-xl font-semibold transition-opacity hover:opacity-80"
-            style={{ background: 'rgba(57,255,20,0.08)', border: '1px solid rgba(57,255,20,0.25)', color: 'var(--primary)' }}
-          >
-            <Share2 size={15} /> Share
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={startSlideshow}
+              disabled={moments.length === 0}
+              className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-xl font-semibold transition-opacity hover:opacity-80 disabled:opacity-30"
+              style={{ background: 'rgba(57,255,20,0.15)', border: '1px solid rgba(57,255,20,0.4)', color: 'var(--primary)' }}
+            >
+              <Play size={15} /> Play
+            </button>
+            <button
+              onClick={handleShare}
+              className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-xl font-semibold transition-opacity hover:opacity-80"
+              style={{ background: 'rgba(57,255,20,0.08)', border: '1px solid rgba(57,255,20,0.25)', color: 'var(--primary)' }}
+            >
+              <Share2 size={15} /> Share
+            </button>
+          </div>
         </div>
 
         {/* Grid */}
@@ -131,6 +182,76 @@ export default function MomentsPage() {
           </>
         )}
       </div>
+
+      {/* Slideshow */}
+      {slideshow && moments.length > 0 && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center" style={{ background: '#000' }}>
+          <div
+            className="absolute inset-0 transition-opacity duration-300"
+            style={{ opacity: slideFade ? 1 : 0 }}
+          >
+            <Image
+              src={moments[slideIndex].image_url}
+              alt={moments[slideIndex].title}
+              fill
+              sizes="100vw"
+              className="object-cover"
+              style={{
+                objectPosition: `${(moments[slideIndex].cover?.x ?? 0.5) * 100}% ${(moments[slideIndex].cover?.y ?? 0.5) * 100}%`,
+                transform: slideFade ? 'scale(1.05)' : 'scale(1)',
+                transition: 'transform 2.5s ease-out, opacity 0.3s ease',
+              }}
+              priority
+            />
+            <div className="absolute inset-0" style={{ background: 'linear-gradient(transparent 50%, rgba(0,0,0,0.7))' }} />
+          </div>
+
+          <div
+            className="absolute bottom-0 left-0 right-0 p-6 transition-opacity duration-300"
+            style={{ opacity: slideFade ? 1 : 0 }}
+          >
+            <div className="flex items-center gap-3 max-w-2xl mx-auto">
+              <span className="text-3xl">{CAT_EMOJI[moments[slideIndex].category ?? ''] ?? '📅'}</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-base font-bold text-white truncate">{moments[slideIndex].title}</p>
+                <p className="text-sm text-white/60">
+                  {new Date(moments[slideIndex].start_at).toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric' })}
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-1 mt-4 max-w-2xl mx-auto">
+              {moments.map((_, i) => (
+                <div key={i} className="flex-1 h-0.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.2)' }}>
+                  <div
+                    className="h-full rounded-full"
+                    style={{
+                      background: 'var(--primary)',
+                      width: i < slideIndex ? '100%' : i === slideIndex ? '100%' : '0%',
+                      transition: i === slideIndex ? 'width 2.5s linear' : 'none',
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <button
+            onClick={stopSlideshow}
+            className="absolute top-4 right-4 p-3 rounded-full z-10"
+            style={{ background: 'rgba(0,0,0,0.5)' }}
+          >
+            <X size={22} className="text-white" />
+          </button>
+
+          <button
+            onClick={stopSlideshow}
+            className="absolute top-4 left-4 p-3 rounded-full z-10"
+            style={{ background: 'rgba(0,0,0,0.5)' }}
+          >
+            <Pause size={22} className="text-white" />
+          </button>
+        </div>
+      )}
 
       {/* Lightbox */}
       {lightbox && (
