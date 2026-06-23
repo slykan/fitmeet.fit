@@ -95,7 +95,7 @@ export default function SlideshowPage() {
   const startPlayback = () => {
     setStarted(true)
     if (!audioRef.current) {
-      audioRef.current = new Audio('/moments-music.mp3')
+      audioRef.current = new Audio('/volim_nju.mp3')
       audioRef.current.loop = true
     }
     audioRef.current.currentTime = 0
