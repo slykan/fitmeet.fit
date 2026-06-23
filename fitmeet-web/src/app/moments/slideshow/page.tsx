@@ -26,7 +26,7 @@ type Animation = 'zoom-in' | 'zoom-out' | 'pan-left' | 'pan-right' | 'pan-up' | 
 const ANIMATIONS: Animation[] = ['zoom-in', 'zoom-out', 'pan-left', 'pan-right', 'pan-up', 'ken-burns']
 
 function getAnimationStyle(anim: Animation, active: boolean): React.CSSProperties {
-  const dur = '3s'
+  const dur = '4.5s'
   if (!active) return { transform: 'scale(1)', transition: 'none' }
   switch (anim) {
     case 'zoom-in':
@@ -81,6 +81,12 @@ export default function SlideshowPage() {
         hasMore = !!r.data.has_more && data.length > 0
         p++
       }
+      const seen = new Set<string>()
+      all = all.filter(m => {
+        if (seen.has(m.image_url)) return false
+        seen.add(m.image_url)
+        return true
+      })
       for (let i = all.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [all[i], all[j]] = [all[j], all[i]]
@@ -116,11 +122,29 @@ export default function SlideshowPage() {
       setSlideFade(false)
       setAnimActive(false)
       setTimeout(() => {
-        setSlideIndex(i => (i + 1) % moments.length)
+        setSlideIndex(i => {
+          const next = i + 1
+          if (next >= moments.length) {
+            setMoments(prev => {
+              const last = prev[prev.length - 1]
+              const shuffled = [...prev]
+              for (let k = shuffled.length - 1; k > 0; k--) {
+                const j = Math.floor(Math.random() * (k + 1));
+                [shuffled[k], shuffled[j]] = [shuffled[j], shuffled[k]]
+              }
+              if (shuffled[0]?.id === last?.id && shuffled.length > 1) {
+                [shuffled[0], shuffled[1]] = [shuffled[1], shuffled[0]]
+              }
+              return shuffled
+            })
+            return 0
+          }
+          return next
+        })
         setSlideFade(true)
         setTimeout(() => setAnimActive(true), 50)
       }, 400)
-    }, 3000)
+    }, 4500)
     return () => clearInterval(interval)
   }, [started, moments.length])
 
