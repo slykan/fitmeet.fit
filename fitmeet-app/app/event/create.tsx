@@ -20,6 +20,7 @@ import { fetchElevationProfile, parseGpxText } from '@/src/lib/gpx'
 import type { GpxParsed } from '@/src/lib/gpx'
 import { isValidYouTubeUrl } from '@/src/lib/youtube'
 import { cloudLabel, EventWeather, fetchEventWeather, weatherIconName } from '@/src/lib/weather'
+import { playRandomActionSound } from '@/src/lib/action-sounds'
 import { palette, spacing } from '@/src/theme'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -699,6 +700,10 @@ export default function CreateEventScreen() {
         if (notifyOnJoin) {
           await api.post(`/events/${data.data.id}/join-notifications`, { enabled: true }).catch(() => {})
         }
+      }
+
+      if (!editId) {
+        playRandomActionSound().catch(() => {})
       }
 
       if (editId) {

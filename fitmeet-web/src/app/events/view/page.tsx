@@ -17,6 +17,7 @@ import { formatEventDateTime } from '@/lib/event-time'
 import { getYouTubeVideoId } from '@/lib/youtube'
 import { fetchRelevantEventWeather, windDirectionLabelDetailed, type EventWeather } from '@/lib/weather'
 import api from '@/lib/api'
+import { playRandomActionSound } from '@/lib/action-sounds'
 import { fetchElevationProfile, parseGpx, GpxResult } from '@/lib/parse-gpx'
 import { analyzeRouteSurface, type SurfaceAnalysis } from '@/lib/route-surface'
 import { useAuthStore } from '@/store/auth'
@@ -239,6 +240,7 @@ function EventContent() {
     setError(null)
     try {
       await api.post(`/events/${event.id}/join`)
+      playRandomActionSound()
       setEvent(e => e ? { ...e, is_joined: true, participants_count: e.participants_count + 1 } : e)
       setActiveOffsets([])
       setSelectedOffsets(new Set())

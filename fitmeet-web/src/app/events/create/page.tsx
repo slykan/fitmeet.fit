@@ -9,6 +9,7 @@ import { Calendar, MapPin, Info, Settings, Lock, Unlock, LocateFixed, Search, Ci
 import { Navbar } from '@/components/navbar'
 import ElevationChart from '@/components/elevation-chart'
 import api from '@/lib/api'
+import { playRandomActionSound } from '@/lib/action-sounds'
 import { eventDateToLocalInput, eventLocalInputToUtcIso, resolveEventTimeZone, resolveTimeZoneFromCoords } from '@/lib/event-time'
 import { parseGpx, GpxResult } from '@/lib/parse-gpx'
 import { formatAddress } from '@/lib/format-address'
@@ -408,6 +409,7 @@ export default function CreateEventPage() {
       if (data.youtube_url?.trim()) fd.append('youtube_url', data.youtube_url.trim())
 
       const { data: res } = await api.post('/events', fd)
+      playRandomActionSound()
       router.replace(`/events/view?id=${res.data.id}`)
     } catch (err: unknown) {
       const e   = err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } }

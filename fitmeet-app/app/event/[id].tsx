@@ -20,6 +20,7 @@ import { api } from '@/src/lib/api'
 import { fetchElevationProfile, parseGpxText } from '@/src/lib/gpx'
 import type { TrackSegment } from '@/src/lib/gpx'
 import { analyzeRouteSurface, type SurfaceAnalysis } from '@/src/lib/route-surface'
+import { playRandomActionSound } from '@/src/lib/action-sounds'
 import { useAuthStore } from '@/src/store/auth'
 import { palette, spacing } from '@/src/theme'
 import { SupportFitMeetCard } from '@/src/components/SupportFitMeetCard'
@@ -520,6 +521,7 @@ export default function EventDetailScreen() {
       }
       setSelectedOffsets(new Set(activeOffsets))
       joinedJustNow.current = true
+      playRandomActionSound().catch(() => {})
       setShowReminderModal(true)
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Could not join.'
