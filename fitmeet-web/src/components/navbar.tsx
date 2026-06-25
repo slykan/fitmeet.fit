@@ -87,7 +87,7 @@ export function Navbar() {
     <nav className="sticky top-0 z-[1001] border-b border-[--border] bg-[--surface]/80 backdrop-blur-md">
       <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
 
-        <div className="flex items-center gap-5">
+        <div className="flex items-center gap-3 md:gap-5">
           <Link href={user ? '/hub' : '/'} className="flex items-center">
             {mounted && (
               <Image
@@ -148,21 +148,21 @@ export function Navbar() {
           )}
           <Link
             href="/blog"
-            className={`hidden ${user ? 'lg:block' : 'sm:block'} text-sm font-medium transition-colors hover:opacity-80`}
+            className={`hidden ${user ? 'lg:block' : 'md:block'} text-sm font-medium transition-colors hover:opacity-80`}
             style={{ color: 'var(--text-muted)' }}
           >
             Blog
           </Link>
           <Link
             href="/about"
-            className={`hidden ${user ? 'lg:block' : 'sm:block'} text-sm font-medium transition-colors hover:opacity-80`}
+            className={`hidden ${user ? 'lg:block' : 'md:block'} text-sm font-medium transition-colors hover:opacity-80`}
             style={{ color: 'var(--text-muted)' }}
           >
             About
           </Link>
           <Link
             href="/press"
-            className={`hidden ${user ? 'lg:block' : 'sm:block'} text-sm font-medium transition-colors hover:opacity-80`}
+            className={`hidden ${user ? 'lg:block' : 'md:block'} text-sm font-medium transition-colors hover:opacity-80`}
             style={{ color: 'var(--text-muted)' }}
           >
             Press
