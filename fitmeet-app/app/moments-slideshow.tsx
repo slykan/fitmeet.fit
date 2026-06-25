@@ -163,7 +163,7 @@ export default function MomentsSlideshowScreen() {
     try {
       await Audio.setAudioModeAsync({ playsInSilentModeIOS: true })
       const { sound } = await Audio.Sound.createAsync(
-        { uri: 'https://fitmeet.fit/volim_nju.mp3' },
+        { uri: 'https://fitmeet.fit/background-slideshow.mp3' },
         { shouldPlay: true, isLooping: true }
       )
       soundRef.current = sound
