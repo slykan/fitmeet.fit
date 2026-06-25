@@ -276,7 +276,7 @@ function RouteContent() {
               </div>
               <a
                 href={route.gpx_url ?? `/api/routes/${route.id}/gpx`}
-                download
+                download={`${route.title.trim().replace(/\s+/g, '-')}.gpx`}
                 className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border font-semibold"
                 style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}
               >
