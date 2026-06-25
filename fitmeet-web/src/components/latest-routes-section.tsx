@@ -22,7 +22,7 @@ export function LatestRoutesSection() {
 
   useEffect(() => {
     if (!token) { setLoaded(true); return }
-    api.get('/routes', { params: { per_page: 4, sort: 'new' } })
+    api.get('/routes', { params: { per_page: 8, sort: 'new' } })
       .then(({ data }) => setRoutes(data.data ?? []))
       .catch(() => {})
       .finally(() => setLoaded(true))
@@ -60,7 +60,7 @@ export function LatestRoutesSection() {
           <>
             {routes.length > 0 && (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
-                {routes.map((route) => {
+                {routes.slice(0, 8).map((route) => {
                   const emoji = CATEGORY_EMOJI[route.category.value] ?? '📍'
                   return (
                     <Link

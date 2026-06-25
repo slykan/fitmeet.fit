@@ -148,21 +148,21 @@ export function Navbar() {
           )}
           <Link
             href="/blog"
-            className="hidden sm:block text-sm font-medium transition-colors hover:opacity-80"
+            className={`hidden ${user ? 'lg:block' : 'sm:block'} text-sm font-medium transition-colors hover:opacity-80`}
             style={{ color: 'var(--text-muted)' }}
           >
             Blog
           </Link>
           <Link
             href="/about"
-            className="hidden sm:block text-sm font-medium transition-colors hover:opacity-80"
+            className={`hidden ${user ? 'lg:block' : 'sm:block'} text-sm font-medium transition-colors hover:opacity-80`}
             style={{ color: 'var(--text-muted)' }}
           >
             About
           </Link>
           <Link
             href="/press"
-            className="hidden sm:block text-sm font-medium transition-colors hover:opacity-80"
+            className={`hidden ${user ? 'lg:block' : 'sm:block'} text-sm font-medium transition-colors hover:opacity-80`}
             style={{ color: 'var(--text-muted)' }}
           >
             Press
