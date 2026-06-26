@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import * as Notifications from 'expo-notifications'
 import * as TaskManager from 'expo-task-manager'
 import { router } from 'expo-router'
-import { Platform } from 'react-native'
+import { Linking, Platform } from 'react-native'
 
 import { api } from '@/src/lib/api'
 import { emitChatRefresh } from '@/src/lib/chat-refresh'
@@ -76,6 +76,11 @@ function routeFromNotificationData(data: Record<string, unknown> | undefined) {
   if (type === 'new_message') {
     emitChatRefresh()
     router.push('/(tabs)/messages' as never)
+    return
+  }
+
+  if (typeof data.url === 'string' && data.url) {
+    Linking.openURL(data.url).catch(() => {})
     return
   }
 

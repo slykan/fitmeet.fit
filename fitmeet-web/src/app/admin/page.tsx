@@ -39,6 +39,7 @@ export default function AdminPage() {
 
   const [title,    setTitle]    = useState('')
   const [body,     setBody]     = useState('')
+  const [link,     setLink]     = useState('')
   const [platform, setPlatform] = useState('')
   const [country,  setCountry]  = useState('')
   const [countries, setCountries] = useState<string[]>([])
@@ -75,12 +76,14 @@ export default function AdminPage() {
       await api.post('/admin/broadcast', {
         title: title.trim(),
         body:  body.trim(),
+        data:  link.trim() ? { url: link.trim() } : undefined,
         target_platform: platform || null,
         target_country:  country  || null,
       })
       setSuccess('Broadcast sent!')
       setTitle('')
       setBody('')
+      setLink('')
       const { data } = await api.get('/admin/broadcasts')
       setBroadcasts(data)
     } catch {
@@ -151,6 +154,20 @@ export default function AdminPage() {
                 style={{ background: 'var(--background)', border: '1px solid var(--border)', color: 'var(--text)' }}
               />
               <p className="text-xs mt-1 text-right" style={{ color: 'var(--text-muted)' }}>{body.length}/500</p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>
+                LINK (OPTIONAL)
+              </label>
+              <input
+                value={link}
+                onChange={e => setLink(e.target.value)}
+                placeholder="https://…"
+                type="url"
+                className="w-full rounded-xl px-4 py-3 text-sm outline-none"
+                style={{ background: 'var(--background)', border: '1px solid var(--border)', color: 'var(--text)' }}
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-4">

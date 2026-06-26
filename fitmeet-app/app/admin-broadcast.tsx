@@ -38,6 +38,7 @@ function timeAgo(iso: string) {
 export default function AdminBroadcastScreen() {
   const [title,     setTitle]     = useState('')
   const [body,      setBody]      = useState('')
+  const [link,      setLink]      = useState('')
   const [platform,  setPlatform]  = useState<string | null>(null)
   const [country,   setCountry]   = useState<string | null>(null)
   const [countries, setCountries] = useState<string[]>([])
@@ -68,12 +69,14 @@ export default function AdminBroadcastScreen() {
       await api.post('/admin/broadcast', {
         title: title.trim(),
         body:  body.trim(),
+        data:  link.trim() ? { url: link.trim() } : undefined,
         target_platform: platform,
         target_country:  country,
       })
       setSuccess('Broadcast sent!')
       setTitle('')
       setBody('')
+      setLink('')
       setPlatform(null)
       setCountry(null)
       const { data } = await api.get('/admin/broadcasts')
@@ -130,6 +133,20 @@ export default function AdminBroadcastScreen() {
               textAlignVertical="top"
             />
             <Text style={styles.charCount}>{body.length}/500</Text>
+          </View>
+
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>LINK (OPTIONAL)</Text>
+            <TextInput
+              style={styles.input}
+              value={link}
+              onChangeText={setLink}
+              placeholder="https://…"
+              placeholderTextColor={palette.textDim}
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="url"
+            />
           </View>
 
           {/* Platform picker */}
