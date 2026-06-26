@@ -11,7 +11,7 @@ interface WikiPhoto {
 
 type Point = [number, number]
 
-function sampleRoutePoints(track: Point[], maxPoints = 5): Point[] {
+function sampleRoutePoints(track: Point[], maxPoints = 8): Point[] {
   if (track.length <= maxPoints) return track
   const last = track.length - 1
   return Array.from({ length: maxPoints }, (_, index) => track[Math.round((index / (maxPoints - 1)) * last)])
@@ -21,12 +21,22 @@ async function fetchWikiPhotos(points: Point[]): Promise<WikiPhoto[]> {
   const base = 'https://commons.wikimedia.org/w/api.php'
 
   const geoResults = await Promise.all(points.map(([lat, lng]) => fetch(
-    `${base}?action=query&list=geosearch&gscoord=${lat}|${lng}&gsradius=3000&gslimit=8&gsnamespace=6&format=json&origin=*`
+    `${base}?action=query&list=geosearch&gscoord=${lat}|${lng}&gsradius=5000&gslimit=5&gsnamespace=6&format=json&origin=*`
   ).then(r => r.json())))
 
-  const titles = Array.from(new Set(
-    geoResults.flatMap(geo => (geo.query?.geosearch ?? []).map((item: { title: string }) => item.title)),
-  )).slice(0, 30)
+  const perPoint = geoResults.map((geo: { query?: { geosearch?: Array<{ title: string }> } }) =>
+    (geo.query?.geosearch ?? []).map(item => item.title))
+  const seen = new Set<string>()
+  const titles: string[] = []
+  const maxLen = Math.max(0, ...perPoint.map((p: string[]) => p.length))
+  for (let i = 0; i < maxLen && titles.length < 24; i++) {
+    for (const pointTitles of perPoint) {
+      if (i < pointTitles.length && !seen.has(pointTitles[i])) {
+        seen.add(pointTitles[i])
+        titles.push(pointTitles[i])
+      }
+    }
+  }
   if (!titles.length) return []
 
   const info = await fetch(
