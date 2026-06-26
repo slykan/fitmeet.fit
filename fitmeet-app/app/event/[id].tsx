@@ -10,6 +10,7 @@ import {
 import { WebView } from 'react-native-webview'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import * as FileSystem from 'expo-file-system/legacy'
 import { WeatherBadge } from '@/src/components/WeatherBadge'
 import { EventMapCard } from '@/src/components/EventMapCard'
 import { ElevationChart } from '@/src/components/ElevationChart'
@@ -703,9 +704,24 @@ export default function EventDetailScreen() {
   async function openGpxRoute() {
     if (!event?.activity.gpx_url) return
     try {
-      await Linking.openURL(event.activity.gpx_url)
+      const token = useAuthStore.getState().token
+      const baseUrl = api.defaults.baseURL ?? 'https://api.fitmeet.fit/api'
+      const endpoint = event.is_private
+        ? `${baseUrl}/events/${event.id}/gpx`
+        : `${baseUrl}/events/public/${event.id}/gpx`
+      const filename = `${event.title.trim().replace(/\s+/g, '-')}.gpx`
+      const fileUri = FileSystem.cacheDirectory + filename
+      await FileSystem.downloadAsync(endpoint, fileUri, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
+      if (Platform.OS === 'ios') {
+        await Share.share({ url: fileUri })
+      } else {
+        const contentUri = await FileSystem.getContentUriAsync(fileUri)
+        await Linking.openURL(contentUri)
+      }
     } catch {
-      Alert.alert('GPX route', 'Could not open GPX file.')
+      Alert.alert('GPX route', 'Could not download GPX file.')
     }
   }
 

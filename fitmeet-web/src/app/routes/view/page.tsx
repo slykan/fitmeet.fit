@@ -172,6 +172,24 @@ function RouteContent() {
     }
   }
 
+  async function handleGpxDownload() {
+    try {
+      const { data } = await api.get(`/routes/${currentRoute.id}/gpx`, { responseType: 'blob' })
+      const blob = data instanceof Blob ? data : new Blob([data], { type: 'application/gpx+xml' })
+      const filename = `${currentRoute.title.trim().replace(/\s+/g, '-')}.gpx`
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = filename
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+    } catch {
+      alert('Could not download GPX.')
+    }
+  }
+
   async function shareRoute() {
     const url = `${window.location.origin}/routes/view?id=${currentRoute.id}`
     const text = [
@@ -274,14 +292,14 @@ function RouteContent() {
               <div className="flex items-center gap-2 font-bold">
                 <Zap size={16} style={{ color: 'var(--primary)' }} /> Route
               </div>
-              <a
-                href={route.gpx_url ?? `/api/routes/${route.id}/gpx`}
-                download={`${route.title.trim().replace(/\s+/g, '-')}.gpx`}
+              <button
+                type="button"
+                onClick={handleGpxDownload}
                 className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border font-semibold"
                 style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}
               >
                 <Download size={13} /> GPX
-              </a>
+              </button>
             </div>
             <LocationPickerMap
               lat={route.location.start_lat}

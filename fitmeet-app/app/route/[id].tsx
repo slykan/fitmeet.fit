@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Alert, Linking, Platform, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
+import * as FileSystem from 'expo-file-system/legacy'
 import { ElevationChart } from '@/src/components/ElevationChart'
 import { EventMapCard } from '@/src/components/EventMapCard'
 import { WikiPhotosStrip } from '@/src/components/WikiPhotosStrip'
@@ -109,12 +110,23 @@ export default function RouteViewScreen() {
   }
 
   async function openGpxDownload() {
-    if (!id) return
-    const baseUrl = api.defaults.baseURL ?? 'https://api.fitmeet.fit/api'
+    if (!id || !route) return
     try {
-      await Linking.openURL(`${baseUrl}/routes/${id}/gpx`)
+      const baseUrl = api.defaults.baseURL ?? 'https://api.fitmeet.fit/api'
+      const token = useAuthStore.getState().token
+      const filename = `${route.title.trim().replace(/\s+/g, '-')}.gpx`
+      const fileUri = FileSystem.cacheDirectory + filename
+      await FileSystem.downloadAsync(`${baseUrl}/routes/${id}/gpx`, fileUri, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
+      if (Platform.OS === 'ios') {
+        await Share.share({ url: fileUri })
+      } else {
+        const contentUri = await FileSystem.getContentUriAsync(fileUri)
+        await Linking.openURL(contentUri)
+      }
     } catch {
-      Alert.alert('GPX route', 'Could not open GPX file.')
+      Alert.alert('GPX route', 'Could not download GPX file.')
     }
   }
 

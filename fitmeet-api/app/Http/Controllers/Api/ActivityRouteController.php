@@ -9,6 +9,7 @@ use App\Models\ActivityRoute;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class ActivityRouteController extends Controller
 {
@@ -115,9 +116,12 @@ class ActivityRouteController extends Controller
         abort_unless($activityRoute->is_public || $isOwner, 404);
         abort_unless($activityRoute->gpx_path && Storage::disk('public')->exists($activityRoute->gpx_path), 404);
 
+        $filename = Str::slug($activityRoute->title ?: 'route-' . $activityRoute->id) . '.gpx';
+
         return response(Storage::disk('public')->get($activityRoute->gpx_path), 200, [
-            'Content-Type' => 'application/gpx+xml',
-            'Cache-Control' => 'no-cache, no-store, must-revalidate',
+            'Content-Type'        => 'application/gpx+xml',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Cache-Control'       => 'no-cache, no-store, must-revalidate',
         ]);
     }
 

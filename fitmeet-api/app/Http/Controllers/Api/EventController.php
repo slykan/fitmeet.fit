@@ -621,9 +621,12 @@ HTML;
 
         abort_unless(Storage::disk('public')->exists($event->gpx_path), 404);
 
+        $filename = Str::slug($event->title ?: 'fitmeet-event-' . $event->id) . '.gpx';
+
         return response(Storage::disk('public')->get($event->gpx_path), 200, [
-            'Content-Type'  => 'application/gpx+xml',
-            'Cache-Control' => 'public, max-age=86400',
+            'Content-Type'        => 'application/gpx+xml',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Cache-Control'       => 'public, max-age=86400',
         ]);
     }
 

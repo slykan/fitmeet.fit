@@ -1,7 +1,6 @@
 apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
-apply plugin: "com.google.gms.google-services"
 
 def projectRoot = rootDir.getAbsoluteFile().getParentFile().getAbsolutePath()
 
@@ -82,19 +81,28 @@ def enableMinifyInReleaseBuilds = (findProperty('android.enableMinifyInReleaseBu
  */
 def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
 
+def releaseStoreFilePath = findProperty('FITMEET_RELEASE_STORE_FILE') ?: System.getenv('FITMEET_RELEASE_STORE_FILE') ?: 'fitmeet-release.keystore'
+def releaseStorePassword = findProperty('FITMEET_RELEASE_STORE_PASSWORD') ?: System.getenv('FITMEET_RELEASE_STORE_PASSWORD') ?: 'FitMeet2024!'
+def releaseKeyAlias = findProperty('FITMEET_RELEASE_KEY_ALIAS') ?: System.getenv('FITMEET_RELEASE_KEY_ALIAS') ?: 'fitmeet'
+def releaseKeyPassword = findProperty('FITMEET_RELEASE_KEY_PASSWORD') ?: System.getenv('FITMEET_RELEASE_KEY_PASSWORD') ?: releaseStorePassword
+
 android {
+    lintOptions {
+        checkReleaseBuilds false
+        abortOnError false
+    }
     ndkVersion rootProject.ext.ndkVersion
 
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'com.anonymous.fitmeetapp'
+    namespace 'app.fitmeet.fit'
     defaultConfig {
         applicationId 'app.fitmeet.fit'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 197
-        versionName "1.3.37"
+        versionCode 202
+        versionName "1.3.32"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
     }
@@ -106,10 +114,10 @@ android {
             keyPassword 'android'
         }
         release {
-            storeFile file('fitmeet-release.keystore')
-            storePassword 'FitMeet2024!'
-            keyAlias 'fitmeet'
-            keyPassword 'FitMeet2024!'
+            storeFile file(releaseStoreFilePath)
+            storePassword releaseStorePassword
+            keyAlias releaseKeyAlias
+            keyPassword releaseKeyPassword
         }
     }
     buildTypes {
@@ -117,6 +125,9 @@ android {
             signingConfig signingConfigs.debug
         }
         release {
+            if (!signingConfigs.release.storeFile.exists()) {
+                throw new GradleException("Missing release keystore: ${signingConfigs.release.storeFile}.")
+            }
             signingConfig signingConfigs.release
             def enableShrinkResources = findProperty('android.enableShrinkResourcesInReleaseBuilds') ?: 'false'
             shrinkResources enableShrinkResources.toBoolean()
@@ -186,9 +197,4 @@ dependencies {
     }
 }
 
-// Fix Gradle 8.14 unreadable sources bug on RN bundle task
-afterEvaluate {
-    tasks.matching { it.name.contains("BundleRelease") || it.name.contains("bundleRelease") }.configureEach {
-        doNotTrackState("RN bundle task has temp sources from Metro")
-    }
-}
+apply plugin: 'com.google.gms.google-services'

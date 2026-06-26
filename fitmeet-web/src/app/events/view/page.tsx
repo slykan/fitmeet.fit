@@ -334,7 +334,7 @@ function EventContent() {
       const blob = data instanceof Blob
         ? data
         : new Blob([data], { type: 'application/gpx+xml' })
-      const filename = `fitmeet-event-${event.id}.gpx`
+      const filename = `${event.title.trim().replace(/\s+/g, '-')}.gpx`
       const saveFilePicker = (window as SavePickerWindow).showSaveFilePicker
 
       if (saveFilePicker) {

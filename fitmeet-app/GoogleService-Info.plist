@@ -13,7 +13,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>app.fitmeet.fit</string>
+	<string>fit.fitmeet.app</string>
 	<key>PROJECT_ID</key>
 	<string>fitmeet-5fe3e</string>
 	<key>STORAGE_BUCKET</key>
@@ -29,6 +29,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:1058578176166:ios:45bb62ac69b4c560213c67</string>
+	<string>1:1058578176166:ios:7db1b05948e8881e213c67</string>
 </dict>
 </plist>

@@ -3,7 +3,7 @@
     "name": "FitMeet",
     "slug": "fitmeet-app",
     "scheme": "fitmeet",
-    "version": "1.3.31",
+    "version": "1.3.32",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "icon": "./assets/icon.png",
@@ -33,7 +33,7 @@
       "newArchEnabled": false,
       "supportsTablet": false,
       "icon": "./assets/icon.png",
-      "bundleIdentifier": "app.fitmeet.fit",
+      "bundleIdentifier": "fit.fitmeet.app",
       "buildNumber": "18",
       "associatedDomains": [
         "applinks:fitmeet.fit",
@@ -58,7 +58,7 @@
       "edgeToEdgeEnabled": true,
       "googleServicesFile": "./google-services.json",
       "package": "app.fitmeet.fit",
-      "versionCode": 200,
+      "versionCode": 202,
       "intentFilters": [
         {
           "action": "VIEW",
