@@ -8,6 +8,7 @@ import { AppState, Pressable, Text, View } from 'react-native'
 import type { ReactNode, ErrorInfo } from 'react'
 
 import { BeerTickerBanner, BEER_TICKER_HEIGHT } from '@/src/components/BeerTickerBanner'
+import { WorldCupOverlay } from '@/src/components/WorldCupOverlay'
 import { setupPushNotificationRouting, syncPushToken } from '@/src/lib/push-notifications'
 import { setupRevenueCat } from '@/src/lib/revenuecat'
 import { useAuthStore } from '@/src/store/auth'
@@ -148,6 +149,7 @@ export default function RootLayout() {
         }}
       />
       <BeerTickerBanner />
+      <WorldCupOverlay />
     </ErrorBoundary>
   )
 }
