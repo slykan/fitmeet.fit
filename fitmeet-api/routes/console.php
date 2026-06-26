@@ -58,22 +58,20 @@ Artisan::command('events:send-started', function () {
         ->where('status', 'active')
         ->where('start_at', '<=', now()->addMinutes(10))
         ->where('start_at', '>=', now()->addMinutes(5))
-        ->whereDoesntHave('participants', function ($query) {
-            $query->whereExists(function ($subquery) {
-                $subquery->selectRaw('1')
-                    ->from('event_notifications')
-                    ->whereColumn('event_notifications.event_id', 'events.id')
-                    ->whereColumn('event_notifications.user_id', 'users.id')
-                    ->where('event_notifications.type', 'event_started');
-            });
+        ->whereNotExists(function ($query) {
+            $query->selectRaw('1')
+                ->from('event_notifications')
+                ->whereColumn('event_notifications.event_id', 'events.id')
+                ->where('event_notifications.type', 'event_started')
+                ->limit(1);
         })
         ->get();
 
     foreach ($events as $event) {
-        SendStartedEventNotifications::dispatchSync($event);
+        SendStartedEventNotifications::dispatch($event);
     }
 
-    $this->info("Checked {$events->count()} event(s) starting soon.");
+    $this->info("Dispatched {$events->count()} event(s) starting soon.");
 })->purpose('Send notifications before joined events start');
 
 Schedule::command('events:send-started')->everyMinute();
