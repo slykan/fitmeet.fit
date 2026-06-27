@@ -227,3 +227,51 @@ export function parseGpxText(xml: string): GpxParsed {
     coloredSegments,
   }
 }
+
+export async function enrichGpxWithElevation(xml: string): Promise<string> {
+  if (/<ele[^>]*>[\d.+-]+<\/ele>/i.test(xml)) return xml
+
+  const trkptRx = /<trkpt\s+lat="([^"]+)"\s+lon="([^"]+)"[^>]*\/?>(?:[\s\S]*?<\/trkpt>)?/gi
+  const points: { lat: number; lon: number; match: string }[] = []
+  let m: RegExpExecArray | null
+  while ((m = trkptRx.exec(xml)) !== null) {
+    points.push({ lat: parseFloat(m[1]), lon: parseFloat(m[2]), match: m[0] })
+  }
+  if (points.length < 2) return xml
+
+  const MAX = 100
+  const step = Math.max(1, Math.floor(points.length / MAX))
+  const si: number[] = []
+  for (let i = 0; i < points.length; i += step) si.push(i)
+  if (si[si.length - 1] !== points.length - 1) si.push(points.length - 1)
+
+  const lats = si.map(i => points[i].lat.toFixed(5)).join(',')
+  const lngs = si.map(i => points[i].lon.toFixed(5)).join(',')
+
+  try {
+    const res = await fetch(`https://api.open-meteo.com/v1/elevation?latitude=${lats}&longitude=${lngs}`)
+    if (!res.ok) return xml
+    const data = await res.json() as { elevation?: number[] }
+    const se = data.elevation ?? []
+    if (se.length === 0) return xml
+
+    const elevs = new Array<number>(points.length)
+    let j = 0
+    for (let i = 0; i < points.length; i++) {
+      if (j + 1 < si.length && i >= si[j + 1]) j++
+      if (i === si[j]) elevs[i] = se[j]
+      else if (j + 1 < si.length) {
+        const t = (i - si[j]) / (si[j + 1] - si[j])
+        elevs[i] = se[j] + t * (se[j + 1] - se[j])
+      } else elevs[i] = se[j]
+    }
+
+    let result = xml
+    for (let i = points.length - 1; i >= 0; i--) {
+      const pt = points[i]
+      const eleTrkpt = `<trkpt lat="${pt.lat}" lon="${pt.lon}">\n      <ele>${elevs[i].toFixed(1)}</ele>\n    </trkpt>`
+      result = result.replace(pt.match, eleTrkpt)
+    }
+    return result
+  } catch { return xml }
+}

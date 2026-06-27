@@ -10,7 +10,7 @@ import { EventMapCard } from '@/src/components/EventMapCard'
 import { WikiPhotosStrip } from '@/src/components/WikiPhotosStrip'
 import { CATEGORIES } from '@/src/lib/categories'
 import { api } from '@/src/lib/api'
-import { fetchElevationProfile, parseGpxText } from '@/src/lib/gpx'
+import { enrichGpxWithElevation, fetchElevationProfile, parseGpxText } from '@/src/lib/gpx'
 import type { GpxParsed } from '@/src/lib/gpx'
 import { analyzeRouteSurface, type SurfaceAnalysis } from '@/src/lib/route-surface'
 import { useAuthStore } from '@/src/store/auth'
@@ -119,11 +119,19 @@ export default function RouteViewScreen() {
       await FileSystem.downloadAsync(`${baseUrl}/routes/${id}/gpx`, fileUri, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       })
+      const raw = await FileSystem.readAsStringAsync(fileUri)
+      const enriched = await enrichGpxWithElevation(raw)
+      await FileSystem.writeAsStringAsync(fileUri, enriched)
       if (Platform.OS === 'ios') {
         await Share.share({ url: fileUri })
       } else {
-        const contentUri = await FileSystem.getContentUriAsync(fileUri)
-        await Linking.openURL(contentUri)
+        const perms = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync()
+        if (!perms.granted) return
+        const destUri = await FileSystem.StorageAccessFramework.createFileAsync(
+          perms.directoryUri, filename, 'application/gpx+xml',
+        )
+        await FileSystem.writeAsStringAsync(destUri, enriched)
+        Alert.alert('GPX saved', `${filename} saved to selected folder.`)
       }
     } catch {
       Alert.alert('GPX route', 'Could not download GPX file.')

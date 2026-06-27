@@ -25,14 +25,49 @@ import { palette, spacing } from '@/src/theme'
 
 // ─── GPX builder ─────────────────────────────────────────────────────────────
 
-function buildGpx(track: [number, number][], title: string): string {
+function buildGpx(track: [number, number][], title: string, elevations?: number[]): string {
   const esc = (s: string) =>
     s.replace(/[<>&"']/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&apos;' }[c]!))
   const pts = track
-    .map(([lat, lng]) => `    <trkpt lat="${lat.toFixed(7)}" lon="${lng.toFixed(7)}"/>`)
+    .map(([lat, lng], i) => {
+      const ele = elevations?.[i]
+      if (ele != null && !isNaN(ele))
+        return `    <trkpt lat="${lat.toFixed(7)}" lon="${lng.toFixed(7)}">\n      <ele>${ele.toFixed(1)}</ele>\n    </trkpt>`
+      return `    <trkpt lat="${lat.toFixed(7)}" lon="${lng.toFixed(7)}"/>`
+    })
     .join('\n')
   const name = esc(title || 'Route')
   return `<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="FitMeet" xmlns="http://www.topografix.com/GPX/1/1">\n  <metadata><name>${name}</name></metadata>\n  <trk><name>${name}</name><trkseg>\n${pts}\n  </trkseg></trk>\n</gpx>`
+}
+
+async function fetchTrackElevations(track: [number, number][]): Promise<number[]> {
+  if (track.length < 2) return []
+  const MAX = 100
+  const step = Math.max(1, Math.floor(track.length / MAX))
+  const si: number[] = []
+  for (let i = 0; i < track.length; i += step) si.push(i)
+  if (si[si.length - 1] !== track.length - 1) si.push(track.length - 1)
+  const sampled = si.map(i => track[i])
+  const lats = sampled.map(([lat]) => lat.toFixed(5)).join(',')
+  const lngs = sampled.map(([, lng]) => lng.toFixed(5)).join(',')
+  try {
+    const res = await fetch(`https://api.open-meteo.com/v1/elevation?latitude=${lats}&longitude=${lngs}`)
+    if (!res.ok) return []
+    const data = await res.json() as { elevation?: number[] }
+    const se = data.elevation ?? []
+    if (se.length === 0) return []
+    const out = new Array<number>(track.length)
+    let j = 0
+    for (let i = 0; i < track.length; i++) {
+      if (j + 1 < si.length && i >= si[j + 1]) j++
+      if (i === si[j]) { out[i] = se[j] }
+      else if (j + 1 < si.length) {
+        const t = (i - si[j]) / (si[j + 1] - si[j])
+        out[i] = se[j] + t * (se[j + 1] - se[j])
+      } else { out[i] = se[j] }
+    }
+    return out
+  } catch { return [] }
 }
 
 // ─── GPX track parser ─────────────────────────────────────────────────────────
@@ -1057,7 +1092,8 @@ export default function DrawRouteScreen() {
     setSaving(true)
     try {
       const areaLabel = await reverseGeocode(payload.startLat, payload.startLng)
-      const gpxContent = buildGpx(payload.track, title)
+      const elevations = await fetchTrackElevations(payload.track)
+      const gpxContent = buildGpx(payload.track, title, elevations)
       const tempUri = FileSystem.cacheDirectory + `route-${Date.now()}.gpx`
       await FileSystem.writeAsStringAsync(tempUri, gpxContent, { encoding: 'utf8' })
 
