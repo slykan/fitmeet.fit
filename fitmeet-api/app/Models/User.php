@@ -46,6 +46,7 @@ class User extends Authenticatable
         'categories',
         'skill_level',
         'birth_date',
+        'birthday_notified_date',
         'fcm_token',
     ];
 
@@ -60,7 +61,8 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password'          => 'hashed',
             'categories'        => 'array',
-            'birth_date'        => 'date',
+            'birth_date'              => 'date',
+            'birthday_notified_date'  => 'date',
             'hide_phone'        => 'boolean',
             'email_friend_requests' => 'boolean',
             'email_new_events'      => 'boolean',

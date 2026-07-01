@@ -187,14 +187,15 @@ export function BeerTickerBanner() {
         if (Date.now() - lastLoadedAt.current > 30000) {
           loadDonors()
         } else if (sequenceWidth.current > 0) {
-          // Stop, reset to 0, then wait one frame before restarting.
-          // useNativeDriver keeps the animation on the native thread — calling
-          // tryStart() synchronously after background resume races the native
-          // layer and leaves the ticker frozen.
-          animRef.current?.stop()
-          translateX.setValue(0)
+          // useNativeDriver keeps animation on the native thread. After standby/
+          // background the native layer freezes the value. We must wait for
+          // stopAnimation's callback (confirming native has stopped) before
+          // resetting and restarting — otherwise the new loop races the frozen one.
           started.current = false
-          setTimeout(tryStart, 80)
+          translateX.stopAnimation(() => {
+            translateX.setValue(0)
+            setTimeout(tryStart, 50)
+          })
         }
       } else if (state === 'background') {
         animRef.current?.stop()

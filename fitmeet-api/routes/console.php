@@ -115,3 +115,47 @@ Artisan::command('moments:send-reminders', function () {
 })->purpose('Send moment upload reminders to organizers after events end');
 
 Schedule::command('moments:send-reminders')->everyFifteenMinutes();
+
+Artisan::command('birthday:send', function () {
+    $todayUtc  = now()->utc();
+    $todayMonth = (int) $todayUtc->format('m');
+    $todayDay   = (int) $todayUtc->format('d');
+    $todayDate  = $todayUtc->toDateString();
+
+    // Find users whose birthday is today (day + month match), not yet notified today,
+    // and whose estimated local hour is between 8 and 9.
+    // Timezone is approximated from home_lng: offset_hours = round(lng / 15).
+    // We send when UTC_hour == (8 - offset + 24) % 24, i.e. when it's ~8 AM locally.
+    $currentUtcHour = (int) $todayUtc->format('H');
+
+    $users = \App\Models\User::whereNotNull('birth_date')
+        ->whereMonth('birth_date', $todayMonth)
+        ->whereDay('birth_date', $todayDay)
+        ->where(fn ($q) => $q->whereNull('birthday_notified_date')
+            ->orWhereDate('birthday_notified_date', '<', $todayDate))
+        ->whereHas('pushTokens')
+        ->get();
+
+    $sent = 0;
+    foreach ($users as $user) {
+        $lng    = $user->home_lng ?? 0;
+        $offset = (int) round($lng / 15);
+        $localHour = (($currentUtcHour + $offset) % 24 + 24) % 24;
+
+        if ($localHour < 8 || $localHour >= 9) continue;
+
+        \App\Jobs\SendPushNotification::dispatch(
+            [$user->id],
+            '🎂 Happy Birthday, ' . $user->name . '!',
+            'The FitMeet team wishes you an amazing day! 🎉',
+            ['type' => 'birthday'],
+        );
+
+        $user->update(['birthday_notified_date' => $todayDate]);
+        $sent++;
+    }
+
+    $this->info("Sent birthday notifications to {$sent} user(s).");
+})->purpose('Send birthday push notifications around 8 AM local time');
+
+Schedule::command('birthday:send')->hourly();
