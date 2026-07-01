@@ -8,6 +8,7 @@ import { AppState, Pressable, Text, View } from 'react-native'
 import type { ReactNode, ErrorInfo } from 'react'
 
 import { BeerTickerBanner, BEER_TICKER_HEIGHT } from '@/src/components/BeerTickerBanner'
+import { BirthdayOverlay } from '@/src/components/BirthdayOverlay'
 import { WorldCupOverlay } from '@/src/components/WorldCupOverlay'
 import { setupPushNotificationRouting, syncPushToken } from '@/src/lib/push-notifications'
 import { setupRevenueCat } from '@/src/lib/revenuecat'
@@ -150,6 +151,7 @@ export default function RootLayout() {
       />
       <BeerTickerBanner />
       <WorldCupOverlay />
+      <BirthdayOverlay />
     </ErrorBoundary>
   )
 }

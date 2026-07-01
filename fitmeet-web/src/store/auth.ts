@@ -20,6 +20,7 @@ export interface User {
   radius_km: number
   categories: string[]
   skill_level: 'beginner' | 'advanced' | 'pro' | null
+  birth_date: string | null
   onboarding_complete: boolean
   is_admin: boolean
 }

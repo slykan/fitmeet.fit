@@ -13,6 +13,13 @@ import { useAuthStore } from '@/src/store/auth'
 import { palette, spacing } from '@/src/theme'
 import { AlibiCard } from '@/src/components/AlibiCard'
 
+function isBirthday(birthDate: string | null | undefined): boolean {
+  if (!birthDate) return false
+  const today = new Date()
+  const [, m, d] = birthDate.split('-').map(Number)
+  return today.getMonth() + 1 === m && today.getDate() === d
+}
+
 const RADIUS_LABELS: Record<string, string> = {
   nearby: 'Nearby (50 km)',
   city: 'City (200 km)',
@@ -111,13 +118,20 @@ export default function ProfileScreen() {
 
         {/* Identity card */}
         <View style={styles.card}>
-          {user.avatar ? (
-            <Image source={{ uri: user.avatar }} style={styles.avatar} />
-          ) : (
-            <View style={styles.avatarFallback}>
-              <Text style={styles.avatarInitial}>{user.name.charAt(0).toUpperCase()}</Text>
-            </View>
-          )}
+          <View>
+            {user.avatar ? (
+              <Image source={{ uri: user.avatar }} style={styles.avatar} />
+            ) : (
+              <View style={styles.avatarFallback}>
+                <Text style={styles.avatarInitial}>{user.name.charAt(0).toUpperCase()}</Text>
+              </View>
+            )}
+            {isBirthday(user.birth_date) && (
+              <View style={styles.birthdayBadge}>
+                <Text style={styles.birthdayBadgeText}>🎂</Text>
+              </View>
+            )}
+          </View>
           <View style={styles.userInfo}>
             <Text style={styles.name}>{user.name}</Text>
             <Text style={styles.email}>{user.email}</Text>
@@ -330,6 +344,8 @@ const styles = StyleSheet.create({
   },
 
   avatar:        { width: 72, height: 72, borderRadius: 18 },
+  birthdayBadge: { position: 'absolute', top: -10, left: '50%', marginLeft: -12, backgroundColor: palette.panel, borderRadius: 12, width: 24, height: 24, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: palette.line },
+  birthdayBadgeText: { fontSize: 14 },
   avatarFallback: {
     width: 72, height: 72, borderRadius: 18,
     backgroundColor: palette.accent,

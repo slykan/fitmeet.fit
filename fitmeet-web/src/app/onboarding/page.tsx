@@ -37,6 +37,9 @@ interface FormData {
   name:         string
   phone:        string
   hide_phone:   boolean
+  birth_day:    string
+  birth_month:  string
+  birth_year:   string
   home_country: string
   home_city:    string
   home_lat:     number | null
@@ -73,6 +76,9 @@ export default function OnboardingPage() {
       name:         user?.name         ?? '',
       phone:        user?.phone        ?? '',
       hide_phone:   (user as { hide_phone?: boolean })?.hide_phone ?? false,
+      birth_day:    user?.birth_date ? user.birth_date.split('-')[2] : '',
+      birth_month:  user?.birth_date ? user.birth_date.split('-')[1] : '',
+      birth_year:   user?.birth_date ? user.birth_date.split('-')[0] : '',
       home_country: user?.home?.country ?? '',
       home_city:    user?.home?.city    ?? '',
       home_lat:     user?.home?.lat     ?? null,
@@ -161,12 +167,18 @@ export default function OnboardingPage() {
     setSaving(true)
     setError(null)
     try {
+      const d = data.birth_day.trim(), m = data.birth_month.trim(), y = data.birth_year.trim()
+      const birthDateIso = (d && m && y && y.length === 4)
+        ? `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`
+        : null
+
       const payload: Record<string, unknown> = {
         name:         data.name,
         phone:        data.phone,
         home_country: data.home_country,
         home_city:    data.home_city,
         radius:       data.radius,
+        birth_date:   birthDateIso,
       }
       if (data.home_lat)               payload.home_lat     = data.home_lat
       if (data.home_lng)               payload.home_lng     = data.home_lng
@@ -305,6 +317,33 @@ export default function OnboardingPage() {
                 </button>
               </Field>
             </div>
+
+            <Field label="Date of birth (optional)" className="mt-4">
+              <div className="flex gap-2">
+                <input
+                  {...register('birth_day')}
+                  placeholder="DD"
+                  maxLength={2}
+                  className={cn(inputCls(false), 'w-20 text-center')}
+                  onChange={e => { const v = e.target.value.replace(/\D/g, ''); e.target.value = v }}
+                />
+                <input
+                  {...register('birth_month')}
+                  placeholder="MM"
+                  maxLength={2}
+                  className={cn(inputCls(false), 'w-20 text-center')}
+                  onChange={e => { const v = e.target.value.replace(/\D/g, ''); e.target.value = v }}
+                />
+                <input
+                  {...register('birth_year')}
+                  placeholder="YYYY"
+                  maxLength={4}
+                  className={cn(inputCls(false), 'w-28 text-center')}
+                  onChange={e => { const v = e.target.value.replace(/\D/g, ''); e.target.value = v }}
+                />
+              </div>
+              <p className="text-xs mt-1.5" style={{ color: 'var(--text-muted)' }}>Used to celebrate your birthday in the app 🎂</p>
+            </Field>
           </Section>
 
           {/* ── Location ── */}
