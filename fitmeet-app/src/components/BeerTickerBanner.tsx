@@ -187,9 +187,14 @@ export function BeerTickerBanner() {
         if (Date.now() - lastLoadedAt.current > 30000) {
           loadDonors()
         } else if (sequenceWidth.current > 0) {
-          // Native animation freezes in background — force restart on resume
+          // Stop, reset to 0, then wait one frame before restarting.
+          // useNativeDriver keeps the animation on the native thread — calling
+          // tryStart() synchronously after background resume races the native
+          // layer and leaves the ticker frozen.
+          animRef.current?.stop()
+          translateX.setValue(0)
           started.current = false
-          tryStart()
+          setTimeout(tryStart, 80)
         }
       } else if (state === 'background') {
         animRef.current?.stop()
