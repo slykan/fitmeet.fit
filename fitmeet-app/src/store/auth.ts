@@ -22,6 +22,7 @@ export interface MobileUser {
   radius_km: number
   categories: string[]
   skill_level: 'beginner' | 'advanced' | 'pro' | null
+  birth_date: string | null
   onboarding_complete: boolean
   is_admin: boolean
 }
@@ -103,6 +104,7 @@ function normalizeUser(user: MobileUser): MobileUser {
     radius_km: user.radius_km ?? 50,
     categories: user.categories ?? [],
     skill_level: user.skill_level ?? null,
+    birth_date: user.birth_date ?? null,
     onboarding_complete: user.onboarding_complete ?? false,
     is_admin: user.is_admin ?? false,
   }

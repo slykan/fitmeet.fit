@@ -40,6 +40,7 @@ class UserResource extends JsonResource
             'categories'  => $this->categories ?? [],
             'skill_level' => $this->skill_level,
 
+            'birth_date'          => $this->birth_date?->toDateString(),
             'is_admin'            => (bool) $this->is_admin,
             'onboarding_complete' => $this->isOnboardingComplete(),
 

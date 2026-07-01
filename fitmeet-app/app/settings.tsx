@@ -35,9 +35,19 @@ export default function SettingsScreen() {
   const refreshMe  = useAuthStore(s => s.refreshMe)
   const deleteAccount = useAuthStore(s => s.deleteAccount)
 
+  const parseBirth = (iso: string | null | undefined) => {
+    if (!iso) return { d: '', m: '', y: '' }
+    const [y, m, d] = iso.split('-')
+    return { d: d ?? '', m: m ?? '', y: y ?? '' }
+  }
+  const birth0 = parseBirth(user?.birth_date)
+
   const [name,       setName]       = useState(user?.name ?? '')
   const [phone,      setPhone]      = useState(user?.phone ?? '')
   const [hidePhone,  setHidePhone]  = useState(user?.hide_phone ?? false)
+  const [birthDay,   setBirthDay]   = useState(birth0.d)
+  const [birthMonth, setBirthMonth] = useState(birth0.m)
+  const [birthYear,  setBirthYear]  = useState(birth0.y)
   const [city,       setCity]       = useState(user?.home?.city ?? '')
   const [country,    setCountry]    = useState(user?.home?.country ?? '')
   const [radius,     setRadius]     = useState<'nearby'|'city'|'region'|'unlimited'>(user?.radius ?? 'nearby')
@@ -106,6 +116,11 @@ export default function SettingsScreen() {
     setSaving(true); setError(null); setSaved(false)
     try {
       const coords = await geocodeHome()
+      const d = birthDay.trim(), m = birthMonth.trim(), y = birthYear.trim()
+      const birthDateIso = (d && m && y && y.length === 4)
+        ? `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`
+        : null
+
       const payload: Record<string, unknown> = {
         name: name.trim(),
         phone: phone.trim() || null,
@@ -115,6 +130,7 @@ export default function SettingsScreen() {
         radius,
         categories,
         skill_level: skillLevel || null,
+        birth_date: birthDateIso,
       }
       if (coords) {
         payload.home_lat = coords.lat
@@ -214,6 +230,38 @@ export default function SettingsScreen() {
           <TextInput style={styles.input} value={phone} onChangeText={setPhone}
             placeholder="+385 91 234 5678" placeholderTextColor={palette.textDim}
             keyboardType="phone-pad" />
+        </Field>
+
+        <Field label="Date of birth">
+          <View style={styles.row}>
+            <TextInput
+              style={[styles.input, { flex: 1 }]}
+              value={birthDay}
+              onChangeText={t => setBirthDay(t.replace(/\D/g, '').slice(0, 2))}
+              placeholder="DD"
+              placeholderTextColor={palette.textDim}
+              keyboardType="number-pad"
+              maxLength={2}
+            />
+            <TextInput
+              style={[styles.input, { flex: 1 }]}
+              value={birthMonth}
+              onChangeText={t => setBirthMonth(t.replace(/\D/g, '').slice(0, 2))}
+              placeholder="MM"
+              placeholderTextColor={palette.textDim}
+              keyboardType="number-pad"
+              maxLength={2}
+            />
+            <TextInput
+              style={[styles.input, { flex: 2 }]}
+              value={birthYear}
+              onChangeText={t => setBirthYear(t.replace(/\D/g, '').slice(0, 4))}
+              placeholder="YYYY"
+              placeholderTextColor={palette.textDim}
+              keyboardType="number-pad"
+              maxLength={4}
+            />
+          </View>
         </Field>
 
         <Pressable style={styles.toggleRow} onPress={() => setHidePhone(v => !v)}>

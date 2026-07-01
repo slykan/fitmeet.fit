@@ -35,6 +35,7 @@ class UpdateProfileRequest extends FormRequest
             'categories.*' => ['string', Rule::in(Category::values())],
 
             'skill_level'  => ['sometimes', 'nullable', Rule::in(['beginner', 'advanced', 'pro'])],
+            'birth_date'   => ['sometimes', 'nullable', 'date', 'before:today', 'after:1900-01-01'],
 
             'hide_phone'   => ['sometimes', 'boolean'],
             'email_friend_requests' => ['sometimes', 'boolean'],

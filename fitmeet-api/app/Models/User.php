@@ -45,6 +45,7 @@ class User extends Authenticatable
         'radius',
         'categories',
         'skill_level',
+        'birth_date',
         'fcm_token',
     ];
 
@@ -59,6 +60,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password'          => 'hashed',
             'categories'        => 'array',
+            'birth_date'        => 'date',
             'hide_phone'        => 'boolean',
             'email_friend_requests' => 'boolean',
             'email_new_events'      => 'boolean',
