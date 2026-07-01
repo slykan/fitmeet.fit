@@ -164,6 +164,7 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
+      <View style={styles.outer}>
       <View style={styles.container}>
 
         <View style={styles.header}>
@@ -175,7 +176,7 @@ export default function LoginScreen() {
         {Platform.OS === 'ios' && (
           <AppleAuthentication.AppleAuthenticationButton
             buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
-            buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+            buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE_OUTLINE}
             cornerRadius={18}
             style={[styles.appleBtn, appleLoading && styles.disabledBtn]}
             onPress={handleApplePress}
@@ -272,13 +273,15 @@ export default function LoginScreen() {
         onToken={handleLoginWithToken}
         onDismiss={() => setShowCaptcha(false)}
       />
+      </View>
     </SafeAreaView>
   )
 }
 
 const styles = StyleSheet.create({
   safe:      { flex: 1, backgroundColor: palette.bg },
-  container: { flex: 1, padding: spacing.lg, gap: spacing.md },
+  outer:     { flex: 1, alignItems: 'center' },
+  container: { flex: 1, width: '100%', maxWidth: 480, padding: spacing.lg, gap: spacing.md },
   header:    { gap: 6, marginTop: spacing.xl },
   title:    { color: palette.text, fontSize: 30, lineHeight: 36, fontWeight: '800' },
   subtitle: { color: palette.textMuted, fontSize: 15 },

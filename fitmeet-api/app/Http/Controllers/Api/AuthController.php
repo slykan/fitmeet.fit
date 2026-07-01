@@ -212,7 +212,7 @@ class AuthController extends Controller
         $payload = json_decode($this->base64UrlDecode($parts[1]), true);
         if (! $payload) return null;
         if (($payload['iss'] ?? '') !== 'https://appleid.apple.com') return null;
-        if (($payload['aud'] ?? '') !== 'app.fitmeet.fit') return null;
+        if (($payload['aud'] ?? '') !== 'fit.fitmeet.app') return null;
         if (($payload['exp'] ?? 0) < time()) return null;
 
         return $payload;
