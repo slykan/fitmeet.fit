@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useEffect, useRef, useState } from 'react'
-import { Animated, Dimensions, StyleSheet, Text, View } from 'react-native'
+import { AppState, Animated, Dimensions, StyleSheet, Text, View } from 'react-native'
 
 import { useAuthStore } from '@/src/store/auth'
 
@@ -72,16 +72,26 @@ export function BirthdayOverlay() {
   const slideText   = useRef(new Animated.Value(30)).current
   const opacityText = useRef(new Animated.Value(0)).current
 
-  useEffect(() => {
-    if (!user?.birth_date || !isTodayBirthday(user.birth_date)) return
-
+  function checkBirthday(birthDate: string | null | undefined) {
+    if (!birthDate || !isTodayBirthday(birthDate)) return
     const today = new Date().toDateString()
     AsyncStorage.getItem(STORAGE_KEY).then(stored => {
       if (stored === today) return
       AsyncStorage.setItem(STORAGE_KEY, today)
       setVisible(true)
     })
+  }
+
+  useEffect(() => {
+    checkBirthday(user?.birth_date)
   }, [user?.birth_date])
+
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', state => {
+      if (state === 'active') checkBirthday(useAuthStore.getState().user?.birth_date)
+    })
+    return () => sub.remove()
+  }, [])
 
   useEffect(() => {
     if (!visible) return
