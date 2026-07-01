@@ -15,6 +15,39 @@ export interface Post {
 
 export const posts: Post[] = [
   {
+    slug: 'fitmeet-ios-app-coming-to-app-store',
+    title: 'FitMeet is Coming to the App Store — iOS App Submitted for Review',
+    description: 'The FitMeet iOS app is complete and has been submitted to the Apple App Store. We are waiting for Apple\'s approval. Every feature from the Android app is here — and a few iOS extras on top.',
+    publishedAt: '2026-07-01',
+    readTime: 2,
+    category: 'Community',
+    sections: [
+      {
+        heading: 'Submitted. Waiting for Apple.',
+        paragraphs: [
+          'The FitMeet iOS app is done. It has been submitted to the Apple App Store and is currently in review. Once approved, it will be available for free download on iPhone.',
+          'We have been running on Android since April. The iOS version is a full parity release — every feature that exists on Android is in the iOS app. Map with live event markers, route builder, GPX export, marketplace, messaging, check-ins, and activity tracking.',
+        ],
+      },
+      {
+        heading: 'What to Expect on iOS',
+        paragraphs: [
+          'Sign in with Apple, Google, Strava or email. Discover events nearby on a live map. Create your own in under a minute. Invite friends or leave it open for anyone to join.',
+          'The route builder lets you draw point-to-point routes with road snapping, see surface mix and elevation, and export to GPX for Garmin, Wahoo or any navigation app. The marketplace works too — browse and post sports gear listings from your phone.',
+          'Push notifications, friend requests, event reminders and group messaging are all there. The app is fully dark-themed and designed for one-handed use.',
+        ],
+      },
+      {
+        heading: 'Get Notified When It Drops',
+        paragraphs: [
+          'Apple reviews typically take a few days. We expect the app to go live very soon. Sign up for a free FitMeet account on the web now — your account carries over to iOS automatically. No re-registration needed.',
+          'If you are already on Android, nothing changes. If you have been waiting for iOS — it is almost here.',
+        ],
+      },
+    ],
+  },
+
+  {
     slug: 'fitmeet-marketplace-buy-sell-sports-gear',
     title: 'Introducing the FitMeet Marketplace: Buy and Sell Sports Gear Within Your Community',
     description: 'FitMeet now has a built-in marketplace for sports gear. List what you no longer use, find what you need, and deal directly with people from your local sports community.',

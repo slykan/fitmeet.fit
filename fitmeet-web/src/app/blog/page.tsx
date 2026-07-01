@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowRight, BookOpen, Download, MapPin, MessageCircle, PencilLine, Route, Share2, ShoppingBag, Sparkles, Tag, Users } from 'lucide-react'
+import { Apple, ArrowRight, BookOpen, Download, MapPin, MessageCircle, PencilLine, Route, Share2, ShoppingBag, Sparkles, Tag, Users } from 'lucide-react'
 import { Navbar } from '@/components/navbar'
 import { posts } from '@/lib/posts'
 
@@ -55,6 +55,42 @@ export default function BlogPage() {
               <Sparkles size={15} style={{ color: 'var(--primary)' }} />
               <p className="text-sm font-bold uppercase tracking-widest" style={{ color: 'var(--primary)' }}>News</p>
             </div>
+
+            {/* iOS App Store — top news */}
+            <Link
+              href="/blog/fitmeet-ios-app-coming-to-app-store"
+              className="rounded-2xl border p-6 flex flex-col gap-4 transition-opacity hover:opacity-90 mb-4"
+              style={{
+                background: 'linear-gradient(135deg, rgba(0,168,255,0.09) 0%, rgba(0,168,255,0.02) 100%)',
+                borderColor: 'rgba(0,168,255,0.28)',
+              }}
+            >
+              <div className="flex items-center gap-3">
+                <span
+                  className="text-xs font-bold px-3 py-1 rounded-full"
+                  style={{ background: 'rgba(0,168,255,0.18)', color: '#00a8ff' }}
+                >
+                  New · iOS
+                </span>
+                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>1 July 2026</span>
+              </div>
+              <div className="flex flex-col md:flex-row md:items-center gap-4">
+                <div className="flex-1">
+                  <h2 className="text-xl font-bold leading-snug mb-2">
+                    FitMeet is coming to the App Store — submitted and awaiting Apple approval
+                  </h2>
+                  <p className="text-sm leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+                    The iOS app is complete and in review. Every feature from Android is here: live map, route builder, GPX export, marketplace and messaging. Coming very soon.
+                  </p>
+                </div>
+                <div className="flex items-center justify-center w-16 h-16 rounded-2xl shrink-0" style={{ background: 'rgba(0,168,255,0.12)' }}>
+                  <Apple size={32} style={{ color: '#00a8ff' }} />
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 text-xs font-semibold mt-auto" style={{ color: '#00a8ff' }}>
+                Read more <ArrowRight size={12} />
+              </div>
+            </Link>
 
             <div className="grid gap-4 md:grid-cols-3 mb-4">
               {/* Marketplace — featured news */}
