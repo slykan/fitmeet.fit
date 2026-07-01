@@ -187,15 +187,10 @@ export function BeerTickerBanner() {
         if (Date.now() - lastLoadedAt.current > 30000) {
           loadDonors()
         } else if (sequenceWidth.current > 0) {
-          // useNativeDriver keeps animation on the native thread. After standby/
-          // background the native layer freezes the value. We must wait for
-          // stopAnimation's callback (confirming native has stopped) before
-          // resetting and restarting — otherwise the new loop races the frozen one.
+          animRef.current?.stop()
+          translateX.setValue(0)
           started.current = false
-          translateX.stopAnimation(() => {
-            translateX.setValue(0)
-            setTimeout(tryStart, 50)
-          })
+          tryStart()
         }
       } else if (state === 'background') {
         animRef.current?.stop()
@@ -218,7 +213,7 @@ export function BeerTickerBanner() {
         toValue: -distance,
         duration: Math.max(distance * TICKER_SPEED_MS_PER_PIXEL, MIN_TICKER_DURATION_MS),
         easing: Easing.linear,
-        useNativeDriver: true,
+        useNativeDriver: false,
       })
     )
     animRef.current.start()
