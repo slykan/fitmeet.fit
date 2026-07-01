@@ -3,7 +3,7 @@ import { router, useFocusEffect } from 'expo-router'
 import { useCallback, useState } from 'react'
 import { badgeEvents } from './_layout'
 import {
-  ActivityIndicator, Image, Pressable, RefreshControl,
+  ActivityIndicator, Image, Linking, Pressable, RefreshControl,
   ScrollView, StyleSheet, Text, View,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -27,7 +27,7 @@ type Notification =
   | { id: number; type: 'event_comment';   event:   EventInfo; created_at: string; unread?: boolean }
   | { id: number; type: 'event_comment_mention'; event: EventInfo; created_at: string; unread?: boolean }
   | { id: number; type: 'moment_reminder'; event:   EventInfo; created_at: string; unread?: boolean }
-  | { id: string; type: 'announcement';   title: string; body: string; created_at: string; unread?: boolean }
+  | { id: string; type: 'announcement';   title: string; body: string; data?: { url?: string } | null; created_at: string; unread?: boolean }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -359,17 +359,28 @@ export default function NotificationsScreen() {
           }
 
           if (n.type === 'announcement') {
+            const url = n.data?.url
             return (
-              <GenericCard
-                key={`ann-${n.id}`}
-                icon="megaphone-outline"
-                iconColor={palette.accent}
-                iconBg="rgba(57,255,20,0.1)"
-                title={<><Text style={styles.accent}>FitMeet</Text> · {n.title}</>}
-                subtitle={n.body}
-                time={timeAgo(n.created_at)}
-                unread={n.unread}
-              />
+              <View key={`ann-${n.id}`} style={[styles.card, n.unread ? styles.cardUnread : styles.cardRead]}>
+                <View style={styles.cardRow}>
+                  <View style={[styles.iconWrap, { backgroundColor: 'rgba(57,255,20,0.1)' }]}>
+                    <Ionicons name="megaphone-outline" size={18} color={palette.accent} />
+                  </View>
+                  <View style={styles.cardBody}>
+                    <Text style={styles.cardTitle}>
+                      <Text style={styles.accent}>FitMeet</Text> · {n.title}
+                    </Text>
+                    <Text style={styles.cardSubtitle}>{n.body}</Text>
+                    <Text style={styles.cardTime}>{timeAgo(n.created_at)}</Text>
+                  </View>
+                </View>
+                {url ? (
+                  <Pressable style={styles.linkBtn} onPress={() => Linking.openURL(url)}>
+                    <Text style={styles.linkBtnLabel}>Check it out</Text>
+                    <Ionicons name="open-outline" size={14} color="#041109" />
+                  </Pressable>
+                ) : null}
+              </View>
             )
           }
 
@@ -426,6 +437,14 @@ const styles = StyleSheet.create({
   avatarLetter:   { color: '#041109', fontSize: 18, fontWeight: '800' },
 
   actionRow: { flexDirection: 'row', gap: 10 },
+  linkBtn: {
+    height: 40, borderRadius: 12, paddingHorizontal: 16,
+    backgroundColor: palette.accent, flexDirection: 'row',
+    alignItems: 'center', justifyContent: 'center', gap: 6,
+    alignSelf: 'flex-start',
+  },
+  linkBtnLabel: { color: '#041109', fontSize: 14, fontWeight: '800' },
+
   acceptBtn: {
     flex: 1, height: 40, borderRadius: 12,
     backgroundColor: palette.accent, alignItems: 'center', justifyContent: 'center',
