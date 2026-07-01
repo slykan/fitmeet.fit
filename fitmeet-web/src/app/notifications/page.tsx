@@ -480,6 +480,17 @@ export default function NotificationsPage() {
                   <p className="text-sm font-semibold">{n.title}</p>
                   <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>{n.body}</p>
                   <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>{timeAgo(n.created_at)}</p>
+                  {n.data?.url && (
+                    <a
+                      href={n.data.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 mt-3 text-xs font-bold px-4 py-2 rounded-lg transition-opacity hover:opacity-80"
+                      style={{ background: 'var(--primary)', color: '#000' }}
+                    >
+                      Check it out ↗
+                    </a>
+                  )}
                 </div>
               </div>
             ) : null
