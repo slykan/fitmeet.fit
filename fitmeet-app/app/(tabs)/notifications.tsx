@@ -360,11 +360,15 @@ export default function NotificationsScreen() {
 
           if (n.type === 'announcement') {
             const url = n.data?.url
+            const isBirthday = n.data?.type === 'birthday'
             return (
-              <View key={`ann-${n.id}`} style={[styles.card, n.unread ? styles.cardUnread : styles.cardRead]}>
+              <View key={`ann-${n.id}`} style={[styles.card, n.unread ? (isBirthday ? styles.cardBirthday : styles.cardUnread) : styles.cardRead]}>
                 <View style={styles.cardRow}>
-                  <View style={[styles.iconWrap, { backgroundColor: 'rgba(57,255,20,0.1)' }]}>
-                    <Ionicons name="megaphone-outline" size={18} color={palette.accent} />
+                  <View style={[styles.iconWrap, { backgroundColor: isBirthday ? 'rgba(167,139,250,0.15)' : 'rgba(57,255,20,0.1)' }]}>
+                    {isBirthday
+                      ? <Text style={{ fontSize: 20 }}>🎂</Text>
+                      : <Ionicons name="megaphone-outline" size={18} color={palette.accent} />
+                    }
                   </View>
                   <View style={styles.cardBody}>
                     <Text style={styles.cardTitle}>
@@ -416,6 +420,11 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'rgba(57,255,20,0.62)',
     backgroundColor: 'rgba(57,255,20,0.025)',
+  },
+  cardBirthday: {
+    borderWidth: 2,
+    borderColor: 'rgba(167,139,250,0.6)',
+    backgroundColor: 'rgba(167,139,250,0.04)',
   },
   cardRead: {
     borderWidth: 1,

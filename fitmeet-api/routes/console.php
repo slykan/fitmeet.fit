@@ -147,9 +147,17 @@ Artisan::command('birthday:send', function () {
         \App\Jobs\SendPushNotification::dispatch(
             [$user->id],
             '🎂 Happy Birthday, ' . $user->name . '!',
-            'The FitMeet team wishes you an amazing day! 🎉',
+            'Wishing you a wonderful day full of movement and joy. — FitMeet.Fit 🎉',
             ['type' => 'birthday'],
         );
+
+        \App\Models\Announcement::create([
+            'sent_by'        => null,
+            'title'          => '🎂 Happy Birthday, ' . $user->name . '!',
+            'body'           => "Wishing you a wonderful day full of movement, great people, and joy.\n\nWith warmth — the FitMeet.Fit team 🎉",
+            'data'           => ['type' => 'birthday'],
+            'target_user_id' => $user->id,
+        ]);
 
         $user->update(['birthday_notified_date' => $todayDate]);
         $sent++;

@@ -396,7 +396,13 @@ class FriendController extends Controller
         $dismissedIds = $announcementReads->filter(fn ($r) => $r->dismissed_at !== null)->keys()->all();
         $announcements = Announcement::where('created_at', '>=', now()->subDays(30))
             ->whereNotIn('id', $dismissedIds)
-            ->where(fn ($q) => $q->whereNull('target_country')->orWhere('target_country', $me->country))
+            ->where(fn ($q) => $q
+                ->where(fn ($broadcast) => $broadcast
+                    ->whereNull('target_user_id')
+                    ->where(fn ($country) => $country->whereNull('target_country')->orWhere('target_country', $me->country))
+                )
+                ->orWhere('target_user_id', $me->id)
+            )
             ->latest()
             ->get()
             ->map(fn ($a) => [

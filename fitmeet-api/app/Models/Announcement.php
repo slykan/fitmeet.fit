@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Announcement extends Model
 {
-    protected $fillable = ['sent_by', 'title', 'body', 'data', 'target_platform', 'target_country'];
+    protected $fillable = ['sent_by', 'title', 'body', 'data', 'target_platform', 'target_country', 'target_user_id'];
 
     protected $casts = ['data' => 'array'];
 
