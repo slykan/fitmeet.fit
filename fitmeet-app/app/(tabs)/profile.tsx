@@ -127,6 +127,14 @@ export default function ProfileScreen() {
                 <Text style={styles.phone}>{user.phone}</Text>
               </View>
             ) : null}
+            {user.birth_date ? (
+              <View style={styles.row}>
+                <Ionicons name="gift-outline" size={12} color={palette.textDim} />
+                <Text style={styles.phone}>
+                  {new Date(user.birth_date + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+                </Text>
+              </View>
+            ) : null}
           </View>
         </View>
 
