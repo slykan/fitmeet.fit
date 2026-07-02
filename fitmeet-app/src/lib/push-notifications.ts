@@ -27,6 +27,7 @@ TaskManager.defineTask(BACKGROUND_NOTIFICATION_TASK, async ({ data, error }: Tas
   if (error) return
   const notifData = notificationDataFromTaskPayload(data)
   if (!notifData) return
+  if (notifData._data_only !== 'true') return
 
   const title     = notifData._title     ?? 'FitMeet'
   const body      = notifData._body      ?? ''
