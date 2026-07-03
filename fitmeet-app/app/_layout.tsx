@@ -150,7 +150,7 @@ export default function RootLayout() {
         }}
       />
       <BeerTickerBanner />
-      <WorldCupOverlay />
+      {/* <WorldCupOverlay /> */}
       <BirthdayOverlay />
     </ErrorBoundary>
   )
