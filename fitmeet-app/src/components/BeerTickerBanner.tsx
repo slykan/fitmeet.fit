@@ -16,6 +16,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { SupportFitMeetCard } from '@/src/components/SupportFitMeetCard'
 import { api } from '@/src/lib/api'
@@ -135,7 +136,7 @@ function SupportersModal({
 }
 
 export const BEER_TICKER_HEIGHT = 28
-const STATUS_BAR_HEIGHT = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 24) : 0
+const ANDROID_STATUS_BAR_HEIGHT = StatusBar.currentHeight ?? 24
 const TICKER_SPEED_MS_PER_PIXEL = 40
 const MIN_TICKER_DURATION_MS = 30000
 
@@ -149,6 +150,8 @@ function Label() {
 }
 
 export function BeerTickerBanner() {
+  const insets = useSafeAreaInsets()
+  const topOffset = Platform.OS === 'android' ? ANDROID_STATUS_BAR_HEIGHT : insets.top
   const [donors, setDonors] = useState<Donor[]>([])
   const [modalVisible, setModalVisible] = useState(false)
   const translateX = useRef(new Animated.Value(0)).current
@@ -248,7 +251,7 @@ export function BeerTickerBanner() {
   return (
     <>
       <Pressable
-        style={[styles.container, { top: STATUS_BAR_HEIGHT }]}
+        style={[styles.container, { top: topOffset }]}
         onPress={() => { loadDonors(); setModalVisible(true) }}
       >
         <Label />
