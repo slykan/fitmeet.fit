@@ -34,6 +34,5 @@ export function useGoogleBrowserAuth() {
     androidClientId: googleOAuthConfig.androidClientId,
     iosClientId: googleOAuthConfig.iosClientId,
     webClientId: googleOAuthConfig.webClientId,
-    redirectUri: 'fitmeet://oauthredirect',
   })
 }

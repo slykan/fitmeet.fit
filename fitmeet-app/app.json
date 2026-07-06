@@ -46,7 +46,12 @@
         "NSPhotoLibraryUsageDescription": "FitMeet needs photo library access to upload event moment photos.",
         "NSPhotoLibraryAddUsageDescription": "FitMeet saves photos to your library.",
         "NSMotionUsageDescription": "FitMeet tracks activity during events.",
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": ["fit.fitmeet.app"]
+          }
+        ]
       },
       "googleServicesFile": "./GoogleService-Info.plist"
     },
