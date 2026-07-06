@@ -29,10 +29,6 @@ function getApiKey() {
 }
 
 export function isRevenueCatEnabled() {
-  if (Platform.OS === 'ios') {
-    const version = typeof Platform.Version === 'string' ? parseFloat(Platform.Version) : Platform.Version
-    if (version >= 26) return false
-  }
   return getApiKey().trim().length > 0
 }
 
