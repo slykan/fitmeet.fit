@@ -9,6 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { api } from '@/src/lib/api'
 import { MomentCoverImage, type MomentCoverPosition } from '@/src/components/MomentCoverImage'
+import { reportContent } from '@/src/lib/moderation'
 import { palette, spacing } from '@/src/theme'
 
 interface Moment {
@@ -130,6 +131,9 @@ export default function MomentsScreen() {
                     {new Date(lightbox.start_at).toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric' })}
                   </Text>
                 </View>
+                <Pressable onPress={() => reportContent('event', lightbox.id)} hitSlop={12}>
+                  <Ionicons name="flag-outline" size={22} color={palette.textDim} />
+                </Pressable>
                 <Pressable
                   onPress={() => { setLightbox(null); router.push(`/event/${lightbox.id}` as never) }}
                   hitSlop={12}

@@ -15,6 +15,9 @@ use App\Http\Controllers\Api\EventWeatherController;
 use App\Http\Controllers\Api\FriendController;
 use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\ReportController;
+use App\Http\Controllers\Api\UserBlockController;
+use App\Http\Controllers\Api\AdminReportController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->group(function () {
@@ -96,7 +99,7 @@ Route::get('events/og',            [EventController::class, 'ogPage']);
 Route::get('market/og',            [MarketplaceController::class, 'ogPage']);
 
 // Protected routes
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', \App\Http\Middleware\EnsureNotBanned::class])->group(function () {
     Route::get('me',          [AuthController::class, 'me']);
     Route::get('me/stats',    [UserController::class, 'myStats']);
     Route::patch('me',        [UserController::class, 'update']);
@@ -107,6 +110,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('me/push-token', [UserController::class, 'destroyPushToken']);
     Route::get('users', [UserController::class, 'index']);
     Route::get('users/{user}', [UserController::class, 'show']);
+
+    // Reporting & blocking (Apple guideline 1.2)
+    Route::post('reports', [ReportController::class, 'store']);
+    Route::get('blocks', [UserBlockController::class, 'index']);
+    Route::post('blocks/{user}', [UserBlockController::class, 'store']);
+    Route::delete('blocks/{user}', [UserBlockController::class, 'destroy']);
 
     // Friends & notifications
     Route::post('strava/token',                    [\App\Http\Controllers\Api\StravaController::class, 'exchangeToken']);
@@ -176,5 +185,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('broadcasts', [AdminController::class, 'broadcasts']);
         Route::post('broadcast', [AdminController::class, 'broadcast']);
         Route::get('countries', [AdminController::class, 'countries']);
+        Route::get('reports', [AdminReportController::class, 'index']);
+        Route::post('reports/{report}/resolve', [AdminReportController::class, 'resolve']);
     });
 });

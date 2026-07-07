@@ -1,9 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { ChevronDown, ChevronUp, MessageCircle, Trash2 } from 'lucide-react'
+import { ChevronDown, ChevronUp, Flag, MessageCircle, Trash2 } from 'lucide-react'
 
 import api from '@/lib/api'
+import { reportContent } from '@/lib/moderation'
 
 interface CommentUser {
   id: number | null
@@ -221,6 +222,16 @@ export function EventWall({
                             <Trash2 size={14} />
                           </button>
                         )
+                      )}
+                      {!comment.can_delete && (
+                        <button
+                          type="button"
+                          onClick={() => void reportContent('comment', comment.id)}
+                          className="mt-0.5 inline-flex h-8 w-8 items-center justify-center rounded-lg border transition-colors hover:bg-[--border]"
+                          style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}
+                        >
+                          <Flag size={14} />
+                        </button>
                       )}
                     </div>
                   ))}

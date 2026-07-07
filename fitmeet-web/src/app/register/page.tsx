@@ -52,6 +52,7 @@ export default function RegisterPage() {
   const [showPassword,  setShowPassword]  = useState(false)
   const [error,         setError]         = useState<string | null>(null)
   const [cfToken,       setCfToken]       = useState<string>('')
+  const [termsAccepted, setTermsAccepted] = useState(false)
   const turnstileRef = useRef<HTMLDivElement>(null)
   const widgetId     = useRef<string>('')
 
@@ -80,6 +81,7 @@ export default function RegisterPage() {
         email:                 data.email,
         password:              data.password,
         cf_turnstile_response: cfToken,
+        terms_accepted:        termsAccepted,
       })
       setAuth(res.token, res.data)
       router.replace('/onboarding')
@@ -99,6 +101,10 @@ export default function RegisterPage() {
   }
 
   async function handleGoogleLogin() {
+    if (!termsAccepted) {
+      setError('Please agree to the Terms of Use and Privacy Policy first.')
+      return
+    }
     setGoogleLoading(true)
     setError(null)
     try {
@@ -197,11 +203,30 @@ export default function RegisterPage() {
               {/* Turnstile widget */}
               <div ref={turnstileRef} className="flex justify-center" />
 
+              <label className="flex items-start gap-2.5 text-xs cursor-pointer" style={{ color: 'var(--text-muted)' }}>
+                <input
+                  type="checkbox"
+                  checked={termsAccepted}
+                  onChange={(e) => setTermsAccepted(e.target.checked)}
+                  className="mt-0.5 shrink-0"
+                />
+                <span>
+                  I agree to the{' '}
+                  <Link href="/terms" target="_blank" className="font-semibold" style={{ color: 'var(--primary)' }}>
+                    Terms of Use
+                  </Link>{' '}
+                  and{' '}
+                  <Link href="/privacy" target="_blank" className="font-semibold" style={{ color: 'var(--primary)' }}>
+                    Privacy Policy
+                  </Link>
+                </span>
+              </label>
+
               <Button
                 type="submit"
                 size="lg"
                 loading={isSubmitting}
-                disabled={!cfToken}
+                disabled={!cfToken || !termsAccepted}
                 className="w-full mt-1"
               >
                 Create account
@@ -214,7 +239,14 @@ export default function RegisterPage() {
               <div className="flex-1 h-px" style={{ background: 'var(--border)' }} />
             </div>
 
-            <Button variant="ghost" size="lg" onClick={handleGoogleLogin} loading={googleLoading} className="w-full gap-3 border">
+            <Button
+              variant="ghost"
+              size="lg"
+              onClick={handleGoogleLogin}
+              loading={googleLoading}
+              disabled={!termsAccepted}
+              className="w-full gap-3 border"
+            >
               {!googleLoading && <GoogleIcon />}
               Continue with Google
             </Button>
@@ -226,10 +258,6 @@ export default function RegisterPage() {
               </Link>
             </p>
           </div>
-
-          <p className="text-center text-xs mt-6" style={{ color: 'var(--text-muted)' }}>
-            By continuing, you agree to our Terms of Service and Privacy Policy.
-          </p>
         </div>
       </main>
     </>

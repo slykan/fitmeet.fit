@@ -48,6 +48,8 @@ class User extends Authenticatable
         'birth_date',
         'birthday_notified_date',
         'fcm_token',
+        'terms_accepted_at',
+        'banned_at',
     ];
 
     protected $hidden = [
@@ -59,6 +61,8 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'terms_accepted_at' => 'datetime',
+            'banned_at'         => 'datetime',
             'password'          => 'hashed',
             'categories'        => 'array',
             'birth_date'              => 'date',
@@ -122,6 +126,35 @@ class User extends Authenticatable
     public function beerDonations(): HasMany
     {
         return $this->hasMany(BeerDonation::class);
+    }
+
+    public function blocksInitiated(): HasMany
+    {
+        return $this->hasMany(UserBlock::class, 'blocker_id');
+    }
+
+    public function blockedBy(): HasMany
+    {
+        return $this->hasMany(UserBlock::class, 'blocked_id');
+    }
+
+    /**
+     * Users to hide from this user's feeds: everyone they've blocked, and
+     * everyone who has blocked them (symmetric — Apple guideline 1.2).
+     */
+    public function blockedUserIds(): \Illuminate\Support\Collection
+    {
+        return UserBlock::where('blocker_id', $this->id)
+            ->orWhere('blocked_id', $this->id)
+            ->get()
+            ->map(fn (UserBlock $b) => $b->blocker_id === $this->id ? $b->blocked_id : $b->blocker_id)
+            ->unique()
+            ->values();
+    }
+
+    public function hasBlocked(int $userId): bool
+    {
+        return $this->blocksInitiated()->where('blocked_id', $userId)->exists();
     }
 
     public function isOnboardingComplete(): bool

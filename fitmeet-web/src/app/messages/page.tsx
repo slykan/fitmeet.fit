@@ -3,10 +3,11 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
-import { ArrowLeft, Check, Download, ImageIcon, MessageSquare, Plus, Search, Send, Trash2, UserPlus, Users, X } from 'lucide-react'
+import { ArrowLeft, Check, Download, ImageIcon, MessageSquare, Plus, Search, Send, Trash2, UserPlus, UserX, Users, X } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
 import api from '@/lib/api'
+import { blockUser } from '@/lib/moderation'
 import { useAuthStore } from '@/store/auth'
 
 interface Person {
@@ -300,6 +301,18 @@ function ThreadView({
                 style={{ color: 'var(--text-muted)' }}
               >
                 <UserPlus size={16} />
+              </button>
+            )}
+            {!conversation.is_group && conversation.partner && (
+              <button
+                onClick={async () => {
+                  if (await blockUser(conversation.partner!.id)) onBack()
+                }}
+                title="Block user"
+                className="p-2 rounded-xl transition-colors hover:bg-red-500/10"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                <UserX size={16} />
               </button>
             )}
             <button

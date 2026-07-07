@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\MarketplaceListingResource;
 use App\Models\MarketplaceListing;
 use App\Models\MarketplaceListingImage;
+use App\Services\ContentFilterService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -109,6 +110,7 @@ HTML;
     public function index(Request $request): JsonResponse
     {
         $query = MarketplaceListing::with(['seller', 'images'])
+            ->whereNotIn('user_id', $request->user()->blockedUserIds())
             ->latest();
 
         if ($request->filled('my') && $request->my) {
@@ -217,6 +219,11 @@ HTML;
             'images.*'    => 'image|max:5120',
         ]);
 
+        if (ContentFilterService::containsObjectionableContent($data['title'])
+            || ContentFilterService::containsObjectionableContent($data['description'] ?? null)) {
+            return response()->json(['message' => 'This listing isn\'t allowed. Please revise the title/description.'], 422);
+        }
+
         $user = $request->user();
 
         $listing = MarketplaceListing::create([
@@ -261,6 +268,11 @@ HTML;
             'keep_image_ids'   => 'nullable|array',
             'keep_image_ids.*' => 'integer',
         ]);
+
+        if (ContentFilterService::containsObjectionableContent($data['title'] ?? null)
+            || ContentFilterService::containsObjectionableContent($data['description'] ?? null)) {
+            return response()->json(['message' => 'This listing isn\'t allowed. Please revise the title/description.'], 422);
+        }
 
         unset($data['images'], $data['keep_image_ids']);
         $listing->update($data);

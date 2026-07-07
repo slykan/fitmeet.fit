@@ -9,7 +9,9 @@ use App\Models\Event;
 use App\Models\EventComment;
 use App\Models\FriendRequest;
 use App\Models\User;
+use App\Models\UserBlock;
 use App\Models\UserPushToken;
+use App\Services\ContentFilterService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -140,6 +142,10 @@ class UserController extends Controller
         $user = auth()->user();
         $data = $request->validated();
 
+        if (isset($data['name']) && ContentFilterService::containsObjectionableContent($data['name'])) {
+            return response()->json(['message' => 'This name isn\'t allowed. Please choose another.'], 422);
+        }
+
         if ($request->boolean('avatar_remove')) {
             $this->deleteStoredAvatar($user->avatar);
             $data['avatar'] = null;
@@ -259,6 +265,9 @@ class UserController extends Controller
         $tierWeight    = ['beer_small' => 1, 'beer_medium' => 2, 'beer_large' => 3];
         $beerScore     = $beerDonations->sum(fn ($d) => $tierWeight[$d->product_id] ?? 1);
 
+        $isBlocked = $me->id !== $user->id
+            && UserBlock::where('blocker_id', $me->id)->where('blocked_id', $user->id)->exists();
+
         return response()->json([
             'id'               => $user->id,
             'name'             => $user->name,
@@ -271,6 +280,7 @@ class UserController extends Controller
             'friendship_status'=> $friendshipStatus,
             'beer_score'       => $beerScore,
             'stats'            => $stats,
+            'is_blocked'       => $isBlocked,
         ]);
     }
 

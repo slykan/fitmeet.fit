@@ -3,11 +3,12 @@
 import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
-import { ChevronLeft, MapPin, MessageCircle, Pencil, CheckCircle2, Trash2, X, Share2, Heart, Eye } from 'lucide-react'
+import { ChevronLeft, Flag, MapPin, MessageCircle, Pencil, CheckCircle2, Trash2, X, Share2, Heart, Eye } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
 import api from '@/lib/api'
 import { CATEGORY_EMOJI } from '@/lib/categories'
+import { reportContent } from '@/lib/moderation'
 import { useAuthStore } from '@/store/auth'
 
 interface MarketListing {
@@ -269,10 +270,20 @@ function ViewContent() {
                   ? <Image src={listing.seller.avatar} alt="" width={36} height={36} className="object-cover" />
                   : listing.seller.name.charAt(0).toUpperCase()}
               </div>
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <p className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>Seller</p>
                 <p className="font-bold text-sm truncate">{listing.seller.name}</p>
               </div>
+              {!listing.is_mine && (
+                <button
+                  onClick={() => reportContent('listing', listing.id)}
+                  title="Report listing"
+                  className="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-xl border transition-opacity hover:opacity-80"
+                  style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}
+                >
+                  <Flag size={15} />
+                </button>
+              )}
             </div>
 
             {/* Actions */}

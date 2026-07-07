@@ -22,6 +22,7 @@ import { enrichGpxWithElevation, fetchElevationProfile, parseGpxText } from '@/s
 import type { TrackSegment } from '@/src/lib/gpx'
 import { analyzeRouteSurface, type SurfaceAnalysis } from '@/src/lib/route-surface'
 import { playRandomActionSound } from '@/src/lib/action-sounds'
+import { reportContent } from '@/src/lib/moderation'
 import { useAuthStore } from '@/src/store/auth'
 import { palette, spacing } from '@/src/theme'
 import { SupportFitMeetCard } from '@/src/components/SupportFitMeetCard'
@@ -1176,6 +1177,11 @@ export default function EventDetailScreen() {
                                   <Ionicons name="trash-outline" size={15} color="#f87171" />
                                 </Pressable>
                               )
+                            )}
+                            {!comment.can_delete && (
+                              <Pressable onPress={() => reportContent('comment', comment.id)} hitSlop={8} style={styles.commentDeleteBtn}>
+                                <Ionicons name="flag-outline" size={15} color={palette.textDim} />
+                              </Pressable>
                             )}
                           </View>
                         ))}

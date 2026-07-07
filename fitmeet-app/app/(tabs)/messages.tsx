@@ -24,6 +24,7 @@ import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs'
 
 import { api } from '@/src/lib/api'
 import { subscribeChatRefresh } from '@/src/lib/chat-refresh'
+import { presentUserModerationMenu } from '@/src/lib/moderation'
 import { useAuthStore } from '@/src/store/auth'
 import { palette, spacing } from '@/src/theme'
 
@@ -456,6 +457,18 @@ function ThreadView({
           {conv.is_group && (
             <Pressable onPress={() => setShowMembers((v) => !v)} style={th.chevronBtn}>
               <Ionicons name={showMembers ? 'chevron-up' : 'chevron-down'} size={18} color={palette.textMuted} />
+            </Pressable>
+          )}
+          {!conv.is_group && conv.partner && (
+            <Pressable
+              onPress={() => presentUserModerationMenu({
+                userId: conv.partner!.id,
+                userName: conv.partner!.name,
+                onBlockedChange: onBack,
+              })}
+              style={th.chevronBtn}
+            >
+              <Ionicons name="ellipsis-horizontal" size={18} color={palette.textMuted} />
             </Pressable>
           )}
           <Pressable onPress={confirmDeleteConversation} style={th.chevronBtn} disabled={deletingConversation}>

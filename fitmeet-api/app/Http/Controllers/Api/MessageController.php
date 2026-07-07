@@ -39,6 +39,8 @@ class MessageController extends Controller
     {
         $me = $request->user()->id;
 
+        $blockedIds = $request->user()->blockedUserIds();
+
         $conversations = Conversation::query()
             ->whereHas('participants', fn ($query) => $query->where('users.id', $me))
             ->with([
@@ -56,6 +58,14 @@ class MessageController extends Controller
             ])
             ->get()
             ->filter(fn (Conversation $conversation) => $conversation->latestMessage)
+            // Blocking removes the conversation from the blocker's feed instantly (guideline 1.2).
+            ->reject(function (Conversation $conversation) use ($me, $blockedIds) {
+                if ($conversation->is_group) {
+                    return false;
+                }
+                $partner = $conversation->participants->firstWhere('id', '!=', $me);
+                return $partner && $blockedIds->contains($partner->id);
+            })
             ->sortByDesc(fn (Conversation $conversation) => $conversation->latestMessage?->created_at?->getTimestamp() ?? 0)
             ->values();
 
@@ -118,6 +128,13 @@ class MessageController extends Controller
             return response()->json(['message' => 'Select at least one recipient.'], 422);
         }
 
+        $blockedIds = $me->blockedUserIds();
+        abort_if(
+            $participantIds->intersect($blockedIds)->isNotEmpty(),
+            403,
+            'You can\'t message one of these users.'
+        );
+
         $conversation = $participantIds->count() === 1
             ? $this->findOrCreateDirectConversation($me->id, $participantIds->first())
             : $this->createGroupConversation($me->id, $participantIds->all(), $request->string('title')->trim()->toString());
@@ -141,6 +158,7 @@ class MessageController extends Controller
 
         $me = $request->user()->id;
         $this->authorizeParticipant($conversation, $me);
+        $this->abortIfBlockedInConversation($request->user(), $conversation);
 
         $imageUrl = null;
         if ($request->hasFile('image_file')) {
@@ -285,8 +303,15 @@ class MessageController extends Controller
     {
         $request->validate(['body' => 'required|string|max:2000']);
 
-        $conversation = $this->findOrCreateDirectConversation($request->user()->id, $user->id);
-        $message = $this->createMessage($conversation, $request->user()->id, $request->body);
+        $me = $request->user();
+        abort_if(
+            $me->blockedUserIds()->contains($user->id),
+            403,
+            'You can\'t message this user.'
+        );
+
+        $conversation = $this->findOrCreateDirectConversation($me->id, $user->id);
+        $message = $this->createMessage($conversation, $me->id, $request->body);
 
         return response()->json([
             'data' => $this->serializeMessage($message, $request->user()->id),
@@ -410,6 +435,20 @@ class MessageController extends Controller
         abort_unless(
             $conversation->participants()->where('users.id', $userId)->exists(),
             403
+        );
+    }
+
+    private function abortIfBlockedInConversation(User $me, Conversation $conversation): void
+    {
+        if ($conversation->is_group) {
+            return;
+        }
+
+        $partnerId = $conversation->participants()->where('users.id', '!=', $me->id)->value('users.id');
+        abort_if(
+            $partnerId && $me->blockedUserIds()->contains((int) $partnerId),
+            403,
+            'You can\'t message this user.'
         );
     }
 

@@ -171,6 +171,15 @@ export default function ProfileScreen() {
           </Pressable>
         )}
 
+        {/* Admin reports / moderation */}
+        {user.is_admin && (
+          <Pressable style={styles.settingsLink} onPress={() => router.push('/admin-reports' as never)}>
+            <Ionicons name="shield-checkmark-outline" size={18} color={palette.accent} />
+            <Text style={styles.settingsLinkText}>Reports</Text>
+            <Ionicons name="chevron-forward" size={16} color={palette.textDim} />
+          </Pressable>
+        )}
+
         {/* Location */}
         {home.city ? (
           <View style={styles.card}>

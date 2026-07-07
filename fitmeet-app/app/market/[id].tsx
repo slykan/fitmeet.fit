@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { api } from '@/src/lib/api'
 import { CATEGORIES } from '@/src/lib/categories'
+import { reportContent } from '@/src/lib/moderation'
 import { useAuthStore } from '@/src/store/auth'
 import { palette, spacing } from '@/src/theme'
 
@@ -373,6 +374,11 @@ export default function MarketDetailScreen() {
               <Text style={styles.sellerLabel}>Seller</Text>
               <Text style={styles.sellerName}>{listing.seller.name}</Text>
             </View>
+            {!listing.is_mine && (
+              <Pressable onPress={() => reportContent('listing', listing.id)} hitSlop={10}>
+                <Ionicons name="flag-outline" size={18} color={palette.textDim} />
+              </Pressable>
+            )}
           </View>
 
           {/* Actions — row 1: secondary buttons */}

@@ -8,6 +8,7 @@ use App\Jobs\SendPushNotification;
 use App\Models\Event;
 use App\Models\EventComment;
 use App\Models\EventNotification;
+use App\Services\ContentFilterService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -52,6 +53,7 @@ class EventCommentController extends Controller
         $comments = EventComment::query()
             ->with(['user:id,name,avatar', 'event:id,user_id'])
             ->where('event_id', $event->id)
+            ->whereNotIn('user_id', $user->blockedUserIds())
             ->latest()
             ->limit(100)
             ->get()
@@ -81,6 +83,10 @@ class EventCommentController extends Controller
         $body = trim($data['body']);
         if ($body === '') {
             return response()->json(['message' => 'Comment cannot be empty.'], 422);
+        }
+
+        if (ContentFilterService::containsObjectionableContent($body)) {
+            return response()->json(['message' => 'This comment isn\'t allowed. Please rephrase it.'], 422);
         }
 
         $lastComment = EventComment::query()

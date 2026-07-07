@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Megaphone, Send, Clock, Globe, Smartphone, Monitor } from 'lucide-react'
+import Link from 'next/link'
+import { Megaphone, Send, Clock, Globe, Smartphone, Monitor, ShieldCheck } from 'lucide-react'
 import { Navbar } from '@/components/navbar'
 import api from '@/lib/api'
 import { useAuthStore } from '@/store/auth'
@@ -110,15 +111,23 @@ export default function AdminPage() {
       <main className="min-h-screen px-4 py-8">
         <div style={{ maxWidth: 720, margin: '0 auto' }}>
 
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-              style={{ background: 'rgba(57,255,20,0.12)', border: '1px solid rgba(57,255,20,0.3)' }}>
-              <Megaphone size={20} style={{ color: 'var(--primary)' }} />
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+                style={{ background: 'rgba(57,255,20,0.12)', border: '1px solid rgba(57,255,20,0.3)' }}>
+                <Megaphone size={20} style={{ color: 'var(--primary)' }} />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold">Broadcast</h1>
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Send push notification + in-app alert</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-xl font-bold">Broadcast</h1>
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Send push notification + in-app alert</p>
-            </div>
+            <Link href="/admin/reports"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80"
+              style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+              <ShieldCheck size={15} style={{ color: 'var(--primary)' }} />
+              Reports
+            </Link>
           </div>
 
           {/* Compose form */}

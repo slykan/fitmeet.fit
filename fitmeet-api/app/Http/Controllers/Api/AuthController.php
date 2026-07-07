@@ -23,6 +23,7 @@ class AuthController extends Controller
             'email'                 => ['required', 'email', 'unique:users,email'],
             'password'              => ['required', 'string', 'min:8'],
             'cf_turnstile_response' => ['required', 'string'],
+            'terms_accepted'        => ['required', 'accepted'],
         ]);
 
         $verify = Http::asForm()->post('https://challenges.cloudflare.com/turnstile/v0/siteverify', [
@@ -37,9 +38,10 @@ class AuthController extends Controller
         }
 
         $user = User::create([
-            'name'     => $request->name,
-            'email'    => $request->email,
-            'password' => $request->password,
+            'name'              => $request->name,
+            'email'             => $request->email,
+            'password'          => $request->password,
+            'terms_accepted_at' => now(),
         ]);
 
         $token = $user->createToken('fitmeet')->plainTextToken;
@@ -58,6 +60,7 @@ class AuthController extends Controller
             'email'                 => ['required', 'email', 'unique:users,email'],
             'password'              => ['required', 'string', 'min:8'],
             'cf_turnstile_response' => ['required', 'string'],
+            'terms_accepted'        => ['required', 'accepted'],
         ]);
 
         $verify = Http::asForm()->post('https://challenges.cloudflare.com/turnstile/v0/siteverify', [
@@ -70,9 +73,10 @@ class AuthController extends Controller
         }
 
         $user  = User::create([
-            'name'     => $request->name,
-            'email'    => $request->email,
-            'password' => $request->password,
+            'name'              => $request->name,
+            'email'             => $request->email,
+            'password'          => $request->password,
+            'terms_accepted_at' => now(),
         ]);
         $token = $user->createToken('fitmeet-mobile')->plainTextToken;
 
@@ -101,7 +105,12 @@ class AuthController extends Controller
             return response()->json(['message' => 'Invalid email or password.'], 401);
         }
 
-        $user  = Auth::user();
+        $user = Auth::user();
+
+        if ($user->banned_at) {
+            return response()->json(['message' => 'This account has been suspended.'], 403);
+        }
+
         $token = $user->createToken('fitmeet-mobile')->plainTextToken;
 
         return response()->json(['token' => $token, 'data' => new UserResource($user)]);
@@ -130,12 +139,18 @@ class AuthController extends Controller
                 $update['avatar'] = $g['picture'];
             }
             $user->update($update);
+
+            if ($user->banned_at) {
+                return response()->json(['message' => 'This account has been suspended.'], 403);
+            }
         } else {
+            // Reachable only after the welcome-screen terms checkbox, so consent is already given.
             $user = User::create([
-                'name'      => $g['name'] ?? $g['email'],
-                'email'     => $g['email'],
-                'google_id' => $g['sub'] ?? null,
-                'avatar'    => $g['picture'] ?? null,
+                'name'              => $g['name'] ?? $g['email'],
+                'email'             => $g['email'],
+                'google_id'         => $g['sub'] ?? null,
+                'avatar'            => $g['picture'] ?? null,
+                'terms_accepted_at' => now(),
             ]);
         }
 
@@ -170,11 +185,17 @@ class AuthController extends Controller
         if ($user) {
             $update = ['apple_id' => $appleId];
             $user->update($update);
+
+            if ($user->banned_at) {
+                return response()->json(['message' => 'This account has been suspended.'], 403);
+            }
         } else {
+            // Reachable only after the welcome-screen terms checkbox, so consent is already given.
             $user = User::create([
-                'name'     => $name ?? ($email ? explode('@', $email)[0] : 'FitMeet User'),
-                'email'    => $email,
-                'apple_id' => $appleId,
+                'name'              => $name ?? ($email ? explode('@', $email)[0] : 'FitMeet User'),
+                'email'             => $email,
+                'apple_id'          => $appleId,
+                'terms_accepted_at' => now(),
             ]);
         }
 
@@ -279,7 +300,12 @@ class AuthController extends Controller
             return response()->json(['message' => 'Invalid email or password.'], 401);
         }
 
-        $user  = Auth::user();
+        $user = Auth::user();
+
+        if ($user->banned_at) {
+            return response()->json(['message' => 'This account has been suspended.'], 403);
+        }
+
         $token = $user->createToken('fitmeet')->plainTextToken;
 
         return response()->json([
@@ -364,12 +390,18 @@ class AuthController extends Controller
                 $update['avatar'] = $googleUser->getAvatar();
             }
             $user->update($update);
+
+            if ($user->banned_at) {
+                return redirect(env('FRONTEND_URL') . '/login?error=account_suspended');
+            }
         } else {
+            // Reachable only after the register/login page's terms checkbox, so consent is already given.
             $user = User::create([
-                'name'      => $googleUser->getName(),
-                'email'     => $googleUser->getEmail(),
-                'google_id' => $googleUser->getId(),
-                'avatar'    => $googleUser->getAvatar(),
+                'name'              => $googleUser->getName(),
+                'email'             => $googleUser->getEmail(),
+                'google_id'         => $googleUser->getId(),
+                'avatar'            => $googleUser->getAvatar(),
+                'terms_accepted_at' => now(),
             ]);
         }
 

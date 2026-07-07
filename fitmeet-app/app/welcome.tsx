@@ -1,6 +1,8 @@
+import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
 import { LinearGradient } from 'expo-linear-gradient'
-import { useEffect, useRef } from 'react'
+import * as WebBrowser from 'expo-web-browser'
+import { useEffect, useRef, useState } from 'react'
 import { Animated, Easing, Image, Pressable, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
@@ -16,6 +18,7 @@ export default function WelcomeScreen() {
   const heroShift = useRef(new Animated.Value(0)).current
   const ctaOpacity = useRef(new Animated.Value(0)).current
   const ctaShift = useRef(new Animated.Value(34)).current
+  const [termsAccepted, setTermsAccepted] = useState(false)
 
   useEffect(() => {
     if (!hasHydrated || !token) return
@@ -85,7 +88,27 @@ export default function WelcomeScreen() {
             ))}
           </View>
 
-          <Pressable style={styles.primaryBtn} onPress={() => router.push('/register')}>
+          <Pressable style={styles.termsRow} onPress={() => setTermsAccepted((v) => !v)} hitSlop={8}>
+            <View style={[styles.checkbox, termsAccepted && styles.checkboxChecked]}>
+              {termsAccepted && <Ionicons name="checkmark" size={13} color="#041109" />}
+            </View>
+            <Text style={styles.termsText}>
+              I agree to the{' '}
+              <Text style={styles.termsLink} onPress={() => WebBrowser.openBrowserAsync('https://fitmeet.fit/terms')}>
+                Terms of Use
+              </Text>
+              {' '}and{' '}
+              <Text style={styles.termsLink} onPress={() => WebBrowser.openBrowserAsync('https://fitmeet.fit/privacy')}>
+                Privacy Policy
+              </Text>
+            </Text>
+          </Pressable>
+
+          <Pressable
+            style={[styles.primaryBtn, !termsAccepted && styles.ctaDisabled]}
+            onPress={() => router.push('/register')}
+            disabled={!termsAccepted}
+          >
             <LinearGradient
               colors={['#6cff2f', '#39FF14']}
               start={{ x: 0, y: 0 }}
@@ -96,7 +119,11 @@ export default function WelcomeScreen() {
             </LinearGradient>
           </Pressable>
 
-          <Pressable style={styles.secondaryBtn} onPress={() => router.push('/login')}>
+          <Pressable
+            style={[styles.secondaryBtn, !termsAccepted && styles.ctaDisabled]}
+            onPress={() => router.push('/login')}
+            disabled={!termsAccepted}
+          >
             <Text style={styles.secondaryLabel}>Sign in</Text>
           </Pressable>
         </Animated.View>
@@ -173,6 +200,28 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
   },
+  termsRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    paddingHorizontal: 4,
+    marginBottom: 2,
+  },
+  checkbox: {
+    width: 20, height: 20, borderRadius: 6, marginTop: 1,
+    borderWidth: 1.5, borderColor: 'rgba(57,255,20,0.4)',
+    alignItems: 'center', justifyContent: 'center',
+    flexShrink: 0,
+  },
+  checkboxChecked: { backgroundColor: '#39FF14', borderColor: '#39FF14' },
+  termsText: {
+    flex: 1,
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  termsLink: { color: '#39FF14', fontWeight: '700' },
+  ctaDisabled: { opacity: 0.4 },
   primaryBtn: { width: '100%', borderRadius: 18, overflow: 'hidden' },
   primaryBtnGrad: { height: 56, alignItems: 'center', justifyContent: 'center' },
   primaryLabel: { color: '#041109', fontSize: 16, fontWeight: '900', letterSpacing: 0.3 },

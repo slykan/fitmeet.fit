@@ -8,6 +8,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { api } from '@/src/lib/api'
+import { presentUserModerationMenu } from '@/src/lib/moderation'
 import { palette, spacing } from '@/src/theme'
 
 interface UserProfile {
@@ -21,6 +22,7 @@ interface UserProfile {
   is_self: boolean
   friendship_status: 'friends' | 'pending_sent' | 'pending_received' | null
   beer_score: number
+  is_blocked: boolean
   stats: {
     events_created: number
     events_joined:  number
@@ -102,6 +104,22 @@ export default function UserProfileScreen() {
       }
     } catch {}
     setActing(false)
+  }
+
+  function handleMorePress() {
+    if (!profile) return
+    presentUserModerationMenu({
+      userId: profile.id,
+      userName: profile.name,
+      isBlocked: profile.is_blocked,
+      onBlockedChange: () => {
+        if (profile.is_blocked) {
+          setProfile(p => p ? { ...p, is_blocked: false } : p)
+        } else {
+          router.back()
+        }
+      },
+    })
   }
 
   async function shareProfile() {
@@ -223,6 +241,11 @@ export default function UserProfileScreen() {
             <Ionicons name="share-social-outline" size={17} color={palette.accent} />
             <Text style={styles.shareBtnLabel}>Share</Text>
           </Pressable>
+          {!profile.is_self && (
+            <Pressable style={styles.moreBtn} onPress={handleMorePress} hitSlop={10}>
+              <Ionicons name="ellipsis-horizontal" size={18} color={palette.textMuted} />
+            </Pressable>
+          )}
         </View>
 
         {/* Categories */}
@@ -321,6 +344,12 @@ const styles = StyleSheet.create({
     gap: 7,
   },
   shareBtnLabel: { color: palette.accent, fontSize: 14, fontWeight: '800' },
+  moreBtn: {
+    width: 44, height: 44, borderRadius: 16,
+    borderWidth: 1, borderColor: palette.line,
+    backgroundColor: palette.panel,
+    alignItems: 'center', justifyContent: 'center',
+  },
 
   tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   tag: {

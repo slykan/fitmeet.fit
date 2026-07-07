@@ -3,10 +3,11 @@
 import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, MapPin, Star } from 'lucide-react'
+import { ArrowLeft, Flag, MapPin, Star, UserX, UserCheck } from 'lucide-react'
 import { Navbar } from '@/components/navbar'
 import { useAuthStore } from '@/store/auth'
 import api from '@/lib/api'
+import { blockUser, reportContent, unblockUser } from '@/lib/moderation'
 
 interface UserProfile {
   id: number
@@ -19,6 +20,7 @@ interface UserProfile {
   is_self: boolean
   friendship_status: 'friends' | 'pending_sent' | 'pending_received' | null
   beer_score: number
+  is_blocked: boolean
   stats: {
     events_created: number
     events_joined:  number
@@ -82,6 +84,12 @@ function UserProfileContent() {
       }
     } catch {}
     setActing(false)
+  }
+
+  async function handleBlockToggle() {
+    if (!profile) return
+    const ok = profile.is_blocked ? await unblockUser(profile.id) : await blockUser(profile.id)
+    if (ok) setProfile(p => p ? { ...p, is_blocked: !p.is_blocked } : p)
   }
 
   if (!profile) {
@@ -165,18 +173,36 @@ function UserProfileContent() {
           </div>
 
           {!profile.is_self && (
-            <button
-              onClick={handleFriendAction}
-              disabled={acting || profile.friendship_status === 'pending_sent'}
-              className="shrink-0 px-4 py-2 rounded-xl text-sm font-semibold border transition-opacity hover:opacity-80 disabled:opacity-50"
-              style={{
-                background: profile.friendship_status === 'friends' ? 'rgba(57,255,20,0.1)' : 'var(--surface)',
-                borderColor: profile.friendship_status === 'friends' ? 'rgba(57,255,20,0.3)' : 'var(--border)',
-                color: profile.friendship_status === 'friends' ? 'var(--primary)' : 'var(--text-primary)',
-              }}
-            >
-              {friendBtnLabel}
-            </button>
+            <div className="shrink-0 flex items-center gap-2">
+              <button
+                onClick={handleFriendAction}
+                disabled={acting || profile.friendship_status === 'pending_sent'}
+                className="px-4 py-2 rounded-xl text-sm font-semibold border transition-opacity hover:opacity-80 disabled:opacity-50"
+                style={{
+                  background: profile.friendship_status === 'friends' ? 'rgba(57,255,20,0.1)' : 'var(--surface)',
+                  borderColor: profile.friendship_status === 'friends' ? 'rgba(57,255,20,0.3)' : 'var(--border)',
+                  color: profile.friendship_status === 'friends' ? 'var(--primary)' : 'var(--text-primary)',
+                }}
+              >
+                {friendBtnLabel}
+              </button>
+              <button
+                onClick={() => reportContent('user', profile.id)}
+                title="Report user"
+                className="w-9 h-9 flex items-center justify-center rounded-xl border transition-opacity hover:opacity-80"
+                style={{ background: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--text-muted)' }}
+              >
+                <Flag size={15} />
+              </button>
+              <button
+                onClick={handleBlockToggle}
+                title={profile.is_blocked ? 'Unblock user' : 'Block user'}
+                className="w-9 h-9 flex items-center justify-center rounded-xl border transition-opacity hover:opacity-80"
+                style={{ background: 'var(--surface)', borderColor: 'var(--border)', color: profile.is_blocked ? 'var(--primary)' : '#f87171' }}
+              >
+                {profile.is_blocked ? <UserCheck size={15} /> : <UserX size={15} />}
+              </button>
+            </div>
           )}
         </div>
 

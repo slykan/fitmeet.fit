@@ -154,7 +154,11 @@ export const useAuthStore = create<AuthState>((set) => ({
   register: async ({ name, email, password, turnstileToken }) => {
     const payload = await requestJson<AuthResponse>('/auth/register-mobile', {
       method: 'POST',
-      body: JSON.stringify({ name, email, password, cf_turnstile_response: turnstileToken }),
+      body: JSON.stringify({
+        name, email, password,
+        cf_turnstile_response: turnstileToken,
+        terms_accepted: true, // gated behind the welcome-screen terms checkbox
+      }),
     })
     const user = normalizeUser(payload.data)
     await storeSession({ token: payload.token, user })
