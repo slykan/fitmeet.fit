@@ -12,7 +12,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // This is an API-only backend — there is no 'login' web route to
+        // redirect guests to. Without this, an unauthenticated request that
+        // doesn't send an Accept: application/json header crashes with a 500
+        // (RouteNotFoundException) instead of a clean 401 JSON response.
+        $middleware->redirectGuestsTo(fn () => null);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
