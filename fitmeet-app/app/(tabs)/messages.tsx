@@ -46,6 +46,7 @@ interface Conversation {
   created_by?: number
   can_manage_members?: boolean
   partner: Person | null
+  partner_is_blocked?: boolean
   participants: Person[]
   last_message: { body: string; is_mine: boolean; created_at: string; sender: Person } | null
   unread_count: number
@@ -464,7 +465,8 @@ function ThreadView({
               onPress={() => presentUserModerationMenu({
                 userId: conv.partner!.id,
                 userName: conv.partner!.name,
-                onBlockedChange: onBack,
+                isBlocked: conv.partner_is_blocked,
+                onBlockedChange: () => setConv((prev) => ({ ...prev, partner_is_blocked: !prev.partner_is_blocked })),
               })}
               style={th.chevronBtn}
             >

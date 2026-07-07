@@ -8,6 +8,7 @@ use App\Jobs\SendPushNotification;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\User;
+use App\Models\UserBlock;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -508,6 +509,9 @@ class MessageController extends Controller
                 ? ($conversation->title ?: $conversation->participants->where('id', '!=', $me)->pluck('name')->take(3)->join(', '))
                 : ($partner?->name ?? 'Conversation'),
             'partner'      => ! $conversation->is_group && $partner ? (new UserResource($partner))->resolve() : null,
+            'partner_is_blocked' => ! $conversation->is_group && $partner
+                ? UserBlock::where('blocker_id', $me)->where('blocked_id', $partner->id)->exists()
+                : false,
             'participants' => UserResource::collection($conversation->participants->values())->resolve(),
         ];
     }

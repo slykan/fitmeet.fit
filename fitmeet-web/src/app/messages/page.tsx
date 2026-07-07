@@ -3,11 +3,11 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
-import { ArrowLeft, Check, Download, Flag, ImageIcon, MessageSquare, Plus, Search, Send, Trash2, UserPlus, UserX, Users, X } from 'lucide-react'
+import { ArrowLeft, Check, Download, Flag, ImageIcon, MessageSquare, Plus, Search, Send, Trash2, UserCheck, UserPlus, UserX, Users, X } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
 import api from '@/lib/api'
-import { blockUser, reportContent } from '@/lib/moderation'
+import { blockUser, reportContent, unblockUser } from '@/lib/moderation'
 import { useAuthStore } from '@/store/auth'
 
 interface Person {
@@ -37,6 +37,7 @@ interface ConversationDetail {
   is_group: boolean
   title: string
   partner: Person | null
+  partner_is_blocked: boolean
   participants: Person[]
   can_manage_members: boolean
 }
@@ -315,13 +316,19 @@ function ThreadView({
                 </button>
                 <button
                   onClick={async () => {
-                    if (await blockUser(conversation.partner!.id)) onBack()
+                    const partnerId = conversation.partner!.id
+                    const ok = conversation.partner_is_blocked
+                      ? await unblockUser(partnerId)
+                      : await blockUser(partnerId)
+                    if (ok) {
+                      setConversation((prev) => prev ? { ...prev, partner_is_blocked: !prev.partner_is_blocked } : prev)
+                    }
                   }}
-                  title="Block user"
+                  title={conversation.partner_is_blocked ? 'Unblock user' : 'Block user'}
                   className="p-2 rounded-xl transition-colors hover:bg-red-500/10"
-                  style={{ color: 'var(--text-muted)' }}
+                  style={{ color: conversation.partner_is_blocked ? 'var(--primary)' : 'var(--text-muted)' }}
                 >
-                  <UserX size={16} />
+                  {conversation.partner_is_blocked ? <UserCheck size={16} /> : <UserX size={16} />}
                 </button>
               </>
             )}
