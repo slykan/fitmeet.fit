@@ -5,7 +5,7 @@ import { useTheme } from 'next-themes'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Moon, Sun, Plus, LogOut, User, CalendarDays, Bell, Users, MessageSquare, Settings, Trophy, ShieldCheck, Megaphone } from 'lucide-react'
+import { Moon, Sun, Plus, LogOut, User, CalendarDays, Bell, Users, MessageSquare, Settings, Trophy, ShieldCheck, ShieldAlert, Megaphone, ChevronDown, ChevronUp } from 'lucide-react'
 import { Button } from './ui/button'
 import api from '@/lib/api'
 import { useEffect, useRef, useState } from 'react'
@@ -18,6 +18,7 @@ export function Navbar() {
   const router  = useRouter()
   const [mounted,    setMounted]    = useState(false)
   const [menuOpen,   setMenuOpen]   = useState(false)
+  const [adminOpen,  setAdminOpen]  = useState(false)
   const [notifCount, setNotifCount] = useState(0)
   const [msgCount,   setMsgCount]   = useState(0)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -266,7 +267,23 @@ export function Navbar() {
                       <MenuItem icon={<Users size={15} />}        label="Meet"         onClick={() => navigate('/meet')} />
                       <MenuItem icon={<CalendarDays size={15} />} label="My Events"    onClick={() => navigate('/events/my')} />
                       {user.is_admin && (
-                        <MenuItem icon={<Megaphone size={15} />} label="Admin" onClick={() => navigate('/admin')} />
+                        <>
+                          <button
+                            onClick={() => setAdminOpen((o) => !o)}
+                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-[--border]"
+                            style={{ color: 'var(--text-primary)' }}
+                          >
+                            <span style={{ color: 'var(--text-muted)' }}><Megaphone size={15} /></span>
+                            <span className="flex-1 text-left">Admin</span>
+                            {adminOpen ? <ChevronUp size={14} style={{ color: 'var(--text-muted)' }} /> : <ChevronDown size={14} style={{ color: 'var(--text-muted)' }} />}
+                          </button>
+                          {adminOpen && (
+                            <div className="pl-4">
+                              <MenuItem icon={<Megaphone size={14} />}   label="Broadcast" onClick={() => navigate('/admin')} />
+                              <MenuItem icon={<ShieldAlert size={14} />} label="Reports"   onClick={() => navigate('/admin/reports')} />
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
 
