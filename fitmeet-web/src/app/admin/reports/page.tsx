@@ -32,6 +32,7 @@ export default function AdminReportsPage() {
 
   const [reports, setReports] = useState<Report[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [actingId, setActingId] = useState<number | null>(null)
 
   useEffect(() => setMounted(true), [])
@@ -46,8 +47,10 @@ export default function AdminReportsPage() {
 
   function load() {
     setLoading(true)
+    setLoadError(false)
     api.get('/admin/reports')
       .then(({ data }) => setReports(data.data))
+      .catch(() => setLoadError(true))
       .finally(() => setLoading(false))
   }
 
@@ -94,7 +97,11 @@ export default function AdminReportsPage() {
             </div>
           </div>
 
-          {reports.length === 0 && (
+          {loadError && (
+            <p className="text-sm text-red-400">Could not load reports. Refresh, or check you&apos;re signed in as an admin.</p>
+          )}
+
+          {!loadError && reports.length === 0 && (
             <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No pending reports. 🎉</p>
           )}
 

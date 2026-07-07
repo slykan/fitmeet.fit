@@ -5,7 +5,7 @@ import { useEffect, useState, useRef, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Calendar, MapPin, Users, Zap, ChevronLeft, Lock, Pencil, ChevronDown, ChevronUp, Bell, Check, X, Share2, XCircle, Download, Wind, Cloud, Eye, CheckCircle2, Camera } from 'lucide-react'
+import { Calendar, MapPin, Users, Zap, ChevronLeft, Lock, Pencil, ChevronDown, ChevronUp, Bell, Check, X, Share2, XCircle, Download, Wind, Cloud, Eye, CheckCircle2, Camera, Flag } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
 import { WeatherBadge } from '@/components/WeatherBadge'
@@ -20,6 +20,7 @@ import api from '@/lib/api'
 import { playRandomActionSound } from '@/lib/action-sounds'
 import { fetchElevationProfile, parseGpx, GpxResult } from '@/lib/parse-gpx'
 import { analyzeRouteSurface, type SurfaceAnalysis } from '@/lib/route-surface'
+import { reportContent } from '@/lib/moderation'
 import { useAuthStore } from '@/store/auth'
 import { Button } from '@/components/ui/button'
 
@@ -473,6 +474,16 @@ function EventContent() {
               >
                 <Share2 size={10} /> {copied ? 'Copied' : 'Share'}
               </button>
+              {!event.is_organizer && (
+                <button
+                  type="button"
+                  onClick={() => reportContent('event', event.id)}
+                  className="text-xs flex items-center gap-1 px-2.5 py-1 rounded-full border transition-colors hover:bg-[--border]"
+                  style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}
+                >
+                  <Flag size={10} /> Report
+                </button>
+              )}
             </div>
 
             <h1 className="text-2xl font-bold leading-snug mb-4">{event.title}</h1>

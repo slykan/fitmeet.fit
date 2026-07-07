@@ -3,9 +3,10 @@
 import { useEffect, useState, useCallback } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Share2, X, ArrowRight, Play } from 'lucide-react'
+import { Share2, X, ArrowRight, Play, Flag } from 'lucide-react'
 import { Navbar } from '@/components/navbar'
 import api from '@/lib/api'
+import { reportContent } from '@/lib/moderation'
 
 interface Moment {
   id: number
@@ -182,6 +183,14 @@ export default function MomentsPage() {
                 {new Date(lightbox.start_at).toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric' })}
               </p>
             </div>
+            <button
+              onClick={() => reportContent('event', lightbox.id)}
+              title="Report photo"
+              className="p-2 rounded-full transition-opacity hover:opacity-80 shrink-0"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              <Flag size={18} />
+            </button>
             <Link
               href={`/events/view?id=${lightbox.id}`}
               onClick={() => setLightbox(null)}

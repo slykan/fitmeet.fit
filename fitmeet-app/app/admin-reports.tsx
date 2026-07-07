@@ -31,12 +31,15 @@ function timeAgo(iso: string) {
 export default function AdminReportsScreen() {
   const [reports, setReports] = useState<Report[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [actingId, setActingId] = useState<number | null>(null)
 
   function load() {
     setLoading(true)
+    setLoadError(false)
     api.get('/admin/reports')
       .then(({ data }) => setReports(data.data))
+      .catch(() => setLoadError(true))
       .finally(() => setLoading(false))
   }
 
@@ -81,7 +84,11 @@ export default function AdminReportsScreen() {
 
         {loading && <ActivityIndicator color={palette.accent} style={{ marginTop: 16 }} />}
 
-        {!loading && reports.length === 0 && (
+        {!loading && loadError && (
+          <Text style={styles.errorText}>Could not load reports. Pull to refresh or check you're signed in as an admin.</Text>
+        )}
+
+        {!loading && !loadError && reports.length === 0 && (
           <Text style={styles.emptyText}>No pending reports. 🎉</Text>
         )}
 
@@ -138,6 +145,7 @@ const styles = StyleSheet.create({
   title:   { color: palette.text, fontSize: 20, fontWeight: '800' },
 
   emptyText: { color: palette.textDim, fontSize: 14 },
+  errorText: { color: '#f87171', fontSize: 14 },
 
   card: {
     backgroundColor: palette.panel, borderRadius: 20,

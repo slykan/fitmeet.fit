@@ -884,9 +884,16 @@ export default function EventDetailScreen() {
           <Pressable style={styles.backBtn} onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={22} color={palette.text} />
           </Pressable>
-          <Pressable style={styles.shareBtn} onPress={shareEvent}>
-            <Ionicons name="share-outline" size={20} color={palette.text} />
-          </Pressable>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            {!isOrg && (
+              <Pressable style={styles.shareBtn} onPress={() => reportContent('event', event.id)}>
+                <Ionicons name="flag-outline" size={20} color={palette.text} />
+              </Pressable>
+            )}
+            <Pressable style={styles.shareBtn} onPress={shareEvent}>
+              <Ionicons name="share-outline" size={20} color={palette.text} />
+            </Pressable>
+          </View>
         </View>
 
         {/* Cover image */}
