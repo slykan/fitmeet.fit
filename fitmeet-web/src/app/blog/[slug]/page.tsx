@@ -33,6 +33,7 @@ const CATEGORY_COLOR: Record<string, string> = {
   Fitness:   'rgba(167,139,250,0.12)',
   Community: 'rgba(251,113,133,0.12)',
   Routes:    'rgba(34,197,94,0.14)',
+  Safety:    'rgba(239,68,68,0.12)',
 }
 const CATEGORY_TEXT: Record<string, string> = {
   Running:   '#39ff14',
@@ -41,6 +42,7 @@ const CATEGORY_TEXT: Record<string, string> = {
   Fitness:   '#a78bfa',
   Community: '#fb7185',
   Routes:    '#22c55e',
+  Safety:    '#ef4444',
 }
 
 export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {

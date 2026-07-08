@@ -44,6 +44,14 @@ function GooglePlayIcon({ size = 22 }: { size?: number }) {
   )
 }
 
+function AppleIcon({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="#fff" aria-hidden="true">
+      <path d="M16.36 1.43c0 1.14-.42 2.2-1.24 3.03-.86.9-2.14 1.63-3.35 1.53-.13-1.13.4-2.28 1.2-3.06.85-.85 2.28-1.5 3.39-1.5zM20.5 17.36c-.5 1.15-.74 1.65-1.38 2.67-.9 1.42-2.16 3.2-3.73 3.21-1.39.02-1.75-.9-3.63-.89-1.88.01-2.28.9-3.67.89-1.57-.02-2.76-1.62-3.66-3.03-2.5-3.9-2.77-8.48-1.22-10.92 1.1-1.75 2.85-2.77 4.49-2.77 1.68 0 2.73.92 4.12.92 1.35 0 2.17-.92 4.11-.92 1.46 0 3.01.79 4.11 2.16-3.62 1.98-3.03 7.14.46 8.68z" />
+    </svg>
+  )
+}
+
 function InstagramIcon({ size = 18 }: { size?: number }) {
   return (
     <svg
@@ -291,6 +299,20 @@ export default async function HomePage() {
                     <span className="flex flex-col leading-tight">
                       <span className="text-[10px] font-normal" style={{ color: 'rgba(255,255,255,0.7)' }}>Get it on</span>
                       <span className="text-sm font-semibold text-white">Google Play</span>
+                    </span>
+                  </a>
+                  <a
+                    href="https://apps.apple.com/us/app/fitmeet-fit/id6784112534"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Download FitMeet on the App Store"
+                    className="inline-flex items-center gap-3 px-5 py-3 rounded-xl transition-opacity hover:opacity-85 active:scale-95 transition-transform"
+                    style={{ background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.10)' }}
+                  >
+                    <AppleIcon size={24} />
+                    <span className="flex flex-col leading-tight">
+                      <span className="text-[10px] font-normal" style={{ color: 'rgba(255,255,255,0.7)' }}>Download on the</span>
+                      <span className="text-sm font-semibold text-white">App Store</span>
                     </span>
                   </a>
                   <a

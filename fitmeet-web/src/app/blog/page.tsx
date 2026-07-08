@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Apple, ArrowRight, BookOpen, Download, MapPin, MessageCircle, PencilLine, Route, Share2, ShoppingBag, Sparkles, Tag, Users } from 'lucide-react'
+import { Apple, ArrowRight, BookOpen, Download, MapPin, MessageCircle, PencilLine, Route, Share2, ShieldCheck, ShoppingBag, Sparkles, Tag, Users } from 'lucide-react'
 import { Navbar } from '@/components/navbar'
 import { posts } from '@/lib/posts'
 
@@ -15,6 +15,7 @@ const CATEGORY_COLOR: Record<string, string> = {
   Fitness:   'rgba(167,139,250,0.12)',
   Community: 'rgba(251,113,133,0.12)',
   Routes:    'rgba(34,197,94,0.14)',
+  Safety:    'rgba(239,68,68,0.12)',
 }
 
 const CATEGORY_TEXT: Record<string, string> = {
@@ -24,6 +25,7 @@ const CATEGORY_TEXT: Record<string, string> = {
   Fitness:   '#a78bfa',
   Community: '#fb7185',
   Routes:    '#22c55e',
+  Safety:    '#ef4444',
 }
 
 function formatDate(iso: string) {
@@ -56,7 +58,43 @@ export default function BlogPage() {
               <p className="text-sm font-bold uppercase tracking-widest" style={{ color: 'var(--primary)' }}>News</p>
             </div>
 
-            {/* iOS App Store — top news */}
+            {/* Trust & Safety — top news */}
+            <Link
+              href="/blog/fitmeet-block-report-trust-and-safety"
+              className="rounded-2xl border p-6 flex flex-col gap-4 transition-opacity hover:opacity-90 mb-4"
+              style={{
+                background: 'linear-gradient(135deg, rgba(239,68,68,0.09) 0%, rgba(239,68,68,0.02) 100%)',
+                borderColor: 'rgba(239,68,68,0.28)',
+              }}
+            >
+              <div className="flex items-center gap-3">
+                <span
+                  className="text-xs font-bold px-3 py-1 rounded-full"
+                  style={{ background: 'rgba(239,68,68,0.18)', color: '#ef4444' }}
+                >
+                  New · Safety
+                </span>
+                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>8 July 2026</span>
+              </div>
+              <div className="flex flex-col md:flex-row md:items-center gap-4">
+                <div className="flex-1">
+                  <h2 className="text-xl font-bold leading-snug mb-2">
+                    Report, block and stay in control — new trust &amp; safety tools
+                  </h2>
+                  <p className="text-sm leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+                    Report users, events, comments, listings and messages in a couple of taps, block anyone instantly, and rest easy knowing a real admin team reviews every report.
+                  </p>
+                </div>
+                <div className="flex items-center justify-center w-16 h-16 rounded-2xl shrink-0" style={{ background: 'rgba(239,68,68,0.12)' }}>
+                  <ShieldCheck size={32} style={{ color: '#ef4444' }} />
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 text-xs font-semibold mt-auto" style={{ color: '#ef4444' }}>
+                Read more <ArrowRight size={12} />
+              </div>
+            </Link>
+
+            {/* iOS App Store — news */}
             <Link
               href="/blog/fitmeet-ios-app-coming-to-app-store"
               className="rounded-2xl border p-6 flex flex-col gap-4 transition-opacity hover:opacity-90 mb-4"

@@ -15,6 +15,50 @@ export interface Post {
 
 export const posts: Post[] = [
   {
+    slug: 'fitmeet-block-report-trust-and-safety',
+    title: 'Report, Block and Stay in Control: New Trust & Safety Tools on FitMeet',
+    description: 'FitMeet now lets you report and block other members directly from events, messages, moments and the marketplace, backed by an admin review team and a Terms of Service you accept at sign-up.',
+    publishedAt: '2026-07-08',
+    readTime: 3,
+    category: 'Safety',
+    sections: [
+      {
+        heading: 'Why We Built This',
+        paragraphs: [
+          'FitMeet works because strangers can meet up for a run, a ride or a hike and trust the person on the other side of the app. As the community grows, we wanted the same tools you would expect from any social platform: a simple way to report something that is not okay, and a way to block someone you would rather not interact with — no explanation required.',
+          'This was also part of what Apple asked for before approving the iOS app: a clear content-moderation loop with reporting, blocking and admin review. We used it as a reason to build it properly, not just to tick a box.',
+        ],
+      },
+      {
+        heading: 'Report Anything, From Anywhere',
+        paragraphs: [
+          'You can now report a user, an event, a comment, a marketplace listing or a direct message straight from where you see it — no digging through settings. Pick a reason, add a short note if you want, and submit. Reports go straight to a dedicated admin review queue.',
+          'We deliberately made reporting available in every place people actually interact on FitMeet: event pages, moments, chats and the marketplace. A safety tool that only works in one corner of the app does not get used.',
+        ],
+      },
+      {
+        heading: 'Block Someone, Instantly',
+        paragraphs: [
+          'Blocking a user hides their profile, stops them from messaging you, and removes friction from any shared spaces without you needing to justify the decision to anyone. It works the same way on Android, iOS and the web.',
+          'The block button lives right in the chat header and on profiles, and it now toggles cleanly — block someone, and it becomes an unblock option in the same place if you ever change your mind.',
+        ],
+      },
+      {
+        heading: 'Behind the Scenes: Admin Review',
+        paragraphs: [
+          'Every report lands in an admin dashboard where our team can see the content in context, take action — including banning an account when it is warranted — and keep the community clean without relying on public callouts or drama.',
+          'We also added a content filter that flags obviously inappropriate text automatically, and a Terms of Service step at registration so everyone joining FitMeet agrees to the same ground rules from day one.',
+        ],
+      },
+      {
+        heading: 'Available Now',
+        paragraphs: [
+          'Reporting, blocking and the Terms of Service gate are live today on Android, iOS and fitmeet.fit. If you ever run into something that should not be on FitMeet, reporting it takes a few seconds — and it genuinely gets looked at.',
+        ],
+      },
+    ],
+  },
+  {
     slug: 'fitmeet-ios-app-coming-to-app-store',
     title: 'FitMeet is Coming to the App Store — iOS App Submitted for Review',
     description: 'The FitMeet iOS app is complete and has been submitted to the Apple App Store. We are waiting for Apple\'s approval. Every feature from the Android app is here — and a few iOS extras on top.',
