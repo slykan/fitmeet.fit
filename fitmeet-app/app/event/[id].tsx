@@ -24,6 +24,7 @@ import { analyzeRouteSurface, type SurfaceAnalysis } from '@/src/lib/route-surfa
 import { playRandomActionSound } from '@/src/lib/action-sounds'
 import { reportContent } from '@/src/lib/moderation'
 import { useAuthStore } from '@/src/store/auth'
+import { useBadgesStore } from '@/src/store/badges'
 import { palette, spacing } from '@/src/theme'
 import { SupportFitMeetCard } from '@/src/components/SupportFitMeetCard'
 
@@ -524,6 +525,7 @@ export default function EventDetailScreen() {
       setSelectedOffsets(new Set(activeOffsets))
       joinedJustNow.current = true
       playRandomActionSound().catch(() => {})
+      if (data.newly_unlocked?.length) useBadgesStore.getState().enqueue(data.newly_unlocked)
       setShowReminderModal(true)
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Could not join.'

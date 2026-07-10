@@ -12,6 +12,7 @@ import { syncPushToken, unregisterPushToken } from '@/src/lib/push-notifications
 import { useAuthStore } from '@/src/store/auth'
 import { palette, spacing } from '@/src/theme'
 import { AlibiCard } from '@/src/components/AlibiCard'
+import { BadgeGrid } from '@/src/components/BadgeGrid'
 
 function isBirthday(birthDate: string | null | undefined): boolean {
   if (!birthDate) return false
@@ -154,6 +155,9 @@ export default function ProfileScreen() {
 
         {/* Alibi stats */}
         <AlibiCard />
+
+        {/* Badges */}
+        <BadgeGrid />
 
         {/* Edit profile link */}
         <Pressable style={styles.settingsLink} onPress={() => router.push('/settings' as never)}>

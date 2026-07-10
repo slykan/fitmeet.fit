@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { useAuthStore } from '@/store/auth'
 import { Navbar } from '@/components/navbar'
 import { Button } from '@/components/ui/button'
+import { BadgeGrid } from '@/components/badge-grid'
 import { AlertTriangle, Bell, Calendar, Camera, Mail, MapPin, Phone, Globe, Navigation, Pencil, Trash2, UserPlus } from 'lucide-react'
 import api from '@/lib/api'
 
@@ -262,6 +263,8 @@ export default function ProfilePage() {
         </div>
 
         <AlibiCard />
+
+        <BadgeGrid />
 
         {/* Email notifications */}
         <div

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Space_Grotesk } from 'next/font/google'
+import { BadgeUnlockOverlay } from '@/components/badge-unlock-overlay'
 import { BeerTicker } from '@/components/beer-ticker'
 import { Providers } from '@/components/providers'
 import { Footer } from '@/components/footer'
@@ -36,6 +37,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-full flex flex-col bg-[--background] text-[--text-primary]">
         <Providers>
           <BeerTicker />
+          <BadgeUnlockOverlay />
           {children}
         </Providers>
         <Footer />

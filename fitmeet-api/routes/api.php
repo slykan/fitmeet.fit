@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ActivityRouteController;
+use App\Http\Controllers\Api\BadgeController;
 use App\Http\Controllers\Api\MarketplaceController;
 use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\BeerDonationController;
@@ -110,6 +111,7 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\EnsureNotBanned::class])
     Route::delete('me/push-token', [UserController::class, 'destroyPushToken']);
     Route::get('users', [UserController::class, 'index']);
     Route::get('users/{user}', [UserController::class, 'show']);
+    Route::get('badges', [BadgeController::class, 'index']);
 
     // Reporting & blocking (Apple guideline 1.2)
     Route::post('reports', [ReportController::class, 'store']);

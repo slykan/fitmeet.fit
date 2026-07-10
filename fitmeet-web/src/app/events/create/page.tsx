@@ -14,6 +14,7 @@ import { eventDateToLocalInput, eventLocalInputToUtcIso, resolveEventTimeZone, r
 import { parseGpx, GpxResult } from '@/lib/parse-gpx'
 import { formatAddress } from '@/lib/format-address'
 import { useAuthStore } from '@/store/auth'
+import { useBadgesStore } from '@/store/badges'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import CategoryPicker from '@/components/category-picker'
@@ -410,6 +411,7 @@ export default function CreateEventPage() {
 
       const { data: res } = await api.post('/events', fd)
       playRandomActionSound()
+      if (res.newly_unlocked?.length) useBadgesStore.getState().enqueue(res.newly_unlocked)
       router.replace(`/events/view?id=${res.data.id}`)
     } catch (err: unknown) {
       const e   = err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } }

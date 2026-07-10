@@ -13,6 +13,7 @@ use App\Models\EventNotification;
 use App\Models\EventReminder;
 use App\Models\FriendRequest;
 use App\Models\User;
+use App\Services\BadgeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
@@ -100,7 +101,14 @@ class FriendController extends Controller
             ],
         );
 
-        return response()->json(['message' => 'Friend request accepted.']);
+        $badgeService = app(BadgeService::class);
+        $badgeService->evaluate($friendRequest->sender);
+        $newlyUnlocked = $badgeService->evaluate($request->user());
+
+        return response()->json([
+            'message' => 'Friend request accepted.',
+            'newly_unlocked' => $newlyUnlocked,
+        ]);
     }
 
     // POST /friends/decline/{friendRequest}

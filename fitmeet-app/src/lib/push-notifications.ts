@@ -5,7 +5,9 @@ import { router } from 'expo-router'
 import { Linking, Platform } from 'react-native'
 
 import { api } from '@/src/lib/api'
+import { badgeDefinition } from '@/src/lib/badges'
 import { emitChatRefresh } from '@/src/lib/chat-refresh'
+import { useBadgesStore } from '@/src/store/badges'
 
 export const PUSH_TOKEN_STORAGE_KEY = 'fitmeet-mobile-push-token-v1'
 
@@ -58,11 +60,29 @@ Notifications.setNotificationHandler({
   }),
 })
 
+function enqueueBadgesFromPushData(data: Record<string, unknown> | undefined) {
+  const raw = typeof data?.badge_keys === 'string' ? data.badge_keys : null
+  if (!raw) return
+
+  const badges = raw.split(',')
+    .map(key => badgeDefinition(key.trim()))
+    .filter((b): b is NonNullable<typeof b> => b !== null)
+    .map(b => ({ ...b, unlocked_at: new Date().toISOString() }))
+
+  if (badges.length) useBadgesStore.getState().enqueue(badges)
+}
+
 function routeFromNotificationData(data: Record<string, unknown> | undefined) {
   if (!data) return
 
   const type = typeof data.type === 'string' ? data.type : null
   const eventId = data.event_id != null ? String(data.event_id) : null
+
+  if (type === 'badge_unlocked') {
+    enqueueBadgesFromPushData(data)
+    router.push('/(tabs)/profile' as never)
+    return
+  }
 
   if (eventId && ['new_event', 'event_reminder', 'event_cancelled', 'event_started'].includes(type ?? '')) {
     router.push(`/event/${eventId}` as never)
@@ -227,6 +247,9 @@ export function setupPushNotificationRouting() {
     const data = notification.request.content.data as Record<string, unknown> | undefined
     if (data?.type === 'new_message') {
       emitChatRefresh()
+    }
+    if (data?.type === 'badge_unlocked') {
+      enqueueBadgesFromPushData(data)
     }
   })
 

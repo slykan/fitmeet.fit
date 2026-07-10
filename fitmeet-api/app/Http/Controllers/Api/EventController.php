@@ -13,6 +13,7 @@ use App\Models\ActivityRoute;
 use App\Models\Event;
 use App\Models\EventReminder;
 use App\Models\FriendRequest;
+use App\Services\BadgeService;
 use App\Services\GpxRouteParser;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -150,6 +151,25 @@ class EventController extends Controller
     public function store(StoreEventRequest $request): JsonResponse
     {
         $data = $request->validated();
+
+        // Idempotency: if the client retried a submit that actually succeeded
+        // server-side (e.g. the response was lost over a flaky connection),
+        // return the event that was already created instead of a duplicate.
+        if (! empty($data['client_request_id'])) {
+            $existing = $request->user()->events()
+                ->where('client_request_id', $data['client_request_id'])
+                ->first();
+
+            if ($existing) {
+                $existing->load('organizer');
+
+                return response()->json([
+                    'data' => new EventResource($existing),
+                    'newly_unlocked' => [],
+                ], 201);
+            }
+        }
+
         $routeTitle = $data['route_title'] ?? null;
         $gpxTextForRoute = null;
         $gpxNameForRoute = $data['gpx_name'] ?? null;
@@ -186,7 +206,12 @@ class EventController extends Controller
 
         SendNewEventNotifications::dispatch($event);
 
-        return response()->json(['data' => new EventResource($event)], 201);
+        $newlyUnlocked = app(BadgeService::class)->evaluate($request->user());
+
+        return response()->json([
+            'data' => new EventResource($event),
+            'newly_unlocked' => $newlyUnlocked,
+        ], 201);
     }
 
     // GET /api/events/{event}
@@ -492,9 +517,16 @@ HTML;
 
         $event->load('organizer', 'participants');
 
+        $badgeService = app(BadgeService::class);
+        $newlyUnlocked = $badgeService->evaluate($user);
+        if ($event->organizer) {
+            $badgeService->evaluate($event->organizer);
+        }
+
         return response()->json([
             'message' => 'Joined successfully.',
             'data' => new EventResource($event),
+            'newly_unlocked' => $newlyUnlocked,
         ]);
     }
 

@@ -9,6 +9,8 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { api } from '@/src/lib/api'
 import { presentUserModerationMenu } from '@/src/lib/moderation'
+import { BadgeGrid, BadgeGridItem } from '@/src/components/BadgeGrid'
+import { useBadgesStore } from '@/src/store/badges'
 import { palette, spacing } from '@/src/theme'
 
 interface UserProfile {
@@ -31,6 +33,7 @@ interface UserProfile {
     moments:        number
     beers:          number
   }
+  badges: BadgeGridItem[]
 }
 
 const STAT_ROWS: { key: keyof UserProfile['stats']; label: string; emoji: string; color: string }[] = [
@@ -95,7 +98,9 @@ export default function UserProfileScreen() {
           return request?.id ?? null
         }).catch(() => null)
         if (requestId) {
-          await api.post(`/friends/accept/${requestId}`)
+          await api.post(`/friends/accept/${requestId}`).then(({ data }) => {
+            if (data.newly_unlocked?.length) useBadgesStore.getState().enqueue(data.newly_unlocked)
+          })
           setProfile(p => p ? { ...p, friendship_status: 'friends' } : p)
         }
       } else if (profile.friendship_status === 'friends') {
@@ -287,6 +292,9 @@ export default function UserProfileScreen() {
             })}
           </View>
         </View>
+
+        {/* Badges */}
+        <BadgeGrid badges={profile.badges} />
 
       </ScrollView>
     </SafeAreaView>

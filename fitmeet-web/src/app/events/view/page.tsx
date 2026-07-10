@@ -18,6 +18,7 @@ import { getYouTubeVideoId } from '@/lib/youtube'
 import { fetchRelevantEventWeather, windDirectionLabelDetailed, type EventWeather } from '@/lib/weather'
 import api from '@/lib/api'
 import { playRandomActionSound } from '@/lib/action-sounds'
+import { useBadgesStore } from '@/store/badges'
 import { fetchElevationProfile, parseGpx, GpxResult } from '@/lib/parse-gpx'
 import { analyzeRouteSurface, type SurfaceAnalysis } from '@/lib/route-surface'
 import { reportContent } from '@/lib/moderation'
@@ -240,8 +241,9 @@ function EventContent() {
     setJoining(true)
     setError(null)
     try {
-      await api.post(`/events/${event.id}/join`)
+      const { data: res } = await api.post(`/events/${event.id}/join`)
       playRandomActionSound()
+      if (res.newly_unlocked?.length) useBadgesStore.getState().enqueue(res.newly_unlocked)
       setEvent(e => e ? { ...e, is_joined: true, participants_count: e.participants_count + 1 } : e)
       setActiveOffsets([])
       setSelectedOffsets(new Set())

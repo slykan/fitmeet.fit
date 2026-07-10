@@ -21,6 +21,7 @@ import type { GpxParsed } from '@/src/lib/gpx'
 import { isValidYouTubeUrl } from '@/src/lib/youtube'
 import { cloudLabel, EventWeather, fetchEventWeather, weatherIconName } from '@/src/lib/weather'
 import { playRandomActionSound } from '@/src/lib/action-sounds'
+import { useBadgesStore } from '@/src/store/badges'
 import { palette, spacing } from '@/src/theme'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -221,6 +222,9 @@ export default function CreateEventScreen() {
   const editId = typeof params.id === 'string' ? params.id : null
   const webViewRef = useRef<WebView>(null)
   const [mapEnabled, setMapEnabled] = useState(false)
+  // Stable for the lifetime of this screen so repeated submit taps (after a
+  // failed/lost-connection attempt) dedupe server-side instead of creating duplicates.
+  const clientRequestId = useRef(`${Date.now()}-${Math.random().toString(36).slice(2, 10)}`)
 
   // Basic
   const [title,       setTitle]       = useState('')
@@ -633,6 +637,30 @@ export default function CreateEventScreen() {
     }
   }
 
+  async function postEventWithRetry(fd: FormData, maxAttempts = 3) {
+    let lastError: unknown
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        return await api.post('/events', fd, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+          timeout: 30000,
+        })
+      } catch (e: unknown) {
+        lastError = e
+        // Only retry network-level failures (no response reached the client) —
+        // a real 4xx/5xx from the server means the request was understood and
+        // shouldn't be blindly repeated. The client_request_id makes retries
+        // safe even if an earlier attempt actually succeeded server-side.
+        const hasResponse = !!(e as { response?: unknown })?.response
+        if (hasResponse || attempt === maxAttempts) throw e
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt))
+      }
+    }
+
+    throw lastError
+  }
+
   async function handleSubmit() {
     if (!title.trim())    { Alert.alert('Missing', 'Add a title.'); return }
     if (!category)        { Alert.alert('Missing', 'Select a category.'); return }
@@ -650,6 +678,7 @@ export default function CreateEventScreen() {
       const startAt  = pickedDate.toISOString()
 
       const fd = new FormData()
+      if (!editId) fd.append('client_request_id', clientRequestId.current)
       fd.append('title',    title.trim())
       fd.append('category', category)
       fd.append('start_at', startAt)
@@ -691,12 +720,13 @@ export default function CreateEventScreen() {
           })(), {
             headers: { 'Content-Type': 'multipart/form-data' },
           })
-        : await api.post('/events', fd, {
-            headers: { 'Content-Type': 'multipart/form-data' },
-          })
+        : await postEventWithRetry(fd)
+
+      if (!editId && data.newly_unlocked?.length) useBadgesStore.getState().enqueue(data.newly_unlocked)
 
       if (!editId && joinOnCreate) {
-        await api.post(`/events/${data.data.id}/join`).catch(() => {})
+        const joinResult = await api.post(`/events/${data.data.id}/join`).catch(() => null)
+        if (joinResult?.data?.newly_unlocked?.length) useBadgesStore.getState().enqueue(joinResult.data.newly_unlocked)
         if (notifyOnJoin) {
           await api.post(`/events/${data.data.id}/join-notifications`, { enabled: true }).catch(() => {})
         }
@@ -716,8 +746,12 @@ export default function CreateEventScreen() {
         title: data.data.title ?? title.trim(),
       })
     } catch (e: unknown) {
-      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message
-      Alert.alert('Error', msg ?? (editId ? 'Could not update event.' : 'Could not create event.'))
+      const err = e as { response?: { data?: { message?: string } } }
+      const msg = err?.response?.data?.message
+      const fallback = err?.response
+        ? (editId ? 'Could not update event.' : 'Could not create event.')
+        : 'Network issue — please check your connection and try again.'
+      Alert.alert('Error', msg ?? fallback)
     } finally {
       setSubmitting(false)
     }

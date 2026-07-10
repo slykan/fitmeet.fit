@@ -11,6 +11,7 @@ use App\Models\FriendRequest;
 use App\Models\User;
 use App\Models\UserBlock;
 use App\Models\UserPushToken;
+use App\Services\BadgeService;
 use App\Services\ContentFilterService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -281,6 +282,7 @@ class UserController extends Controller
             'beer_score'       => $beerScore,
             'stats'            => $stats,
             'is_blocked'       => $isBlocked,
+            'badges'           => app(BadgeService::class)->catalogFor($user),
         ]);
     }
 

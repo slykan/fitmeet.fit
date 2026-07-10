@@ -19,6 +19,7 @@ class StoreEventRequest extends FormRequest
             'title'            => ['required', 'string', 'max:100'],
             'description'      => ['nullable', 'string', 'max:2000'],
             'category'         => ['required', Rule::in(Category::values())],
+            'client_request_id' => ['nullable', 'string', 'max:64'],
 
             'lat'              => ['required', 'numeric', 'between:-90,90'],
             'lng'              => ['required', 'numeric', 'between:-180,180'],

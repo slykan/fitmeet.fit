@@ -5,6 +5,8 @@ use App\Jobs\SendStartedEventNotifications;
 use App\Mail\EventReminderMail;
 use App\Models\Event;
 use App\Models\EventReminder;
+use App\Models\User;
+use App\Services\BadgeService;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Mail;
@@ -167,3 +169,16 @@ Artisan::command('birthday:send', function () {
 })->purpose('Send birthday push notifications around 8 AM local time');
 
 Schedule::command('birthday:send')->hourly();
+
+Artisan::command('badges:backfill', function () {
+    $badgeService = app(BadgeService::class);
+    $granted = 0;
+
+    User::query()->chunkById(200, function ($users) use ($badgeService, &$granted) {
+        foreach ($users as $user) {
+            $granted += count($badgeService->evaluate($user, notify: false));
+        }
+    });
+
+    $this->info("Backfill complete. Granted {$granted} badge(s).");
+})->purpose('Silently grant already-earned badges to existing users (no push notifications)');

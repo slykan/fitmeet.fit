@@ -128,6 +128,11 @@ class User extends Authenticatable
         return $this->hasMany(BeerDonation::class);
     }
 
+    public function badges(): HasMany
+    {
+        return $this->hasMany(UserBadge::class);
+    }
+
     public function blocksInitiated(): HasMany
     {
         return $this->hasMany(UserBlock::class, 'blocker_id');

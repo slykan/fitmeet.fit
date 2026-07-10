@@ -7,6 +7,7 @@ import { Component, useEffect, useRef } from 'react'
 import { AppState, Pressable, Text, View } from 'react-native'
 import type { ReactNode, ErrorInfo } from 'react'
 
+import { BadgeUnlockOverlay } from '@/src/components/BadgeUnlockOverlay'
 import { BeerTickerBanner, BEER_TICKER_HEIGHT } from '@/src/components/BeerTickerBanner'
 import { BirthdayOverlay } from '@/src/components/BirthdayOverlay'
 import { WorldCupOverlay } from '@/src/components/WorldCupOverlay'
@@ -152,6 +153,7 @@ export default function RootLayout() {
       <BeerTickerBanner />
       {/* <WorldCupOverlay /> */}
       <BirthdayOverlay />
+      <BadgeUnlockOverlay />
     </ErrorBoundary>
   )
 }

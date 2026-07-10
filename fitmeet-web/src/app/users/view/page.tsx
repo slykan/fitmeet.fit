@@ -8,6 +8,8 @@ import { Navbar } from '@/components/navbar'
 import { useAuthStore } from '@/store/auth'
 import api from '@/lib/api'
 import { blockUser, reportContent, unblockUser } from '@/lib/moderation'
+import { BadgeGrid, BadgeGridItem } from '@/components/badge-grid'
+import { useBadgesStore } from '@/store/badges'
 
 interface UserProfile {
   id: number
@@ -29,6 +31,7 @@ interface UserProfile {
     moments:        number
     beers:          number
   }
+  badges: BadgeGridItem[]
 }
 
 const STAT_ROWS: { key: keyof UserProfile['stats']; label: string; emoji: string; color: string }[] = [
@@ -75,7 +78,8 @@ function UserProfileContent() {
           data.data?.find((n: { type: string; friend_request_id: number }) => n.type === 'friend_request')
         ).catch(() => null)
         if (fr?.friend_request_id) {
-          await api.post(`/friends/accept/${fr.friend_request_id}`)
+          const { data: res } = await api.post(`/friends/accept/${fr.friend_request_id}`)
+          if (res.newly_unlocked?.length) useBadgesStore.getState().enqueue(res.newly_unlocked)
           setProfile(p => p ? { ...p, friendship_status: 'friends' } : p)
         }
       } else if (profile.friendship_status === 'friends') {
@@ -259,6 +263,10 @@ function UserProfileContent() {
               </div>
             )
           })}
+        </div>
+
+        <div className="mt-5">
+          <BadgeGrid badges={profile.badges} />
         </div>
       </main>
     </>

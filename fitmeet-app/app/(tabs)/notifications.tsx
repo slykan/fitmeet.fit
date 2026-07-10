@@ -10,6 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs'
 
 import { api } from '@/src/lib/api'
+import { useBadgesStore } from '@/src/store/badges'
 import { palette, spacing } from '@/src/theme'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -167,7 +168,8 @@ export default function NotificationsScreen() {
   async function accept(n: Extract<Notification, { type: 'friend_request' }>) {
     setActing(n.id)
     try {
-      await api.post(`/friends/accept/${n.id}`)
+      const { data } = await api.post(`/friends/accept/${n.id}`)
+      if (data.newly_unlocked?.length) useBadgesStore.getState().enqueue(data.newly_unlocked)
       setNotifications(prev => prev.filter(x => x.id !== n.id))
     } catch {}
     finally { setActing(null) }
