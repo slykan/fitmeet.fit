@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useFocusEffect } from 'expo-router'
+import { useCallback, useState } from 'react'
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native'
 
 import { api } from '@/src/lib/api'
@@ -32,10 +33,13 @@ function Tile({ badge }: { badge: BadgeGridItem }) {
 export function BadgeGrid({ badges: providedBadges }: { badges?: BadgeGridItem[] }) {
   const [fetched, setFetched] = useState<BadgeGridItem[] | null>(null)
 
-  useEffect(() => {
+  // Refetch on every focus (not just mount) — tabs stay mounted, so without
+  // this the grid stays frozen at whatever it looked like on first visit,
+  // even after new badges unlock elsewhere in the app.
+  useFocusEffect(useCallback(() => {
     if (providedBadges) return
     api.get('/badges').then(({ data }) => setFetched(data.data)).catch(() => {})
-  }, [providedBadges])
+  }, [providedBadges]))
 
   const badges = providedBadges ?? fetched
   if (!badges) return null
