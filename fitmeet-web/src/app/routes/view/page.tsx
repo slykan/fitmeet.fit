@@ -8,9 +8,10 @@ import { ChevronLeft, Download, Eye, MapPin, PenLine, Share2, Trash2, Zap } from
 import { Navbar } from '@/components/navbar'
 import ElevationChart from '@/components/elevation-chart'
 import { WikiPhotosStrip } from '@/components/wiki-photos-strip'
+import { MapLoadingOverlay } from '@/components/map-loading-overlay'
 import api from '@/lib/api'
 import { CATEGORIES, CATEGORY_EMOJI } from '@/lib/categories'
-import { fetchElevationProfile, parseGpx, type GpxResult } from '@/lib/parse-gpx'
+import { fetchElevationProfile, parseGpxAsync, type GpxResult } from '@/lib/parse-gpx'
 import { analyzeRouteSurface, type SurfaceAnalysis } from '@/lib/route-surface'
 import { useAuthStore } from '@/store/auth'
 
@@ -88,6 +89,7 @@ function RouteContent() {
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [surfaceAnalysis, setSurfaceAnalysis] = useState<SurfaceAnalysis | null>(null)
+  const [surfaceLoading, setSurfaceLoading] = useState(false)
 
   useEffect(() => {
     if (!hasHydrated) return
@@ -101,21 +103,22 @@ function RouteContent() {
         setRoute(loaded)
         if (!loaded.gpx_url) return
         const gpx = await api.get(`/routes/${loaded.id}/gpx`, { responseType: 'text' })
-        const parsed = parseGpx(gpx.data)
+        const parsed = await parseGpxAsync(gpx.data)
+        setSurfaceLoading(true)
         if (parsed.elevationProfile.length >= 2) {
           const next = withProfileStats(parsed)
           setGpxResult(next)
-          analyzeRouteSurface(next.track).then(setSurfaceAnalysis).catch(() => {})
+          analyzeRouteSurface(next.track).then(setSurfaceAnalysis).catch(() => {}).finally(() => setSurfaceLoading(false))
           return
         }
         try {
           const profile = await fetchElevationProfile(parsed.track)
           const next = withProfileStats({ ...parsed, ...profile })
           setGpxResult(next)
-          analyzeRouteSurface(next.track).then(setSurfaceAnalysis).catch(() => {})
+          analyzeRouteSurface(next.track).then(setSurfaceAnalysis).catch(() => {}).finally(() => setSurfaceLoading(false))
         } catch {
           setGpxResult(parsed)
-          analyzeRouteSurface(parsed.track).then(setSurfaceAnalysis).catch(() => {})
+          analyzeRouteSurface(parsed.track).then(setSurfaceAnalysis).catch(() => {}).finally(() => setSurfaceLoading(false))
         }
       })
       .catch(() => setError('Route not found.'))
@@ -301,18 +304,21 @@ function RouteContent() {
                 <Download size={13} /> GPX
               </button>
             </div>
-            <LocationPickerMap
-              lat={route.location.start_lat}
-              lng={route.location.start_lng}
-              track={gpxResult?.track}
-              elevationSegments={gpxResult?.coloredSegments}
-              surfaceSegments={surfaceAnalysis?.segments}
-              readOnly
-              height={720}
-              showWindOverlay={false}
-              showCloudOverlay={false}
-              showMapLayerControl
-            />
+            <div className="relative">
+              <LocationPickerMap
+                lat={route.location.start_lat}
+                lng={route.location.start_lng}
+                track={gpxResult?.track}
+                elevationSegments={gpxResult?.coloredSegments}
+                surfaceSegments={surfaceAnalysis?.segments}
+                readOnly
+                height={720}
+                showWindOverlay={false}
+                showCloudOverlay={false}
+                showMapLayerControl
+              />
+              {surfaceLoading && <MapLoadingOverlay />}
+            </div>
             {surfaceAnalysis?.summary.length ? (
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5 sm:gap-2">
                 {surfaceMixText && (

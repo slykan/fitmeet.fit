@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native'
 import { WebView } from 'react-native-webview'
 import type { WebView as WebViewType } from 'react-native-webview'
 
@@ -17,6 +17,7 @@ type Props = {
   elevationSegments?: TrackSegment[]
   surfaceSegments?: TrackSegment[]
   onMapEnabledChange?: (enabled: boolean) => void
+  loading?: boolean
 }
 
 type MapLayer = 'standard' | 'satellite' | 'terrain'
@@ -234,7 +235,7 @@ function buildHtml(
 </html>`
 }
 
-export function EventMapCard({ lat, lng, emoji = '📍', coloredSegments, elevationSegments, surfaceSegments, onMapEnabledChange }: Props) {
+export function EventMapCard({ lat, lng, emoji = '📍', coloredSegments, elevationSegments, surfaceSegments, onMapEnabledChange, loading }: Props) {
   const webViewRef = useRef<WebViewType>(null)
   const [weather, setWeather] = useState<CurrentWeather | null>(null)
   const [center, setCenter] = useState({ lat, lng })
@@ -349,6 +350,11 @@ export function EventMapCard({ lat, lng, emoji = '📍', coloredSegments, elevat
           </View>
         )}
       </View>
+      {loading && (
+        <View pointerEvents="none" style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color={palette.accent} />
+        </View>
+      )}
     </View>
   )
 }
@@ -363,6 +369,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#060c1a',
   },
   webview: { flex: 1, backgroundColor: 'transparent' },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(6,12,26,0.35)',
+  },
   mapOverlay: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'flex-start',

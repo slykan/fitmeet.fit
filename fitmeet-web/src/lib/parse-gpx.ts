@@ -1,3 +1,5 @@
+import { yieldToMain } from '@/lib/async-chunk'
+
 export interface TrackSegment {
   coords: [number, number][]
   color:  string
@@ -152,6 +154,103 @@ function readPoints(xml: string, tagNames: string): { coords: [number, number]; 
   }
 
   return points
+}
+
+async function cumulativeDistancesKmAsync(track: [number, number][]): Promise<number[]> {
+  const distances: number[] = [0]
+  let totalKm = 0
+
+  for (let i = 1; i < track.length; i++) {
+    totalKm += haversineKm(track[i - 1][0], track[i - 1][1], track[i][0], track[i][1])
+    distances.push(totalKm)
+    if (i % 500 === 0) await yieldToMain()
+  }
+
+  return distances
+}
+
+// Chunked-async twin of parseGpx — used only on event/route view screens
+// where large imported GPX files were freezing the main thread for a few
+// seconds. Same logic, but yields back to the event loop periodically so the
+// UI (and a loading spinner) stays responsive. parseGpx itself stays
+// synchronous for create/edit/draw flows, which weren't reported as frozen.
+export async function parseGpxAsync(xml: string): Promise<GpxResult> {
+  const track:   [number, number][] = []
+  const eleData: number[]           = []
+
+  let points = readPoints(xml, 'trkpt|rtept')
+  if (points.length === 0) points = readPoints(xml, 'wpt')
+
+  for (const point of points) {
+    track.push(point.coords)
+    eleData.push(point.ele ?? -Infinity)
+  }
+
+  const cumKm = await cumulativeDistancesKmAsync(track)
+  const totalKm = cumKm[cumKm.length - 1] ?? 0
+
+  let elevationGain = 0
+  for (let i = 1; i < eleData.length; i++) {
+    if (eleData[i] !== -Infinity && eleData[i - 1] !== -Infinity) {
+      const diff = eleData[i] - eleData[i - 1]
+      if (diff > 0) elevationGain += diff
+    }
+    if (i % 500 === 0) await yieldToMain()
+  }
+
+  const hasEle    = eleData.some(e => e !== -Infinity)
+  const maxPoints = 300
+  const step      = Math.max(1, Math.floor(track.length / maxPoints))
+
+  const elevationProfile: { km: number; ele: number }[] = []
+  const coloredSegments: TrackSegment[] = []
+
+  if (hasEle) {
+    const sampledTrack: [number, number][] = []
+    const sampledElevs: number[] = []
+    const sampledIndexes: number[] = []
+    for (let i = 0; i < track.length; i += step) {
+      sampledTrack.push(track[i])
+      sampledElevs.push(eleData[i] === -Infinity ? NaN : eleData[i])
+      sampledIndexes.push(i)
+      if (i % 500 === 0) await yieldToMain()
+    }
+    const last = track.length - 1
+    if (last % step !== 0) {
+      sampledTrack.push(track[last])
+      sampledElevs.push(eleData[last] === -Infinity ? NaN : eleData[last])
+      sampledIndexes.push(last)
+    }
+    const profile = buildElevationProfile(sampledTrack, sampledElevs, track, sampledIndexes)
+    elevationProfile.push(...profile.elevationProfile)
+    coloredSegments.push(...profile.coloredSegments)
+  }
+
+  let maxGrade     = 0
+  let maxDowngrade = 0
+  for (let i = 1; i < elevationProfile.length; i++) {
+    const distKm = elevationProfile[i].km - elevationProfile[i - 1].km
+    const eleM   = elevationProfile[i].ele - elevationProfile[i - 1].ele
+    if (distKm > 0) {
+      const grade = (eleM / (distKm * 1000)) * 100
+      if (grade > maxGrade)     maxGrade     = grade
+      if (grade < maxDowngrade) maxDowngrade = grade
+    }
+  }
+
+  if (coloredSegments.length === 0 && track.length >= 2) {
+    coloredSegments.push({ coords: track, color: '#39ff14' })
+  }
+
+  return {
+    track,
+    distanceKm:    Math.round(totalKm * 10) / 10,
+    elevationGain: Math.round(elevationGain),
+    maxGrade:      Math.round(maxGrade * 10) / 10,
+    maxDowngrade:  Math.round(maxDowngrade * 10) / 10,
+    elevationProfile,
+    coloredSegments,
+  }
 }
 
 export function parseGpx(xml: string): GpxResult {

@@ -1,4 +1,5 @@
 import type { TrackSegment } from '@/lib/parse-gpx'
+import { yieldToMain } from '@/lib/async-chunk'
 
 export type SurfaceKind = 'paved' | 'unpaved' | 'trail' | 'unknown'
 
@@ -101,17 +102,76 @@ function distancePointToSegmentM(point: Point, a: Point, b: Point) {
   return Math.hypot(p[0] - (p1[0] + t * dx), p[1] - (p1[1] + t * dy))
 }
 
-function nearestSurfaceKind(point: Point, ways: OverpassWay[]): SurfaceKind {
-  let bestDistance = Infinity
-  let bestKind: SurfaceKind = 'unknown'
+// Spatial grid so nearestSurfaceKind only checks segments near each point
+// instead of every segment of every OSM way in the bbox (was O(points × ways
+// × segments) — dense urban bboxes can return thousands of ways and freeze
+// the main thread for seconds).
+const GRID_CELL_DEG = 0.002 // ~220m, comfortably larger than the 35m match radius
+
+interface SurfaceGridCandidate {
+  a: Point
+  b: Point
+  kind: SurfaceKind
+}
+
+type SurfaceGrid = Map<string, SurfaceGridCandidate[]>
+
+function cellKey(cellLat: number, cellLon: number): string {
+  return `${cellLat}_${cellLon}`
+}
+
+function cellsForSegment(a: Point, b: Point): string[] {
+  const latMin = Math.floor(Math.min(a[0], b[0]) / GRID_CELL_DEG)
+  const latMax = Math.floor(Math.max(a[0], b[0]) / GRID_CELL_DEG)
+  const lonMin = Math.floor(Math.min(a[1], b[1]) / GRID_CELL_DEG)
+  const lonMax = Math.floor(Math.max(a[1], b[1]) / GRID_CELL_DEG)
+  const keys: string[] = []
+  for (let la = latMin; la <= latMax; la++) {
+    for (let lo = lonMin; lo <= lonMax; lo++) {
+      keys.push(cellKey(la, lo))
+    }
+  }
+  return keys
+}
+
+function buildSurfaceGrid(ways: OverpassWay[]): SurfaceGrid {
+  const grid: SurfaceGrid = new Map()
 
   for (const way of ways) {
+    const kind = classifyWay(way.tags)
     const coords = (way.geometry ?? []).map((entry): Point => [entry.lat, entry.lon])
     for (let i = 1; i < coords.length; i++) {
-      const dist = distancePointToSegmentM(point, coords[i - 1], coords[i])
-      if (dist < bestDistance) {
-        bestDistance = dist
-        bestKind = classifyWay(way.tags)
+      const candidate: SurfaceGridCandidate = { a: coords[i - 1], b: coords[i], kind }
+      for (const key of cellsForSegment(candidate.a, candidate.b)) {
+        const bucket = grid.get(key)
+        if (bucket) bucket.push(candidate)
+        else grid.set(key, [candidate])
+      }
+    }
+  }
+
+  return grid
+}
+
+function nearestSurfaceKind(point: Point, grid: SurfaceGrid): SurfaceKind {
+  const cellLat = Math.floor(point[0] / GRID_CELL_DEG)
+  const cellLon = Math.floor(point[1] / GRID_CELL_DEG)
+  let bestDistance = Infinity
+  let bestKind: SurfaceKind = 'unknown'
+  const seen = new Set<SurfaceGridCandidate>()
+
+  for (let la = cellLat - 1; la <= cellLat + 1; la++) {
+    for (let lo = cellLon - 1; lo <= cellLon + 1; lo++) {
+      const bucket = grid.get(cellKey(la, lo))
+      if (!bucket) continue
+      for (const candidate of bucket) {
+        if (seen.has(candidate)) continue
+        seen.add(candidate)
+        const dist = distancePointToSegmentM(point, candidate.a, candidate.b)
+        if (dist < bestDistance) {
+          bestDistance = dist
+          bestKind = candidate.kind
+        }
       }
     }
   }
@@ -195,7 +255,12 @@ export async function analyzeRouteSurface(track: Point[]): Promise<SurfaceAnalys
   const ways = data.elements?.filter(way => way.geometry && way.geometry.length >= 2) ?? []
   if (ways.length === 0) return null
 
-  const kinds = sampled.map(point => nearestSurfaceKind(point, ways))
+  const grid = buildSurfaceGrid(ways)
+  const kinds: SurfaceKind[] = []
+  for (let i = 0; i < sampled.length; i++) {
+    kinds.push(nearestSurfaceKind(sampled[i], grid))
+    if (i > 0 && i % 20 === 0) await yieldToMain()
+  }
   const segments = buildSurfaceSegments(track, kinds, sampledInfo.indexes)
   const summary = buildSummary(segments)
   if (summary.length === 0) return null

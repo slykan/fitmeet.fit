@@ -10,7 +10,7 @@ import { EventMapCard } from '@/src/components/EventMapCard'
 import { WikiPhotosStrip } from '@/src/components/WikiPhotosStrip'
 import { CATEGORIES } from '@/src/lib/categories'
 import { api } from '@/src/lib/api'
-import { enrichGpxWithElevation, fetchElevationProfile, parseGpxText } from '@/src/lib/gpx'
+import { enrichGpxWithElevation, fetchElevationProfile, parseGpxTextAsync } from '@/src/lib/gpx'
 import type { GpxParsed } from '@/src/lib/gpx'
 import { analyzeRouteSurface, type SurfaceAnalysis } from '@/src/lib/route-surface'
 import { useAuthStore } from '@/src/store/auth'
@@ -169,7 +169,7 @@ export default function RouteViewScreen() {
         setRoute(loaded)
 
         const gpxResponse = await api.get(`/routes/${id}/gpx`, { responseType: 'text' })
-        let parsed = parseGpxText(gpxResponse.data)
+        let parsed = await parseGpxTextAsync(gpxResponse.data)
         if (parsed.elevationProfile.length < 2 && parsed.track.length >= 2) {
           try {
             const profile = await fetchElevationProfile(parsed.track)
@@ -311,6 +311,7 @@ export default function RouteViewScreen() {
             elevationSegments={gpx?.coloredSegments}
             surfaceSegments={surfaceAnalysis?.segments}
             onMapEnabledChange={setMapEnabled}
+            loading={surfaceLoading}
           />
         ) : null}
 

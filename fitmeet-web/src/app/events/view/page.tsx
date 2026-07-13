@@ -12,6 +12,7 @@ import { WeatherBadge } from '@/components/WeatherBadge'
 import { EventWall } from '@/components/event-wall'
 import ElevationChart from '@/components/elevation-chart'
 import { WikiPhotosStrip } from '@/components/wiki-photos-strip'
+import { MapLoadingOverlay } from '@/components/map-loading-overlay'
 import { shortAddress } from '@/lib/format-address'
 import { formatEventDateTime } from '@/lib/event-time'
 import { getYouTubeVideoId } from '@/lib/youtube'
@@ -19,7 +20,7 @@ import { fetchRelevantEventWeather, windDirectionLabelDetailed, type EventWeathe
 import api from '@/lib/api'
 import { playRandomActionSound } from '@/lib/action-sounds'
 import { useBadgesStore } from '@/store/badges'
-import { fetchElevationProfile, parseGpx, GpxResult } from '@/lib/parse-gpx'
+import { fetchElevationProfile, parseGpxAsync, GpxResult } from '@/lib/parse-gpx'
 import { analyzeRouteSurface, type SurfaceAnalysis } from '@/lib/route-surface'
 import { reportContent } from '@/lib/moderation'
 import { useAuthStore } from '@/store/auth'
@@ -152,6 +153,8 @@ function EventContent() {
   const [error,    setError]    = useState<string | null>(null)
   const [gpxResult, setGpxResult] = useState<GpxResult | null>(null)
   const [surfaceAnalysis, setSurfaceAnalysis] = useState<SurfaceAnalysis | null>(null)
+  const [gpxLoading, setGpxLoading] = useState(false)
+  const [surfaceLoading, setSurfaceLoading] = useState(false)
   const [showParticipants, setShowParticipants] = useState(false)
   const [showReminderModal, setShowReminderModal] = useState(false)
   const [selectedOffsets,  setSelectedOffsets]  = useState<Set<string>>(new Set())
@@ -182,10 +185,12 @@ function EventContent() {
           setWeatherCenter({ lat: loadedEvent.location.lat, lng: loadedEvent.location.lng })
         }
         if (loadedEvent.activity?.gpx_url) {
+          setGpxLoading(true)
           api.get(gpxEndpoint(loadedEvent), { responseType: 'text' })
             .then(async (r) => {
-              const parsed = parseGpx(r.data)
-              analyzeRouteSurface(parsed.track).then(setSurfaceAnalysis).catch(() => {})
+              const parsed = await parseGpxAsync(r.data)
+              setSurfaceLoading(true)
+              analyzeRouteSurface(parsed.track).then(setSurfaceAnalysis).catch(() => {}).finally(() => setSurfaceLoading(false))
               if (parsed.elevationProfile.length >= 2) {
                 setGpxResult(withProfileStats(parsed))
                 return
@@ -201,6 +206,7 @@ function EventContent() {
               }
             })
             .catch(() => {})
+            .finally(() => setGpxLoading(false))
         } else {
           setGpxResult(null)
           setSurfaceAnalysis(null)
@@ -704,6 +710,7 @@ function EventContent() {
                 readOnly
                 height={720}
               />
+              {(gpxLoading || surfaceLoading) && <MapLoadingOverlay />}
               <div
                 className="absolute inset-x-0 bottom-0 z-[700] flex items-center justify-between gap-3 border-t px-3 py-2 sm:px-4"
                 style={{

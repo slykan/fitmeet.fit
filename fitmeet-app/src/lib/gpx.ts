@@ -1,3 +1,5 @@
+import { yieldToMain } from '@/src/lib/async-chunk'
+
 export interface TrackSegment {
   coords: [number, number][]
   color: string
@@ -149,6 +151,90 @@ function readPoints(xml: string, tagNames: string): { coords: [number, number]; 
   }
 
   return points
+}
+
+// Chunked-async twin of parseGpxText — used only on event/route view screens
+// where large imported GPX files were freezing the JS thread for a few
+// seconds. Same logic, but yields back to the event loop periodically so the
+// UI (and a loading spinner) stays responsive. parseGpxText itself stays
+// synchronous for create/edit/draw flows, which weren't reported as frozen.
+export async function parseGpxTextAsync(xml: string): Promise<GpxParsed> {
+  let points = readPoints(xml, 'trkpt|rtept')
+  if (points.length === 0) points = readPoints(xml, 'wpt')
+
+  const track: [number, number][] = points.map(point => point.coords)
+  const pointElevs = points.map(point => point.ele)
+  const allElevs = [...xml.matchAll(/<(?:[^:>\s]+:)?ele[^>]*>([\d.+-]+)<\/(?:[^:>\s]+:)?ele>/gi)].map(m => parseFloat(m[1]))
+  const elevs = pointElevs.some(ele => ele != null)
+    ? pointElevs.map(ele => ele ?? NaN)
+    : allElevs
+
+  let distM = 0
+  let elevGain = 0
+  let segDistM = 0
+  let segStartElev = elevs[0] ?? 0
+  let maxGrade = 0
+  let maxDowngrade = 0
+
+  for (let i = 1; i < track.length; i++) {
+    const d = haversineM(track[i - 1], track[i])
+    distM += d
+    segDistM += d
+
+    if (i < elevs.length && !isNaN(elevs[i]) && !isNaN(elevs[i - 1]) && elevs[i] > elevs[i - 1]) {
+      elevGain += elevs[i] - elevs[i - 1]
+    }
+
+    if (segDistM >= 50 && i < elevs.length && !isNaN(elevs[i]) && !isNaN(segStartElev)) {
+      const elevChange = elevs[i] - segStartElev
+      const grade = (elevChange / segDistM) * 100
+      if (grade > maxGrade) maxGrade = grade
+      if (grade < maxDowngrade) maxDowngrade = grade
+      segDistM = 0
+      segStartElev = elevs[i]
+    }
+
+    if (i % 500 === 0) await yieldToMain()
+  }
+
+  // Build elevation profile (max 300 points)
+  const hasEle = elevs.filter(ele => !isNaN(ele)).length >= 2
+  const elevationProfile: { km: number; ele: number }[] = []
+  const coloredSegments: TrackSegment[] = []
+
+  if (hasEle && track.length >= 2) {
+    const step = Math.max(1, Math.floor(track.length / 300))
+    const sampledTrack: [number, number][] = []
+    const sampledElevs: number[] = []
+    const sampledIndexes: number[] = []
+    for (let i = 0; i < track.length; i += step) {
+      sampledTrack.push(track[i])
+      sampledElevs.push(elevs[i])
+      sampledIndexes.push(i)
+      if (i % 500 === 0) await yieldToMain()
+    }
+    const last = track.length - 1
+    if (last % step !== 0) {
+      sampledTrack.push(track[last])
+      sampledElevs.push(elevs[last])
+      sampledIndexes.push(last)
+    }
+    const profile = buildElevationProfile(sampledTrack, sampledElevs, track, sampledIndexes)
+    elevationProfile.push(...profile.elevationProfile)
+    coloredSegments.push(...profile.coloredSegments)
+  } else if (track.length >= 2) {
+    coloredSegments.push({ coords: track, color: '#39ff14' })
+  }
+
+  return {
+    track,
+    distanceKm: Math.round(distM / 100) / 10,
+    elevGain: Math.round(elevGain),
+    maxGrade: Math.round(maxGrade * 10) / 10,
+    maxDowngrade: Math.round(maxDowngrade * 10) / 10,
+    elevationProfile,
+    coloredSegments,
+  }
 }
 
 export function parseGpxText(xml: string): GpxParsed {

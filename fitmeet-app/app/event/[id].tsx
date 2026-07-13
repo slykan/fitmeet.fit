@@ -18,7 +18,7 @@ import { WikiPhotosStrip } from '@/src/components/WikiPhotosStrip'
 import type { ElevationPoint } from '@/src/components/ElevationChart'
 import { CATEGORIES } from '@/src/lib/categories'
 import { api } from '@/src/lib/api'
-import { enrichGpxWithElevation, fetchElevationProfile, parseGpxText } from '@/src/lib/gpx'
+import { enrichGpxWithElevation, fetchElevationProfile, parseGpxTextAsync } from '@/src/lib/gpx'
 import type { TrackSegment } from '@/src/lib/gpx'
 import { analyzeRouteSurface, type SurfaceAnalysis } from '@/src/lib/route-surface'
 import { playRandomActionSound } from '@/src/lib/action-sounds'
@@ -411,8 +411,8 @@ export default function EventDetailScreen() {
         if (!r.ok) throw new Error(`GPX request failed: ${r.status}`)
         return r.text()
       })
-      .then(xml => {
-        const parsed = parseGpxText(xml)
+      .then(async xml => {
+        const parsed = await parseGpxTextAsync(xml)
         if (parsed.track.length < 2) {
           setGpxError(true)
           return
@@ -1042,6 +1042,7 @@ export default function EventDetailScreen() {
             elevationSegments={coloredSegments}
             surfaceSegments={surfaceAnalysis?.segments}
             onMapEnabledChange={setMapEnabled}
+            loading={gpxLoading || surfaceLoading}
           />
         )}
 
