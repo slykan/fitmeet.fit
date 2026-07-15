@@ -12,15 +12,20 @@ type Props = {
 
 export function StepSlider({ min, max, value, onChange, activeColor }: Props) {
   const [trackWidth, setTrackWidth] = useState(0)
+  const trackRef = useRef<View>(null)
+  const trackPageX = useRef(0)
   const steps = Math.max(1, max - min)
 
   function handleLayout(e: LayoutChangeEvent) {
     setTrackWidth(e.nativeEvent.layout.width)
+    trackRef.current?.measure((_x, _y, _width, _height, pageX) => {
+      trackPageX.current = pageX
+    })
   }
 
-  function valueFromX(x: number) {
+  function valueFromPageX(pageX: number) {
     if (trackWidth <= 0) return value
-    const ratio = Math.min(1, Math.max(0, x / trackWidth))
+    const ratio = Math.min(1, Math.max(0, (pageX - trackPageX.current) / trackWidth))
     return min + Math.round(ratio * steps)
   }
 
@@ -28,15 +33,15 @@ export function StepSlider({ min, max, value, onChange, activeColor }: Props) {
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: (evt) => onChange(valueFromX(evt.nativeEvent.locationX)),
-      onPanResponderMove: (evt) => onChange(valueFromX(evt.nativeEvent.locationX)),
+      onPanResponderGrant: (evt) => onChange(valueFromPageX(evt.nativeEvent.pageX)),
+      onPanResponderMove: (_evt, gestureState) => onChange(valueFromPageX(gestureState.moveX)),
     }),
   ).current
 
   const ratio = steps > 0 ? (value - min) / steps : 0
 
   return (
-    <View style={styles.track} onLayout={handleLayout} {...panResponder.panHandlers}>
+    <View ref={trackRef} style={styles.track} onLayout={handleLayout} {...panResponder.panHandlers}>
       <View style={styles.trackBg} />
       <View style={[styles.trackFill, { width: `${ratio * 100}%`, backgroundColor: activeColor }]} />
       <View style={[styles.thumb, { left: `${ratio * 100}%`, backgroundColor: activeColor }]} />
