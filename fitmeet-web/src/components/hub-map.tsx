@@ -643,6 +643,8 @@ export default function HubMap() {
             url={`https://tilecache.rainviewer.com${radarPath}/256/{z}/{x}/{y}/2/1_1.png`}
             opacity={0.85}
             zIndex={221}
+            maxZoom={18}
+            maxNativeZoom={12}
             className="fm-precip-tile-layer"
           />
         )}

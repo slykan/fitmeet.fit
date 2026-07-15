@@ -173,7 +173,7 @@ function buildMapHtml(
         if (radarPath) {
           const url = buildRadarUrl(radarPath);
           if (!precipTileLayer) {
-            precipTileLayer = L.tileLayer(url, { maxZoom:18, opacity:0.85, zIndex:221 }).addTo(map);
+            precipTileLayer = L.tileLayer(url, { maxZoom:18, maxNativeZoom:12, opacity:0.85, zIndex:221 }).addTo(map);
           } else if (precipTileLayer._url !== url) {
             precipTileLayer.setUrl(url);
           }
