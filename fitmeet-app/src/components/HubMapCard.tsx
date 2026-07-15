@@ -333,6 +333,7 @@ function buildMapHtml(
     window.addEventListener('message', handleMessage);
 
     renderWeather(weather, showWind, showClouds);
+    send('ready');
   </script>
 </body>
 </html>`
@@ -397,6 +398,9 @@ export function HubMapCard({
             ) {
               onMapCenterChange?.(data.center)
               onMapTouchEnd?.()
+            } else if (data.type === 'ready') {
+              webViewRef.current?.postMessage(JSON.stringify({ type: 'weatherUpdate', weather, showWind, showClouds }))
+              if (radarPath) webViewRef.current?.postMessage(JSON.stringify({ type: 'radarUpdate', path: radarPath }))
             }
           } catch {}
         }}
