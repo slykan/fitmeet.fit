@@ -16,6 +16,13 @@ export function StepSlider({ min, max, value, onChange, activeColor }: Props) {
   const trackPageX = useRef(0)
   const steps = Math.max(1, max - min)
 
+  // PanResponder is created once (via useRef) and its handlers close over
+  // whatever `min`/`value`/`trackWidth`/etc. were current at that first render.
+  // Reading through this ref (mutated fresh on every render) instead of the
+  // closed-over variables keeps the handlers working off live values.
+  const latest = useRef({ min, value, onChange, trackWidth, steps })
+  latest.current = { min, value, onChange, trackWidth, steps }
+
   function handleLayout(e: LayoutChangeEvent) {
     setTrackWidth(e.nativeEvent.layout.width)
     trackRef.current?.measure((_x, _y, _width, _height, pageX) => {
@@ -24,17 +31,18 @@ export function StepSlider({ min, max, value, onChange, activeColor }: Props) {
   }
 
   function valueFromPageX(pageX: number) {
-    if (trackWidth <= 0) return value
-    const ratio = Math.min(1, Math.max(0, (pageX - trackPageX.current) / trackWidth))
-    return min + Math.round(ratio * steps)
+    const { min: curMin, value: curValue, trackWidth: curWidth, steps: curSteps } = latest.current
+    if (curWidth <= 0) return curValue
+    const ratio = Math.min(1, Math.max(0, (pageX - trackPageX.current) / curWidth))
+    return curMin + Math.round(ratio * curSteps)
   }
 
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: (evt) => onChange(valueFromPageX(evt.nativeEvent.pageX)),
-      onPanResponderMove: (_evt, gestureState) => onChange(valueFromPageX(gestureState.moveX)),
+      onPanResponderGrant: (evt) => latest.current.onChange(valueFromPageX(evt.nativeEvent.pageX)),
+      onPanResponderMove: (_evt, gestureState) => latest.current.onChange(valueFromPageX(gestureState.moveX)),
     }),
   ).current
 
