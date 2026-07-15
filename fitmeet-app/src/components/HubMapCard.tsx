@@ -1,5 +1,6 @@
+import { Ionicons } from '@expo/vector-icons'
 import { useEffect, useMemo, useRef } from 'react'
-import { StyleSheet, View } from 'react-native'
+import { Pressable, StyleSheet, View } from 'react-native'
 import { WebView } from 'react-native-webview'
 import type { WebView as WebViewType } from 'react-native-webview'
 
@@ -23,6 +24,8 @@ type Props = {
   weather: CurrentWeather | null
   showWind: boolean
   showClouds: boolean
+  onToggleWind?: () => void
+  onToggleClouds?: () => void
   height?: number
   onEventPress: (eventId: number) => void
   onMapTouchStart?: () => void
@@ -93,8 +96,13 @@ function buildMapHtml(
     }
     .cloud-blob {
       position:absolute; border-radius:999px;
-      background:radial-gradient(circle at 35% 35%,rgba(200,212,230,0.72),rgba(180,192,210,0.48) 55%,rgba(160,172,190,0.18) 78%,transparent 100%);
+      background:radial-gradient(circle at 35% 35%,rgba(226,234,246,0.92),rgba(202,212,228,0.68) 55%,rgba(180,190,208,0.3) 78%,transparent 100%);
+      box-shadow:0 0 24px rgba(210,220,235,0.18);
       animation:cloudDrift linear infinite;
+    }
+    .cloud-blob.rain {
+      background:radial-gradient(circle at 35% 35%,rgba(150,200,255,0.92),rgba(96,158,235,0.66) 55%,rgba(60,120,200,0.3) 78%,transparent 100%);
+      box-shadow:0 0 24px rgba(90,160,255,0.28);
     }
     @keyframes cloudDrift {
       from { transform:translate3d(-3%,0,0); } to { transform:translate3d(3%,0,0); }
@@ -108,6 +116,21 @@ function buildMapHtml(
       from { transform:translate3d(0,-14px,0); opacity:0; }
       18% { opacity:0.6; }
       to  { transform:translate3d(-12px,28px,0); opacity:0; }
+    }
+    .lightning-bolt {
+      position:absolute; width:14px; height:14px; border-radius:999px;
+      background:radial-gradient(circle,rgba(255,244,160,0.98),rgba(255,214,64,0.6) 55%,transparent 100%);
+      box-shadow:0 0 16px 6px rgba(255,214,64,0.55);
+      opacity:0;
+      animation:lightningFlash ease-in-out infinite;
+    }
+    @keyframes lightningFlash {
+      0%, 90%   { opacity:0; transform:scale(0.6); }
+      91%       { opacity:1; transform:scale(1.2); }
+      93%       { opacity:0.15; transform:scale(0.85); }
+      94.5%     { opacity:1; transform:scale(1.25); }
+      97%       { opacity:0; transform:scale(0.6); }
+      100%      { opacity:0; transform:scale(0.6); }
     }
   </style>
 </head>
@@ -234,24 +257,26 @@ function buildMapHtml(
       }
 
       const cloudCover = nextWeather.cloudCover || 0;
+      const precip = nextWeather.precipitation || 0;
+      const isRaining = precip > 0.1;
+
       if (nextShowClouds && cloudCover >= 20) {
-        const count = cloudCover >= 75 ? 6 : cloudCover >= 40 ? 4 : 2;
+        const count = cloudCover >= 75 ? 8 : cloudCover >= 40 ? 5 : 3;
         for (let i = 0; i < count; i++) {
           const blob = document.createElement('div');
-          blob.className = 'cloud-blob';
+          blob.className = 'cloud-blob' + (isRaining ? ' rain' : '');
           const sz = 100 + Math.random() * 140;
           blob.style.width  = sz + 'px';
           blob.style.height = (sz * 0.6) + 'px';
           blob.style.left   = (-5 + Math.random() * 90) + '%';
           blob.style.top    = (-5 + Math.random() * 88) + '%';
-          blob.style.opacity = String(0.3 + Math.random() * 0.35);
+          blob.style.opacity = String((isRaining ? 0.55 : 0.42) + Math.random() * 0.4);
           blob.style.animationDuration = (30 + Math.random() * 25) + 's';
           overlay.appendChild(blob);
         }
       }
 
-      const precip = nextWeather.precipitation || 0;
-      if (nextShowClouds && precip > 0.1) {
+      if (nextShowClouds && isRaining) {
         const count = Math.min(60, 12 + Math.round(precip * 16));
         for (let i = 0; i < count; i++) {
           const line = document.createElement('div');
@@ -262,6 +287,20 @@ function buildMapHtml(
           line.style.animationDuration = (0.7 + Math.random() * 0.5) + 's';
           line.style.animationDelay    = (-Math.random() * 1.4) + 's';
           overlay.appendChild(line);
+        }
+      }
+
+      const isThunder = [95, 96, 99].includes(Math.round(nextWeather.code || 0));
+      if (nextShowClouds && isThunder) {
+        const count = 4 + Math.floor(Math.random() * 3);
+        for (let i = 0; i < count; i++) {
+          const bolt = document.createElement('div');
+          bolt.className = 'lightning-bolt';
+          bolt.style.left = (2 + Math.random() * 90) + '%';
+          bolt.style.top  = (2 + Math.random() * 85) + '%';
+          bolt.style.animationDuration = (2.6 + Math.random() * 2.4) + 's';
+          bolt.style.animationDelay    = (Math.random() * 3) + 's';
+          overlay.appendChild(bolt);
         }
       }
 
@@ -293,6 +332,8 @@ export function HubMapCard({
   weather,
   showWind,
   showClouds,
+  onToggleWind,
+  onToggleClouds,
   height = 320,
   onEventPress,
   onMapTouchStart,
@@ -344,6 +385,23 @@ export function HubMapCard({
         }}
         style={styles.webview}
       />
+
+      <View style={styles.layerToggles} pointerEvents="box-none">
+        <Pressable
+          style={[styles.layerBtn, showWind && styles.layerBtnActive]}
+          onPress={onToggleWind}
+          hitSlop={8}
+        >
+          <Ionicons name="flag-outline" size={15} color={showWind ? '#031109' : palette.text} />
+        </Pressable>
+        <Pressable
+          style={[styles.layerBtn, showClouds && styles.layerBtnActive]}
+          onPress={onToggleClouds}
+          hitSlop={8}
+        >
+          <Ionicons name="cloud-outline" size={15} color={showClouds ? '#031109' : palette.text} />
+        </Pressable>
+      </View>
     </View>
   )
 }
@@ -357,4 +415,21 @@ const styles = StyleSheet.create({
     backgroundColor: '#060c1a',
   },
   webview: { flex: 1, backgroundColor: 'transparent' },
+  layerToggles: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    gap: 6,
+  },
+  layerBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(7,13,28,0.78)',
+    borderWidth: 1,
+    borderColor: palette.line,
+  },
+  layerBtnActive: { backgroundColor: palette.accent, borderColor: palette.accent },
 })

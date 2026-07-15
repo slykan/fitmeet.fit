@@ -124,6 +124,14 @@ const RADIUS_OPTIONS = [
   { label: 'All', km: null },
 ] as const
 
+const LIGHTNING_POSITIONS = [
+  { left: '15%', top: '22%' },
+  { left: '42%', top: '58%' },
+  { left: '68%', top: '30%' },
+  { left: '82%', top: '68%' },
+  { left: '30%', top: '78%' },
+] as const
+
 function getDistanceKm(aLat: number, aLng: number, bLat: number, bLng: number): number {
   const toRad = (deg: number) => deg * Math.PI / 180
   const earthKm = 6371
@@ -560,6 +568,37 @@ export default function HubMap() {
             margin-bottom: 168px;
           }
         }
+
+        .fitmeet-hub-map .fm-cloud-tile-layer {
+          filter: brightness(1.3) contrast(1.2) saturate(1.05);
+        }
+
+        .fitmeet-hub-map .fm-precip-tile-layer {
+          filter: brightness(1.15) contrast(1.25) saturate(1.5);
+          mix-blend-mode: screen;
+        }
+
+        @keyframes fm-lightning-flash {
+          0%, 90% { opacity: 0; transform: scale(0.6); }
+          91%     { opacity: 1; transform: scale(1.2); }
+          93%     { opacity: 0.15; transform: scale(0.85); }
+          94.5%   { opacity: 1; transform: scale(1.25); }
+          97%     { opacity: 0; transform: scale(0.6); }
+          100%    { opacity: 0; transform: scale(0.6); }
+        }
+
+        .fm-lightning-bolt {
+          position: absolute;
+          width: 16px;
+          height: 16px;
+          border-radius: 999px;
+          background: radial-gradient(circle, rgba(255,244,160,0.98), rgba(255,214,64,0.6) 55%, transparent 100%);
+          box-shadow: 0 0 18px 7px rgba(255,214,64,0.55);
+          opacity: 0;
+          animation-name: fm-lightning-flash;
+          animation-timing-function: ease-in-out;
+          animation-iteration-count: infinite;
+        }
       `}</style>
 
       <MapContainer
@@ -580,11 +619,13 @@ export default function HubMap() {
               url={`https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=${openWeatherTileKey}`}
               opacity={1}
               zIndex={220}
+              className="fm-cloud-tile-layer"
             />
             <TileLayer
               url={`https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${openWeatherTileKey}`}
               opacity={1}
               zIndex={221}
+              className="fm-precip-tile-layer"
             />
           </>
         )}
@@ -623,6 +664,22 @@ export default function HubMap() {
           showClouds={false}
           showBadge={false}
         />
+      )}
+      {showWeatherLayers && showCloudOverlay && hubWeather && hubWeather.code >= 95 && (
+        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 501 }}>
+          {LIGHTNING_POSITIONS.map((pos, i) => (
+            <span
+              key={i}
+              className="fm-lightning-bolt"
+              style={{
+                left: pos.left,
+                top: pos.top,
+                animationDelay: `${i * 0.6}s`,
+                animationDuration: `${2.6 + (i % 3) * 0.6}s`,
+              }}
+            />
+          ))}
+        </div>
       )}
 
       {/* Filters */}

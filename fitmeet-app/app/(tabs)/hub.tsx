@@ -459,6 +459,8 @@ export default function HubScreen() {
           weather={weather}
           showWind={showWind}
           showClouds={showClouds}
+          onToggleWind={() => setShowWind((v) => !v)}
+          onToggleClouds={() => setShowClouds((v) => !v)}
           height={300}
           onEventPress={(id) => router.push(`/event/${id}` as never)}
           fitToEvents={!mapWasMoved}
