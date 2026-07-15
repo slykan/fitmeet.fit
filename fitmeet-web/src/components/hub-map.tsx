@@ -13,6 +13,7 @@ import { CATEGORIES, CATEGORY_EMOJI } from '@/lib/categories'
 import { EventCommentsPreview } from '@/components/event-comments-preview'
 import { WeatherBadge } from '@/components/WeatherBadge'
 import { fetchCurrentWeather, fetchRelevantEventWeather, weatherConditionLabel, windDirectionLabelDetailed, type EventWeather } from '@/lib/weather'
+import { fetchLatestRadarPath } from '@/lib/radar'
 import { WindOverlay } from '@/components/location-picker-map'
 import { sortEventsBySchedule } from '@/lib/event-order'
 import { fetchGpxActivityStats, type GpxActivityStats } from '@/lib/gpx-activity-stats'
@@ -296,6 +297,7 @@ export default function HubMap() {
   const [isMapInteracting, setIsMapInteracting] = useState(false)
   const [weatherRefreshTick, setWeatherRefreshTick] = useState(0)
   const [gpxStats, setGpxStats] = useState<Record<number, GpxActivityStats>>({})
+  const [radarPath, setRadarPath] = useState<string | null>(null)
   const weatherRequestId = useRef(0)
 
   const lat      = (user?.location?.lat  || user?.home?.lat  || null)
@@ -325,6 +327,21 @@ export default function HubMap() {
       setWeatherRefreshTick((tick) => tick + 1)
     }, 15 * 60 * 1000)
     return () => window.clearInterval(interval)
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    function refresh() {
+      fetchLatestRadarPath().then((path) => {
+        if (!cancelled) setRadarPath(path)
+      }).catch(() => {})
+    }
+    refresh()
+    const interval = window.setInterval(refresh, 10 * 60 * 1000)
+    return () => {
+      cancelled = true
+      window.clearInterval(interval)
+    }
   }, [])
 
   useEffect(() => {
@@ -614,20 +631,20 @@ export default function HubMap() {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         />
         {showWeatherLayers && showCloudOverlay && openWeatherTileKey && (
-          <>
-            <TileLayer
-              url={`https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=${openWeatherTileKey}`}
-              opacity={1}
-              zIndex={220}
-              className="fm-cloud-tile-layer"
-            />
-            <TileLayer
-              url={`https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${openWeatherTileKey}`}
-              opacity={1}
-              zIndex={221}
-              className="fm-precip-tile-layer"
-            />
-          </>
+          <TileLayer
+            url={`https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=${openWeatherTileKey}`}
+            opacity={1}
+            zIndex={220}
+            className="fm-cloud-tile-layer"
+          />
+        )}
+        {showWeatherLayers && showCloudOverlay && radarPath && (
+          <TileLayer
+            url={`https://tilecache.rainviewer.com${radarPath}/256/{z}/{x}/{y}/2/1_1.png`}
+            opacity={0.85}
+            zIndex={221}
+            className="fm-precip-tile-layer"
+          />
         )}
         <ZoomControl position="bottomleft" />
         <MapViewport

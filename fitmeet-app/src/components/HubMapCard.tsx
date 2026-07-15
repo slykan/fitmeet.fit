@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons'
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Pressable, StyleSheet, View } from 'react-native'
 import { WebView } from 'react-native-webview'
 import type { WebView as WebViewType } from 'react-native-webview'
 
+import { fetchLatestRadarPath } from '@/src/lib/radar'
 import { CurrentWeather } from '@/src/lib/weather'
 import { palette } from '@/src/theme'
 
@@ -146,6 +147,12 @@ function buildMapHtml(
     const showWind   = ${showWind};
     const showClouds = ${showClouds};
     const OW_KEY = '${OW_KEY}';
+    let radarPath = null;
+    let currentShowClouds = showClouds;
+
+    function buildRadarUrl(path) {
+      return 'https://tilecache.rainviewer.com' + path + '/256/{z}/{x}/{y}/2/1_1.png';
+    }
 
     const map = L.map('map', {
       zoomControl:false, attributionControl:false, preferCanvas:true,
@@ -163,10 +170,14 @@ function buildMapHtml(
           'https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=' + OW_KEY,
           { maxZoom:18, opacity:0.9, zIndex:220 }
         ).addTo(map);
-        if (!precipTileLayer) precipTileLayer = L.tileLayer(
-          'https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=' + OW_KEY,
-          { maxZoom:18, opacity:0.8, zIndex:221 }
-        ).addTo(map);
+        if (radarPath) {
+          const url = buildRadarUrl(radarPath);
+          if (!precipTileLayer) {
+            precipTileLayer = L.tileLayer(url, { maxZoom:18, opacity:0.85, zIndex:221 }).addTo(map);
+          } else if (precipTileLayer._url !== url) {
+            precipTileLayer.setUrl(url);
+          }
+        }
       } else {
         if (cloudTileLayer)  { cloudTileLayer.remove();  cloudTileLayer  = null; }
         if (precipTileLayer) { precipTileLayer.remove(); precipTileLayer = null; }
@@ -221,6 +232,7 @@ function buildMapHtml(
     map.on('moveend zoomend dragend', movementEnded);
 
     function renderWeather(nextWeather, nextShowWind, nextShowClouds) {
+      currentShowClouds = nextShowClouds;
       updateCloudTiles(nextShowClouds);
       overlay.classList.remove('ready', 'interacting');
       overlay.innerHTML = '';
@@ -307,18 +319,18 @@ function buildMapHtml(
       setTimeout(() => overlay.classList.add('ready'), 220);
     }
 
-    document.addEventListener('message', (event) => {
+    function handleMessage(event) {
       try {
         const data = JSON.parse(event.data);
         if (data.type === 'weatherUpdate') renderWeather(data.weather, data.showWind, data.showClouds);
+        else if (data.type === 'radarUpdate') {
+          radarPath = data.path;
+          updateCloudTiles(currentShowClouds);
+        }
       } catch (e) {}
-    });
-    window.addEventListener('message', (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === 'weatherUpdate') renderWeather(data.weather, data.showWind, data.showClouds);
-      } catch (e) {}
-    });
+    }
+    document.addEventListener('message', handleMessage);
+    window.addEventListener('message', handleMessage);
 
     renderWeather(weather, showWind, showClouds);
   </script>
@@ -342,6 +354,7 @@ export function HubMapCard({
   fitToEvents = true,
 }: Props) {
   const webViewRef = useRef<WebViewType>(null)
+  const [radarPath, setRadarPath] = useState<string | null>(null)
   const html = useMemo(
     () => buildMapHtml(center, events, weather, showWind, showClouds, fitToEvents),
     [center.lat, center.lng, events],
@@ -350,6 +363,25 @@ export function HubMapCard({
   useEffect(() => {
     webViewRef.current?.postMessage(JSON.stringify({ type: 'weatherUpdate', weather, showWind, showClouds }))
   }, [weather, showWind, showClouds])
+
+  useEffect(() => {
+    let cancelled = false
+    function refresh() {
+      fetchLatestRadarPath().then((path) => {
+        if (!cancelled) setRadarPath(path)
+      }).catch(() => {})
+    }
+    refresh()
+    const id = setInterval(refresh, 10 * 60 * 1000)
+    return () => {
+      cancelled = true
+      clearInterval(id)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (radarPath) webViewRef.current?.postMessage(JSON.stringify({ type: 'radarUpdate', path: radarPath }))
+  }, [radarPath])
 
   return (
     <View
