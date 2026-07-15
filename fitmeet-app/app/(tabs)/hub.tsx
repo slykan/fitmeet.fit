@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
 import { router, useFocusEffect } from 'expo-router'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ActivityIndicator, FlatList, Image, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs'
@@ -9,12 +9,14 @@ import { EmptyEvents } from '@/src/components/EmptyEvents'
 import { EventCommentsPreview } from '@/src/components/EventCommentsPreview'
 import { HubMapCard } from '@/src/components/HubMapCard'
 import { InProgressBadge } from '@/src/components/InProgressBadge'
+import { StepSlider } from '@/src/components/StepSlider'
 import { WeatherBadge } from '@/src/components/WeatherBadge'
 import { CATEGORIES } from '@/src/lib/categories'
 import { api } from '@/src/lib/api'
 import { fetchEventWeatherSnapshots, type EventWeatherSnapshot } from '@/src/lib/event-weather-snapshots'
 import { sortEventsBySchedule } from '@/src/lib/event-order'
 import { fetchGpxActivityStats, type GpxActivityStats } from '@/src/lib/gpx-activity-stats'
+import { fetchRadarFrames, type RadarFrame } from '@/src/lib/radar'
 import { cloudLabel, CurrentWeather, fetchCurrentWeather } from '@/src/lib/weather'
 import { useAuthStore } from '@/src/store/auth'
 import { palette, spacing } from '@/src/theme'
@@ -59,6 +61,11 @@ function isPast(iso: string) {
   return new Date(iso).getTime() <= Date.now()
 }
 
+function formatFrameTime(unixSeconds?: number) {
+  if (!unixSeconds) return '--:--'
+  return new Date(unixSeconds * 1000).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+}
+
 export default function HubScreen() {
   const tabBarHeight = useBottomTabBarHeight()
   const user = useAuthStore((s) => s.user)
@@ -84,6 +91,10 @@ export default function HubScreen() {
   const [weatherSnapshots, setWeatherSnapshots] = useState<Record<number, EventWeatherSnapshot | null>>({})
   const [weatherRefreshTick, setWeatherRefreshTick] = useState(0)
   const [gpxStats, setGpxStats] = useState<Record<number, GpxActivityStats>>({})
+  const [radarFrames, setRadarFrames] = useState<RadarFrame[]>([])
+  const [radarNowIndex, setRadarNowIndex] = useState(0)
+  const [radarIndex, setRadarIndex] = useState(0)
+  const radarUserScrubbed = useRef(false)
 
   const discoveryCenter = useMemo(() => {
     const lat = user?.home?.lat ?? user?.location?.lat
@@ -162,6 +173,24 @@ export default function HubScreen() {
   useEffect(() => {
     const id = setInterval(() => setWeatherRefreshTick((current) => current + 1), 15 * 60 * 1000)
     return () => clearInterval(id)
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    function refresh() {
+      fetchRadarFrames().then((result) => {
+        if (cancelled || !result) return
+        setRadarFrames(result.frames)
+        setRadarNowIndex(result.nowIndex)
+        if (!radarUserScrubbed.current) setRadarIndex(result.nowIndex)
+      }).catch(() => {})
+    }
+    refresh()
+    const id = setInterval(refresh, 5 * 60 * 1000)
+    return () => {
+      cancelled = true
+      clearInterval(id)
+    }
   }, [])
 
   useEffect(() => {
@@ -461,6 +490,7 @@ export default function HubScreen() {
           showClouds={showClouds}
           onToggleWind={() => setShowWind((v) => !v)}
           onToggleClouds={() => setShowClouds((v) => !v)}
+          radarPath={radarFrames[radarIndex]?.path ?? null}
           height={300}
           onEventPress={(id) => router.push(`/event/${id}` as never)}
           fitToEvents={!mapWasMoved}
@@ -474,6 +504,37 @@ export default function HubScreen() {
             setWeatherCenter(center)
           }}
         />
+
+        {showClouds && radarFrames.length > 1 && (
+          <View style={styles.radarSliderRow}>
+            <Text style={styles.radarTimeLabel}>{formatFrameTime(radarFrames[radarIndex]?.time)}</Text>
+            <View style={{ flex: 1 }}>
+              <StepSlider
+                min={0}
+                max={radarFrames.length - 1}
+                value={radarIndex}
+                onChange={(v) => {
+                  radarUserScrubbed.current = true
+                  setRadarIndex(v)
+                }}
+                activeColor={
+                  radarIndex < radarNowIndex ? '#58beff' : radarIndex === radarNowIndex ? palette.accent : '#f4d35e'
+                }
+              />
+            </View>
+            <Pressable
+              style={[styles.radarNowBtn, radarIndex === radarNowIndex && styles.radarNowBtnActive]}
+              onPress={() => {
+                radarUserScrubbed.current = false
+                setRadarIndex(radarNowIndex)
+              }}
+            >
+              <Text style={[styles.radarNowBtnText, radarIndex === radarNowIndex && styles.radarNowBtnTextActive]}>
+                Now
+              </Text>
+            </Pressable>
+          </View>
+        )}
       </View>
 
       <View style={styles.sectionHeader}>
@@ -522,8 +583,28 @@ export default function HubScreen() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: palette.bg },
   topArea: { paddingHorizontal: spacing.lg, paddingTop: spacing.md, gap: 8 },
-  mapWrap: { paddingHorizontal: spacing.lg, paddingVertical: 10 },
+  mapWrap: { paddingHorizontal: spacing.lg, paddingVertical: 10, gap: 8 },
   listContent: { gap: spacing.md },
+
+  radarSliderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: palette.panel,
+    borderWidth: 1,
+    borderColor: palette.line,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  radarTimeLabel: { color: palette.textMuted, fontSize: 11, fontWeight: '700', minWidth: 38 },
+  radarNowBtn: {
+    borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5,
+    backgroundColor: palette.panelRaised, borderWidth: 1, borderColor: palette.line,
+  },
+  radarNowBtnActive: { backgroundColor: palette.accent, borderColor: palette.accent },
+  radarNowBtnText: { color: palette.textMuted, fontSize: 11, fontWeight: '800' },
+  radarNowBtnTextActive: { color: '#031109' },
 
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
   eyebrow: { color: palette.accent, fontSize: 13, fontWeight: '700', textTransform: 'uppercase' },

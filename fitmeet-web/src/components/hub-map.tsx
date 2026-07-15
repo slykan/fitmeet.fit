@@ -13,7 +13,7 @@ import { CATEGORIES, CATEGORY_EMOJI } from '@/lib/categories'
 import { EventCommentsPreview } from '@/components/event-comments-preview'
 import { WeatherBadge } from '@/components/WeatherBadge'
 import { fetchCurrentWeather, fetchRelevantEventWeather, weatherConditionLabel, windDirectionLabelDetailed, type EventWeather } from '@/lib/weather'
-import { fetchLatestRadarPath } from '@/lib/radar'
+import { fetchRadarFrames, type RadarFrame } from '@/lib/radar'
 import { WindOverlay } from '@/components/location-picker-map'
 import { sortEventsBySchedule } from '@/lib/event-order'
 import { fetchGpxActivityStats, type GpxActivityStats } from '@/lib/gpx-activity-stats'
@@ -223,6 +223,11 @@ function HubWeatherSync({
   return null
 }
 
+function formatFrameTime(unixSeconds?: number) {
+  if (!unixSeconds) return '--:--'
+  return new Date(unixSeconds * 1000).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+}
+
 function formatDate(iso: string, timezone?: string | null) {
   return formatEventDateTime(iso, timezone)
 }
@@ -297,7 +302,10 @@ export default function HubMap() {
   const [isMapInteracting, setIsMapInteracting] = useState(false)
   const [weatherRefreshTick, setWeatherRefreshTick] = useState(0)
   const [gpxStats, setGpxStats] = useState<Record<number, GpxActivityStats>>({})
-  const [radarPath, setRadarPath] = useState<string | null>(null)
+  const [radarFrames, setRadarFrames] = useState<RadarFrame[]>([])
+  const [radarNowIndex, setRadarNowIndex] = useState(0)
+  const [radarIndex, setRadarIndex] = useState(0)
+  const radarUserScrubbed = useRef(false)
   const weatherRequestId = useRef(0)
 
   const lat      = (user?.location?.lat  || user?.home?.lat  || null)
@@ -332,12 +340,15 @@ export default function HubMap() {
   useEffect(() => {
     let cancelled = false
     function refresh() {
-      fetchLatestRadarPath().then((path) => {
-        if (!cancelled) setRadarPath(path)
+      fetchRadarFrames().then((result) => {
+        if (cancelled || !result) return
+        setRadarFrames(result.frames)
+        setRadarNowIndex(result.nowIndex)
+        if (!radarUserScrubbed.current) setRadarIndex(result.nowIndex)
       }).catch(() => {})
     }
     refresh()
-    const interval = window.setInterval(refresh, 10 * 60 * 1000)
+    const interval = window.setInterval(refresh, 5 * 60 * 1000)
     return () => {
       cancelled = true
       window.clearInterval(interval)
@@ -481,6 +492,7 @@ export default function HubMap() {
 
   const mapCenter: [number, number] = (lat && lng) ? [lat, lng] : [44.5, 16.5]
   const categoryCount = selectedCategories.size
+  const selectedRadarFrame = radarFrames[radarIndex]
   const hubHasCloudLayer = Boolean(hubWeather && hubWeather.code > 0)
   const hasWeatherTiles = Boolean(openWeatherTileKey)
   const showWeatherLayers = !isMapInteracting
@@ -638,9 +650,9 @@ export default function HubMap() {
             className="fm-cloud-tile-layer"
           />
         )}
-        {showWeatherLayers && showCloudOverlay && radarPath && (
+        {showWeatherLayers && showCloudOverlay && selectedRadarFrame && (
           <TileLayer
-            url={`https://tilecache.rainviewer.com${radarPath}/256/{z}/{x}/{y}/2/1_1.png`}
+            url={`https://tilecache.rainviewer.com${selectedRadarFrame.path}/256/{z}/{x}/{y}/2/1_1.png`}
             opacity={0.85}
             zIndex={221}
             maxZoom={18}
@@ -843,6 +855,52 @@ export default function HubMap() {
           paddingBottom: 'calc(6px + env(safe-area-inset-bottom, 0px))',
         }}
       >
+        {showCloudOverlay && radarFrames.length > 1 && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              marginBottom: 6,
+              padding: '0 2px',
+            }}
+          >
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#d7dfef', minWidth: 38, flexShrink: 0 }}>
+              {formatFrameTime(selectedRadarFrame?.time)}
+            </span>
+            <input
+              type="range"
+              min={0}
+              max={radarFrames.length - 1}
+              step={1}
+              value={radarIndex}
+              onChange={(e) => {
+                radarUserScrubbed.current = true
+                setRadarIndex(Number(e.target.value))
+              }}
+              style={{
+                flex: 1,
+                accentColor: radarIndex < radarNowIndex ? '#58beff' : radarIndex === radarNowIndex ? '#39FF14' : '#f4d35e',
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => {
+                radarUserScrubbed.current = false
+                setRadarIndex(radarNowIndex)
+              }}
+              className="inline-flex flex-none items-center justify-center text-[10px] px-2.5 py-1 rounded-full border font-semibold transition-colors"
+              style={{
+                borderColor: radarIndex === radarNowIndex ? 'var(--primary)' : 'rgba(255,255,255,0.12)',
+                color: radarIndex === radarNowIndex ? 'var(--primary)' : 'var(--text-muted)',
+                background: radarIndex === radarNowIndex ? 'rgba(57,255,20,0.1)' : 'rgba(255,255,255,0.03)',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              Now
+            </button>
+          </div>
+        )}
         <div
           className="hub-weather-footer"
           style={{

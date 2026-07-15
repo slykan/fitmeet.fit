@@ -1,10 +1,9 @@
 import { Ionicons } from '@expo/vector-icons'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { Pressable, StyleSheet, View } from 'react-native'
 import { WebView } from 'react-native-webview'
 import type { WebView as WebViewType } from 'react-native-webview'
 
-import { fetchLatestRadarPath } from '@/src/lib/radar'
 import { CurrentWeather } from '@/src/lib/weather'
 import { palette } from '@/src/theme'
 
@@ -27,6 +26,7 @@ type Props = {
   showClouds: boolean
   onToggleWind?: () => void
   onToggleClouds?: () => void
+  radarPath?: string | null
   height?: number
   onEventPress: (eventId: number) => void
   onMapTouchStart?: () => void
@@ -346,6 +346,7 @@ export function HubMapCard({
   showClouds,
   onToggleWind,
   onToggleClouds,
+  radarPath = null,
   height = 320,
   onEventPress,
   onMapTouchStart,
@@ -354,7 +355,6 @@ export function HubMapCard({
   fitToEvents = true,
 }: Props) {
   const webViewRef = useRef<WebViewType>(null)
-  const [radarPath, setRadarPath] = useState<string | null>(null)
   const html = useMemo(
     () => buildMapHtml(center, events, weather, showWind, showClouds, fitToEvents),
     [center.lat, center.lng, events],
@@ -363,21 +363,6 @@ export function HubMapCard({
   useEffect(() => {
     webViewRef.current?.postMessage(JSON.stringify({ type: 'weatherUpdate', weather, showWind, showClouds }))
   }, [weather, showWind, showClouds])
-
-  useEffect(() => {
-    let cancelled = false
-    function refresh() {
-      fetchLatestRadarPath().then((path) => {
-        if (!cancelled) setRadarPath(path)
-      }).catch(() => {})
-    }
-    refresh()
-    const id = setInterval(refresh, 10 * 60 * 1000)
-    return () => {
-      cancelled = true
-      clearInterval(id)
-    }
-  }, [])
 
   useEffect(() => {
     if (radarPath) webViewRef.current?.postMessage(JSON.stringify({ type: 'radarUpdate', path: radarPath }))
