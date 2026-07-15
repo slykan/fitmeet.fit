@@ -5,7 +5,7 @@ import { MapContainer, TileLayer, Marker, Pane, ZoomControl, useMap, useMapEvent
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { useRouter } from 'next/navigation'
-import { Calendar, ArrowRight, X, Users, Zap, LocateFixed, Check, Wind, Cloud, SunMedium } from 'lucide-react'
+import { Calendar, ArrowRight, X, Users, Zap, LocateFixed, Check, Wind, CloudRain, SunMedium } from 'lucide-react'
 import api from '@/lib/api'
 import { formatEventDateTime } from '@/lib/event-time'
 import { useAuthStore } from '@/store/auth'
@@ -18,9 +18,8 @@ import { WindOverlay } from '@/components/location-picker-map'
 import { sortEventsBySchedule } from '@/lib/event-order'
 import { fetchGpxActivityStats, type GpxActivityStats } from '@/lib/gpx-activity-stats'
 
-const openWeatherTileKey =
-  process.env.NEXT_PUBLIC_OPENWEATHER_TILE_KEY ??
-  '62d9f65c21e8b140487241223fae5a2e'
+const RADAR_MAX_ZOOM = 7
+const BASE_MAX_ZOOM = 18
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 delete (L.Icon.Default.prototype as any)._getIconUrl
@@ -144,6 +143,16 @@ function getDistanceKm(aLat: number, aLng: number, bLat: number, bLng: number): 
     Math.sin(dLat / 2) ** 2 +
     Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2
   return earthKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+}
+
+function RadarZoomCap({ active }: { active: boolean }) {
+  const map = useMap()
+
+  useEffect(() => {
+    map.setMaxZoom(active ? RADAR_MAX_ZOOM : BASE_MAX_ZOOM)
+  }, [map, active])
+
+  return null
 }
 
 function MapViewport({ events, lat, lng, radiusKm, ready, recenterKey }: {
@@ -494,7 +503,6 @@ export default function HubMap() {
   const categoryCount = selectedCategories.size
   const selectedRadarFrame = radarFrames[radarIndex]
   const hubHasCloudLayer = Boolean(hubWeather && hubWeather.code > 0)
-  const hasWeatherTiles = Boolean(openWeatherTileKey)
   const showWeatherLayers = !isMapInteracting
   const selectedActivityDistanceKm = selected
     ? gpxStats[selected.id]?.distanceKm ?? selected.activity.distance_km
@@ -598,10 +606,6 @@ export default function HubMap() {
           }
         }
 
-        .fitmeet-hub-map .fm-cloud-tile-layer {
-          filter: brightness(1.3) contrast(1.2) saturate(1.05);
-        }
-
         .fitmeet-hub-map .fm-precip-tile-layer {
           filter: brightness(1.15) contrast(1.25) saturate(1.5);
           mix-blend-mode: screen;
@@ -634,6 +638,7 @@ export default function HubMap() {
         className="fitmeet-hub-map"
         center={mapCenter}
         zoom={11}
+        maxZoom={BASE_MAX_ZOOM}
         style={{ height: '100%', width: '100%' }}
         scrollWheelZoom
         zoomControl={false}
@@ -642,24 +647,16 @@ export default function HubMap() {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         />
-        {showWeatherLayers && showCloudOverlay && openWeatherTileKey && (
-          <TileLayer
-            url={`https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=${openWeatherTileKey}`}
-            opacity={1}
-            zIndex={220}
-            className="fm-cloud-tile-layer"
-          />
-        )}
         {showWeatherLayers && showCloudOverlay && selectedRadarFrame && (
           <TileLayer
             url={`https://tilecache.rainviewer.com${selectedRadarFrame.path}/256/{z}/{x}/{y}/2/1_1.png`}
             opacity={0.85}
             zIndex={221}
-            maxZoom={18}
-            maxNativeZoom={12}
+            maxZoom={RADAR_MAX_ZOOM}
             className="fm-precip-tile-layer"
           />
         )}
+        <RadarZoomCap active={showWeatherLayers && showCloudOverlay && Boolean(selectedRadarFrame)} />
         <ZoomControl position="bottomleft" />
         <MapViewport
           events={visibleEvents}
@@ -934,12 +931,11 @@ export default function HubMap() {
                 color: showCloudOverlay ? 'var(--primary)' : 'var(--text-muted)',
                 background: showCloudOverlay ? 'rgba(57,255,20,0.1)' : 'rgba(255,255,255,0.03)',
                 whiteSpace: 'nowrap',
-                opacity: hubHasCloudLayer ? 1 : 0.62,
               }}
-              title={hubHasCloudLayer ? 'Toggle current cloud and rain overlay' : 'Current weather is clear, so cloud overlay is minimal right now'}
+              title="Toggle rain radar overlay"
             >
-              <Cloud size={13} />
-              <span>{hubHasCloudLayer ? 'Clouds' : 'Clear'}</span>
+              <CloudRain size={13} />
+              <span>Rain</span>
             </button>
           </div>
 

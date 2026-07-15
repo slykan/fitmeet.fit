@@ -448,8 +448,8 @@ export default function HubScreen() {
                 <Text style={[styles.chipLabel, showWind && styles.chipLabelWeatherOn]}>Wind</Text>
               </Pressable>
               <Pressable style={[styles.chip, showClouds && styles.chipWeatherOn]} onPress={() => setShowClouds((v) => !v)}>
-                <Ionicons name="cloud-outline" size={13} color={showClouds ? palette.accent : palette.textMuted} />
-                <Text style={[styles.chipLabel, showClouds && styles.chipLabelWeatherOn]}>Clouds</Text>
+                <Ionicons name="rainy-outline" size={13} color={showClouds ? palette.accent : palette.textMuted} />
+                <Text style={[styles.chipLabel, showClouds && styles.chipLabelWeatherOn]}>Rain</Text>
               </Pressable>
             </View>
           </View>

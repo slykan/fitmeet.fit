@@ -7,8 +7,6 @@ import type { WebView as WebViewType } from 'react-native-webview'
 import { CurrentWeather } from '@/src/lib/weather'
 import { palette } from '@/src/theme'
 
-const OW_KEY = '62d9f65c21e8b140487241223fae5a2e'
-
 type EventMarker = {
   id: number
   title: string
@@ -146,40 +144,37 @@ function buildMapHtml(
     const weather = ${weatherJson};
     const showWind   = ${showWind};
     const showClouds = ${showClouds};
-    const OW_KEY = '${OW_KEY}';
     let radarPath = null;
     let currentShowClouds = showClouds;
+
+    const BASE_MAX_ZOOM = 18;
+    const RADAR_MAX_ZOOM = 7;
 
     function buildRadarUrl(path) {
       return 'https://tilecache.rainviewer.com' + path + '/256/{z}/{x}/{y}/2/1_1.png';
     }
 
     const map = L.map('map', {
-      zoomControl:false, attributionControl:false, preferCanvas:true,
+      zoomControl:false, attributionControl:false, preferCanvas:true, maxZoom:BASE_MAX_ZOOM,
     }).setView([center.lat, center.lng], events.length ? 8 : 7);
 
     L.control.zoom({ position:'bottomright' }).addTo(map);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:18 }).addTo(map);
 
-    let cloudTileLayer = null;
     let precipTileLayer = null;
 
     function updateCloudTiles(show) {
+      map.setMaxZoom(show ? RADAR_MAX_ZOOM : BASE_MAX_ZOOM);
       if (show) {
-        if (!cloudTileLayer) cloudTileLayer = L.tileLayer(
-          'https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=' + OW_KEY,
-          { maxZoom:18, opacity:0.9, zIndex:220 }
-        ).addTo(map);
         if (radarPath) {
           const url = buildRadarUrl(radarPath);
           if (!precipTileLayer) {
-            precipTileLayer = L.tileLayer(url, { maxZoom:18, maxNativeZoom:12, opacity:0.85, zIndex:221 }).addTo(map);
+            precipTileLayer = L.tileLayer(url, { maxZoom:RADAR_MAX_ZOOM, opacity:0.85, zIndex:221 }).addTo(map);
           } else if (precipTileLayer._url !== url) {
             precipTileLayer.setUrl(url);
           }
         }
       } else {
-        if (cloudTileLayer)  { cloudTileLayer.remove();  cloudTileLayer  = null; }
         if (precipTileLayer) { precipTileLayer.remove(); precipTileLayer = null; }
       }
     }
@@ -420,7 +415,7 @@ export function HubMapCard({
           onPress={onToggleClouds}
           hitSlop={8}
         >
-          <Ionicons name="cloud-outline" size={15} color={showClouds ? '#031109' : palette.text} />
+          <Ionicons name="rainy-outline" size={15} color={showClouds ? '#031109' : palette.text} />
         </Pressable>
       </View>
     </View>
