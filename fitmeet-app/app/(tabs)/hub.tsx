@@ -510,7 +510,6 @@ export default function HubScreen() {
           onMapTouchEnd={() => setMapTouching(false)}
           onMapCenterChange={(center) => {
             setMapWasMoved(true)
-            setWeather(null)
             setWeatherCenter(center)
           }}
         />
