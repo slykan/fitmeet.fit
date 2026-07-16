@@ -82,7 +82,7 @@ export default function HubScreen() {
   const [pastOnly,    setPastOnly]    = useState(false)
   const [reminderIds, setReminderIds] = useState<Set<number>>(new Set())
   const [showWind, setShowWind] = useState(true)
-  const [showClouds, setShowClouds] = useState(true)
+  const [showClouds, setShowClouds] = useState(false)
   const [weather, setWeather] = useState<CurrentWeather | null>(null)
   const [showFilter, setShowFilter] = useState(false)
   const [mapTouching, setMapTouching] = useState(false)
@@ -372,7 +372,7 @@ export default function HubScreen() {
   const activeFilterCount =
     (radiusIdx !== 0 ? 1 : 0) + categories.size +
     (goingOnly ? 1 : 0) + (friendsOnly ? 1 : 0) + (myOnly ? 1 : 0) + (pastOnly ? 1 : 0) +
-    (!showWind ? 1 : 0) + (!showClouds ? 1 : 0)
+    (!showWind ? 1 : 0) + (showClouds ? 1 : 0)
 
   const header = (
     <View>

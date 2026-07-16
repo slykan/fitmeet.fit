@@ -307,7 +307,7 @@ export default function HubMap() {
   const [recenterKey, setRecenterKey] = useState(0)
   const [hubWeather, setHubWeather] = useState<EventWeather | null>(null)
   const [showWindOverlay, setShowWindOverlay] = useState(true)
-  const [showCloudOverlay, setShowCloudOverlay] = useState(true)
+  const [showCloudOverlay, setShowCloudOverlay] = useState(false)
   const [isMapInteracting, setIsMapInteracting] = useState(false)
   const [weatherRefreshTick, setWeatherRefreshTick] = useState(0)
   const [gpxStats, setGpxStats] = useState<Record<number, GpxActivityStats>>({})
