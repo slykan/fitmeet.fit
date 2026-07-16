@@ -280,7 +280,7 @@ function buildMapHtml(
           blob.style.height = (sz * 0.6) + 'px';
           blob.style.left   = (-5 + Math.random() * 90) + '%';
           blob.style.top    = (-5 + Math.random() * 88) + '%';
-          blob.style.opacity = String((isRaining ? 0.55 : 0.42) + Math.random() * 0.4);
+          blob.style.opacity = String((isRaining ? 0.18 : 0.32) + Math.random() * (isRaining ? 0.18 : 0.3));
           blob.style.animationDuration = (30 + Math.random() * 25) + 's';
           overlay.appendChild(blob);
         }
