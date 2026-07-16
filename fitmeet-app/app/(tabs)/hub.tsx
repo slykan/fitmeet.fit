@@ -17,7 +17,7 @@ import { fetchEventWeatherSnapshots, type EventWeatherSnapshot } from '@/src/lib
 import { sortEventsBySchedule } from '@/src/lib/event-order'
 import { fetchGpxActivityStats, type GpxActivityStats } from '@/src/lib/gpx-activity-stats'
 import { fetchRadarFrames, type RadarFrame } from '@/src/lib/radar'
-import { cloudLabel, CurrentWeather, fetchCurrentWeather } from '@/src/lib/weather'
+import { cloudLabel, CurrentWeather, fetchCurrentWeather, fetchRainForecast, RainForecast } from '@/src/lib/weather'
 import { useAuthStore } from '@/src/store/auth'
 import { palette, spacing } from '@/src/theme'
 
@@ -84,6 +84,7 @@ export default function HubScreen() {
   const [showWind, setShowWind] = useState(true)
   const [showClouds, setShowClouds] = useState(false)
   const [weather, setWeather] = useState<CurrentWeather | null>(null)
+  const [rainForecast, setRainForecast] = useState<RainForecast | null>(null)
   const [showFilter, setShowFilter] = useState(false)
   const [mapTouching, setMapTouching] = useState(false)
   const [weatherCenter, setWeatherCenter] = useState<{ lat: number; lng: number } | null>(null)
@@ -195,6 +196,7 @@ export default function HubScreen() {
 
   useEffect(() => {
     fetchCurrentWeather(effectiveWeatherCenter.lat, effectiveWeatherCenter.lng).then(setWeather).catch(() => setWeather(null))
+    fetchRainForecast(effectiveWeatherCenter.lat, effectiveWeatherCenter.lng).then(setRainForecast).catch(() => setRainForecast(null))
   }, [effectiveWeatherCenter.lat, effectiveWeatherCenter.lng, weatherRefreshTick])
 
   useEffect(() => {
@@ -475,6 +477,14 @@ export default function HubScreen() {
               <View style={styles.weatherChip}>
                 <Ionicons name="cloudy-outline" size={13} color={palette.textMuted} />
                 <Text style={styles.weatherChipText}>{weatherLabel}</Text>
+              </View>
+            ) : null}
+            {rainForecast?.minutesUntilRain != null ? (
+              <View style={styles.weatherChip}>
+                <Ionicons name="rainy-outline" size={13} color="#58beff" />
+                <Text style={styles.weatherChipText}>
+                  {rainForecast.minutesUntilRain <= 1 ? 'Rain now' : `Rain in ${rainForecast.minutesUntilRain}m`}
+                </Text>
               </View>
             ) : null}
           </ScrollView>

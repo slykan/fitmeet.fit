@@ -151,7 +151,7 @@ function buildMapHtml(
     const RADAR_MAX_ZOOM = 7;
 
     function buildRadarUrl(path) {
-      return 'https://tilecache.rainviewer.com' + path + '/256/{z}/{x}/{y}/2/1_1.png';
+      return 'https://tilecache.rainviewer.com' + path + '/512/{z}/{x}/{y}/2/1_1.png';
     }
 
     const map = L.map('map', {
@@ -161,15 +161,18 @@ function buildMapHtml(
     L.control.zoom({ position:'bottomright' }).addTo(map);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:18 }).addTo(map);
 
+    map.createPane('precip');
+    map.getPane('precip').style.zIndex = 460;
+    map.getPane('precip').style.pointerEvents = 'none';
+
     let precipTileLayer = null;
 
     function updateCloudTiles(show) {
-      map.setMaxZoom(show ? RADAR_MAX_ZOOM : BASE_MAX_ZOOM);
       if (show) {
         if (radarPath) {
           const url = buildRadarUrl(radarPath);
           if (!precipTileLayer) {
-            precipTileLayer = L.tileLayer(url, { maxZoom:RADAR_MAX_ZOOM, opacity:0.85, zIndex:221 }).addTo(map);
+            precipTileLayer = L.tileLayer(url, { maxZoom:BASE_MAX_ZOOM, maxNativeZoom:RADAR_MAX_ZOOM, opacity:0.85, pane:'precip' }).addTo(map);
           } else if (precipTileLayer._url !== url) {
             precipTileLayer.setUrl(url);
           }

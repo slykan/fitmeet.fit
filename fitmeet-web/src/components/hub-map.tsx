@@ -12,7 +12,7 @@ import { useAuthStore } from '@/store/auth'
 import { CATEGORIES, CATEGORY_EMOJI } from '@/lib/categories'
 import { EventCommentsPreview } from '@/components/event-comments-preview'
 import { WeatherBadge } from '@/components/WeatherBadge'
-import { fetchCurrentWeather, fetchRelevantEventWeather, weatherConditionLabel, windDirectionLabelDetailed, type EventWeather } from '@/lib/weather'
+import { fetchCurrentWeather, fetchRainForecast, fetchRelevantEventWeather, weatherConditionLabel, windDirectionLabelDetailed, type EventWeather, type RainForecast } from '@/lib/weather'
 import { fetchRadarFrames, type RadarFrame } from '@/lib/radar'
 import { WindOverlay } from '@/components/location-picker-map'
 import { sortEventsBySchedule } from '@/lib/event-order'
@@ -143,16 +143,6 @@ function getDistanceKm(aLat: number, aLng: number, bLat: number, bLng: number): 
     Math.sin(dLat / 2) ** 2 +
     Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2
   return earthKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-}
-
-function RadarZoomCap({ active }: { active: boolean }) {
-  const map = useMap()
-
-  useEffect(() => {
-    map.setMaxZoom(active ? RADAR_MAX_ZOOM : BASE_MAX_ZOOM)
-  }, [map, active])
-
-  return null
 }
 
 function MapViewport({ events, lat, lng, radiusKm, ready, recenterKey }: {
@@ -306,6 +296,7 @@ export default function HubMap() {
   const [friendIds, setFriendIds] = useState<Set<number>>(new Set())
   const [recenterKey, setRecenterKey] = useState(0)
   const [hubWeather, setHubWeather] = useState<EventWeather | null>(null)
+  const [rainForecast, setRainForecast] = useState<RainForecast | null>(null)
   const [showWindOverlay, setShowWindOverlay] = useState(true)
   const [showCloudOverlay, setShowCloudOverlay] = useState(false)
   const [isMapInteracting, setIsMapInteracting] = useState(false)
@@ -470,6 +461,24 @@ export default function HubMap() {
     weatherCenter,
     weatherRefreshTick,
   ])
+
+  useEffect(() => {
+    if (!weatherCenter) {
+      setRainForecast(null)
+      return
+    }
+    let cancelled = false
+    fetchRainForecast(weatherCenter.lat, weatherCenter.lng)
+      .then((forecast) => {
+        if (!cancelled) setRainForecast(forecast)
+      })
+      .catch(() => {
+        if (!cancelled) setRainForecast(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [weatherCenter, weatherRefreshTick])
 
   useEffect(() => {
     api.get('/events/joined')
@@ -649,14 +658,14 @@ export default function HubMap() {
         />
         {showWeatherLayers && showCloudOverlay && selectedRadarFrame && (
           <TileLayer
-            url={`https://tilecache.rainviewer.com${selectedRadarFrame.path}/256/{z}/{x}/{y}/2/1_1.png`}
+            url={`https://tilecache.rainviewer.com${selectedRadarFrame.path}/512/{z}/{x}/{y}/2/1_1.png`}
             opacity={0.85}
             zIndex={221}
-            maxZoom={RADAR_MAX_ZOOM}
+            maxZoom={BASE_MAX_ZOOM}
+            maxNativeZoom={RADAR_MAX_ZOOM}
             className="fm-precip-tile-layer"
           />
         )}
-        <RadarZoomCap active={showWeatherLayers && showCloudOverlay && Boolean(selectedRadarFrame)} />
         <ZoomControl position="bottomleft" />
         <MapViewport
           events={visibleEvents}
@@ -1013,6 +1022,31 @@ export default function HubMap() {
                 >
                   {hubWeather ? weatherConditionLabel(hubWeather.code, hubWeather.precipitation) : 'Clear sky'}
                 </span>
+                {rainForecast?.minutesUntilRain != null && (
+                  <>
+                    <span
+                      style={{
+                        width: 1,
+                        height: 12,
+                        background: 'rgba(255,255,255,0.16)',
+                        display: 'inline-block',
+                        flexShrink: 0,
+                      }}
+                    />
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 5,
+                        flexShrink: 0,
+                        color: '#58beff',
+                      }}
+                    >
+                      <CloudRain size={13} />
+                      <span>{rainForecast.minutesUntilRain <= 1 ? 'Rain now' : `Rain in ${rainForecast.minutesUntilRain}m`}</span>
+                    </span>
+                  </>
+                )}
               </>
             )}
           </div>

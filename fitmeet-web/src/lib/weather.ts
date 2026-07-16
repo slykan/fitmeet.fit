@@ -42,11 +42,31 @@ type CacheEntry = {
   fetchedAt: number
 }
 
+export type RainForecast = {
+  minutesUntilRain: number | null
+}
+
+type RainForecastCacheEntry = {
+  value: RainForecast
+  fetchedAt: number
+}
+
+type OpenMeteoMinutelyResponse = {
+  minutely_15?: {
+    time: string[]
+    precipitation: number[]
+  }
+}
+
 const EVENT_WEATHER_TTL_MS = 15 * 60 * 1000
 const CURRENT_WEATHER_TTL_MS = 15 * 60 * 1000
 const LIVE_EVENT_WINDOW_HOURS = 6
+const RAIN_FORECAST_TTL_MS = 15 * 60 * 1000
+const RAIN_FORECAST_WINDOW_INTERVALS = 16 // 16 * 15min = 4h ahead
+const RAIN_FORECAST_THRESHOLD_MM = 0.1
 
 const cache = new Map<string, CacheEntry>()
+const rainForecastCache = new Map<string, RainForecastCacheEntry>()
 
 export async function fetchEventWeather(
   lat: number,
@@ -159,6 +179,44 @@ export async function fetchCurrentWeather(
     return result
   } catch {
     cache.set(key, { value: null, fetchedAt: Date.now() })
+    return null
+  }
+}
+
+export async function fetchRainForecast(
+  lat: number,
+  lng: number,
+): Promise<RainForecast | null> {
+  const key = `${lat.toFixed(3)},${lng.toFixed(3)}`
+  const cached = rainForecastCache.get(key)
+  if (cached && Date.now() - cached.fetchedAt < RAIN_FORECAST_TTL_MS) return cached.value
+
+  try {
+    const url =
+      `https://api.open-meteo.com/v1/forecast` +
+      `?latitude=${lat}&longitude=${lng}` +
+      `&minutely_15=precipitation&forecast_minutely_15=${RAIN_FORECAST_WINDOW_INTERVALS}` +
+      `&timezone=auto`
+
+    const res = await fetch(url, { next: { revalidate: 600 } })
+    const data: OpenMeteoMinutelyResponse = await res.json()
+    const times = data.minutely_15?.time ?? []
+    const precipitation = data.minutely_15?.precipitation ?? []
+
+    const now = Date.now()
+    let minutesUntilRain: number | null = null
+    for (let i = 0; i < times.length; i++) {
+      if ((precipitation[i] ?? 0) < RAIN_FORECAST_THRESHOLD_MM) continue
+      const diffMin = Math.round((new Date(times[i]).getTime() - now) / 60000)
+      if (diffMin < 0) continue
+      minutesUntilRain = diffMin
+      break
+    }
+
+    const result: RainForecast = { minutesUntilRain }
+    rainForecastCache.set(key, { value: result, fetchedAt: Date.now() })
+    return result
+  } catch {
     return null
   }
 }
