@@ -132,7 +132,7 @@ export function WindOverlay({
         size: (isHub ? (isMobile ? 2.2 : 1.9) : (isMobile ? 2 : 1.8)) + (i % 2) * 0.6,
         durationOffset: (i % 6) * 0.22,
         wavePhase: i % 2 === 0 ? 1 : -1,
-        waveAmp: 4 + (i % 3) * 2,
+        waveMult: 0.7 + (i % 4) * 0.2,
       })),
     [isHub, isMobile],
   )
@@ -148,7 +148,8 @@ export function WindOverlay({
         durationOffset: (i % 5) * 0.22,
         thickness: (isHub ? 2 : 1.6) + (i % 2) * 0.5,
         wavePhase: i % 2 === 0 ? 1 : -1,
-        waveAmp: 3 + (i % 3) * 2,
+        waveMult: 0.7 + (i % 4) * 0.2,
+        flutterDeg: (6 + (i % 3) * 3) * (i % 2 === 0 ? 1 : -1),
       })),
     [isHub, isMobile],
   )
@@ -314,7 +315,8 @@ export function WindOverlay({
                 animationTimingFunction: 'linear',
                 ['--wind-distance' as string]: `${distance}px`,
                 ['--wind-wave-dir' as string]: stream.wavePhase,
-                ['--wind-wave' as string]: `${stream.waveAmp}px`,
+                ['--wind-wave-mult' as string]: stream.waveMult,
+                ['--wind-flutter' as string]: `${stream.flutterDeg}deg`,
               }}
             />
           </span>
@@ -347,7 +349,7 @@ export function WindOverlay({
                 animationTimingFunction: 'linear',
                 ['--wind-distance' as string]: `${distance}px`,
                 ['--wind-wave-dir' as string]: particle.wavePhase,
-                ['--wind-wave' as string]: `${particle.waveAmp}px`,
+                ['--wind-wave-mult' as string]: particle.waveMult,
               }}
             />
           </span>
@@ -407,14 +409,17 @@ export function WindOverlay({
           12% {
             opacity: 1;
           }
-          32% {
-            transform: translate3d(calc(var(--wind-distance) * 0.32), calc(var(--wind-wave-dir, 1) * var(--wind-wave, 5px)), 0) scale(0.85);
+          24% {
+            transform: translate3d(calc(var(--wind-distance) * 0.24), calc(var(--wind-wave-dir, 1) * var(--wind-wave-mult, 1) * var(--wind-distance) * 0.3), 0) scale(0.82);
           }
-          58% {
-            transform: translate3d(calc(var(--wind-distance) * 0.58), calc(var(--wind-wave-dir, 1) * var(--wind-wave, 5px) * -1), 0) scale(0.92);
+          42% {
+            transform: translate3d(calc(var(--wind-distance) * 0.42), calc(var(--wind-wave-dir, 1) * var(--wind-wave-mult, 1) * var(--wind-distance) * -0.34), 0) scale(0.9);
+          }
+          62% {
+            transform: translate3d(calc(var(--wind-distance) * 0.62), calc(var(--wind-wave-dir, 1) * var(--wind-wave-mult, 1) * var(--wind-distance) * 0.28), 0) scale(0.96);
           }
           82% {
-            transform: translate3d(calc(var(--wind-distance) * 0.82), calc(var(--wind-wave-dir, 1) * var(--wind-wave, 5px) * 0.6), 0) scale(0.98);
+            transform: translate3d(calc(var(--wind-distance) * 0.82), calc(var(--wind-wave-dir, 1) * var(--wind-wave-mult, 1) * var(--wind-distance) * -0.16), 0) scale(1);
           }
           100% {
             opacity: 0;
@@ -425,23 +430,23 @@ export function WindOverlay({
         @keyframes fitmeet-wind-stream {
           0% {
             opacity: 0;
-            transform: translate3d(calc(var(--wind-distance) * -0.18), 0, 0) scaleX(0.85);
+            transform: translate3d(calc(var(--wind-distance) * -0.18), 0, 0) rotate(0deg) scaleX(0.85);
           }
           22% {
             opacity: 1;
           }
-          40% {
-            transform: translate3d(calc(var(--wind-distance) * 0.14), calc(var(--wind-wave-dir, 1) * var(--wind-wave, 4px)), 0) scaleX(0.9);
+          38% {
+            transform: translate3d(calc(var(--wind-distance) * 0.14), calc(var(--wind-wave-dir, 1) * var(--wind-wave-mult, 1) * var(--wind-distance) * 0.24), 0) rotate(var(--wind-flutter, 6deg)) scaleX(0.9);
           }
-          65% {
-            transform: translate3d(calc(var(--wind-distance) * 0.5), calc(var(--wind-wave-dir, 1) * var(--wind-wave, 4px) * -1), 0) scaleX(0.95);
+          58% {
+            transform: translate3d(calc(var(--wind-distance) * 0.42), calc(var(--wind-wave-dir, 1) * var(--wind-wave-mult, 1) * var(--wind-distance) * -0.28), 0) rotate(calc(var(--wind-flutter, 6deg) * -1)) scaleX(0.95);
           }
-          85% {
-            transform: translate3d(calc(var(--wind-distance) * 0.78), calc(var(--wind-wave-dir, 1) * var(--wind-wave, 4px) * 0.5), 0) scaleX(1);
+          78% {
+            transform: translate3d(calc(var(--wind-distance) * 0.72), calc(var(--wind-wave-dir, 1) * var(--wind-wave-mult, 1) * var(--wind-distance) * 0.18), 0) rotate(calc(var(--wind-flutter, 6deg) * 0.6)) scaleX(1);
           }
           100% {
             opacity: 0;
-            transform: translate3d(var(--wind-distance), 0, 0) scaleX(1);
+            transform: translate3d(var(--wind-distance), 0, 0) rotate(0deg) scaleX(1);
           }
         }
 
