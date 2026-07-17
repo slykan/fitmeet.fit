@@ -119,6 +119,16 @@ function sampleTrackWithIndexes(track: [number, number][], maxPoints = 100): { p
   return { points, indexes }
 }
 
+async function requestElevations(latitudes: string, longitudes: string): Promise<number[]> {
+  const response = await fetch(
+    `https://api.open-meteo.com/v1/elevation?latitude=${latitudes}&longitude=${longitudes}`,
+    { signal: AbortSignal.timeout(8000) },
+  )
+  if (!response.ok) throw new Error(`Elevation request failed: ${response.status}`)
+  const data = await response.json() as { elevation?: number[] }
+  return data.elevation ?? []
+}
+
 export async function fetchElevationProfile(track: [number, number][]): Promise<ElevationProfileResult> {
   const sampledInfo = sampleTrackWithIndexes(track)
   const sampled = sampledInfo.points
@@ -126,11 +136,16 @@ export async function fetchElevationProfile(track: [number, number][]): Promise<
 
   const latitudes = sampled.map(([lat]) => lat.toFixed(5)).join(',')
   const longitudes = sampled.map(([, lon]) => lon.toFixed(5)).join(',')
-  const response = await fetch(`https://api.open-meteo.com/v1/elevation?latitude=${latitudes}&longitude=${longitudes}`)
-  if (!response.ok) throw new Error(`Elevation request failed: ${response.status}`)
-  const data = await response.json() as { elevation?: number[] }
 
-  return buildElevationProfile(sampled, data.elevation ?? [], track, sampledInfo.indexes)
+  let elevations: number[]
+  try {
+    elevations = await requestElevations(latitudes, longitudes)
+  } catch {
+    // Transient network hiccup / timeout — retry once before giving up.
+    elevations = await requestElevations(latitudes, longitudes)
+  }
+
+  return buildElevationProfile(sampled, elevations, track, sampledInfo.indexes)
 }
 
 function readPoints(xml: string, tagNames: string): { coords: [number, number]; ele: number | null }[] {

@@ -16,11 +16,17 @@ const RouteDrawMap = dynamic(() => import('@/components/route-draw-map'), { ssr:
 
 // ─── GPX builder ─────────────────────────────────────────────────────────────
 
-function buildGpx(track: LatLng[], title: string): string {
+function buildGpx(track: LatLng[], title: string, elevationPoints: { lat: number; lng: number; ele: number }[] = []): string {
   const escape = (s: string) =>
     s.replace(/[<>&"']/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&apos;' }[c]!))
+  const eleByCoord = new Map(elevationPoints.map(p => [`${p.lat}|${p.lng}`, p.ele]))
   const pts = track
-    .map(([lat, lng]) => `    <trkpt lat="${lat.toFixed(7)}" lon="${lng.toFixed(7)}"/>`)
+    .map(([lat, lng]) => {
+      const ele = eleByCoord.get(`${lat}|${lng}`)
+      return ele != null
+        ? `    <trkpt lat="${lat.toFixed(7)}" lon="${lng.toFixed(7)}"><ele>${ele}</ele></trkpt>`
+        : `    <trkpt lat="${lat.toFixed(7)}" lon="${lng.toFixed(7)}"/>`
+    })
     .join('\n')
   const name = escape(title || 'Route')
   return `<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="FitMeet" xmlns="http://www.topografix.com/GPX/1/1">\n  <metadata><name>${name}</name></metadata>\n  <trk><name>${name}</name><trkseg>\n${pts}\n  </trkseg></trk>\n</gpx>`
@@ -237,7 +243,7 @@ function DrawContent() {
         fetchElevGain(result.track),
       ])
 
-      const gpxContent = buildGpx(result.track, title)
+      const gpxContent = buildGpx(result.track, title, result.elevationPoints)
       const gpxBlob = new Blob([gpxContent], { type: 'application/gpx+xml' })
 
       const form = new FormData()

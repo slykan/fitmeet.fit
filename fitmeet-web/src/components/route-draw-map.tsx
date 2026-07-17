@@ -12,6 +12,7 @@ export interface DrawResult {
   track: LatLng[]
   distanceKm: number
   elevGain: number
+  elevationPoints: { lat: number; lng: number; ele: number }[]
   startLat: number | null
   startLng: number | null
   endLat: number | null
@@ -209,8 +210,16 @@ function sampleTrackWithIndexes(track: LatLng[], max = 100): { points: LatLng[];
   return { points, indexes }
 }
 
-async function fetchElevationProfile(track: LatLng[]): Promise<{ gain: number; profile: ElevationPoint[]; coloredSegments: ColoredSegment[] }> {
-  if (track.length < 2) return { gain: 0, profile: [], coloredSegments: [] }
+interface ElevationFetchResult {
+  gain: number
+  profile: ElevationPoint[]
+  coloredSegments: ColoredSegment[]
+  points: LatLng[]
+  elevations: number[]
+}
+
+async function fetchElevationProfile(track: LatLng[]): Promise<ElevationFetchResult> {
+  if (track.length < 2) return { gain: 0, profile: [], coloredSegments: [], points: [], elevations: [] }
   const sampledInfo = sampleTrackWithIndexes(track, 100)
   const sampled = sampledInfo.points
   let totalM = 0
@@ -225,7 +234,7 @@ async function fetchElevationProfile(track: LatLng[]): Promise<{ gain: number; p
       `https://api.open-meteo.com/v1/elevation?latitude=${lats}&longitude=${lngs}`,
       { signal: AbortSignal.timeout(8000) },
     )
-    if (!res.ok) return { gain: 0, profile: [], coloredSegments: [] }
+    if (!res.ok) return { gain: 0, profile: [], coloredSegments: [], points: [], elevations: [] }
     const data = await res.json()
     const elevs: number[] = data.elevation ?? []
     let gain = 0
@@ -261,9 +270,11 @@ async function fetchElevationProfile(track: LatLng[]): Promise<{ gain: number; p
       gain: Math.round(gain),
       profile,
       coloredSegments,
+      points: sampled,
+      elevations: elevs,
     }
   } catch {
-    return { gain: 0, profile: [], coloredSegments: [] }
+    return { gain: 0, profile: [], coloredSegments: [], points: [], elevations: [] }
   }
 }
 
@@ -371,6 +382,7 @@ export default function RouteDrawMap({ category, height = 500, initialWaypoints,
   const fsButtonRef = useRef<HTMLDivElement | null>(null)
   const initialLoadedRef = useRef(false)
   const skipRoutingRef = useRef(false)
+  const sampledElevationRef = useRef<{ points: LatLng[]; elevations: number[] }>({ points: [], elevations: [] })
 
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null)
   const [stats, setStats] = useState({ distanceKm: 0, elevGain: 0 })
@@ -444,11 +456,16 @@ export default function RouteDrawMap({ category, height = 500, initialWaypoints,
     const track = buildFullTrack()
     const distanceKm = totalDistanceKm()
     const gain = elevGain ?? stats.elevGain
+    const { points, elevations } = sampledElevationRef.current
+    const elevationPoints = points
+      .map((p, i) => ({ lat: p[0], lng: p[1], ele: elevations[i] }))
+      .filter(p => Number.isFinite(p.ele))
     onUpdateRef.current({
       waypoints: wps.map(w => w.latlng),
       track,
       distanceKm,
       elevGain: gain,
+      elevationPoints,
       startLat: wps[0]?.latlng[0] ?? null,
       startLng: wps[0]?.latlng[1] ?? null,
       endLat: wps[wps.length - 1]?.latlng[0] ?? null,
@@ -463,11 +480,12 @@ export default function RouteDrawMap({ category, height = 500, initialWaypoints,
     setElevLoading(true)
     elevDebounceRef.current = setTimeout(async () => {
       const track = buildFullTrack()
-      const { gain, profile, coloredSegments } = await fetchElevationProfile(track)
+      const { gain, profile, coloredSegments, points, elevations } = await fetchElevationProfile(track)
       setElevLoading(false)
       setElevProfile(profile)
       renderColoredRouteLayers(coloredSegments)
       setStats(s => ({ ...s, elevGain: gain }))
+      sampledElevationRef.current = { points, elevations }
       publishResult(gain)
     }, 600)
   }
