@@ -97,8 +97,8 @@ function buildMapHtml(
     }
     @keyframes windDraw {
       0%   { stroke-dashoffset: 100; }
-      22%  { stroke-dashoffset: 0; }
-      72%  { stroke-dashoffset: 0; }
+      45%  { stroke-dashoffset: 0; }
+      55%  { stroke-dashoffset: 0; }
       100% { stroke-dashoffset: -100; }
     }
     .lightning-bolt {
@@ -252,33 +252,35 @@ function buildMapHtml(
             el.setAttribute('width', String(w));
             el.setAttribute('height', '8');
             el.setAttribute('viewBox', '0 0 100 24');
+            const drawDur = (2.2 + Math.random() * 2) + 's';
+            const drawDelay = (Math.random() * 3) + 's';
             const outline = document.createElementNS(svgNS, 'path');
             outline.setAttribute('d', 'M4,14 Q50,2 96,13');
             outline.setAttribute('fill', 'none');
-            outline.setAttribute('stroke', 'rgba(6,10,10,0.5)');
-            outline.setAttribute('stroke-width', '2.4');
+            outline.setAttribute('stroke', 'rgba(4,8,8,0.8)');
+            outline.setAttribute('stroke-width', '4.6');
             outline.setAttribute('stroke-linecap', 'round');
             outline.setAttribute('pathLength', '100');
             outline.style.strokeDasharray = '100';
             outline.style.animationName = 'windDraw';
-            outline.style.animationTimingFunction = 'linear';
+            outline.style.animationTimingFunction = 'ease-in-out';
             outline.style.animationIterationCount = 'infinite';
-            outline.style.animationDuration = elDur;
-            outline.style.animationDelay = elDelay;
+            outline.style.animationDuration = drawDur;
+            outline.style.animationDelay = drawDelay;
             el.appendChild(outline);
             const path = document.createElementNS(svgNS, 'path');
             path.setAttribute('d', 'M4,14 Q50,2 96,13');
             path.setAttribute('fill', 'none');
-            path.setAttribute('stroke', 'rgba(230,242,255,0.9)');
-            path.setAttribute('stroke-width', '0.9');
+            path.setAttribute('stroke', 'rgba(235,245,255,0.98)');
+            path.setAttribute('stroke-width', '2.6');
             path.setAttribute('stroke-linecap', 'round');
             path.setAttribute('pathLength', '100');
             path.style.strokeDasharray = '100';
             path.style.animationName = 'windDraw';
-            path.style.animationTimingFunction = 'linear';
+            path.style.animationTimingFunction = 'ease-in-out';
             path.style.animationIterationCount = 'infinite';
-            path.style.animationDuration = elDur;
-            path.style.animationDelay = elDelay;
+            path.style.animationDuration = drawDur;
+            path.style.animationDelay = drawDelay;
             el.appendChild(path);
           }
           el.style.left = (Math.random() * 110 - 5) + '%';

@@ -146,7 +146,9 @@ export function WindOverlay({
         delay: (i * (isHub ? (isMobile ? 0.4 : 0.5) : (isMobile ? 0.6 : 0.75))).toFixed(2),
         width: (isHub ? (isMobile ? 22 : 20) : (isMobile ? 20 : 18)) + (i % 3) * (isHub ? (isMobile ? 10 : 9) : (isMobile ? 9 : 8)),
         durationOffset: (i % 5) * 0.35,
-        thickness: (isHub ? 1.1 : 0.9) + (i % 2) * 0.3,
+        thickness: (isHub ? 2.6 : 2.2) + (i % 2) * 0.6,
+        drawDuration: 2.2 + (i % 4) * 0.5,
+        drawDelay: (i * 0.37) % 3,
         wavePhase: i % 2 === 0 ? 1 : -1,
         waveAmp: 3 + (i % 3) * 2,
       })),
@@ -319,33 +321,33 @@ export function WindOverlay({
               <path
                 d="M4,14 Q50,2 96,13"
                 fill="none"
-                stroke={`rgba(6,10,10,${Math.min(streamOpacity * hubStreamBoost * 0.55, 0.55)})`}
-                strokeWidth={stream.thickness + 1.6}
+                stroke={`rgba(4,8,8,${Math.min(streamOpacity * hubStreamBoost * 0.8 + 0.35, 0.85)})`}
+                strokeWidth={stream.thickness + 2}
                 strokeLinecap="round"
                 pathLength={100}
                 style={{
                   strokeDasharray: 100,
                   animationName: 'fitmeet-wind-draw',
-                  animationDuration: `${duration + stream.durationOffset}s`,
-                  animationDelay: `${stream.delay}s`,
+                  animationDuration: `${stream.drawDuration}s`,
+                  animationDelay: `${stream.drawDelay}s`,
                   animationIterationCount: 'infinite',
-                  animationTimingFunction: 'linear',
+                  animationTimingFunction: 'ease-in-out',
                 }}
               />
               <path
                 d="M4,14 Q50,2 96,13"
                 fill="none"
-                stroke={`rgba(230,242,255,${Math.min(streamOpacity * (isHub ? 1.2 : 1), 1)})`}
+                stroke={`rgba(235,245,255,${Math.max(Math.min(streamOpacity * (isHub ? 1.3 : 1.15), 1), 0.85)})`}
                 strokeWidth={stream.thickness}
                 strokeLinecap="round"
                 pathLength={100}
                 style={{
                   strokeDasharray: 100,
                   animationName: 'fitmeet-wind-draw',
-                  animationDuration: `${duration + stream.durationOffset}s`,
-                  animationDelay: `${stream.delay}s`,
+                  animationDuration: `${stream.drawDuration}s`,
+                  animationDelay: `${stream.drawDelay}s`,
                   animationIterationCount: 'infinite',
-                  animationTimingFunction: 'linear',
+                  animationTimingFunction: 'ease-in-out',
                 }}
               />
             </svg>
@@ -481,10 +483,10 @@ export function WindOverlay({
           0% {
             stroke-dashoffset: 100;
           }
-          22% {
+          45% {
             stroke-dashoffset: 0;
           }
-          72% {
+          55% {
             stroke-dashoffset: 0;
           }
           100% {
