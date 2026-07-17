@@ -131,6 +131,8 @@ export function WindOverlay({
         delay: (i * (isHub ? (isMobile ? 0.045 : 0.055) : (isMobile ? 0.07 : 0.09))).toFixed(2),
         size: (isHub ? (isMobile ? 2.2 : 1.9) : (isMobile ? 2 : 1.8)) + (i % 2) * 0.6,
         durationOffset: (i % 6) * 0.22,
+        wavePhase: i % 2 === 0 ? 1 : -1,
+        waveAmp: 4 + (i % 3) * 2,
       })),
     [isHub, isMobile],
   )
@@ -145,6 +147,8 @@ export function WindOverlay({
         width: (isHub ? (isMobile ? 18 : 16) : (isMobile ? 16 : 14)) + (i % 3) * (isHub ? (isMobile ? 10 : 9) : (isMobile ? 9 : 8)),
         durationOffset: (i % 5) * 0.22,
         thickness: (isHub ? 2 : 1.6) + (i % 2) * 0.5,
+        wavePhase: i % 2 === 0 ? 1 : -1,
+        waveAmp: 3 + (i % 3) * 2,
       })),
     [isHub, isMobile],
   )
@@ -309,6 +313,8 @@ export function WindOverlay({
                 animationIterationCount: 'infinite',
                 animationTimingFunction: 'linear',
                 ['--wind-distance' as string]: `${distance}px`,
+                ['--wind-wave-dir' as string]: stream.wavePhase,
+                ['--wind-wave' as string]: `${stream.waveAmp}px`,
               }}
             />
           </span>
@@ -340,6 +346,8 @@ export function WindOverlay({
                 animationIterationCount: 'infinite',
                 animationTimingFunction: 'linear',
                 ['--wind-distance' as string]: `${distance}px`,
+                ['--wind-wave-dir' as string]: particle.wavePhase,
+                ['--wind-wave' as string]: `${particle.waveAmp}px`,
               }}
             />
           </span>
@@ -399,6 +407,15 @@ export function WindOverlay({
           12% {
             opacity: 1;
           }
+          32% {
+            transform: translate3d(calc(var(--wind-distance) * 0.32), calc(var(--wind-wave-dir, 1) * var(--wind-wave, 5px)), 0) scale(0.85);
+          }
+          58% {
+            transform: translate3d(calc(var(--wind-distance) * 0.58), calc(var(--wind-wave-dir, 1) * var(--wind-wave, 5px) * -1), 0) scale(0.92);
+          }
+          82% {
+            transform: translate3d(calc(var(--wind-distance) * 0.82), calc(var(--wind-wave-dir, 1) * var(--wind-wave, 5px) * 0.6), 0) scale(0.98);
+          }
           100% {
             opacity: 0;
             transform: translate3d(var(--wind-distance), 0, 0) scale(1);
@@ -412,6 +429,15 @@ export function WindOverlay({
           }
           22% {
             opacity: 1;
+          }
+          40% {
+            transform: translate3d(calc(var(--wind-distance) * 0.14), calc(var(--wind-wave-dir, 1) * var(--wind-wave, 4px)), 0) scaleX(0.9);
+          }
+          65% {
+            transform: translate3d(calc(var(--wind-distance) * 0.5), calc(var(--wind-wave-dir, 1) * var(--wind-wave, 4px) * -1), 0) scaleX(0.95);
+          }
+          85% {
+            transform: translate3d(calc(var(--wind-distance) * 0.78), calc(var(--wind-wave-dir, 1) * var(--wind-wave, 4px) * 0.5), 0) scaleX(1);
           }
           100% {
             opacity: 0;

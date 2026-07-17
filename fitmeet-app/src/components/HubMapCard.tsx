@@ -90,6 +90,9 @@ function buildMapHtml(
     @keyframes windMove {
       0%   { opacity:0; transform:translate3d(0,0,0) rotate(var(--rot)) scale(0.9); }
       10%  { opacity:1; }
+      32%  { transform:translate3d(var(--dx1),var(--dy1),0) rotate(var(--rot)) scale(0.95); }
+      58%  { transform:translate3d(var(--dx2),var(--dy2),0) rotate(var(--rot)) scale(1); }
+      82%  { transform:translate3d(var(--dx3),var(--dy3),0) rotate(var(--rot)) scale(1.02); }
       85%  { opacity:1; }
       100% { opacity:0; transform:translate3d(var(--dx),var(--dy),0) rotate(var(--rot)) scale(1.04); }
     }
@@ -221,6 +224,9 @@ function buildMapHtml(
         const dist = Math.min(90, 28 + spd * 2.2);
         const dx = Math.sin(rad) * dist;
         const dy = -Math.cos(rad) * dist;
+        const perpRad = rad + Math.PI / 2;
+        const px = Math.sin(perpRad);
+        const py = -Math.cos(perpRad);
         const dur = Math.max(2.4, 8 - spd * 0.06);
         const cssRot = flowBearing - 90;
 
@@ -237,6 +243,17 @@ function buildMapHtml(
           el.style.setProperty('--rot', cssRot + 'deg');
           el.style.setProperty('--dx', dx + 'px');
           el.style.setProperty('--dy', dy + 'px');
+          const waveAmp = (3 + Math.random() * 4) * (i % 2 === 0 ? 1 : -1);
+          const wavePoint = (t, m) => ({ x: dx * t + px * waveAmp * m, y: dy * t + py * waveAmp * m });
+          const p1 = wavePoint(0.32, 1);
+          const p2 = wavePoint(0.58, -1);
+          const p3 = wavePoint(0.82, 0.6);
+          el.style.setProperty('--dx1', p1.x + 'px');
+          el.style.setProperty('--dy1', p1.y + 'px');
+          el.style.setProperty('--dx2', p2.x + 'px');
+          el.style.setProperty('--dy2', p2.y + 'px');
+          el.style.setProperty('--dx3', p3.x + 'px');
+          el.style.setProperty('--dy3', p3.y + 'px');
           el.style.animationDuration  = (dur + Math.random() * 1.8) + 's';
           el.style.animationDelay     = (0.2 + Math.random() * 4.8) + 's';
           overlay.appendChild(el);
