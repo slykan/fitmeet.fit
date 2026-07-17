@@ -175,6 +175,7 @@ function DrawContent() {
   const [categoryLocked, setCategoryLocked] = useState(false)
   const [drawPointCount, setDrawPointCount] = useState(0)
   const [undoRequestId, setUndoRequestId] = useState(0)
+  const [fullscreen, setFullscreen] = useState(false)
 
   const drawResultRef = useRef<DrawResult | null>(null)
 
@@ -285,126 +286,208 @@ function DrawContent() {
 
   return (
     <>
-      <Navbar />
-      <main className="min-h-screen py-6 px-4">
-        <div style={{ maxWidth: 860, margin: '0 auto' }} className="space-y-5">
+      {!fullscreen && <Navbar />}
+      <main
+        className={fullscreen ? 'fixed inset-0 z-[1000] flex flex-col' : 'min-h-screen py-6 px-4'}
+        style={fullscreen ? { background: '#050816' } : undefined}
+      >
+        <div
+          className={fullscreen ? 'flex flex-col h-full' : 'space-y-5'}
+          style={fullscreen ? undefined : { maxWidth: 860, margin: '0 auto' }}
+        >
 
-          {/* Header */}
-          <div>
-            <h1 className="text-xl font-black">{editId ? 'Edit Route' : 'Draw Route'}</h1>
-          </div>
+          {!fullscreen && (
+            <>
+              {/* Header */}
+              <div>
+                <h1 className="text-xl font-black">{editId ? 'Edit Route' : 'Draw Route'}</h1>
+              </div>
 
-          {/* Category picker — choose BEFORE drawing */}
-          <div className="rounded-2xl border p-4 space-y-3" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
-            <div className="flex items-center justify-between">
-              <p className="font-bold text-sm">Activity type</p>
-              {categoryLocked && (
-                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                  Change resets routing
-                </span>
+              {/* Category picker — choose BEFORE drawing */}
+              <div className="rounded-2xl border p-4 space-y-3" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
+                <div className="flex items-center justify-between">
+                  <p className="font-bold text-sm">Activity type</p>
+                  {categoryLocked && (
+                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                      Change resets routing
+                    </span>
+                  )}
+                </div>
+                <CategoryPicker
+                  value={category}
+                  onChange={v => { setCategory(v); setCategoryLocked(true) }}
+                  disabled={false}
+                />
+              </div>
+            </>
+          )}
+
+          {fullscreen && (
+            <>
+              {/* Floating top bar — name, undo, save */}
+              <div
+                className="flex-none flex items-center gap-2 px-3 py-2"
+                style={{ background: 'rgba(5,8,22,0.94)', borderBottom: '1px solid rgba(255,255,255,0.1)' }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setFullscreen(false)}
+                  aria-label="Exit fullscreen"
+                  className="flex items-center justify-center rounded-xl border"
+                  style={{ width: 40, height: 40, flex: 'none', borderColor: 'rgba(255,255,255,0.16)', color: '#f5f7ff', background: 'rgba(255,255,255,0.06)' }}
+                >
+                  <ChevronLeft size={18} />
+                </button>
+                <input
+                  value={title}
+                  onChange={e => setTitle(e.target.value)}
+                  placeholder="Route name"
+                  maxLength={140}
+                  className="min-w-0 flex-1 rounded-xl border px-3 py-2.5 text-sm font-semibold outline-none"
+                  style={{ background: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.16)', color: '#f5f7ff' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setUndoRequestId(id => id + 1)}
+                  disabled={drawPointCount === 0}
+                  className="rounded-xl border px-3 py-2.5 text-xs font-black disabled:opacity-40"
+                  style={{ flex: 'none', borderColor: 'rgba(255,255,255,0.16)', color: '#f5f7ff', background: 'rgba(255,255,255,0.06)' }}
+                >
+                  Undo
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="rounded-xl px-4 py-2.5 text-xs font-black disabled:opacity-40"
+                  style={{ flex: 'none', background: 'var(--primary)', color: '#000' }}
+                >
+                  {saving ? 'Saving...' : 'Save'}
+                </button>
+              </div>
+
+              {/* Category chips row */}
+              <div
+                className="flex-none px-3 py-2 overflow-x-auto"
+                style={{ background: 'rgba(5,8,22,0.94)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}
+              >
+                <CategoryPicker
+                  value={category}
+                  onChange={v => { setCategory(v); setCategoryLocked(true) }}
+                  disabled={false}
+                />
+              </div>
+
+              {error && (
+                <p
+                  className="flex-none text-sm px-3 py-2"
+                  style={{ color: '#f87171', background: 'rgba(248,113,113,0.1)' }}
+                >
+                  {error}
+                </p>
               )}
-            </div>
-            <CategoryPicker
-              value={category}
-              onChange={v => { setCategory(v); setCategoryLocked(true) }}
-              disabled={false}
-            />
-          </div>
+            </>
+          )}
 
           {/* Map */}
-          <Suspense fallback={<div style={{ height: 500, borderRadius: 16, background: 'var(--surface)', border: '1px solid var(--border)' }} />}>
-            <RouteDrawMap
-              key={`${editId ?? 'new'}-${category}-${initialWaypoints?.length ?? 0}-${initialTrack?.length ?? 0}`}
-              category={category}
-              height={500}
-              initialWaypoints={initialWaypoints}
-              initialTrack={initialTrack}
-              undoRequestId={undoRequestId}
-              onUpdate={result => {
-                drawResultRef.current = result
-                setDrawPointCount(result.waypoints.length)
-              }}
-            />
-          </Suspense>
-
-          {/* Form */}
-          <div className="rounded-2xl border p-4 space-y-4" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
-            <p className="font-bold text-sm">Route details</p>
-
-            {/* Title */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>
-                Route name *
-              </label>
-              <input
-                value={title}
-                onChange={e => setTitle(e.target.value)}
-                placeholder="e.g. Morning loop Šibenik coast"
-                maxLength={140}
-                className="w-full rounded-xl border px-4 py-2.5 text-sm outline-none focus:border-[--primary] transition-colors"
-                style={{ background: 'var(--background)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+          <div className={fullscreen ? 'flex-1 relative min-h-0' : ''}>
+            <Suspense fallback={<div style={{ height: fullscreen ? '100%' : 500, borderRadius: fullscreen ? 0 : 16, background: 'var(--surface)', border: fullscreen ? 'none' : '1px solid var(--border)' }} />}>
+              <RouteDrawMap
+                key={`${editId ?? 'new'}-${category}-${initialWaypoints?.length ?? 0}-${initialTrack?.length ?? 0}`}
+                category={category}
+                height={500}
+                fullscreen={fullscreen}
+                onToggleFullscreen={() => setFullscreen(f => !f)}
+                initialWaypoints={initialWaypoints}
+                initialTrack={initialTrack}
+                undoRequestId={undoRequestId}
+                onUpdate={result => {
+                  drawResultRef.current = result
+                  setDrawPointCount(result.waypoints.length)
+                }}
               />
-            </div>
-
-            {/* Privacy */}
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold">Visibility</p>
-                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                  {isPublic ? 'Visible to all FitMeet users' : 'Only visible to you'}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsPublic(v => !v)}
-                className="relative w-12 h-6 rounded-full transition-colors"
-                style={{ background: isPublic ? 'var(--primary)' : 'var(--border)' }}
-              >
-                <span
-                  className="absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all"
-                  style={{ left: isPublic ? '26px' : '2px', boxShadow: '0 1px 4px rgba(0,0,0,0.3)' }}
-                />
-              </button>
-            </div>
-
-            {/* Error */}
-            {error && (
-              <p className="text-sm px-3 py-2 rounded-xl border" style={{ color: '#f87171', borderColor: '#f87171', background: 'rgba(248,113,113,0.08)' }}>
-                {error}
-              </p>
-            )}
-
-            {/* Actions */}
-            <div className="grid grid-cols-[1fr_1.6fr_1fr] gap-2">
-              <button
-                type="button"
-                onClick={() => router.back()}
-                className="flex items-center justify-center gap-1.5 py-3 rounded-xl border font-bold text-sm transition-opacity hover:opacity-80"
-                style={{ borderColor: 'var(--border)', color: 'var(--text-muted)', background: 'var(--background)' }}
-              >
-                <ChevronLeft size={16} />
-                Back
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="py-3 rounded-xl font-bold text-sm transition-opacity hover:opacity-80 disabled:opacity-40"
-                style={{ background: 'var(--primary)', color: '#000' }}
-              >
-                {saving ? 'Saving...' : editId ? 'Save Changes' : 'Save Route'}
-              </button>
-              <button
-                type="button"
-                onClick={() => setUndoRequestId(id => id + 1)}
-                disabled={drawPointCount === 0}
-                className="py-3 rounded-xl border font-bold text-sm transition-opacity hover:opacity-80 disabled:opacity-40"
-                style={{ borderColor: 'var(--border)', color: 'var(--text-muted)', background: 'var(--background)' }}
-              >
-                Undo
-              </button>
-            </div>
-
+            </Suspense>
           </div>
+
+          {!fullscreen && (
+            /* Form */
+            <div className="rounded-2xl border p-4 space-y-4" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
+              <p className="font-bold text-sm">Route details</p>
+
+              {/* Title */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>
+                  Route name *
+                </label>
+                <input
+                  value={title}
+                  onChange={e => setTitle(e.target.value)}
+                  placeholder="e.g. Morning loop Šibenik coast"
+                  maxLength={140}
+                  className="w-full rounded-xl border px-4 py-2.5 text-sm outline-none focus:border-[--primary] transition-colors"
+                  style={{ background: 'var(--background)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+                />
+              </div>
+
+              {/* Privacy */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold">Visibility</p>
+                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                    {isPublic ? 'Visible to all FitMeet users' : 'Only visible to you'}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsPublic(v => !v)}
+                  className="relative w-12 h-6 rounded-full transition-colors"
+                  style={{ background: isPublic ? 'var(--primary)' : 'var(--border)' }}
+                >
+                  <span
+                    className="absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all"
+                    style={{ left: isPublic ? '26px' : '2px', boxShadow: '0 1px 4px rgba(0,0,0,0.3)' }}
+                  />
+                </button>
+              </div>
+
+              {/* Error */}
+              {error && (
+                <p className="text-sm px-3 py-2 rounded-xl border" style={{ color: '#f87171', borderColor: '#f87171', background: 'rgba(248,113,113,0.08)' }}>
+                  {error}
+                </p>
+              )}
+
+              {/* Actions */}
+              <div className="grid grid-cols-[1fr_1.6fr_1fr] gap-2">
+                <button
+                  type="button"
+                  onClick={() => router.back()}
+                  className="flex items-center justify-center gap-1.5 py-3 rounded-xl border font-bold text-sm transition-opacity hover:opacity-80"
+                  style={{ borderColor: 'var(--border)', color: 'var(--text-muted)', background: 'var(--background)' }}
+                >
+                  <ChevronLeft size={16} />
+                  Back
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="py-3 rounded-xl font-bold text-sm transition-opacity hover:opacity-80 disabled:opacity-40"
+                  style={{ background: 'var(--primary)', color: '#000' }}
+                >
+                  {saving ? 'Saving...' : editId ? 'Save Changes' : 'Save Route'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setUndoRequestId(id => id + 1)}
+                  disabled={drawPointCount === 0}
+                  className="py-3 rounded-xl border font-bold text-sm transition-opacity hover:opacity-80 disabled:opacity-40"
+                  style={{ borderColor: 'var(--border)', color: 'var(--text-muted)', background: 'var(--background)' }}
+                >
+                  Undo
+                </button>
+              </div>
+
+            </div>
+          )}
 
         </div>
       </main>

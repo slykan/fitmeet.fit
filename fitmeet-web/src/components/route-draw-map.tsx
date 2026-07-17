@@ -45,6 +45,8 @@ interface Props {
   initialWaypoints?: LatLng[]
   initialTrack?: LatLng[]
   undoRequestId?: number
+  fullscreen?: boolean
+  onToggleFullscreen?: () => void
   onUpdate: (result: DrawResult) => void
 }
 
@@ -352,7 +354,7 @@ function straightLine(from: LatLng, to: LatLng): { coords: LatLng[]; distanceM: 
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function RouteDrawMap({ category, height = 500, initialWaypoints, initialTrack, undoRequestId = 0, onUpdate }: Props) {
+export default function RouteDrawMap({ category, height = 500, initialWaypoints, initialTrack, undoRequestId = 0, fullscreen = false, onToggleFullscreen, onUpdate }: Props) {
   const mapDivRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
   const waypointsRef = useRef<WaypointEntry[]>([])
@@ -364,6 +366,9 @@ export default function RouteDrawMap({ category, height = 500, initialWaypoints,
   const pendingRoutingRef = useRef(0)
   const onUpdateRef = useRef(onUpdate)
   onUpdateRef.current = onUpdate
+  const onToggleFullscreenRef = useRef(onToggleFullscreen)
+  onToggleFullscreenRef.current = onToggleFullscreen
+  const fsButtonRef = useRef<HTMLDivElement | null>(null)
   const initialLoadedRef = useRef(false)
   const skipRoutingRef = useRef(false)
 
@@ -781,6 +786,15 @@ export default function RouteDrawMap({ category, height = 500, initialWaypoints,
     }
     mapDivRef.current.appendChild(gpsDiv)
 
+    const fsDiv = document.createElement('div')
+    fsDiv.style.cssText =
+      'position:absolute;top:106px;right:10px;z-index:900;width:36px;height:36px;border-radius:10px;background:rgba(5,8,22,0.88);border:1.5px solid rgba(255,255,255,0.14);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;'
+    fsDiv.title = 'Fullscreen'
+    fsDiv.innerHTML = '⛶'
+    fsDiv.onclick = () => onToggleFullscreenRef.current?.()
+    mapDivRef.current.appendChild(fsDiv)
+    fsButtonRef.current = fsDiv
+
     return () => {
       clearColoredRouteLayers()
       map.remove()
@@ -847,6 +861,14 @@ export default function RouteDrawMap({ category, height = 500, initialWaypoints,
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapRef.current ? 'ready' : 'not-ready'])
 
+  // ─── Reflect fullscreen state on the map's own toggle button ─────────────
+
+  useEffect(() => {
+    const btn = fsButtonRef.current
+    if (!btn) return
+    btn.title = fullscreen ? 'Exit fullscreen' : 'Fullscreen'
+  }, [fullscreen])
+
   // ─── React to category change → re-route ─────────────────────────────────
 
   useEffect(() => {
@@ -867,16 +889,16 @@ export default function RouteDrawMap({ category, height = 500, initialWaypoints,
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div style={{ position: 'relative', height: fullscreen ? '100%' : undefined }}>
       {/* Map */}
       <div
         ref={mapDivRef}
         style={{
-          height: `${height}px`,
+          height: fullscreen ? '100%' : `${height}px`,
           width: '100%',
-          borderRadius: '16px',
+          borderRadius: fullscreen ? 0 : '16px',
           overflow: 'hidden',
-          border: '1px solid var(--border)',
+          border: fullscreen ? 'none' : '1px solid var(--border)',
           background: '#050816',
           position: 'relative',
         }}
@@ -928,78 +950,86 @@ export default function RouteDrawMap({ category, height = 500, initialWaypoints,
         </button>
       </form>
 
-      {/* Stats + elevation chart — below map */}
+      {/* Stats + elevation chart + controls — floats over the map edge in fullscreen */}
       <div
-        className="mt-2 rounded-2xl border p-3"
-        style={{
-          background: 'var(--surface)',
-          borderColor: 'var(--border)',
-        }}
+        className={fullscreen ? 'absolute inset-x-0 bottom-0 z-[950] px-2 pb-2' : ''}
+        style={fullscreen ? { pointerEvents: 'none' } : undefined}
       >
-        <div className="grid grid-cols-3 gap-2">
-          <div className="rounded-xl px-3 py-2" style={{ background: 'rgba(255,255,255,0.04)' }}>
-            <div className="text-[10px] font-black uppercase" style={{ color: 'var(--text-muted)' }}>Distance</div>
-            <div className="text-base font-black" style={{ color: 'var(--primary)' }}>{stats.distanceKm.toFixed(1)} km</div>
+        <div
+          className="rounded-2xl border p-3"
+          style={{
+            background: fullscreen ? 'rgba(5,8,22,0.92)' : 'var(--surface)',
+            borderColor: fullscreen ? 'rgba(255,255,255,0.14)' : 'var(--border)',
+            backdropFilter: fullscreen ? 'blur(10px)' : undefined,
+            marginTop: fullscreen ? 0 : 8,
+            pointerEvents: 'auto',
+          }}
+        >
+          <div className="grid grid-cols-3 gap-2">
+            <div className="rounded-xl px-3 py-2" style={{ background: 'rgba(255,255,255,0.04)' }}>
+              <div className="text-[10px] font-black uppercase" style={{ color: 'var(--text-muted)' }}>Distance</div>
+              <div className="text-base font-black" style={{ color: 'var(--primary)' }}>{stats.distanceKm.toFixed(1)} km</div>
+            </div>
+            <div className="rounded-xl px-3 py-2" style={{ background: 'rgba(255,255,255,0.04)' }}>
+              <div className="text-[10px] font-black uppercase" style={{ color: 'var(--text-muted)' }}>Elevation</div>
+              <div className="text-base font-black" style={{ color: 'var(--text)' }}>{elevLoading ? '...' : `${stats.elevGain} m`}</div>
+            </div>
+            <div className="rounded-xl px-3 py-2" style={{ background: 'rgba(255,255,255,0.04)' }}>
+              <div className="text-[10px] font-black uppercase" style={{ color: 'var(--text-muted)' }}>Points</div>
+              <div className="text-base font-black" style={{ color: 'var(--text)' }}>{waypointsRef.current.length}</div>
+            </div>
           </div>
-          <div className="rounded-xl px-3 py-2" style={{ background: 'rgba(255,255,255,0.04)' }}>
-            <div className="text-[10px] font-black uppercase" style={{ color: 'var(--text-muted)' }}>Elevation</div>
-            <div className="text-base font-black" style={{ color: 'var(--text)' }}>{elevLoading ? '...' : `${stats.elevGain} m`}</div>
-          </div>
-          <div className="rounded-xl px-3 py-2" style={{ background: 'rgba(255,255,255,0.04)' }}>
-            <div className="text-[10px] font-black uppercase" style={{ color: 'var(--text-muted)' }}>Points</div>
-            <div className="text-base font-black" style={{ color: 'var(--text)' }}>{waypointsRef.current.length}</div>
-          </div>
+
+          {elevProfile.length >= 2 ? (
+            <div className="mt-2 overflow-hidden rounded-xl" style={{ background: 'rgba(0,0,0,0.18)' }}>
+              <ElevationPreview profile={elevProfile} />
+            </div>
+          ) : (
+            <div className="mt-2 text-xs" style={{ color: 'var(--text-muted)' }}>
+              {routing ? 'Routing...' : waypointsRef.current.length === 0 ? 'Click on the map to add waypoints.' : 'Add another point to see elevation.'}
+            </div>
+          )}
         </div>
 
-        {elevProfile.length >= 2 ? (
-          <div className="mt-2 overflow-hidden rounded-xl" style={{ background: 'rgba(0,0,0,0.18)' }}>
-            <ElevationPreview profile={elevProfile} />
-          </div>
-        ) : (
-          <div className="mt-2 text-xs" style={{ color: 'var(--text-muted)' }}>
-            {routing ? 'Routing...' : waypointsRef.current.length === 0 ? 'Click on the map to add waypoints.' : 'Add another point to see elevation.'}
-          </div>
-        )}
-      </div>
-
-      {/* Stats + controls bar */}
-      <div
-        className="flex items-center justify-between gap-3 mt-2 px-1"
-        style={{ minHeight: 36 }}
-      >
-        <div className="flex items-center gap-3 text-sm font-bold">
-          {routing && (
-            <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>Routing…</span>
-          )}
-          {!routing && (stats.distanceKm > 0 || waypointsRef.current.length > 0) && (
-            <>
-              <span style={{ color: 'var(--primary)' }}>{stats.distanceKm.toFixed(1)} km</span>
-              {elevLoading
-                ? <span style={{ color: 'var(--text-muted)' }}>↑ …m</span>
-                : stats.elevGain > 0 && <span style={{ color: 'var(--text-muted)' }}>↑ {stats.elevGain} m</span>
-              }
+        {/* Stats + controls bar */}
+        <div
+          className="flex items-center justify-between gap-3 mt-2 px-1"
+          style={{ minHeight: 36, pointerEvents: 'auto' }}
+        >
+          <div className="flex items-center gap-3 text-sm font-bold">
+            {routing && (
+              <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>Routing…</span>
+            )}
+            {!routing && (stats.distanceKm > 0 || waypointsRef.current.length > 0) && (
+              <>
+                <span style={{ color: 'var(--primary)' }}>{stats.distanceKm.toFixed(1)} km</span>
+                {elevLoading
+                  ? <span style={{ color: 'var(--text-muted)' }}>↑ …m</span>
+                  : stats.elevGain > 0 && <span style={{ color: 'var(--text-muted)' }}>↑ {stats.elevGain} m</span>
+                }
+                <span style={{ color: 'var(--text-muted)', fontSize: 12, fontWeight: 400 }}>
+                  {waypointsRef.current.length} point{waypointsRef.current.length !== 1 ? 's' : ''}
+                </span>
+              </>
+            )}
+            {!routing && waypointsRef.current.length === 0 && (
               <span style={{ color: 'var(--text-muted)', fontSize: 12, fontWeight: 400 }}>
-                {waypointsRef.current.length} point{waypointsRef.current.length !== 1 ? 's' : ''}
+                Click on the map to add waypoints
               </span>
-            </>
-          )}
-          {!routing && waypointsRef.current.length === 0 && (
-            <span style={{ color: 'var(--text-muted)', fontSize: 12, fontWeight: 400 }}>
-              Click on the map to add waypoints
-            </span>
-          )}
-        </div>
+            )}
+          </div>
 
-        <div className="flex items-center gap-2">
-          {selectedIdx !== null && (
-            <button
-              onClick={handleRemoveSelected}
-              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border font-semibold transition-colors"
-              style={{ borderColor: '#f87171', color: '#f87171', background: 'rgba(248,113,113,0.08)' }}
-            >
-              ✕ Remove point
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {selectedIdx !== null && (
+              <button
+                onClick={handleRemoveSelected}
+                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border font-semibold transition-colors"
+                style={{ borderColor: '#f87171', color: '#f87171', background: 'rgba(248,113,113,0.08)' }}
+              >
+                ✕ Remove point
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>
