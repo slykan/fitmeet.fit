@@ -93,29 +93,6 @@ function buildMapHtml(
       85%  { opacity:1; }
       100% { opacity:0; transform:translate3d(var(--dx),var(--dy),0) rotate(var(--rot)) scale(1.04); }
     }
-    .cloud-blob {
-      position:absolute; border-radius:999px;
-      background:radial-gradient(circle at 35% 35%,rgba(226,234,246,0.92),rgba(202,212,228,0.68) 55%,rgba(180,190,208,0.3) 78%,transparent 100%);
-      box-shadow:0 0 24px rgba(210,220,235,0.18);
-      animation:cloudDrift linear infinite;
-    }
-    .cloud-blob.rain {
-      background:radial-gradient(circle at 35% 35%,rgba(150,200,255,0.92),rgba(96,158,235,0.66) 55%,rgba(60,120,200,0.3) 78%,transparent 100%);
-      box-shadow:0 0 24px rgba(90,160,255,0.28);
-    }
-    @keyframes cloudDrift {
-      from { transform:translate3d(-3%,0,0); } to { transform:translate3d(3%,0,0); }
-    }
-    .rain-line {
-      position:absolute; width:1.5px; border-radius:999px;
-      background:linear-gradient(180deg,rgba(130,196,255,0),rgba(130,196,255,0.85),rgba(130,196,255,0));
-      animation:rainFall linear infinite; opacity:0.6;
-    }
-    @keyframes rainFall {
-      from { transform:translate3d(0,-14px,0); opacity:0; }
-      18% { opacity:0.6; }
-      to  { transform:translate3d(-12px,28px,0); opacity:0; }
-    }
     .lightning-bolt {
       position:absolute; width:14px; height:14px; border-radius:999px;
       background:radial-gradient(circle,rgba(255,244,160,0.98),rgba(255,214,64,0.6) 55%,transparent 100%);
@@ -263,40 +240,6 @@ function buildMapHtml(
           el.style.animationDuration  = (dur + Math.random() * 1.8) + 's';
           el.style.animationDelay     = (0.2 + Math.random() * 4.8) + 's';
           overlay.appendChild(el);
-        }
-      }
-
-      const cloudCover = nextWeather.cloudCover || 0;
-      const precip = nextWeather.precipitation || 0;
-      const isRaining = precip > 0.1;
-
-      if (nextShowClouds && cloudCover >= 20) {
-        const count = cloudCover >= 75 ? 8 : cloudCover >= 40 ? 5 : 3;
-        for (let i = 0; i < count; i++) {
-          const blob = document.createElement('div');
-          blob.className = 'cloud-blob' + (isRaining ? ' rain' : '');
-          const sz = 100 + Math.random() * 140;
-          blob.style.width  = sz + 'px';
-          blob.style.height = (sz * 0.6) + 'px';
-          blob.style.left   = (-5 + Math.random() * 90) + '%';
-          blob.style.top    = (-5 + Math.random() * 88) + '%';
-          blob.style.opacity = String((isRaining ? 0.18 : 0.32) + Math.random() * (isRaining ? 0.18 : 0.3));
-          blob.style.animationDuration = (30 + Math.random() * 25) + 's';
-          overlay.appendChild(blob);
-        }
-      }
-
-      if (nextShowClouds && isRaining) {
-        const count = Math.min(60, 12 + Math.round(precip * 16));
-        for (let i = 0; i < count; i++) {
-          const line = document.createElement('div');
-          line.className = 'rain-line';
-          line.style.height = (14 + Math.random() * 22) + 'px';
-          line.style.left   = (Math.random() * 100) + '%';
-          line.style.top    = (Math.random() * 100) + '%';
-          line.style.animationDuration = (0.7 + Math.random() * 0.5) + 's';
-          line.style.animationDelay    = (-Math.random() * 1.4) + 's';
-          overlay.appendChild(line);
         }
       }
 
