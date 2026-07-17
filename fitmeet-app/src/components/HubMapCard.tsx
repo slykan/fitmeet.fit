@@ -77,7 +77,6 @@ function buildMapHtml(
     .wind-stream {
       position:absolute;
       overflow:visible;
-      filter: drop-shadow(0 0 3.5px rgba(6,10,10,0.62)) drop-shadow(0 0 8px rgba(210,232,255,0.3));
       transform-origin:center;
       animation:windMove linear infinite; opacity:0;
     }
@@ -233,15 +232,15 @@ function buildMapHtml(
         const perpRad = rad + Math.PI / 2;
         const px = Math.sin(perpRad);
         const py = -Math.cos(perpRad);
-        const dur = Math.max(2.4, 8 - spd * 0.06);
+        const dur = Math.max(9, 17 - spd * 0.08);
         const cssRot = flowBearing - 90;
 
         const svgNS = 'http://www.w3.org/2000/svg';
 
-        for (let i = 0; i < 140; i++) {
+        for (let i = 0; i < 26; i++) {
           const isParticle = i % 4 === 0;
-          const elDur = (dur + Math.random() * 1.8) + 's';
-          const elDelay = (0.2 + Math.random() * 4.8) + 's';
+          const elDur = (dur + Math.random() * 2.4) + 's';
+          const elDelay = (0.2 + Math.random() * 6) + 's';
           let el;
           if (isParticle) {
             el = document.createElement('div');
@@ -249,15 +248,29 @@ function buildMapHtml(
           } else {
             el = document.createElementNS(svgNS, 'svg');
             el.setAttribute('class', 'wind-stream');
-            const w = 12 + (i % 3) * 8;
+            const w = 16 + (i % 3) * 8;
             el.setAttribute('width', String(w));
             el.setAttribute('height', '8');
             el.setAttribute('viewBox', '0 0 100 24');
+            const outline = document.createElementNS(svgNS, 'path');
+            outline.setAttribute('d', 'M4,14 Q50,2 96,13');
+            outline.setAttribute('fill', 'none');
+            outline.setAttribute('stroke', 'rgba(6,10,10,0.5)');
+            outline.setAttribute('stroke-width', '2.4');
+            outline.setAttribute('stroke-linecap', 'round');
+            outline.setAttribute('pathLength', '100');
+            outline.style.strokeDasharray = '100';
+            outline.style.animationName = 'windDraw';
+            outline.style.animationTimingFunction = 'linear';
+            outline.style.animationIterationCount = 'infinite';
+            outline.style.animationDuration = elDur;
+            outline.style.animationDelay = elDelay;
+            el.appendChild(outline);
             const path = document.createElementNS(svgNS, 'path');
             path.setAttribute('d', 'M4,14 Q50,2 96,13');
             path.setAttribute('fill', 'none');
-            path.setAttribute('stroke', 'rgba(230,242,255,0.95)');
-            path.setAttribute('stroke-width', '3.2');
+            path.setAttribute('stroke', 'rgba(230,242,255,0.9)');
+            path.setAttribute('stroke-width', '0.9');
             path.setAttribute('stroke-linecap', 'round');
             path.setAttribute('pathLength', '100');
             path.style.strokeDasharray = '100';
