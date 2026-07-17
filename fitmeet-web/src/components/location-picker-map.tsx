@@ -124,7 +124,7 @@ export function WindOverlay({
 
   const particles = useMemo(
     () =>
-      Array.from({ length: isHub ? (isMobile ? 30 : 24) : (isMobile ? 16 : 12) }, (_, i) => ({
+      Array.from({ length: isHub ? (isMobile ? 90 : 75) : (isMobile ? 35 : 28) }, (_, i) => ({
         id: i,
         left: ((i * 19) % 126) - 12,
         top: (i * (isHub ? (isMobile ? 3.2 : 4) : (isMobile ? 4.8 : 6))) % 100,
@@ -139,16 +139,14 @@ export function WindOverlay({
 
   const streams = useMemo(
     () =>
-      Array.from({ length: isHub ? (isMobile ? 22 : 18) : (isMobile ? 12 : 10) }, (_, i) => ({
+      Array.from({ length: isHub ? (isMobile ? 100 : 85) : (isMobile ? 38 : 30) }, (_, i) => ({
         id: i,
         left: ((i * 13) % 126) - 10,
-        top: 2 + ((i * (isHub ? (isMobile ? 8 : 10) : (isMobile ? 12 : 16))) % 96),
-        delay: (i * (isHub ? (isMobile ? 0.4 : 0.5) : (isMobile ? 0.6 : 0.75))).toFixed(2),
-        width: (isHub ? (isMobile ? 22 : 20) : (isMobile ? 20 : 18)) + (i % 3) * (isHub ? (isMobile ? 10 : 9) : (isMobile ? 9 : 8)),
-        durationOffset: (i % 5) * 0.35,
-        thickness: (isHub ? 2.6 : 2.2) + (i % 2) * 0.6,
-        drawDuration: 2.2 + (i % 4) * 0.5,
-        drawDelay: (i * 0.37) % 3,
+        top: 2 + ((i * (isHub ? (isMobile ? 0.72 : 0.92) : (isMobile ? 1.2 : 1.6))) % 96),
+        delay: (i * (isHub ? (isMobile ? 0.035 : 0.045) : (isMobile ? 0.055 : 0.07))).toFixed(2),
+        width: (isHub ? (isMobile ? 18 : 16) : (isMobile ? 16 : 14)) + (i % 3) * (isHub ? (isMobile ? 10 : 9) : (isMobile ? 9 : 8)),
+        durationOffset: (i % 5) * 0.22,
+        thickness: (isHub ? 2 : 1.6) + (i % 2) * 0.5,
         wavePhase: i % 2 === 0 ? 1 : -1,
         waveAmp: 3 + (i % 3) * 2,
       })),
@@ -163,7 +161,7 @@ export function WindOverlay({
   const effectiveWind = Math.max(8, weather.windSpeed)
   const isCloudy = showClouds && weather.code > 0 && weather.code <= 48
   const isRainy = showClouds && ((weather.code >= 51 && weather.code <= 67) || (weather.code >= 80 && weather.code <= 82))
-  const duration = Math.max(7.5, 16 - effectiveWind * 0.08)
+  const duration = Math.max(4.4, 10.6 - effectiveWind * 0.08)
   const distance = Math.min(158, 46 + effectiveWind * 2.4)
   const opacity = Math.min(
     isHub ? (isMobile ? 0.98 : 0.96) : (isMobile ? 0.9 : 0.82),
@@ -299,14 +297,15 @@ export function WindOverlay({
               transformOrigin: 'left center',
             }}
           >
-            <svg
-              width={stream.width}
-              height={Math.max(stream.thickness * 6, 10)}
-              viewBox="0 0 100 24"
+            <span
               style={{
                 display: 'block',
-                overflow: 'visible',
+                width: `${stream.width}px`,
+                height: `${stream.thickness}px`,
+                borderRadius: 999,
                 opacity: 0,
+                background: `linear-gradient(90deg, rgba(255,255,255,0), rgba(210,232,255,${Math.min(streamOpacity * (isHub ? 1.16 : 0.92), 1)}), rgba(255,255,255,${Math.min(streamOpacity * (isHub ? 1.34 : 1.14), 1)}), rgba(255,255,255,0))`,
+                boxShadow: `0 0 3.5px 1px rgba(6,10,10,${Math.min(streamOpacity * hubStreamBoost * 0.68, 0.68)}), 0 0 18px rgba(210,232,255,${Math.min(streamOpacity * hubStreamBoost, 1)})`,
                 transform: `translate3d(calc(${distance}px * -0.18), 0, 0) scaleX(0.85)`,
                 animationName: 'fitmeet-wind-stream',
                 animationDuration: `${duration + stream.durationOffset}s`,
@@ -317,40 +316,7 @@ export function WindOverlay({
                 ['--wind-wave-dir' as string]: stream.wavePhase,
                 ['--wind-wave' as string]: `${stream.waveAmp}px`,
               }}
-            >
-              <path
-                d="M4,14 Q50,2 96,13"
-                fill="none"
-                stroke={`rgba(4,8,8,${Math.min(streamOpacity * hubStreamBoost * 0.8 + 0.35, 0.85)})`}
-                strokeWidth={stream.thickness + 2}
-                strokeLinecap="round"
-                pathLength={100}
-                style={{
-                  strokeDasharray: 100,
-                  animationName: 'fitmeet-wind-draw',
-                  animationDuration: `${stream.drawDuration}s`,
-                  animationDelay: `${stream.drawDelay}s`,
-                  animationIterationCount: 'infinite',
-                  animationTimingFunction: 'ease-in-out',
-                }}
-              />
-              <path
-                d="M4,14 Q50,2 96,13"
-                fill="none"
-                stroke={`rgba(235,245,255,${Math.max(Math.min(streamOpacity * (isHub ? 1.3 : 1.15), 1), 0.85)})`}
-                strokeWidth={stream.thickness}
-                strokeLinecap="round"
-                pathLength={100}
-                style={{
-                  strokeDasharray: 100,
-                  animationName: 'fitmeet-wind-draw',
-                  animationDuration: `${stream.drawDuration}s`,
-                  animationDelay: `${stream.drawDelay}s`,
-                  animationIterationCount: 'infinite',
-                  animationTimingFunction: 'ease-in-out',
-                }}
-              />
-            </svg>
+            />
           </span>
         ))}
 
@@ -476,21 +442,6 @@ export function WindOverlay({
           100% {
             opacity: 0;
             transform: translate3d(var(--wind-distance), 0, 0) scaleX(1);
-          }
-        }
-
-        @keyframes fitmeet-wind-draw {
-          0% {
-            stroke-dashoffset: 100;
-          }
-          45% {
-            stroke-dashoffset: 0;
-          }
-          55% {
-            stroke-dashoffset: 0;
-          }
-          100% {
-            stroke-dashoffset: -100;
           }
         }
 

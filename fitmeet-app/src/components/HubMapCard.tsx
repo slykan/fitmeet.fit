@@ -75,8 +75,9 @@ function buildMapHtml(
       animation-play-state:paused !important;
     }
     .wind-stream {
-      position:absolute;
-      overflow:visible;
+      position:absolute; border-radius:999px;
+      background:linear-gradient(90deg,rgba(255,255,255,0),rgba(210,232,255,0.85),rgba(255,255,255,0.98),rgba(255,255,255,0));
+      box-shadow:0 0 3.5px 1px rgba(6,10,10,0.62), 0 0 8px rgba(210,232,255,0.3);
       transform-origin:center;
       animation:windMove linear infinite; opacity:0;
     }
@@ -94,12 +95,6 @@ function buildMapHtml(
       82%  { transform:translate3d(var(--dx3),var(--dy3),0) rotate(var(--rot)) scale(1.02); }
       85%  { opacity:1; }
       100% { opacity:0; transform:translate3d(var(--dx),var(--dy),0) rotate(var(--rot)) scale(1.04); }
-    }
-    @keyframes windDraw {
-      0%   { stroke-dashoffset: 100; }
-      45%  { stroke-dashoffset: 0; }
-      55%  { stroke-dashoffset: 0; }
-      100% { stroke-dashoffset: -100; }
     }
     .lightning-bolt {
       position:absolute; width:14px; height:14px; border-radius:999px;
@@ -232,56 +227,16 @@ function buildMapHtml(
         const perpRad = rad + Math.PI / 2;
         const px = Math.sin(perpRad);
         const py = -Math.cos(perpRad);
-        const dur = Math.max(9, 17 - spd * 0.08);
+        const dur = Math.max(2.4, 8 - spd * 0.06);
         const cssRot = flowBearing - 90;
 
-        const svgNS = 'http://www.w3.org/2000/svg';
-
-        for (let i = 0; i < 26; i++) {
-          const isParticle = i % 4 === 0;
-          const elDur = (dur + Math.random() * 2.4) + 's';
-          const elDelay = (0.2 + Math.random() * 6) + 's';
-          let el;
-          if (isParticle) {
-            el = document.createElement('div');
-            el.className = 'wind-particle';
-          } else {
-            el = document.createElementNS(svgNS, 'svg');
-            el.setAttribute('class', 'wind-stream');
-            const w = 16 + (i % 3) * 8;
-            el.setAttribute('width', String(w));
-            el.setAttribute('height', '8');
-            el.setAttribute('viewBox', '0 0 100 24');
-            const drawDur = (2.2 + Math.random() * 2) + 's';
-            const drawDelay = (Math.random() * 3) + 's';
-            const outline = document.createElementNS(svgNS, 'path');
-            outline.setAttribute('d', 'M4,14 Q50,2 96,13');
-            outline.setAttribute('fill', 'none');
-            outline.setAttribute('stroke', 'rgba(4,8,8,0.8)');
-            outline.setAttribute('stroke-width', '4.6');
-            outline.setAttribute('stroke-linecap', 'round');
-            outline.setAttribute('pathLength', '100');
-            outline.style.strokeDasharray = '100';
-            outline.style.animationName = 'windDraw';
-            outline.style.animationTimingFunction = 'ease-in-out';
-            outline.style.animationIterationCount = 'infinite';
-            outline.style.animationDuration = drawDur;
-            outline.style.animationDelay = drawDelay;
-            el.appendChild(outline);
-            const path = document.createElementNS(svgNS, 'path');
-            path.setAttribute('d', 'M4,14 Q50,2 96,13');
-            path.setAttribute('fill', 'none');
-            path.setAttribute('stroke', 'rgba(235,245,255,0.98)');
-            path.setAttribute('stroke-width', '2.6');
-            path.setAttribute('stroke-linecap', 'round');
-            path.setAttribute('pathLength', '100');
-            path.style.strokeDasharray = '100';
-            path.style.animationName = 'windDraw';
-            path.style.animationTimingFunction = 'ease-in-out';
-            path.style.animationIterationCount = 'infinite';
-            path.style.animationDuration = drawDur;
-            path.style.animationDelay = drawDelay;
-            el.appendChild(path);
+        for (let i = 0; i < 45; i++) {
+          const el = document.createElement('div');
+          el.className = i % 4 === 0 ? 'wind-particle' : 'wind-stream';
+          if (el.className === 'wind-stream') {
+            const w = 12 + (i % 3) * 8;
+            el.style.width  = w + 'px';
+            el.style.height = '1.8px';
           }
           el.style.left = (Math.random() * 110 - 5) + '%';
           el.style.top  = (Math.random() * 110 - 5) + '%';
@@ -299,8 +254,8 @@ function buildMapHtml(
           el.style.setProperty('--dy2', p2.y + 'px');
           el.style.setProperty('--dx3', p3.x + 'px');
           el.style.setProperty('--dy3', p3.y + 'px');
-          el.style.animationDuration  = elDur;
-          el.style.animationDelay     = elDelay;
+          el.style.animationDuration  = (dur + Math.random() * 1.8) + 's';
+          el.style.animationDelay     = (0.2 + Math.random() * 4.8) + 's';
           overlay.appendChild(el);
         }
       }
