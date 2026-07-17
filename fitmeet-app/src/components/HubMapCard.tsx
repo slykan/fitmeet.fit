@@ -90,10 +90,9 @@ function buildMapHtml(
     @keyframes windMove {
       0%   { opacity:0; transform:translate3d(0,0,0) rotate(var(--rot)) scale(0.9); }
       10%  { opacity:1; }
-      24%  { transform:translate3d(var(--dx1),var(--dy1),0) rotate(var(--rot1)) scale(0.94); }
-      42%  { transform:translate3d(var(--dx2),var(--dy2),0) rotate(var(--rot2)) scale(0.97); }
-      62%  { transform:translate3d(var(--dx3),var(--dy3),0) rotate(var(--rot3)) scale(1); }
-      82%  { transform:translate3d(var(--dx4),var(--dy4),0) rotate(var(--rot4)) scale(1.02); }
+      32%  { transform:translate3d(var(--dx1),var(--dy1),0) rotate(var(--rot)) scale(0.95); }
+      58%  { transform:translate3d(var(--dx2),var(--dy2),0) rotate(var(--rot)) scale(1); }
+      82%  { transform:translate3d(var(--dx3),var(--dy3),0) rotate(var(--rot)) scale(1.02); }
       85%  { opacity:1; }
       100% { opacity:0; transform:translate3d(var(--dx),var(--dy),0) rotate(var(--rot)) scale(1.04); }
     }
@@ -244,29 +243,17 @@ function buildMapHtml(
           el.style.setProperty('--rot', cssRot + 'deg');
           el.style.setProperty('--dx', dx + 'px');
           el.style.setProperty('--dy', dy + 'px');
-          const waveDir = i % 2 === 0 ? 1 : -1;
-          const waveMult = 0.7 + (i % 4) * 0.2;
-          const flutterDeg = (6 + (i % 3) * 3) * waveDir;
-          const wavePoint = (t, factor) => ({
-            x: dx * t + px * dist * factor * waveMult * waveDir,
-            y: dy * t + py * dist * factor * waveMult * waveDir,
-          });
-          const p1 = wavePoint(0.24, 0.3);
-          const p2 = wavePoint(0.42, -0.34);
-          const p3 = wavePoint(0.62, 0.28);
-          const p4 = wavePoint(0.82, -0.16);
+          const waveAmp = (3 + Math.random() * 4) * (i % 2 === 0 ? 1 : -1);
+          const wavePoint = (t, m) => ({ x: dx * t + px * waveAmp * m, y: dy * t + py * waveAmp * m });
+          const p1 = wavePoint(0.32, 1);
+          const p2 = wavePoint(0.58, -1);
+          const p3 = wavePoint(0.82, 0.6);
           el.style.setProperty('--dx1', p1.x + 'px');
           el.style.setProperty('--dy1', p1.y + 'px');
           el.style.setProperty('--dx2', p2.x + 'px');
           el.style.setProperty('--dy2', p2.y + 'px');
           el.style.setProperty('--dx3', p3.x + 'px');
           el.style.setProperty('--dy3', p3.y + 'px');
-          el.style.setProperty('--dx4', p4.x + 'px');
-          el.style.setProperty('--dy4', p4.y + 'px');
-          el.style.setProperty('--rot1', (cssRot + flutterDeg) + 'deg');
-          el.style.setProperty('--rot2', (cssRot - flutterDeg) + 'deg');
-          el.style.setProperty('--rot3', (cssRot + flutterDeg * 0.7) + 'deg');
-          el.style.setProperty('--rot4', (cssRot - flutterDeg * 0.5) + 'deg');
           el.style.animationDuration  = (dur + Math.random() * 1.8) + 's';
           el.style.animationDelay     = (0.2 + Math.random() * 4.8) + 's';
           overlay.appendChild(el);
