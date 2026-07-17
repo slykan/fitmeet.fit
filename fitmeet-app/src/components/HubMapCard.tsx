@@ -77,13 +77,13 @@ function buildMapHtml(
     .wind-stream {
       position:absolute; border-radius:999px;
       background:linear-gradient(90deg,rgba(255,255,255,0),rgba(210,232,255,0.85),rgba(255,255,255,0.98),rgba(255,255,255,0));
-      box-shadow:0 0 5px 1.5px rgba(6,10,10,0.75), 0 0 8px rgba(210,232,255,0.3);
+      box-shadow:0 0 3.5px 1px rgba(6,10,10,0.62), 0 0 8px rgba(210,232,255,0.3);
       transform-origin:center;
       animation:windMove linear infinite; opacity:0;
     }
     .wind-particle {
       position:absolute; width:3px; height:3px; border-radius:999px;
-      background:rgba(255,255,255,0.92); box-shadow:0 0 4px 1.5px rgba(6,10,10,0.8), 0 0 8px rgba(210,232,255,0.28);
+      background:rgba(255,255,255,0.92); box-shadow:0 0 3px 1px rgba(6,10,10,0.68), 0 0 8px rgba(210,232,255,0.28);
       transform-origin:center;
       animation:windMove linear infinite; opacity:0;
     }
