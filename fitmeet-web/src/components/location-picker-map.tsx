@@ -297,15 +297,15 @@ export function WindOverlay({
               transformOrigin: 'left center',
             }}
           >
-            <span
+            <svg
+              width={stream.width}
+              height={Math.max(stream.thickness * 6, 12)}
+              viewBox="0 0 100 24"
               style={{
                 display: 'block',
-                width: `${stream.width}px`,
-                height: `${stream.thickness}px`,
-                borderRadius: 999,
+                overflow: 'visible',
                 opacity: 0,
-                background: `linear-gradient(90deg, rgba(255,255,255,0), rgba(210,232,255,${Math.min(streamOpacity * (isHub ? 1.16 : 0.92), 1)}), rgba(255,255,255,${Math.min(streamOpacity * (isHub ? 1.34 : 1.14), 1)}), rgba(255,255,255,0))`,
-                boxShadow: `0 0 3.5px 1px rgba(6,10,10,${Math.min(streamOpacity * hubStreamBoost * 0.68, 0.68)}), 0 0 18px rgba(210,232,255,${Math.min(streamOpacity * hubStreamBoost, 1)})`,
+                filter: `drop-shadow(0 0 2px rgba(6,10,10,${Math.min(streamOpacity * hubStreamBoost * 0.6, 0.6)})) drop-shadow(0 0 6px rgba(210,232,255,${Math.min(streamOpacity * hubStreamBoost, 1)}))`,
                 transform: `translate3d(calc(${distance}px * -0.18), 0, 0) scaleX(0.85)`,
                 animationName: 'fitmeet-wind-stream',
                 animationDuration: `${duration + stream.durationOffset}s`,
@@ -316,7 +316,24 @@ export function WindOverlay({
                 ['--wind-wave-dir' as string]: stream.wavePhase,
                 ['--wind-wave' as string]: `${stream.waveAmp}px`,
               }}
-            />
+            >
+              <path
+                d="M4,14 Q50,2 96,13"
+                fill="none"
+                stroke={`rgba(230,242,255,${Math.min(streamOpacity * (isHub ? 1.2 : 1), 1)})`}
+                strokeWidth={stream.thickness * 1.7}
+                strokeLinecap="round"
+                pathLength={100}
+                style={{
+                  strokeDasharray: 100,
+                  animationName: 'fitmeet-wind-draw',
+                  animationDuration: `${duration + stream.durationOffset}s`,
+                  animationDelay: `${stream.delay}s`,
+                  animationIterationCount: 'infinite',
+                  animationTimingFunction: 'linear',
+                }}
+              />
+            </svg>
           </span>
         ))}
 
@@ -442,6 +459,21 @@ export function WindOverlay({
           100% {
             opacity: 0;
             transform: translate3d(var(--wind-distance), 0, 0) scaleX(1);
+          }
+        }
+
+        @keyframes fitmeet-wind-draw {
+          0% {
+            stroke-dashoffset: 100;
+          }
+          22% {
+            stroke-dashoffset: 0;
+          }
+          72% {
+            stroke-dashoffset: 0;
+          }
+          100% {
+            stroke-dashoffset: -100;
           }
         }
 
