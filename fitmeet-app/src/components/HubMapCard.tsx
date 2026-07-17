@@ -74,25 +74,6 @@ function buildMapHtml(
     .weather-overlay.interacting * {
       animation-play-state:paused !important;
     }
-    .wind-stream {
-      position:absolute; border-radius:999px;
-      background:linear-gradient(90deg,rgba(255,255,255,0),rgba(255,126,126,0.92),rgba(255,59,59,1),rgba(255,255,255,0));
-      box-shadow:0 0 8px rgba(255,59,59,0.32);
-      transform-origin:center;
-      animation:windMove linear infinite; opacity:0;
-    }
-    .wind-particle {
-      position:absolute; width:3px; height:3px; border-radius:999px;
-      background:rgba(255,186,186,0.9); box-shadow:0 0 8px rgba(255,92,92,0.28);
-      transform-origin:center;
-      animation:windMove linear infinite; opacity:0;
-    }
-    @keyframes windMove {
-      0%   { opacity:0; transform:translate3d(0,0,0) rotate(var(--rot)) scale(0.9); }
-      10%  { opacity:1; }
-      85%  { opacity:1; }
-      100% { opacity:0; transform:translate3d(var(--dx),var(--dy),0) rotate(var(--rot)) scale(1.04); }
-    }
     .lightning-bolt {
       position:absolute; width:14px; height:14px; border-radius:999px;
       background:radial-gradient(circle,rgba(255,244,160,0.98),rgba(255,214,64,0.6) 55%,transparent 100%);
@@ -212,36 +193,6 @@ function buildMapHtml(
       overlay.classList.remove('ready', 'interacting');
       overlay.innerHTML = '';
       if (!nextWeather) return;
-
-      const windDir = nextWeather.windDir || 270;
-      const flowBearing = (windDir + 180) % 360;
-      const rad = flowBearing * Math.PI / 180;
-      const spd = Math.max(6, nextWeather.windSpeed || 10);
-      const dist = Math.min(90, 28 + spd * 2.2);
-      const dx = Math.sin(rad) * dist;
-      const dy = -Math.cos(rad) * dist;
-      const dur = Math.max(2.4, 8 - spd * 0.06);
-      const cssRot = flowBearing - 90;
-
-      if (nextShowWind) {
-        for (let i = 0; i < 140; i++) {
-          const el = document.createElement('div');
-          el.className = i % 4 === 0 ? 'wind-particle' : 'wind-stream';
-          if (el.className === 'wind-stream') {
-            const w = 12 + (i % 3) * 8;
-            el.style.width  = w + 'px';
-            el.style.height = '1.8px';
-          }
-          el.style.left = (Math.random() * 110 - 5) + '%';
-          el.style.top  = (Math.random() * 110 - 5) + '%';
-          el.style.setProperty('--rot', cssRot + 'deg');
-          el.style.setProperty('--dx', dx + 'px');
-          el.style.setProperty('--dy', dy + 'px');
-          el.style.animationDuration  = (dur + Math.random() * 1.8) + 's';
-          el.style.animationDelay     = (0.2 + Math.random() * 4.8) + 's';
-          overlay.appendChild(el);
-        }
-      }
 
       const isThunder = [95, 96, 99].includes(Math.round(nextWeather.code || 0));
       if (nextShowClouds && isThunder) {
