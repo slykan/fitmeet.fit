@@ -797,7 +797,8 @@ export default function RouteDrawMap({ category, height = 500, initialWaypoints,
       'position:absolute;top:58px;right:10px;z-index:900;width:36px;height:36px;border-radius:10px;background:rgba(5,8,22,0.88);border:1.5px solid rgba(255,255,255,0.14);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;'
     gpsDiv.title = 'My location'
     gpsDiv.innerHTML = '📍'
-    gpsDiv.onclick = () => {
+    gpsDiv.onclick = (event) => {
+      event.stopPropagation()
       navigator.geolocation?.getCurrentPosition(pos => {
         map.setView([pos.coords.latitude, pos.coords.longitude], 14)
       })
@@ -809,7 +810,10 @@ export default function RouteDrawMap({ category, height = 500, initialWaypoints,
       'position:absolute;top:106px;right:10px;z-index:900;width:36px;height:36px;border-radius:10px;background:rgba(5,8,22,0.88);border:1.5px solid rgba(255,255,255,0.14);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;'
     fsDiv.title = 'Fullscreen'
     fsDiv.innerHTML = '⛶'
-    fsDiv.onclick = () => onToggleFullscreenRef.current?.()
+    fsDiv.onclick = (event) => {
+      event.stopPropagation()
+      onToggleFullscreenRef.current?.()
+    }
     mapDivRef.current.appendChild(fsDiv)
     fsButtonRef.current = fsDiv
 
@@ -823,6 +827,17 @@ export default function RouteDrawMap({ category, height = 500, initialWaypoints,
   // addWaypoint is stable (useCallback with no deps changing after mount)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // ─── Resize Leaflet's cached viewport after the container changes size ────
+  // (fullscreen toggle resizes the container via CSS; Leaflet doesn't notice
+  // on its own and keeps rendering tiles at the old size until told to.)
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+    const raf = requestAnimationFrame(() => requestAnimationFrame(() => map.invalidateSize()))
+    return () => cancelAnimationFrame(raf)
+  }, [fullscreen])
 
   // ─── Load initial waypoints ───────────────────────────────────────────────
 
