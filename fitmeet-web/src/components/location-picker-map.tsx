@@ -137,22 +137,6 @@ export function WindOverlay({
     [isHub, isMobile],
   )
 
-  const streams = useMemo(
-    () =>
-      Array.from({ length: isHub ? (isMobile ? 100 : 85) : (isMobile ? 38 : 30) }, (_, i) => ({
-        id: i,
-        left: ((i * 13) % 126) - 10,
-        top: 2 + ((i * (isHub ? (isMobile ? 0.72 : 0.92) : (isMobile ? 1.2 : 1.6))) % 96),
-        delay: (i * (isHub ? (isMobile ? 0.035 : 0.045) : (isMobile ? 0.055 : 0.07))).toFixed(2),
-        width: (isHub ? (isMobile ? 18 : 16) : (isMobile ? 16 : 14)) + (i % 3) * (isHub ? (isMobile ? 10 : 9) : (isMobile ? 9 : 8)),
-        durationOffset: (i % 5) * 0.22,
-        thickness: (isHub ? 2 : 1.6) + (i % 2) * 0.5,
-        wavePhase: i % 2 === 0 ? 1 : -1,
-        waveAmp: 3 + (i % 3) * 2,
-      })),
-    [isHub, isMobile],
-  )
-
   if (!weather || (!showWind && !showClouds)) return null
 
   const visualBearing = (weather.windDir + 180) % 360
@@ -190,7 +174,6 @@ export function WindOverlay({
   const glowBaseOpacity = showWind && hasAtmosphere
     ? glowOpacity * (isHub ? 0.56 : 0.82)
     : 0
-  const hubStreamBoost = isHub ? (isMobile ? 1.22 : 1.18) : 1
   const hubParticleBoost = isHub ? (isMobile ? 1.2 : 1.16) : 1
 
   return (
@@ -286,40 +269,6 @@ export function WindOverlay({
           />
         )}
 
-        {showWind && streams.map((stream) => (
-          <span
-            key={`stream-${stream.id}`}
-            style={{
-              position: 'absolute',
-              left: `${stream.left}%`,
-              top: `${stream.top}%`,
-              transform: `rotate(${windTransformAngle}deg)`,
-              transformOrigin: 'left center',
-            }}
-          >
-            <span
-              style={{
-                display: 'block',
-                width: `${stream.width}px`,
-                height: `${stream.thickness}px`,
-                borderRadius: 999,
-                opacity: 0,
-                background: `linear-gradient(90deg, rgba(255,255,255,0), rgba(210,232,255,${Math.min(streamOpacity * (isHub ? 1.16 : 0.92), 1)}), rgba(255,255,255,${Math.min(streamOpacity * (isHub ? 1.34 : 1.14), 1)}), rgba(255,255,255,0))`,
-                boxShadow: `0 0 5px 1.5px rgba(5,8,8,${Math.min(streamOpacity * hubStreamBoost * 0.85, 0.85)}), 0 0 18px rgba(210,232,255,${Math.min(streamOpacity * hubStreamBoost, 1)})`,
-                transform: `translate3d(calc(${distance}px * -0.18), 0, 0) scaleX(0.85)`,
-                animationName: 'fitmeet-wind-stream',
-                animationDuration: `${duration + stream.durationOffset}s`,
-                animationDelay: `${stream.delay}s`,
-                animationIterationCount: 'infinite',
-                animationTimingFunction: 'linear',
-                ['--wind-distance' as string]: `${distance}px`,
-                ['--wind-wave-dir' as string]: stream.wavePhase,
-                ['--wind-wave' as string]: `${stream.waveAmp}px`,
-              }}
-            />
-          </span>
-        ))}
-
         {showWind && particles.map((particle) => (
           <span
             key={particle.id}
@@ -332,13 +281,9 @@ export function WindOverlay({
           >
             <span
               style={{
+                position: 'relative',
                 display: 'block',
-                width: `${particle.size}px`,
-                height: `${particle.size}px`,
-                borderRadius: 999,
                 opacity: 0,
-                background: `rgba(255,255,255,${Math.min(opacity * (isHub ? 1.3 : 1.14), 1)})`,
-                boxShadow: `0 0 4px 1.5px rgba(5,8,8,${Math.min(opacity * hubParticleBoost * 0.88, 0.88)}), 0 0 16px rgba(210,232,255,${Math.min(opacity * hubParticleBoost, 1)})`,
                 transform: 'translate3d(0, 0, 0) scale(0.7)',
                 animationName: 'fitmeet-wind-drift',
                 animationDuration: `${duration + particle.durationOffset}s`,
@@ -349,7 +294,32 @@ export function WindOverlay({
                 ['--wind-wave-dir' as string]: particle.wavePhase,
                 ['--wind-wave' as string]: `${particle.waveAmp}px`,
               }}
-            />
+            >
+              {/* fading trail behind the dot */}
+              <span
+                style={{
+                  position: 'absolute',
+                  top: '50%',
+                  right: '50%',
+                  transform: 'translateY(-50%)',
+                  width: `${particle.size * 7}px`,
+                  height: `${Math.max(particle.size * 0.55, 1)}px`,
+                  borderRadius: 999,
+                  background: `linear-gradient(90deg, rgba(210,232,255,0), rgba(210,232,255,${Math.min(opacity * (isHub ? 0.6 : 0.5), 0.6)}))`,
+                }}
+              />
+              {/* dot */}
+              <span
+                style={{
+                  display: 'block',
+                  width: `${particle.size}px`,
+                  height: `${particle.size}px`,
+                  borderRadius: 999,
+                  background: `rgba(255,255,255,${Math.min(opacity * (isHub ? 1.3 : 1.14), 1)})`,
+                  boxShadow: `0 0 4px 1.5px rgba(5,8,8,${Math.min(opacity * hubParticleBoost * 0.88, 0.88)}), 0 0 16px rgba(210,232,255,${Math.min(opacity * hubParticleBoost, 1)})`,
+                }}
+              />
+            </span>
           </span>
         ))}
       </div>
@@ -419,29 +389,6 @@ export function WindOverlay({
           100% {
             opacity: 0;
             transform: translate3d(var(--wind-distance), 0, 0) scale(1);
-          }
-        }
-
-        @keyframes fitmeet-wind-stream {
-          0% {
-            opacity: 0;
-            transform: translate3d(calc(var(--wind-distance) * -0.18), 0, 0) scaleX(0.85);
-          }
-          22% {
-            opacity: 1;
-          }
-          40% {
-            transform: translate3d(calc(var(--wind-distance) * 0.14), calc(var(--wind-wave-dir, 1) * var(--wind-wave, 4px)), 0) scaleX(0.9);
-          }
-          65% {
-            transform: translate3d(calc(var(--wind-distance) * 0.5), calc(var(--wind-wave-dir, 1) * var(--wind-wave, 4px) * -1), 0) scaleX(0.95);
-          }
-          85% {
-            transform: translate3d(calc(var(--wind-distance) * 0.78), calc(var(--wind-wave-dir, 1) * var(--wind-wave, 4px) * 0.5), 0) scaleX(1);
-          }
-          100% {
-            opacity: 0;
-            transform: translate3d(var(--wind-distance), 0, 0) scaleX(1);
           }
         }
 

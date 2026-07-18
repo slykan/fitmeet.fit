@@ -74,18 +74,22 @@ function buildMapHtml(
     .weather-overlay.interacting * {
       animation-play-state:paused !important;
     }
-    .wind-stream {
-      position:absolute; border-radius:999px;
-      background:linear-gradient(90deg,rgba(255,255,255,0),rgba(210,232,255,0.85),rgba(255,255,255,0.98),rgba(255,255,255,0));
-      box-shadow:0 0 5px 1.5px rgba(5,8,8,0.82), 0 0 8px rgba(210,232,255,0.3);
-      transform-origin:center;
-      animation:windMove linear infinite; opacity:0;
-    }
     .wind-particle {
       position:absolute; width:3px; height:3px; border-radius:999px;
       background:rgba(255,255,255,0.92); box-shadow:0 0 4px 1.5px rgba(5,8,8,0.86), 0 0 8px rgba(210,232,255,0.28);
       transform-origin:center;
       animation:windMove linear infinite; opacity:0;
+    }
+    .wind-particle::before {
+      content:'';
+      position:absolute;
+      top:50%;
+      right:100%;
+      transform:translateY(-50%);
+      width:16px;
+      height:1.6px;
+      border-radius:999px;
+      background:linear-gradient(90deg, rgba(210,232,255,0), rgba(210,232,255,0.5));
     }
     @keyframes windMove {
       0%   { opacity:0; transform:translate3d(0,0,0) rotate(var(--rot)) scale(0.9); }
@@ -230,14 +234,9 @@ function buildMapHtml(
         const dur = Math.max(2.4, 8 - spd * 0.06);
         const cssRot = flowBearing - 90;
 
-        for (let i = 0; i < 45; i++) {
+        for (let i = 0; i < 40; i++) {
           const el = document.createElement('div');
-          el.className = i % 4 === 0 ? 'wind-particle' : 'wind-stream';
-          if (el.className === 'wind-stream') {
-            const w = 12 + (i % 3) * 8;
-            el.style.width  = w + 'px';
-            el.style.height = '1.8px';
-          }
+          el.className = 'wind-particle';
           el.style.left = (Math.random() * 110 - 5) + '%';
           el.style.top  = (Math.random() * 110 - 5) + '%';
           el.style.setProperty('--rot', cssRot + 'deg');
