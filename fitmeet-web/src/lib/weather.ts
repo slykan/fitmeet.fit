@@ -46,6 +46,16 @@ export type RainForecast = {
   minutesUntilRain: number | null
 }
 
+export type DailyForecastDay = {
+  date: string
+  code: number
+  tempMin: number
+  tempMax: number
+  windSpeed: number
+  windDir: number
+  humidity?: number
+}
+
 type RainForecastCacheEntry = {
   value: RainForecast
   fetchedAt: number
@@ -58,15 +68,34 @@ type OpenMeteoMinutelyResponse = {
   }
 }
 
+type OpenMeteoDailyResponse = {
+  daily?: {
+    time: string[]
+    weathercode: number[]
+    temperature_2m_max: number[]
+    temperature_2m_min: number[]
+    windspeed_10m_max: number[]
+    winddirection_10m_dominant: number[]
+    relative_humidity_2m_mean?: number[]
+  }
+}
+
+type DailyForecastCacheEntry = {
+  value: DailyForecastDay[] | null
+  fetchedAt: number
+}
+
 const EVENT_WEATHER_TTL_MS = 15 * 60 * 1000
 const CURRENT_WEATHER_TTL_MS = 15 * 60 * 1000
 const LIVE_EVENT_WINDOW_HOURS = 6
 const RAIN_FORECAST_TTL_MS = 15 * 60 * 1000
 const RAIN_FORECAST_WINDOW_INTERVALS = 16 // 16 * 15min = 4h ahead
 const RAIN_FORECAST_THRESHOLD_MM = 0.1
+const DAILY_FORECAST_TTL_MS = 30 * 60 * 1000
 
 const cache = new Map<string, CacheEntry>()
 const rainForecastCache = new Map<string, RainForecastCacheEntry>()
+const dailyForecastCache = new Map<string, DailyForecastCacheEntry>()
 
 export async function fetchEventWeather(
   lat: number,
@@ -217,6 +246,48 @@ export async function fetchRainForecast(
     rainForecastCache.set(key, { value: result, fetchedAt: Date.now() })
     return result
   } catch {
+    return null
+  }
+}
+
+export async function fetchDailyForecast(
+  lat: number,
+  lng: number,
+): Promise<DailyForecastDay[] | null> {
+  const key = `${lat.toFixed(3)},${lng.toFixed(3)}`
+  const cached = dailyForecastCache.get(key)
+  if (cached && Date.now() - cached.fetchedAt < DAILY_FORECAST_TTL_MS) return cached.value
+
+  try {
+    const url =
+      `https://api.open-meteo.com/v1/forecast` +
+      `?latitude=${lat}&longitude=${lng}` +
+      `&daily=weathercode,temperature_2m_max,temperature_2m_min,windspeed_10m_max,winddirection_10m_dominant,relative_humidity_2m_mean` +
+      `&forecast_days=5&timezone=auto`
+
+    const res = await fetch(url, { next: { revalidate: 1800 } })
+    const data: OpenMeteoDailyResponse = await res.json()
+    const daily = data.daily
+
+    if (!daily?.time?.length) {
+      dailyForecastCache.set(key, { value: null, fetchedAt: Date.now() })
+      return null
+    }
+
+    const days: DailyForecastDay[] = daily.time.map((date, i) => ({
+      date,
+      code: daily.weathercode[i],
+      tempMin: Math.round(daily.temperature_2m_min[i]),
+      tempMax: Math.round(daily.temperature_2m_max[i]),
+      windSpeed: Math.round(daily.windspeed_10m_max[i]),
+      windDir: Math.round(daily.winddirection_10m_dominant[i]),
+      humidity: daily.relative_humidity_2m_mean?.[i] != null ? Math.round(daily.relative_humidity_2m_mean[i]) : undefined,
+    }))
+
+    dailyForecastCache.set(key, { value: days, fetchedAt: Date.now() })
+    return days
+  } catch {
+    dailyForecastCache.set(key, { value: null, fetchedAt: Date.now() })
     return null
   }
 }

@@ -17,7 +17,7 @@ import { fetchEventWeatherSnapshots, type EventWeatherSnapshot } from '@/src/lib
 import { sortEventsBySchedule } from '@/src/lib/event-order'
 import { fetchGpxActivityStats, type GpxActivityStats } from '@/src/lib/gpx-activity-stats'
 import { fetchRadarFrames, type RadarFrame } from '@/src/lib/radar'
-import { cloudLabel, CurrentWeather, fetchCurrentWeather, fetchRainForecast, RainForecast } from '@/src/lib/weather'
+import { cloudLabel, CurrentWeather, DailyForecastDay, fetchCurrentWeather, fetchDailyForecast, fetchRainForecast, RainForecast, weatherIconName } from '@/src/lib/weather'
 import { useAuthStore } from '@/src/store/auth'
 import { palette, spacing } from '@/src/theme'
 
@@ -85,6 +85,7 @@ export default function HubScreen() {
   const [showClouds, setShowClouds] = useState(false)
   const [weather, setWeather] = useState<CurrentWeather | null>(null)
   const [rainForecast, setRainForecast] = useState<RainForecast | null>(null)
+  const [dailyForecast, setDailyForecast] = useState<DailyForecastDay[] | null>(null)
   const [showFilter, setShowFilter] = useState(false)
   const [mapTouching, setMapTouching] = useState(false)
   const [weatherCenter, setWeatherCenter] = useState<{ lat: number; lng: number } | null>(null)
@@ -197,6 +198,7 @@ export default function HubScreen() {
   useEffect(() => {
     fetchCurrentWeather(effectiveWeatherCenter.lat, effectiveWeatherCenter.lng).then(setWeather).catch(() => setWeather(null))
     fetchRainForecast(effectiveWeatherCenter.lat, effectiveWeatherCenter.lng).then(setRainForecast).catch(() => setRainForecast(null))
+    fetchDailyForecast(effectiveWeatherCenter.lat, effectiveWeatherCenter.lng).then(setDailyForecast).catch(() => setDailyForecast(null))
   }, [effectiveWeatherCenter.lat, effectiveWeatherCenter.lng, weatherRefreshTick])
 
   useEffect(() => {
@@ -544,6 +546,31 @@ export default function HubScreen() {
             </Pressable>
           </View>
         )}
+
+        {dailyForecast && dailyForecast.length > 0 && (
+          <View style={styles.forecastCard}>
+            {dailyForecast.map((day, i) => (
+              <View key={day.date} style={styles.forecastDay}>
+                <Text style={styles.forecastDayLabel}>
+                  {i === 0 ? 'Today' : new Date(`${day.date}T12:00:00`).toLocaleDateString('en-GB', { weekday: 'short' })}
+                </Text>
+                <Ionicons name={weatherIconName(day.code) as never} size={22} color="#f5f7ff" />
+                <Text style={styles.forecastTemp}>
+                  {day.tempMax}°<Text style={styles.forecastTempMin}> / {day.tempMin}°</Text>
+                </Text>
+                <View style={styles.forecastWindRow}>
+                  <View style={{ transform: [{ rotate: `${(day.windDir + 180) % 360}deg` }] }}>
+                    <Ionicons name="arrow-up-outline" size={11} color="#f5f7ff" />
+                  </View>
+                  <Text style={styles.forecastWindText}>{day.windSpeed} km/h</Text>
+                </View>
+                {day.humidity != null && (
+                  <Text style={styles.forecastHumidity}>💧 {day.humidity}%</Text>
+                )}
+              </View>
+            ))}
+          </View>
+        )}
       </View>
 
       <View style={styles.sectionHeader}>
@@ -614,6 +641,24 @@ const styles = StyleSheet.create({
   radarNowBtnActive: { backgroundColor: palette.accent, borderColor: palette.accent },
   radarNowBtnText: { color: palette.textMuted, fontSize: 11, fontWeight: '800' },
   radarNowBtnTextActive: { color: '#031109' },
+
+  forecastCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    backgroundColor: palette.panel,
+    borderWidth: 1,
+    borderColor: palette.line,
+    borderRadius: 18,
+    paddingVertical: 12,
+    paddingHorizontal: 6,
+  },
+  forecastDay: { flex: 1, alignItems: 'center', gap: 4 },
+  forecastDayLabel: { color: palette.textMuted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase' },
+  forecastTemp: { color: palette.text, fontSize: 13, fontWeight: '800' },
+  forecastTempMin: { color: palette.textDim, fontWeight: '600' },
+  forecastWindRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  forecastWindText: { color: palette.textMuted, fontSize: 10, fontWeight: '600' },
+  forecastHumidity: { color: '#58beff', fontSize: 10, fontWeight: '600' },
 
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
   eyebrow: { color: palette.accent, fontSize: 13, fontWeight: '700', textTransform: 'uppercase' },

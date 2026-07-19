@@ -5,14 +5,14 @@ import { MapContainer, TileLayer, Marker, Pane, ZoomControl, useMap, useMapEvent
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { useRouter } from 'next/navigation'
-import { Calendar, ArrowRight, X, Users, Zap, LocateFixed, Check, Wind, CloudRain, SunMedium } from 'lucide-react'
+import { Calendar, ArrowRight, X, Users, Zap, LocateFixed, Check, Wind, CloudRain, SunMedium, ArrowUp, Sun, CloudSun, Cloud, CloudSnow, CloudLightning, Droplets } from 'lucide-react'
 import api from '@/lib/api'
 import { formatEventDateTime } from '@/lib/event-time'
 import { useAuthStore } from '@/store/auth'
 import { CATEGORIES, CATEGORY_EMOJI } from '@/lib/categories'
 import { EventCommentsPreview } from '@/components/event-comments-preview'
 import { WeatherBadge } from '@/components/WeatherBadge'
-import { fetchCurrentWeather, fetchRainForecast, fetchRelevantEventWeather, weatherConditionLabel, windDirectionLabelDetailed, type EventWeather, type RainForecast } from '@/lib/weather'
+import { fetchCurrentWeather, fetchDailyForecast, fetchRainForecast, fetchRelevantEventWeather, weatherConditionLabel, weatherIcon, windDirectionLabelDetailed, type DailyForecastDay, type EventWeather, type RainForecast } from '@/lib/weather'
 import { fetchRadarFrames, type RadarFrame } from '@/lib/radar'
 import { WindOverlay } from '@/components/location-picker-map'
 import { sortEventsBySchedule } from '@/lib/event-order'
@@ -20,6 +20,15 @@ import { fetchGpxActivityStats, type GpxActivityStats } from '@/lib/gpx-activity
 
 const RADAR_MAX_ZOOM = 7
 const BASE_MAX_ZOOM = 18
+
+const FORECAST_ICONS: Record<string, typeof Sun> = {
+  'sun': Sun,
+  'cloud-sun': CloudSun,
+  'cloud': Cloud,
+  'cloud-rain': CloudRain,
+  'cloud-snow': CloudSnow,
+  'cloud-lightning': CloudLightning,
+}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 delete (L.Icon.Default.prototype as any)._getIconUrl
@@ -297,6 +306,7 @@ export default function HubMap() {
   const [recenterKey, setRecenterKey] = useState(0)
   const [hubWeather, setHubWeather] = useState<EventWeather | null>(null)
   const [rainForecast, setRainForecast] = useState<RainForecast | null>(null)
+  const [dailyForecast, setDailyForecast] = useState<DailyForecastDay[] | null>(null)
   const [showWindOverlay, setShowWindOverlay] = useState(true)
   const [showCloudOverlay, setShowCloudOverlay] = useState(false)
   const [isMapInteracting, setIsMapInteracting] = useState(false)
@@ -474,6 +484,24 @@ export default function HubMap() {
       })
       .catch(() => {
         if (!cancelled) setRainForecast(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [weatherCenter, weatherRefreshTick])
+
+  useEffect(() => {
+    if (!weatherCenter) {
+      setDailyForecast(null)
+      return
+    }
+    let cancelled = false
+    fetchDailyForecast(weatherCenter.lat, weatherCenter.lng)
+      .then((forecast) => {
+        if (!cancelled) setDailyForecast(forecast)
+      })
+      .catch(() => {
+        if (!cancelled) setDailyForecast(null)
       })
     return () => {
       cancelled = true
@@ -850,15 +878,60 @@ export default function HubMap() {
       </div>
 
       <div
-        className="hub-weather-footer-shell absolute bottom-0 left-1/2 z-[690] pointer-events-auto -translate-x-1/2 rounded-t-[18px] rounded-b-none px-2 py-1.5 md:bottom-3 md:rounded-full md:px-[10px] md:py-2"
+        className="hub-bottom-stack absolute bottom-0 left-1/2 z-[690] pointer-events-none flex -translate-x-1/2 flex-col items-stretch gap-2"
+        style={{
+          width: '100vw',
+          maxWidth: '100%',
+          paddingBottom: 'calc(6px + env(safe-area-inset-bottom, 0px))',
+        }}
+      >
+        {dailyForecast && dailyForecast.length > 0 && (
+          <div
+            className="hub-forecast-shell pointer-events-auto rounded-2xl mx-2 md:mx-0"
+            style={{
+              border: '1px solid rgba(255,255,255,0.12)',
+              background: 'rgba(7,11,24,0.72)',
+              backdropFilter: 'blur(10px)',
+              boxShadow: '0 10px 24px rgba(0,0,0,0.28)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              gap: 4,
+              padding: '10px 8px',
+            }}
+          >
+            {dailyForecast.map((day, i) => {
+              const Icon = FORECAST_ICONS[weatherIcon(day.code)] ?? Cloud
+              return (
+                <div key={day.date} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, flex: 1, minWidth: 0 }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: '#9aa5c4', textTransform: 'uppercase' }}>
+                    {i === 0 ? 'Today' : new Date(`${day.date}T12:00:00`).toLocaleDateString('en-GB', { weekday: 'short' })}
+                  </span>
+                  <Icon size={20} color="#f5f7ff" />
+                  <span style={{ fontSize: 12, fontWeight: 800, color: '#f5f7ff', whiteSpace: 'nowrap' }}>
+                    {day.tempMax}°<span style={{ color: '#9aa5c4', fontWeight: 600 }}> /{day.tempMin}°</span>
+                  </span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+                    <ArrowUp size={10} color="#f5f7ff" style={{ transform: `rotate(${(day.windDir + 180) % 360}deg)` }} />
+                    <span style={{ fontSize: 10, color: '#9aa5c4', fontWeight: 600, whiteSpace: 'nowrap' }}>{day.windSpeed}km/h</span>
+                  </span>
+                  {day.humidity != null && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, fontSize: 10, color: '#58beff', fontWeight: 600 }}>
+                      <Droplets size={10} /> {day.humidity}%
+                    </span>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+      <div
+        className="hub-weather-footer-shell pointer-events-auto rounded-t-[18px] rounded-b-none px-2 py-1.5 md:rounded-full md:px-[10px] md:py-2"
         style={{
           border: '1px solid rgba(255,255,255,0.12)',
           background: 'rgba(7,11,24,0.62)',
           backdropFilter: 'blur(10px)',
           boxShadow: '0 10px 24px rgba(0,0,0,0.28)',
-          width: '100vw',
-          maxWidth: '100%',
-          paddingBottom: 'calc(6px + env(safe-area-inset-bottom, 0px))',
         }}
       >
         {showCloudOverlay && radarFrames.length > 1 && (
@@ -1072,11 +1145,12 @@ export default function HubMap() {
             }
           }
           @media (min-width: 768px) {
-            .hub-weather-footer-shell {
+            .hub-bottom-stack {
               width: min(calc(100vw - 24px), 760px) !important;
             }
           }
         `}</style>
+      </div>
       </div>
       {/* Empty state */}
       {ready && visibleEvents.length === 0 && !selected && (
