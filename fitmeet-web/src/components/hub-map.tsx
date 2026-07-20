@@ -307,7 +307,7 @@ export default function HubMap() {
   const [hubWeather, setHubWeather] = useState<EventWeather | null>(null)
   const [rainForecast, setRainForecast] = useState<RainForecast | null>(null)
   const [dailyForecast, setDailyForecast] = useState<DailyForecastDay[] | null>(null)
-  const [showForecast, setShowForecast] = useState(true)
+  const [showForecast, setShowForecast] = useState(false)
   const [showWindOverlay, setShowWindOverlay] = useState(true)
   const [showCloudOverlay, setShowCloudOverlay] = useState(false)
   const [isMapInteracting, setIsMapInteracting] = useState(false)
