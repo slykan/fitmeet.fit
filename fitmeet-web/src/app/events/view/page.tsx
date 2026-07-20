@@ -17,6 +17,7 @@ import { shortAddress } from '@/lib/format-address'
 import { formatEventDateTime } from '@/lib/event-time'
 import { getYouTubeVideoId } from '@/lib/youtube'
 import { fetchRelevantEventWeather, isLiveEventWeatherWindow, windDirectionLabelDetailed, type EventWeather } from '@/lib/weather'
+import { fetchRadarFrames, type RadarFrame } from '@/lib/radar'
 import api from '@/lib/api'
 import { playRandomActionSound } from '@/lib/action-sounds'
 import { useBadgesStore } from '@/store/badges'
@@ -163,6 +164,7 @@ function EventContent() {
   const [copied, setCopied] = useState(false)
   const [cancelling, setCancelling] = useState(false)
   const [weather, setWeather] = useState<EventWeather | null>(null)
+  const [radarFrame, setRadarFrame] = useState<RadarFrame | null>(null)
   const [showImageModal, setShowImageModal] = useState(false)
   const [showWindOverlay, setShowWindOverlay] = useState(true)
   const [showCloudOverlay, setShowCloudOverlay] = useState(true)
@@ -234,6 +236,14 @@ function EventContent() {
       .then(setWeather)
       .catch(() => setWeather(null))
   }, [event?.id, event?.schedule?.start_at, event?.schedule?.timezone, weatherCenter, weatherRefreshTick])
+
+  useEffect(() => {
+    if (!event) return
+    if (!isLiveEventWeatherWindow(event.schedule.start_at, event.schedule.timezone)) return
+    fetchRadarFrames()
+      .then(result => setRadarFrame(result ? result.frames[result.nowIndex] ?? null : null))
+      .catch(() => setRadarFrame(null))
+  }, [event?.id, event?.schedule?.start_at, event?.schedule?.timezone, weatherRefreshTick])
 
   useEffect(() => {
     const interval = window.setInterval(() => {
@@ -707,6 +717,7 @@ function EventContent() {
                 weatherVariant="hub"
                 showWindOverlay={showWindOverlay && !isMapInteracting}
                 showCloudOverlay={showCloudOverlay && rainDataReliable && !isMapInteracting}
+                radarFrame={rainDataReliable ? radarFrame : null}
                 showMapLayerControl
                 readOnly
                 height={720}

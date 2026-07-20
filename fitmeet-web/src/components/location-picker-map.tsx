@@ -33,7 +33,16 @@ interface Props {
   showWindOverlay?: boolean
   showCloudOverlay?: boolean
   showMapLayerControl?: boolean
+  radarFrame?: { path: string } | null
 }
+
+const LIGHTNING_POSITIONS = [
+  { left: '15%', top: '22%' },
+  { left: '42%', top: '58%' },
+  { left: '68%', top: '30%' },
+  { left: '82%', top: '68%' },
+  { left: '30%', top: '78%' },
+] as const
 
 const MAP_BASE_LAYERS = [
   {
@@ -422,6 +431,7 @@ export default function LocationPickerMap({
   showWindOverlay = true,
   showCloudOverlay = true,
   showMapLayerControl = false,
+  radarFrame = null,
 }: Props) {
   const hasPin      = lat != null && lng != null
   const allCoords   = useMemo(
@@ -464,6 +474,15 @@ export default function LocationPickerMap({
           attribution={showMapLayerControl ? selectedLayer.attribution : MAP_BASE_LAYERS[0].attribution}
           maxZoom={showMapLayerControl ? selectedLayer.maxZoom : MAP_BASE_LAYERS[0].maxZoom}
         />
+        {showCloudOverlay && radarFrame && (
+          <TileLayer
+            url={`https://tilecache.rainviewer.com${radarFrame.path}/512/{z}/{x}/{y}/2/1_1.png`}
+            opacity={0.85}
+            zIndex={221}
+            maxZoom={19}
+            maxNativeZoom={7}
+          />
+        )}
         {!readOnly && onChange && <ClickHandler onChange={onChange} />}
         {readOnly && <ReadOnlyViewSync onViewChange={onViewChange} onInteractionChange={onInteractionChange} />}
         {hasPin && <Marker position={[lat!, lng!]} />}
@@ -584,8 +603,46 @@ export default function LocationPickerMap({
           weather={weather}
           variant={weatherVariant}
           showWind={showWindOverlay}
-          showClouds={showCloudOverlay}
+          showClouds={showCloudOverlay && !radarFrame}
         />
+      )}
+      {showCloudOverlay && radarFrame && weather && weather.code >= 95 && (
+        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 501 }}>
+          {LIGHTNING_POSITIONS.map((pos, i) => (
+            <span
+              key={i}
+              className="fm-lpm-lightning-bolt"
+              style={{
+                left: pos.left,
+                top: pos.top,
+                animationDelay: `${i * 0.6}s`,
+                animationDuration: `${2.6 + (i % 3) * 0.6}s`,
+              }}
+            />
+          ))}
+          <style>{`
+            .fm-lpm-lightning-bolt {
+              position: absolute;
+              width: 16px;
+              height: 16px;
+              border-radius: 999px;
+              background: radial-gradient(circle, rgba(255,244,160,0.98), rgba(255,214,64,0.6) 55%, transparent 100%);
+              box-shadow: 0 0 18px 7px rgba(255,214,64,0.55);
+              opacity: 0;
+              animation-name: fm-lpm-lightning-flash;
+              animation-timing-function: ease-in-out;
+              animation-iteration-count: infinite;
+            }
+            @keyframes fm-lpm-lightning-flash {
+              0%, 90%   { opacity: 0; transform: scale(0.6); }
+              91%       { opacity: 1; transform: scale(1.2); }
+              93%       { opacity: 0.15; transform: scale(0.85); }
+              94.5%     { opacity: 1; transform: scale(1.25); }
+              97%       { opacity: 0; transform: scale(0.6); }
+              100%      { opacity: 0; transform: scale(0.6); }
+            }
+          `}</style>
+        </div>
       )}
     </div>
   )

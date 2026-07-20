@@ -5,10 +5,9 @@ import { WebView } from 'react-native-webview'
 import type { WebView as WebViewType } from 'react-native-webview'
 
 import { CurrentWeather, fetchCurrentWeather, fetchRelevantEventWeather, isLiveEventWeatherWindow } from '@/src/lib/weather'
+import { fetchRadarFrames, type RadarFrame } from '@/src/lib/radar'
 import type { TrackSegment } from '@/src/lib/gpx'
 import { palette } from '@/src/theme'
-
-const OW_KEY = '62d9f65c21e8b140487241223fae5a2e'
 
 type Props = {
   lat: number
@@ -62,6 +61,21 @@ const WIND_CSS = `
     85%  { opacity:1; }
     100% { opacity:0; transform:translate3d(var(--dx),var(--dy),0) rotate(var(--rot)) scale(1.04); }
   }
+  .lightning-bolt {
+    position:absolute; width:16px; height:16px; border-radius:999px;
+    background:radial-gradient(circle,rgba(255,244,160,0.98),rgba(255,214,64,0.6) 55%,transparent 100%);
+    box-shadow:0 0 18px 7px rgba(255,214,64,0.55);
+    opacity:0;
+    animation:lightningFlash ease-in-out infinite;
+  }
+  @keyframes lightningFlash {
+    0%, 90%   { opacity:0; transform:scale(0.6); }
+    91%       { opacity:1; transform:scale(1.2); }
+    93%       { opacity:0.15; transform:scale(0.85); }
+    94.5%     { opacity:1; transform:scale(1.25); }
+    97%       { opacity:0; transform:scale(0.6); }
+    100%      { opacity:0; transform:scale(0.6); }
+  }
 `
 
 function buildHtml(
@@ -72,12 +86,14 @@ function buildHtml(
   weather: CurrentWeather | null,
   showWind: boolean,
   showClouds: boolean,
+  radarPath: string | null,
   coloredSegments: TrackSegment[],
   elevationSegments: TrackSegment[],
   surfaceSegments: TrackSegment[],
   initialLayer: MapLayer,
 ) {
   const wJson = JSON.stringify(weather)
+  const radarPathJson = JSON.stringify(radarPath)
   const segsJson = JSON.stringify(coloredSegments)
   const elevSegsJson = JSON.stringify(elevationSegments)
   const surfaceSegsJson = JSON.stringify(surfaceSegments)
@@ -107,6 +123,7 @@ function buildHtml(
     const weather = ${wJson};
     let showWind = ${showWind};
     let showClouds = ${showClouds};
+    let radarPath = ${radarPathJson};
     const coloredSegments = ${segsJson};
     const elevationSegments = ${elevSegsJson};
     const surfaceSegments = ${surfaceSegsJson};
@@ -127,18 +144,24 @@ function buildHtml(
     }
     setBaseLayer('${initialLayer}');
 
-    const cloudsTileLayer = L.tileLayer('https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=${OW_KEY}',{maxZoom:18,opacity:0.9,zIndex:220});
-    const precipTileLayer = L.tileLayer('https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${OW_KEY}',{maxZoom:18,opacity:0.8,zIndex:221});
-    function updateCloudTiles(show) {
-      if (show) {
-        if (!map.hasLayer(cloudsTileLayer)) cloudsTileLayer.addTo(map);
-        if (!map.hasLayer(precipTileLayer)) precipTileLayer.addTo(map);
-      } else {
-        if (map.hasLayer(cloudsTileLayer)) map.removeLayer(cloudsTileLayer);
-        if (map.hasLayer(precipTileLayer)) map.removeLayer(precipTileLayer);
+    function buildRadarUrl(path) {
+      return 'https://tilecache.rainviewer.com' + path + '/512/{z}/{x}/{y}/2/1_1.png';
+    }
+    let radarTileLayer = null;
+    function updateRadarTiles(show) {
+      if (show && radarPath) {
+        const url = buildRadarUrl(radarPath);
+        if (!radarTileLayer) {
+          radarTileLayer = L.tileLayer(url, { maxZoom:18, maxNativeZoom:7, opacity:0.85, zIndex:221 }).addTo(map);
+        } else if (radarTileLayer._url !== url) {
+          radarTileLayer.setUrl(url);
+        }
+      } else if (radarTileLayer) {
+        radarTileLayer.remove();
+        radarTileLayer = null;
       }
     }
-    updateCloudTiles(showClouds);
+    updateRadarTiles(showClouds);
 
     const icon = L.divIcon({className:'fm-marker',html:'<div class="fm-pin">${emoji}</div>',iconSize:[38,38],iconAnchor:[19,19]});
     L.marker([${lat},${lng}],{icon}).addTo(map);
@@ -208,11 +231,12 @@ function buildHtml(
     map.on('movestart zoomstart dragstart', movementStarted);
     map.on('moveend zoomend dragend', movementEnded);
 
-    function renderWeather(nextWeather, nextShowWind) {
+    function renderWeather(nextWeather, nextShowWind, nextShowClouds) {
       wo.classList.remove('ready', 'interacting');
       wo.innerHTML = '';
-      if (!nextWeather || !nextShowWind) return;
+      if (!nextWeather) return;
 
+      if (nextShowWind) {
       const windDir = nextWeather.windDir||270;
       const flowBearing = (windDir + 180) % 360;
       const rad = flowBearing*Math.PI/180;
@@ -248,6 +272,22 @@ function buildHtml(
         el.style.animationDelay=(0.2+Math.random()*4.3)+'s';
         wo.appendChild(el);
       }
+      }
+
+      const isThunder = [95, 96, 99].includes(Math.round(nextWeather.code || 0));
+      if (nextShowClouds && isThunder) {
+        const count = 4 + Math.floor(Math.random() * 3);
+        for (let i = 0; i < count; i++) {
+          const bolt = document.createElement('div');
+          bolt.className = 'lightning-bolt';
+          bolt.style.left = (2 + Math.random() * 90) + '%';
+          bolt.style.top = (2 + Math.random() * 85) + '%';
+          bolt.style.animationDuration = (2.6 + Math.random() * 2.4) + 's';
+          bolt.style.animationDelay = (Math.random() * 3) + 's';
+          wo.appendChild(bolt);
+        }
+      }
+
       setTimeout(() => wo.classList.add('ready'), 220);
     }
 
@@ -257,8 +297,12 @@ function buildHtml(
         if (data.type === 'weatherUpdate') {
           showWind = data.showWind;
           showClouds = data.showClouds;
-          updateCloudTiles(showClouds);
-          renderWeather(data.weather, data.showWind);
+          updateRadarTiles(showClouds);
+          renderWeather(data.weather, data.showWind, data.showClouds);
+        }
+        if (data.type === 'radarUpdate') {
+          radarPath = data.path;
+          updateRadarTiles(showClouds);
         }
         if (data.type === 'mapLayer') setBaseLayer(data.layer);
       } catch (e) {}
@@ -266,7 +310,7 @@ function buildHtml(
     document.addEventListener('message', handleMessage);
     window.addEventListener('message', handleMessage);
 
-    renderWeather(weather, showWind);
+    renderWeather(weather, showWind, showClouds);
   </script>
 </body>
 </html>`
@@ -284,8 +328,9 @@ export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegment
   const effectiveShowClouds = showClouds && rainReliable
   const [layerPickerOpen, setLayerPickerOpen] = useState(false)
   const [weatherRefreshTick, setWeatherRefreshTick] = useState(0)
+  const [radarPath, setRadarPath] = useState<string | null>(null)
   const html = useMemo(
-    () => buildHtml(lat, lng, { lat, lng }, emoji, null, showWind, effectiveShowClouds, coloredSegments ?? [], elevationSegments ?? [], surfaceSegments ?? [], 'standard'),
+    () => buildHtml(lat, lng, { lat, lng }, emoji, null, showWind, effectiveShowClouds, radarPath, coloredSegments ?? [], elevationSegments ?? [], surfaceSegments ?? [], 'standard'),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [lat, lng, emoji, coloredSegments, elevationSegments, surfaceSegments],
   )
@@ -311,12 +356,26 @@ export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegment
     request.then(setWeather).catch(() => {})
   }, [center.lat, center.lng, startAt, weatherRefreshTick])
 
+  useEffect(() => {
+    if (!rainReliable) {
+      setRadarPath(null)
+      return
+    }
+    fetchRadarFrames()
+      .then((result) => setRadarPath(result ? result.frames[result.nowIndex]?.path ?? null : null))
+      .catch(() => setRadarPath(null))
+  }, [rainReliable, weatherRefreshTick])
+
   const weatherRef = useRef<CurrentWeather | null>(null)
   weatherRef.current = weather
 
   useEffect(() => {
     webViewRef.current?.postMessage(JSON.stringify({ type: 'weatherUpdate', weather, showWind, showClouds: effectiveShowClouds }))
   }, [weather, showWind, effectiveShowClouds])
+
+  useEffect(() => {
+    if (radarPath) webViewRef.current?.postMessage(JSON.stringify({ type: 'radarUpdate', path: radarPath }))
+  }, [radarPath])
 
   useEffect(() => {
     webViewRef.current?.postMessage(JSON.stringify({ type: 'mapLayer', layer: mapLayer }))
@@ -338,6 +397,7 @@ export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegment
               JSON.stringify({ type: 'weatherUpdate', weather: weatherRef.current, showWind, showClouds: effectiveShowClouds }),
             )
           }
+          if (radarPath) webViewRef.current?.postMessage(JSON.stringify({ type: 'radarUpdate', path: radarPath }))
           webViewRef.current?.postMessage(JSON.stringify({ type: 'mapLayer', layer: mapLayer }))
         }}
         onMessage={(event) => {
