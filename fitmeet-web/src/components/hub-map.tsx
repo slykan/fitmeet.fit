@@ -5,7 +5,7 @@ import { MapContainer, TileLayer, Marker, Pane, ZoomControl, useMap, useMapEvent
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { useRouter } from 'next/navigation'
-import { Calendar, ArrowRight, X, Users, Zap, LocateFixed, Check, Wind, CloudRain, SunMedium, ArrowUp, Sun, CloudSun, Cloud, CloudSnow, CloudLightning, Droplets } from 'lucide-react'
+import { Calendar, ArrowRight, X, Users, Zap, LocateFixed, Check, Wind, CloudRain, SunMedium, ArrowUp, Sun, CloudSun, Cloud, CloudSnow, CloudLightning, Droplets, ChevronDown, ChevronUp } from 'lucide-react'
 import api from '@/lib/api'
 import { formatEventDateTime } from '@/lib/event-time'
 import { useAuthStore } from '@/store/auth'
@@ -307,6 +307,7 @@ export default function HubMap() {
   const [hubWeather, setHubWeather] = useState<EventWeather | null>(null)
   const [rainForecast, setRainForecast] = useState<RainForecast | null>(null)
   const [dailyForecast, setDailyForecast] = useState<DailyForecastDay[] | null>(null)
+  const [showForecast, setShowForecast] = useState(true)
   const [showWindOverlay, setShowWindOverlay] = useState(true)
   const [showCloudOverlay, setShowCloudOverlay] = useState(false)
   const [isMapInteracting, setIsMapInteracting] = useState(false)
@@ -886,43 +887,83 @@ export default function HubMap() {
         }}
       >
         {dailyForecast && dailyForecast.length > 0 && (
-          <div
-            className="hub-forecast-shell pointer-events-auto rounded-2xl mx-2 md:mx-0"
-            style={{
-              border: '1px solid rgba(255,255,255,0.12)',
-              background: 'rgba(7,11,24,0.72)',
-              backdropFilter: 'blur(10px)',
-              boxShadow: '0 10px 24px rgba(0,0,0,0.28)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              gap: 4,
-              padding: '10px 8px',
-            }}
-          >
-            {dailyForecast.map((day, i) => {
-              const Icon = FORECAST_ICONS[weatherIcon(day.code)] ?? Cloud
-              return (
-                <div key={day.date} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, flex: 1, minWidth: 0 }}>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: '#9aa5c4', textTransform: 'uppercase' }}>
-                    {i === 0 ? 'Today' : new Date(`${day.date}T12:00:00`).toLocaleDateString('en-GB', { weekday: 'short' })}
-                  </span>
-                  <Icon size={20} color="#f5f7ff" />
-                  <span style={{ fontSize: 12, fontWeight: 800, color: '#f5f7ff', whiteSpace: 'nowrap' }}>
-                    {day.tempMax}°<span style={{ color: '#9aa5c4', fontWeight: 600 }}> /{day.tempMin}°</span>
-                  </span>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>
-                    <ArrowUp size={10} color="#f5f7ff" style={{ transform: `rotate(${(day.windDir + 180) % 360}deg)` }} />
-                    <span style={{ fontSize: 10, color: '#9aa5c4', fontWeight: 600, whiteSpace: 'nowrap' }}>{day.windSpeed}km/h</span>
-                  </span>
-                  {day.humidity != null && (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, fontSize: 10, color: '#58beff', fontWeight: 600 }}>
-                      <Droplets size={10} /> {day.humidity}%
+          showForecast ? (
+            <div
+              className="hub-forecast-shell pointer-events-auto rounded-2xl mx-2 md:mx-0"
+              style={{
+                position: 'relative',
+                border: '1px solid rgba(255,255,255,0.12)',
+                background: 'rgba(7,11,24,0.72)',
+                backdropFilter: 'blur(10px)',
+                boxShadow: '0 10px 24px rgba(0,0,0,0.28)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                gap: 4,
+                padding: '10px 8px',
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setShowForecast(false)}
+                aria-label="Hide 5-day forecast"
+                title="Hide forecast"
+                className="inline-flex items-center justify-center rounded-full"
+                style={{
+                  position: 'absolute',
+                  top: -10,
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  width: 22,
+                  height: 22,
+                  border: '1px solid rgba(255,255,255,0.14)',
+                  background: 'rgba(7,11,24,0.9)',
+                  color: '#d7dfef',
+                }}
+              >
+                <ChevronDown size={13} />
+              </button>
+              {dailyForecast.map((day, i) => {
+                const Icon = FORECAST_ICONS[weatherIcon(day.code)] ?? Cloud
+                return (
+                  <div key={day.date} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, flex: 1, minWidth: 0 }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: '#9aa5c4', textTransform: 'uppercase' }}>
+                      {i === 0 ? 'Today' : new Date(`${day.date}T12:00:00`).toLocaleDateString('en-GB', { weekday: 'short' })}
                     </span>
-                  )}
-                </div>
-              )
-            })}
-          </div>
+                    <Icon size={20} color="#f5f7ff" />
+                    <span style={{ fontSize: 12, fontWeight: 800, color: '#f5f7ff', whiteSpace: 'nowrap' }}>
+                      {day.tempMax}°<span style={{ color: '#9aa5c4', fontWeight: 600 }}> /{day.tempMin}°</span>
+                    </span>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+                      <ArrowUp size={10} color="#f5f7ff" style={{ transform: `rotate(${(day.windDir + 180) % 360}deg)` }} />
+                      <span style={{ fontSize: 10, color: '#9aa5c4', fontWeight: 600, whiteSpace: 'nowrap' }}>{day.windSpeed}km/h</span>
+                    </span>
+                    {day.humidity != null && (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, fontSize: 10, color: '#58beff', fontWeight: 600 }}>
+                        <Droplets size={10} /> {day.humidity}%
+                      </span>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowForecast(true)}
+              className="hub-forecast-pill pointer-events-auto mx-auto inline-flex items-center gap-1.5 rounded-full text-[11px] font-semibold"
+              style={{
+                border: '1px solid rgba(255,255,255,0.12)',
+                background: 'rgba(7,11,24,0.72)',
+                backdropFilter: 'blur(10px)',
+                boxShadow: '0 10px 24px rgba(0,0,0,0.28)',
+                color: '#d7dfef',
+                padding: '5px 14px',
+              }}
+            >
+              <ChevronUp size={13} />
+              5-day forecast
+            </button>
+          )
         )}
 
       <div
