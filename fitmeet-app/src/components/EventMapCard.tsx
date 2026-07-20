@@ -1,9 +1,10 @@
+import { Ionicons } from '@expo/vector-icons'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native'
 import { WebView } from 'react-native-webview'
 import type { WebView as WebViewType } from 'react-native-webview'
 
-import { CurrentWeather, fetchCurrentWeather } from '@/src/lib/weather'
+import { CurrentWeather, fetchCurrentWeather, fetchRelevantEventWeather, isLiveEventWeatherWindow } from '@/src/lib/weather'
 import type { TrackSegment } from '@/src/lib/gpx'
 import { palette } from '@/src/theme'
 
@@ -12,6 +13,7 @@ const OW_KEY = '62d9f65c21e8b140487241223fae5a2e'
 type Props = {
   lat: number
   lng: number
+  startAt?: string
   emoji?: string
   coloredSegments?: TrackSegment[]
   elevationSegments?: TrackSegment[]
@@ -34,22 +36,29 @@ const WIND_CSS = `
   .wo.ready{opacity:1;}
   .wo.interacting{opacity:0;}
   .wo.interacting *{animation-play-state:paused!important;}
-  .ws {
-    position:absolute; border-radius:999px;
-    background:linear-gradient(90deg,rgba(255,255,255,0),rgba(255,126,126,0.88),rgba(255,59,59,1),rgba(255,255,255,0));
-    box-shadow:0 0 7px rgba(255,59,59,0.3);
+  .wp {
+    position:absolute; width:3px; height:3px; border-radius:999px;
+    background:rgba(255,255,255,0.92); box-shadow:0 0 4px 1.5px rgba(5,8,8,0.86), 0 0 8px rgba(210,232,255,0.28);
     transform-origin:center;
     animation:wm linear infinite; opacity:0;
   }
-  .wp {
-    position:absolute;width:3px;height:3px;border-radius:999px;
-    background:rgba(255,186,186,0.9);box-shadow:0 0 7px rgba(255,92,92,0.26);
-    transform-origin:center;
-    animation:wm linear infinite;opacity:0;
+  .wp::before {
+    content:'';
+    position:absolute;
+    top:50%;
+    right:100%;
+    transform:translateY(-50%);
+    width:16px;
+    height:1.6px;
+    border-radius:999px;
+    background:linear-gradient(90deg, rgba(210,232,255,0), rgba(210,232,255,0.5));
   }
   @keyframes wm {
     0%   { opacity:0; transform:translate3d(0,0,0) rotate(var(--rot)) scale(0.9); }
     10%  { opacity:1; }
+    32%  { transform:translate3d(var(--dx1),var(--dy1),0) rotate(var(--rot)) scale(0.95); }
+    58%  { transform:translate3d(var(--dx2),var(--dy2),0) rotate(var(--rot)) scale(1); }
+    82%  { transform:translate3d(var(--dx3),var(--dy3),0) rotate(var(--rot)) scale(1.02); }
     85%  { opacity:1; }
     100% { opacity:0; transform:translate3d(var(--dx),var(--dy),0) rotate(var(--rot)) scale(1.04); }
   }
@@ -61,6 +70,8 @@ function buildHtml(
   center: { lat: number; lng: number },
   emoji: string,
   weather: CurrentWeather | null,
+  showWind: boolean,
+  showClouds: boolean,
   coloredSegments: TrackSegment[],
   elevationSegments: TrackSegment[],
   surfaceSegments: TrackSegment[],
@@ -94,6 +105,8 @@ function buildHtml(
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
     const weather = ${wJson};
+    let showWind = ${showWind};
+    let showClouds = ${showClouds};
     const coloredSegments = ${segsJson};
     const elevationSegments = ${elevSegsJson};
     const surfaceSegments = ${surfaceSegsJson};
@@ -113,8 +126,19 @@ function buildHtml(
       activeBaseLayer.addTo(map);
     }
     setBaseLayer('${initialLayer}');
-    L.tileLayer('https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=${OW_KEY}',{maxZoom:18,opacity:0.9,zIndex:220}).addTo(map);
-    L.tileLayer('https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${OW_KEY}',{maxZoom:18,opacity:0.8,zIndex:221}).addTo(map);
+
+    const cloudsTileLayer = L.tileLayer('https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=${OW_KEY}',{maxZoom:18,opacity:0.9,zIndex:220});
+    const precipTileLayer = L.tileLayer('https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${OW_KEY}',{maxZoom:18,opacity:0.8,zIndex:221});
+    function updateCloudTiles(show) {
+      if (show) {
+        if (!map.hasLayer(cloudsTileLayer)) cloudsTileLayer.addTo(map);
+        if (!map.hasLayer(precipTileLayer)) precipTileLayer.addTo(map);
+      } else {
+        if (map.hasLayer(cloudsTileLayer)) map.removeLayer(cloudsTileLayer);
+        if (map.hasLayer(precipTileLayer)) map.removeLayer(precipTileLayer);
+      }
+    }
+    updateCloudTiles(showClouds);
 
     const icon = L.divIcon({className:'fm-marker',html:'<div class="fm-pin">${emoji}</div>',iconSize:[38,38],iconAnchor:[19,19]});
     L.marker([${lat},${lng}],{icon}).addTo(map);
@@ -184,10 +208,10 @@ function buildHtml(
     map.on('movestart zoomstart dragstart', movementStarted);
     map.on('moveend zoomend dragend', movementEnded);
 
-    function renderWeather(nextWeather) {
+    function renderWeather(nextWeather, nextShowWind) {
       wo.classList.remove('ready', 'interacting');
       wo.innerHTML = '';
-      if (!nextWeather) return;
+      if (!nextWeather || !nextShowWind) return;
 
       const windDir = nextWeather.windDir||270;
       const flowBearing = (windDir + 180) % 360;
@@ -196,17 +220,30 @@ function buildHtml(
       const dist = Math.min(80,26+spd*2);
       const dx = Math.sin(rad)*dist;
       const dy = -Math.cos(rad)*dist;
+      const perpRad = rad + Math.PI / 2;
+      const px = Math.sin(perpRad);
+      const py = -Math.cos(perpRad);
       const dur = Math.max(2.2,7.5-spd*0.05);
       const cssRot = flowBearing-90;
-      for(let i=0;i<100;i++){
+      for(let i=0;i<30;i++){
         const el=document.createElement('div');
-        el.className = i%4===0?'wp':'ws';
-        if(el.className==='ws'){el.style.width=(10+(i%3)*7)+'px';el.style.height='1.6px';}
+        el.className='wp';
         el.style.left=(Math.random()*110-5)+'%';
         el.style.top=(Math.random()*110-5)+'%';
         el.style.setProperty('--rot', cssRot+'deg');
         el.style.setProperty('--dx',dx+'px');
         el.style.setProperty('--dy',dy+'px');
+        const waveAmp = (3 + Math.random() * 4) * (i % 2 === 0 ? 1 : -1);
+        const wavePoint = (t, m) => ({ x: dx * t + px * waveAmp * m, y: dy * t + py * waveAmp * m });
+        const p1 = wavePoint(0.32, 1);
+        const p2 = wavePoint(0.58, -1);
+        const p3 = wavePoint(0.82, 0.6);
+        el.style.setProperty('--dx1', p1.x + 'px');
+        el.style.setProperty('--dy1', p1.y + 'px');
+        el.style.setProperty('--dx2', p2.x + 'px');
+        el.style.setProperty('--dy2', p2.y + 'px');
+        el.style.setProperty('--dx3', p3.x + 'px');
+        el.style.setProperty('--dy3', p3.y + 'px');
         el.style.animationDuration=(dur+Math.random()*1.6)+'s';
         el.style.animationDelay=(0.2+Math.random()*4.3)+'s';
         wo.appendChild(el);
@@ -214,37 +251,42 @@ function buildHtml(
       setTimeout(() => wo.classList.add('ready'), 220);
     }
 
-    document.addEventListener('message', (event) => {
+    function handleMessage(event) {
       try {
         const data = JSON.parse(event.data);
-        if (data.type === 'weatherUpdate') renderWeather(data.weather);
+        if (data.type === 'weatherUpdate') {
+          showWind = data.showWind;
+          showClouds = data.showClouds;
+          updateCloudTiles(showClouds);
+          renderWeather(data.weather, data.showWind);
+        }
         if (data.type === 'mapLayer') setBaseLayer(data.layer);
       } catch (e) {}
-    });
-    window.addEventListener('message', (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === 'weatherUpdate') renderWeather(data.weather);
-        if (data.type === 'mapLayer') setBaseLayer(data.layer);
-      } catch (e) {}
-    });
+    }
+    document.addEventListener('message', handleMessage);
+    window.addEventListener('message', handleMessage);
 
-    renderWeather(weather);
+    renderWeather(weather, showWind);
   </script>
 </body>
 </html>`
 }
 
-export function EventMapCard({ lat, lng, emoji = '📍', coloredSegments, elevationSegments, surfaceSegments, onMapEnabledChange, loading }: Props) {
+export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegments, elevationSegments, surfaceSegments, onMapEnabledChange, loading }: Props) {
   const webViewRef = useRef<WebViewType>(null)
   const [weather, setWeather] = useState<CurrentWeather | null>(null)
   const [center, setCenter] = useState({ lat, lng })
   const [mapEnabled, setMapEnabled] = useState(false)
   const [mapLayer, setMapLayer] = useState<MapLayer>('standard')
+  const [showWind, setShowWind] = useState(true)
+  const [showClouds, setShowClouds] = useState(true)
+  const rainReliable = startAt ? isLiveEventWeatherWindow(startAt) : true
+  const effectiveShowClouds = showClouds && rainReliable
   const [layerPickerOpen, setLayerPickerOpen] = useState(false)
   const [weatherRefreshTick, setWeatherRefreshTick] = useState(0)
   const html = useMemo(
-    () => buildHtml(lat, lng, { lat, lng }, emoji, null, coloredSegments ?? [], elevationSegments ?? [], surfaceSegments ?? [], 'standard'),
+    () => buildHtml(lat, lng, { lat, lng }, emoji, null, showWind, effectiveShowClouds, coloredSegments ?? [], elevationSegments ?? [], surfaceSegments ?? [], 'standard'),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [lat, lng, emoji, coloredSegments, elevationSegments, surfaceSegments],
   )
 
@@ -263,15 +305,18 @@ export function EventMapCard({ lat, lng, emoji = '📍', coloredSegments, elevat
   }, [])
 
   useEffect(() => {
-    fetchCurrentWeather(center.lat, center.lng).then(setWeather).catch(() => {})
-  }, [center.lat, center.lng, weatherRefreshTick])
+    const request = startAt
+      ? fetchRelevantEventWeather(center.lat, center.lng, startAt)
+      : fetchCurrentWeather(center.lat, center.lng)
+    request.then(setWeather).catch(() => {})
+  }, [center.lat, center.lng, startAt, weatherRefreshTick])
 
   const weatherRef = useRef<CurrentWeather | null>(null)
   weatherRef.current = weather
 
   useEffect(() => {
-    webViewRef.current?.postMessage(JSON.stringify({ type: 'weatherUpdate', weather }))
-  }, [weather])
+    webViewRef.current?.postMessage(JSON.stringify({ type: 'weatherUpdate', weather, showWind, showClouds: effectiveShowClouds }))
+  }, [weather, showWind, effectiveShowClouds])
 
   useEffect(() => {
     webViewRef.current?.postMessage(JSON.stringify({ type: 'mapLayer', layer: mapLayer }))
@@ -290,7 +335,7 @@ export function EventMapCard({ lat, lng, emoji = '📍', coloredSegments, elevat
         onLoadEnd={() => {
           if (weatherRef.current) {
             webViewRef.current?.postMessage(
-              JSON.stringify({ type: 'weatherUpdate', weather: weatherRef.current }),
+              JSON.stringify({ type: 'weatherUpdate', weather: weatherRef.current, showWind, showClouds: effectiveShowClouds }),
             )
           }
           webViewRef.current?.postMessage(JSON.stringify({ type: 'mapLayer', layer: mapLayer }))
@@ -350,6 +395,24 @@ export function EventMapCard({ lat, lng, emoji = '📍', coloredSegments, elevat
           </View>
         )}
       </View>
+      <View style={styles.weatherToggles} pointerEvents="box-none">
+        <Pressable
+          style={[styles.weatherToggleBtn, showWind && styles.weatherToggleBtnActive]}
+          onPress={() => setShowWind((v) => !v)}
+          hitSlop={8}
+        >
+          <Ionicons name="flag-outline" size={15} color={showWind ? '#031109' : palette.text} />
+        </Pressable>
+        {rainReliable && (
+          <Pressable
+            style={[styles.weatherToggleBtn, showClouds && styles.weatherToggleBtnActive]}
+            onPress={() => setShowClouds((v) => !v)}
+            hitSlop={8}
+          >
+            <Ionicons name="rainy-outline" size={15} color={showClouds ? '#031109' : palette.text} />
+          </Pressable>
+        )}
+      </View>
       {loading && (
         <View pointerEvents="none" style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color={palette.accent} />
@@ -369,6 +432,23 @@ const styles = StyleSheet.create({
     backgroundColor: '#060c1a',
   },
   webview: { flex: 1, backgroundColor: 'transparent' },
+  weatherToggles: {
+    position: 'absolute',
+    bottom: 12,
+    left: 12,
+    gap: 6,
+  },
+  weatherToggleBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(7,13,28,0.78)',
+    borderWidth: 1,
+    borderColor: palette.line,
+  },
+  weatherToggleBtnActive: { backgroundColor: palette.accent, borderColor: palette.accent },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',

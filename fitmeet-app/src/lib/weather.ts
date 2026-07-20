@@ -180,6 +180,44 @@ export async function fetchCurrentWeather(
   }
 }
 
+const LIVE_EVENT_WINDOW_HOURS = 6
+
+// Whether the event is happening today and within the live weather window —
+// close enough that "current weather" is trustworthy. Rain/cloud data for
+// anything further out is just a forecast prediction and shouldn't be shown
+// as if it were reliable.
+export function isLiveEventWeatherWindow(startAt: string): boolean {
+  const start = new Date(startAt)
+  const diffHours = Math.abs(start.getTime() - Date.now()) / 3_600_000
+  const sameDay = start.toDateString() === new Date().toDateString()
+  return sameDay && diffHours <= LIVE_EVENT_WINDOW_HOURS
+}
+
+export async function fetchRelevantEventWeather(
+  lat: number,
+  lng: number,
+  startAt: string,
+): Promise<CurrentWeather | null> {
+  if (isLiveEventWeatherWindow(startAt)) {
+    return fetchCurrentWeather(lat, lng)
+  }
+
+  const isoDate = startAt.slice(0, 10)
+  const hour = new Date(startAt).getHours()
+  const day = await fetchEventWeather(lat, lng, isoDate, hour)
+  if (!day) return null
+
+  return {
+    code: day.code,
+    temperature: day.temperature,
+    windSpeed: day.windSpeed,
+    windDir: day.windDir,
+    uvIndex: day.uvIndex,
+    cloudCover: day.cloudCover,
+    precipitation: day.precipitation,
+  }
+}
+
 export async function fetchRainForecast(
   lat: number,
   lng: number,

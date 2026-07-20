@@ -16,7 +16,7 @@ import { MapLoadingOverlay } from '@/components/map-loading-overlay'
 import { shortAddress } from '@/lib/format-address'
 import { formatEventDateTime } from '@/lib/event-time'
 import { getYouTubeVideoId } from '@/lib/youtube'
-import { fetchRelevantEventWeather, windDirectionLabelDetailed, type EventWeather } from '@/lib/weather'
+import { fetchRelevantEventWeather, isLiveEventWeatherWindow, windDirectionLabelDetailed, type EventWeather } from '@/lib/weather'
 import api from '@/lib/api'
 import { playRandomActionSound } from '@/lib/action-sounds'
 import { useBadgesStore } from '@/store/badges'
@@ -430,6 +430,7 @@ function EventContent() {
   const activityProfileStats = gpxResult?.elevationProfile.length
     ? statsFromElevationProfile(gpxResult.elevationProfile)
     : null
+  const rainDataReliable = event ? isLiveEventWeatherWindow(event.schedule.start_at, event.schedule.timezone) : false
   const surfaceMixText = surfaceAnalysis?.summary.length
     ? surfaceAnalysis.summary.map(item => `${item.percent}% ${item.label.toLowerCase()}`).join(' - ')
     : null
@@ -705,7 +706,7 @@ function EventContent() {
                 weather={weather}
                 weatherVariant="hub"
                 showWindOverlay={showWindOverlay && !isMapInteracting}
-                showCloudOverlay={showCloudOverlay && !isMapInteracting}
+                showCloudOverlay={showCloudOverlay && rainDataReliable && !isMapInteracting}
                 showMapLayerControl
                 readOnly
                 height={720}
@@ -733,19 +734,21 @@ function EventContent() {
                     <Wind size={13} />
                     <span>Wind</span>
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowCloudOverlay(v => !v)}
-                    className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-colors sm:text-xs"
-                    style={{
-                      borderColor: showCloudOverlay ? 'var(--primary)' : 'rgba(255,255,255,0.12)',
-                      color: showCloudOverlay ? 'var(--primary)' : 'var(--text-muted)',
-                      background: showCloudOverlay ? 'rgba(57,255,20,0.1)' : 'rgba(255,255,255,0.03)',
-                    }}
-                  >
-                    <Cloud size={13} />
-                    <span>Clouds</span>
-                  </button>
+                  {rainDataReliable && (
+                    <button
+                      type="button"
+                      onClick={() => setShowCloudOverlay(v => !v)}
+                      className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-colors sm:text-xs"
+                      style={{
+                        borderColor: showCloudOverlay ? 'var(--primary)' : 'rgba(255,255,255,0.12)',
+                        color: showCloudOverlay ? 'var(--primary)' : 'var(--text-muted)',
+                        background: showCloudOverlay ? 'rgba(57,255,20,0.1)' : 'rgba(255,255,255,0.03)',
+                      }}
+                    >
+                      <Cloud size={13} />
+                      <span>Clouds</span>
+                    </button>
+                  )}
                 </div>
                 {weather && (
                   <div

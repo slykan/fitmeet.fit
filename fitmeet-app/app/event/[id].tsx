@@ -1038,6 +1038,7 @@ export default function EventDetailScreen() {
           <EventMapCard
             lat={event.location.lat}
             lng={event.location.lng}
+            startAt={event.schedule.start_at}
             emoji={CATEGORY_EMOJI[event.category.value] ?? '📍'}
             elevationSegments={coloredSegments}
             surfaceSegments={surfaceAnalysis?.segments}

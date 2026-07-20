@@ -315,22 +315,29 @@ function getZonedNowParts(timezone?: string | null) {
   }
 }
 
+// Whether the event is happening today (in its own timezone) and within the
+// live weather window — close enough that "current weather" is trustworthy.
+// Rain/cloud data for anything further out is just a forecast prediction and
+// shouldn't be presented as if it were reliable.
+export function isLiveEventWeatherWindow(startAt: string, timezone?: string | null): boolean {
+  const eventSlot = eventWeatherSlot(startAt, timezone)
+  const nowSlot = getZonedNowParts(timezone)
+  const eventStartMs = new Date(startAt).getTime()
+  const diffHours = Math.abs(eventStartMs - Date.now()) / 3_600_000
+  return eventSlot.isoDate === nowSlot.isoDate && diffHours <= LIVE_EVENT_WINDOW_HOURS
+}
+
 export async function fetchRelevantEventWeather(
   lat: number,
   lng: number,
   startAt: string,
   timezone?: string | null,
 ): Promise<EventWeather | null> {
-  const eventSlot = eventWeatherSlot(startAt, timezone)
-  const nowSlot = getZonedNowParts(timezone)
-  const eventStartMs = new Date(startAt).getTime()
-  const diffHours = Math.abs(eventStartMs - Date.now()) / 3_600_000
-  const shouldUseCurrent = eventSlot.isoDate === nowSlot.isoDate && diffHours <= LIVE_EVENT_WINDOW_HOURS
-
-  if (shouldUseCurrent) {
+  if (isLiveEventWeatherWindow(startAt, timezone)) {
     return fetchCurrentWeather(lat, lng)
   }
 
+  const eventSlot = eventWeatherSlot(startAt, timezone)
   return fetchEventWeather(lat, lng, eventSlot.isoDate, eventSlot.hour)
 }
 
