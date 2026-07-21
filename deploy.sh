@@ -25,6 +25,7 @@ cp -r $REPO/fitmeet-api/app/Enums/.                 $API/app/Enums/
 cp -r $REPO/fitmeet-api/database/migrations/.       $API/database/migrations/
 cp    $REPO/fitmeet-api/routes/api.php              $API/routes/
 cp    $REPO/fitmeet-api/routes/console.php          $API/routes/
+cp    $REPO/fitmeet-api/config/services.php         $API/config/
 cp -r $REPO/fitmeet-api/resources/views/emails/.    $API/resources/views/emails/
 
 # ─── Laravel ─────────────────────────────────────────────────────────────────

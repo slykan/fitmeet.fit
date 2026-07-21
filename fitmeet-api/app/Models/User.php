@@ -133,6 +133,16 @@ class User extends Authenticatable
         return $this->hasMany(UserBadge::class);
     }
 
+    public function providerConnections(): HasMany
+    {
+        return $this->hasMany(ProviderConnection::class);
+    }
+
+    public function trainings(): HasMany
+    {
+        return $this->hasMany(Training::class);
+    }
+
     public function blocksInitiated(): HasMany
     {
         return $this->hasMany(UserBlock::class, 'blocker_id');

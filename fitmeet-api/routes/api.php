@@ -19,6 +19,8 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\UserBlockController;
 use App\Http\Controllers\Api\AdminReportController;
+use App\Http\Controllers\Api\ProviderConnectionController;
+use App\Http\Controllers\Api\TrainingController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->group(function () {
@@ -31,6 +33,8 @@ Route::prefix('auth')->group(function () {
 });
 
 Route::post('strava/login', [\App\Http\Controllers\Api\StravaController::class, 'login']);
+Route::get('strava/webhook',  [\App\Http\Controllers\Api\StravaController::class, 'webhookVerify']);
+Route::post('strava/webhook', [\App\Http\Controllers\Api\StravaController::class, 'webhookReceive']);
 
 // Turnstile page for mobile WebView
 Route::get('turnstile', function () {
@@ -123,6 +127,13 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\EnsureNotBanned::class])
     Route::post('strava/token',                    [\App\Http\Controllers\Api\StravaController::class, 'exchangeToken']);
     Route::post('strava/routes',                   [\App\Http\Controllers\Api\StravaController::class, 'routes']);
     Route::post('strava/routes/{routeId}/gpx',     [\App\Http\Controllers\Api\StravaController::class, 'routeGpx']);
+    Route::post('strava/connect',                  [\App\Http\Controllers\Api\StravaController::class, 'connect']);
+    Route::delete('strava/connect',                [\App\Http\Controllers\Api\StravaController::class, 'disconnect']);
+
+    // Trainings (Strava/Garmin/Huawei sync)
+    Route::get('connections', [ProviderConnectionController::class, 'index']);
+    Route::post('connections/reorder', [ProviderConnectionController::class, 'reorder']);
+    Route::get('trainings', [TrainingController::class, 'index']);
     Route::get('notifications/count',              [FriendController::class, 'notificationsCount']);
     Route::delete('notifications/clear-all',       [FriendController::class, 'notificationsClearAll']);
     Route::post('notifications/read',              [FriendController::class, 'notificationsMarkRead']);

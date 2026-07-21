@@ -46,8 +46,9 @@ return [
     ],
 
     'strava' => [
-        'client_id'     => env('STRAVA_CLIENT_ID'),
-        'client_secret' => env('STRAVA_CLIENT_SECRET'),
+        'client_id'            => env('STRAVA_CLIENT_ID'),
+        'client_secret'        => env('STRAVA_CLIENT_SECRET'),
+        'webhook_verify_token' => env('STRAVA_WEBHOOK_VERIFY_TOKEN'),
     ],
 
 ];

@@ -32,6 +32,17 @@ export default function StravaCallbackPage() {
       return
     }
 
+    if (state === 'web-connect') {
+      const storedToken = token ?? JSON.parse(localStorage.getItem('fitmeet-auth') ?? '{}')?.state?.token
+      if (!storedToken) { router.replace('/login'); return }
+
+      api.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`
+      api.post('/strava/connect', { code })
+        .then(() => router.replace('/profile?strava_connected=1'))
+        .catch(() => router.replace('/profile?strava_error=1'))
+      return
+    }
+
     if (state === 'web-import' || state?.startsWith('web-import-edit-')) {
       // Web route import flow: need auth token
       const storedToken = token ?? JSON.parse(localStorage.getItem('fitmeet-auth') ?? '{}')?.state?.token

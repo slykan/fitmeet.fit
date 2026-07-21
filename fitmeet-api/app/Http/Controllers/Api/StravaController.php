@@ -3,9 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Resources\UserResource;
+use App\Models\ProviderConnection;
 use App\Models\User;
+use App\Services\TrainingSyncService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -171,6 +174,169 @@ class StravaController
             'token' => $token,
             'data'  => new UserResource($user),
         ]);
+    }
+
+    // POST /api/strava/connect  { code }  - link Strava for training sync (Connected apps)
+    public function connect(Request $request, TrainingSyncService $sync): JsonResponse
+    {
+        $request->validate(['code' => 'required|string']);
+        $data = $this->exchangeCode($request->code);
+        if (!$data || empty($data['athlete']['id'])) {
+            return response()->json(['message' => 'Strava auth failed.'], 422);
+        }
+
+        $user = $request->user();
+        $nextPriority = ProviderConnection::where('user_id', $user->id)->max('priority');
+
+        $connection = ProviderConnection::updateOrCreate(
+            ['user_id' => $user->id, 'provider' => 'strava'],
+            [
+                'external_athlete_id' => (string) $data['athlete']['id'],
+                'access_token'        => $data['access_token'],
+                'refresh_token'       => $data['refresh_token'] ?? null,
+                'token_expires_at'    => isset($data['expires_at'])
+                    ? Carbon::createFromTimestamp($data['expires_at'])
+                    : now()->addHours(6),
+                'scope'               => $data['scope'] ?? null,
+                'connected_at'        => now(),
+                'priority'            => $nextPriority === null ? 0 : $nextPriority + 1,
+            ],
+        );
+
+        $synced = $this->backfillStrava($connection, $sync);
+
+        return response()->json([
+            'connected' => true,
+            'synced'    => $synced,
+        ]);
+    }
+
+    // DELETE /api/strava/connect
+    public function disconnect(Request $request): JsonResponse
+    {
+        $connection = ProviderConnection::where('user_id', $request->user()->id)
+            ->where('provider', 'strava')
+            ->first();
+
+        if (!$connection) {
+            return response()->json(['message' => 'Not connected.'], 404);
+        }
+
+        if ($connection->access_token) {
+            try {
+                Http::asForm()->post('https://www.strava.com/oauth/deauthorize', [
+                    'access_token' => $connection->access_token,
+                ]);
+            } catch (\Throwable $e) {
+                Log::warning('Strava deauthorize failed', ['user_id' => $request->user()->id, 'error' => $e->getMessage()]);
+            }
+        }
+
+        $connection->delete();
+
+        return response()->json(['connected' => false]);
+    }
+
+    // GET /api/strava/webhook - subscription verification handshake
+    public function webhookVerify(Request $request): JsonResponse
+    {
+        if (
+            $request->query('hub_mode') === 'subscribe'
+            && $request->query('hub_verify_token') === config('services.strava.webhook_verify_token')
+        ) {
+            return response()->json(['hub.challenge' => $request->query('hub_challenge')]);
+        }
+
+        return response()->json(['message' => 'Verification failed.'], 403);
+    }
+
+    // POST /api/strava/webhook - activity create/update/delete events
+    public function webhookReceive(Request $request, TrainingSyncService $sync): JsonResponse
+    {
+        $objectType = $request->input('object_type');
+        $aspectType = $request->input('aspect_type');
+        $objectId   = $request->input('object_id');
+        $ownerId    = $request->input('owner_id');
+
+        if ($objectType !== 'activity' || !$objectId || !$ownerId) {
+            return response()->json(['message' => 'Ignored.']);
+        }
+
+        $connection = ProviderConnection::where('provider', 'strava')
+            ->where('external_athlete_id', (string) $ownerId)
+            ->first();
+
+        if (!$connection) {
+            return response()->json(['message' => 'Ignored.']);
+        }
+
+        if ($aspectType === 'delete') {
+            $sync->deleteStravaActivity((string) $objectId);
+            return response()->json(['message' => 'Deleted.']);
+        }
+
+        $accessToken = $this->ensureFreshToken($connection);
+        if (!$accessToken) {
+            return response()->json(['message' => 'Token refresh failed.']);
+        }
+
+        $res = Http::withToken($accessToken)->get("https://www.strava.com/api/v3/activities/{$objectId}");
+        if ($res->successful()) {
+            $sync->storeStravaActivity($connection->user, $res->json());
+            $connection->update(['last_synced_at' => now()]);
+        }
+
+        return response()->json(['message' => 'Processed.']);
+    }
+
+    private function backfillStrava(ProviderConnection $connection, TrainingSyncService $sync): int
+    {
+        $res = Http::withToken($connection->access_token)
+            ->get('https://www.strava.com/api/v3/athlete/activities', ['per_page' => 30]);
+
+        if (!$res->successful()) {
+            return 0;
+        }
+
+        $count = 0;
+        foreach ($res->json() ?? [] as $activity) {
+            if ($sync->storeStravaActivity($connection->user, $activity)) {
+                $count++;
+            }
+        }
+
+        $connection->update(['last_synced_at' => now()]);
+
+        return $count;
+    }
+
+    private function ensureFreshToken(ProviderConnection $connection): ?string
+    {
+        if ($connection->token_expires_at && $connection->token_expires_at->isFuture()) {
+            return $connection->access_token;
+        }
+
+        $res = Http::asForm()->post('https://www.strava.com/oauth/token', [
+            'client_id'     => config('services.strava.client_id'),
+            'client_secret' => config('services.strava.client_secret'),
+            'grant_type'    => 'refresh_token',
+            'refresh_token' => $connection->refresh_token,
+        ]);
+
+        if (!$res->successful()) {
+            return null;
+        }
+
+        $data = $res->json();
+        $connection->update([
+            'access_token'     => $data['access_token'],
+            'refresh_token'    => $data['refresh_token'] ?? $connection->refresh_token,
+            'token_expires_at' => isset($data['expires_at'])
+                ? Carbon::createFromTimestamp($data['expires_at'])
+                : now()->addHours(6),
+        ]);
+
+        return $data['access_token'];
     }
 
     private function routeStreamsToGpx(string $accessToken, string $routeId): ?string

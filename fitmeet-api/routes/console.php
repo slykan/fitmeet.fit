@@ -170,6 +170,21 @@ Artisan::command('birthday:send', function () {
 
 Schedule::command('birthday:send')->hourly();
 
+Artisan::command('strava:subscribe-webhook', function () {
+    $res = \Illuminate\Support\Facades\Http::asForm()->post('https://www.strava.com/api/v3/push_subscriptions', [
+        'client_id'     => config('services.strava.client_id'),
+        'client_secret' => config('services.strava.client_secret'),
+        'callback_url'  => config('app.url') . '/api/strava/webhook',
+        'verify_token'  => config('services.strava.webhook_verify_token'),
+    ]);
+
+    if ($res->successful()) {
+        $this->info('Subscribed: ' . json_encode($res->json()));
+    } else {
+        $this->error('Failed: ' . $res->body());
+    }
+})->purpose('Register the Strava webhook subscription (run once per environment)');
+
 Artisan::command('badges:backfill', function () {
     $badgeService = app(BadgeService::class);
     $granted = 0;

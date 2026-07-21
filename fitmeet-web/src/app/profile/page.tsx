@@ -8,6 +8,7 @@ import { useAuthStore } from '@/store/auth'
 import { Navbar } from '@/components/navbar'
 import { Button } from '@/components/ui/button'
 import { BadgeGrid } from '@/components/badge-grid'
+import { ConnectedAppsCard } from '@/components/connected-apps-card'
 import { AlertTriangle, Bell, Calendar, Camera, Mail, MapPin, Phone, Globe, Navigation, Pencil, Trash2, UserPlus } from 'lucide-react'
 import api from '@/lib/api'
 
@@ -265,6 +266,8 @@ export default function ProfilePage() {
         <AlibiCard />
 
         <BadgeGrid />
+
+        <ConnectedAppsCard />
 
         {/* Email notifications */}
         <div

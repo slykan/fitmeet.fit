@@ -6,7 +6,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import {
   Search, Phone, UserPlus, UserCheck, UserMinus, Calendar, MapPin, Users, Zap, ChevronRight,
-  Bell, Check, X, ArrowUpDown, ChevronUp, ChevronDown, Share2, Images, Plus, Pencil,
+  Bell, Check, X, ArrowUpDown, ChevronUp, ChevronDown, Share2, Images, Plus, Pencil, Link2,
 } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
@@ -21,6 +21,7 @@ import { sortEventsBySchedule } from '@/lib/event-order'
 import { fetchGpxActivityStats, type GpxActivityStats } from '@/lib/gpx-activity-stats'
 import { RoutesTab } from '@/components/routes-tab'
 import { MarketTab } from '@/components/market-tab'
+import { TrainingsTab } from '@/components/trainings-tab'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1142,7 +1143,7 @@ function EventsTab() {
 export default function MeetPage() {
   const { token } = useAuthStore()
   const router    = useRouter()
-  const [tab, setTab] = useState<'people' | 'events' | 'routes' | 'market'>('events')
+  const [tab, setTab] = useState<'people' | 'events' | 'routes' | 'market' | 'trainings'>('events')
   const [showCalendar, setShowCalendar] = useState(false)
 
   useEffect(() => {
@@ -1155,6 +1156,7 @@ export default function MeetPage() {
     if (tab === 'events') return router.push('/events/create')
     if (tab === 'routes') return router.push('/routes/create')
     if (tab === 'market') return router.push('/market/create')
+    if (tab === 'trainings') return router.push('/profile')
     // people → invite
     api.post('/me/invite-tap').catch(() => {})
     const text = 'Join me on FitMeet — find sports events and active people near you! 💪'
@@ -1167,10 +1169,11 @@ export default function MeetPage() {
   }
 
   const tabPlusLabel: Record<typeof tab, { icon: React.ReactNode; label: string }> = {
-    events: { icon: <Plus size={15} />,       label: 'New Event' },
-    routes: { icon: <Pencil size={14} />,     label: 'New Route' },
-    people: { icon: <UserPlus size={14} />,   label: 'Invite' },
-    market: { icon: <Plus size={15} />,       label: 'Post' },
+    events:    { icon: <Plus size={15} />,     label: 'New Event' },
+    routes:    { icon: <Pencil size={14} />,   label: 'New Route' },
+    people:    { icon: <UserPlus size={14} />, label: 'Invite' },
+    market:    { icon: <Plus size={15} />,     label: 'Post' },
+    trainings: { icon: <Link2 size={14} />,    label: 'Connect' },
   }
 
   return (
@@ -1210,8 +1213,8 @@ export default function MeetPage() {
           {showCalendar && <CalendarModal onClose={() => setShowCalendar(false)} />}
 
           {/* Tabs */}
-          <div className="grid grid-cols-4 gap-1 p-1 rounded-xl mb-6 w-full" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-            {(['events', 'routes', 'people', 'market'] as const).map(t => (
+          <div className="grid grid-cols-5 gap-1 p-1 rounded-xl mb-6 w-full" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+            {(['events', 'routes', 'trainings', 'people', 'market'] as const).map(t => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
@@ -1221,12 +1224,16 @@ export default function MeetPage() {
                   color:      tab === t ? '#000' : 'var(--text-muted)',
                 }}
               >
-                {t === 'people' ? 'People' : t === 'routes' ? 'Routes' : t === 'market' ? 'Market' : 'Events'}
+                {t === 'people' ? 'People' : t === 'routes' ? 'Routes' : t === 'market' ? 'Market' : t === 'trainings' ? 'Trainings' : 'Events'}
               </button>
             ))}
           </div>
 
-          {tab === 'people' ? <PeopleTab /> : tab === 'routes' ? <RoutesTab /> : tab === 'market' ? <MarketTab /> : <EventsTab />}
+          {tab === 'people' ? <PeopleTab />
+            : tab === 'routes' ? <RoutesTab />
+            : tab === 'market' ? <MarketTab />
+            : tab === 'trainings' ? <TrainingsTab />
+            : <EventsTab />}
 
         </div>
       </main>
