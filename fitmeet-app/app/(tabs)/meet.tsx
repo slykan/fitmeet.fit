@@ -940,6 +940,9 @@ function TrainingsTab() {
   const [month, setMonth] = useState(0)
   const [year, setYear] = useState(0)
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set())
+  const [showFilter, setShowFilter] = useState(false)
+
+  const activeFilterCount = (category ? 1 : 0) + (month ? 1 : 0) + (year ? 1 : 0)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -971,32 +974,52 @@ function TrainingsTab() {
 
   return (
     <View style={{ gap: spacing.md }}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
-        <Pressable style={[styles.filterChip, !category && styles.filterChipActive]} onPress={() => setCategory('')}>
-          <Text style={[styles.filterLabel, !category && styles.filterLabelActive]}>All</Text>
-        </Pressable>
-        {CATEGORIES.map(cat => (
-          <Pressable key={cat.value} style={[styles.filterChip, category === cat.value && styles.filterChipActive]} onPress={() => setCategory(v => v === cat.value ? '' : cat.value)}>
-            <Text style={[styles.filterLabel, category === cat.value && styles.filterLabelActive]}>{cat.emoji} {cat.label}</Text>
-          </Pressable>
-        ))}
-      </ScrollView>
+      <Pressable
+        style={[styles.filterBtn, activeFilterCount > 0 && styles.filterBtnActive]}
+        onPress={() => setShowFilter(v => !v)}
+      >
+        <Ionicons name="options-outline" size={15} color={activeFilterCount > 0 ? '#031109' : palette.text} />
+        <Text style={[styles.filterBtnLabel, activeFilterCount > 0 && styles.filterBtnLabelActive]}>Filter</Text>
+        {activeFilterCount > 0 && (
+          <View style={styles.filterBadge}>
+            <Text style={styles.filterBadgeText}>{activeFilterCount}</Text>
+          </View>
+        )}
+      </Pressable>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
-        {MONTHS.map(m => (
-          <Pressable key={m.value} style={[styles.filterChip, month === m.value && styles.filterChipActive]} onPress={() => setMonth(m.value)}>
-            <Text style={[styles.filterLabel, month === m.value && styles.filterLabelActive]}>{m.label}</Text>
-          </Pressable>
-        ))}
-      </ScrollView>
+      {showFilter && (
+        <View style={styles.filterDropdownThin}>
+          <Text style={styles.filterSectionLabel}>Category</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+            <Pressable style={[styles.filterChip, !category && styles.filterChipActive]} onPress={() => setCategory('')}>
+              <Text style={[styles.filterLabel, !category && styles.filterLabelActive]}>All</Text>
+            </Pressable>
+            {CATEGORIES.map(cat => (
+              <Pressable key={cat.value} style={[styles.filterChip, category === cat.value && styles.filterChipActive]} onPress={() => setCategory(v => v === cat.value ? '' : cat.value)}>
+                <Text style={[styles.filterLabel, category === cat.value && styles.filterLabelActive]}>{cat.emoji} {cat.label}</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
-        {YEARS.map(y => (
-          <Pressable key={y} style={[styles.filterChip, year === y && styles.filterChipActive]} onPress={() => setYear(y)}>
-            <Text style={[styles.filterLabel, year === y && styles.filterLabelActive]}>{y === 0 ? 'All years' : y}</Text>
-          </Pressable>
-        ))}
-      </ScrollView>
+          <Text style={styles.filterSectionLabel}>Month</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+            {MONTHS.map(m => (
+              <Pressable key={m.value} style={[styles.filterChip, month === m.value && styles.filterChipActive]} onPress={() => setMonth(m.value)}>
+                <Text style={[styles.filterLabel, month === m.value && styles.filterLabelActive]}>{m.label}</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+
+          <Text style={styles.filterSectionLabel}>Year</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+            {YEARS.map(y => (
+              <Pressable key={y} style={[styles.filterChip, year === y && styles.filterChipActive]} onPress={() => setYear(y)}>
+                <Text style={[styles.filterLabel, year === y && styles.filterLabelActive]}>{y === 0 ? 'All years' : y}</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+      )}
 
       {!loading && totals && totals.count > 0 && (
         <View style={styles.totalsCard}>
@@ -1930,6 +1953,10 @@ const styles = StyleSheet.create({
     backgroundColor: palette.panelRaised, borderRadius: 18,
     borderWidth: 1, borderColor: palette.line, padding: 14, gap: 8,
   },
+  filterDropdownThin: {
+    backgroundColor: palette.panelRaised, borderRadius: 16,
+    borderWidth: 1, borderColor: palette.line, padding: 10, gap: 4,
+  },
   filterSectionLabel: {
     color: palette.textMuted, fontSize: 11, fontWeight: '800',
     textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 4,
@@ -2000,8 +2027,8 @@ const styles = StyleSheet.create({
   mergedRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   totalsCard: {
     flexDirection: 'row', flexWrap: 'wrap', gap: 16,
-    backgroundColor: palette.panel, borderRadius: 18,
-    borderWidth: 1, borderColor: palette.line, padding: spacing.md,
+    backgroundColor: 'rgba(108,255,47,0.07)', borderRadius: 18,
+    borderWidth: 1, borderColor: 'rgba(108,255,47,0.28)', padding: spacing.md,
   },
   totalStat: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   totalStatValue: { color: palette.text, fontSize: 14, fontWeight: '800' },
