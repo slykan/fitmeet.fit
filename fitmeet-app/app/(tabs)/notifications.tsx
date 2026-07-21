@@ -17,6 +17,7 @@ import { palette, spacing } from '@/src/theme'
 
 interface UserInfo { id: number; name: string; avatar: string | null }
 interface EventInfo { id: number; title: string; start_at: string; address: string | null; category: string }
+interface TrainingInfo { id: number; name: string | null; category: { value: string; label: string }; provider: string; distance_m: number | null; duration_s: number | null }
 
 type Notification =
   | { id: number; type: 'friend_request';  sender:  UserInfo; created_at: string; unread?: boolean }
@@ -28,6 +29,7 @@ type Notification =
   | { id: number; type: 'event_comment';   event:   EventInfo; created_at: string; unread?: boolean }
   | { id: number; type: 'event_comment_mention'; event: EventInfo; created_at: string; unread?: boolean }
   | { id: number; type: 'moment_reminder'; event:   EventInfo; created_at: string; unread?: boolean }
+  | { id: number; type: 'training_synced'; training: TrainingInfo; created_at: string; unread?: boolean }
   | { id: string; type: 'announcement';   title: string; body: string; data?: { url?: string } | null; created_at: string; unread?: boolean }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -355,6 +357,26 @@ export default function NotificationsScreen() {
                 subtitle="Upload one photo to your event — it will appear in the Moments gallery."
                 time={timeAgo(n.created_at)}
                 onPress={() => router.push(`/event/${n.event.id}` as never)}
+                unread={n.unread}
+              />
+            )
+          }
+
+          if (n.type === 'training_synced') {
+            const meta = [
+              n.training.distance_m ? (n.training.distance_m >= 1000 ? `${(n.training.distance_m / 1000).toFixed(1)} km` : `${Math.round(n.training.distance_m)} m`) : null,
+              n.training.duration_s ? `${Math.round(n.training.duration_s / 60)} min` : null,
+            ].filter(Boolean).join(' · ')
+            return (
+              <GenericCard
+                key={`ts-${n.id}`}
+                icon="barbell-outline"
+                iconColor={palette.accent}
+                iconBg="rgba(57,255,20,0.1)"
+                title={<>New training synced: <Text style={styles.accent}>{n.training.name ?? n.training.category.label}</Text></>}
+                subtitle={meta || n.training.category.label}
+                time={timeAgo(n.created_at)}
+                onPress={() => router.push('/(tabs)/meet?tab=trainings' as never)}
                 unread={n.unread}
               />
             )

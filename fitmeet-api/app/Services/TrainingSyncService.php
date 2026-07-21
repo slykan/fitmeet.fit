@@ -3,15 +3,21 @@
 namespace App\Services;
 
 use App\Enums\Category;
+use App\Jobs\SendPushNotification;
 use App\Models\ProviderConnection;
 use App\Models\Training;
+use App\Models\TrainingNotification;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
 class TrainingSyncService
 {
-    public function storeStravaActivity(User $user, array $activity): ?Training
+    /**
+     * $notify should only be true for real-time webhook events — backfill and
+     * resync would otherwise fire a notification/push per historical activity.
+     */
+    public function storeStravaActivity(User $user, array $activity, bool $notify = false): ?Training
     {
         $externalId = isset($activity['id']) ? (string) $activity['id'] : null;
         if (!$externalId || empty($activity['start_date'])) {
@@ -46,9 +52,28 @@ class TrainingSyncService
             ],
         );
 
+        if ($notify && $training->wasRecentlyCreated) {
+            $this->notifyNewTraining($training);
+        }
+
         $this->dedupe($training);
 
         return $training;
+    }
+
+    private function notifyNewTraining(Training $training): void
+    {
+        TrainingNotification::create([
+            'user_id'     => $training->user_id,
+            'training_id' => $training->id,
+        ]);
+
+        SendPushNotification::dispatch(
+            [$training->user_id],
+            'New training synced 💪',
+            $training->name ?? $training->category->label(),
+            ['type' => 'training_synced', 'training_id' => $training->id],
+        );
     }
 
     public function deleteStravaActivity(string $externalId): void

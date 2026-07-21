@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { UserPlus, UserCheck, Check, X, Bell, Calendar, MapPin, Zap, PlayCircle, MessageCircle, Megaphone } from 'lucide-react'
+import { UserPlus, UserCheck, Check, X, Bell, Calendar, MapPin, Zap, PlayCircle, MessageCircle, Megaphone, Dumbbell } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
 import api from '@/lib/api'
@@ -119,6 +119,21 @@ interface MomentReminderNotif {
   created_at: string
 }
 
+interface TrainingSyncedNotif {
+  id: number
+  type: 'training_synced'
+  unread?: boolean
+  training: {
+    id: number
+    name: string | null
+    category: { value: string; label: string }
+    provider: string
+    distance_m: number | null
+    duration_s: number | null
+  }
+  created_at: string
+}
+
 interface AnnouncementNotif {
   id: string
   type: 'announcement'
@@ -138,6 +153,7 @@ type Notif =
   | EventStartedNotif
   | EventCommentNotif
   | MomentReminderNotif
+  | TrainingSyncedNotif
   | AnnouncementNotif
 
 function timeAgo(iso: string) {
@@ -467,6 +483,27 @@ export default function NotificationsPage() {
                   </p>
                 </div>
               </a>
+            ) : n.type === 'training_synced' ? (
+              <div key={n.id}
+                onClick={() => router.push('/meet?tab=trainings')}
+                className="rounded-2xl border p-4 flex items-start gap-3 cursor-pointer transition-opacity hover:opacity-80"
+                style={{ background: n.unread ? 'rgba(57,255,20,0.04)' : 'var(--surface)', borderColor: n.unread ? 'rgba(57,255,20,0.35)' : 'var(--border)' }}>
+                <div className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0"
+                  style={{ background: 'rgba(57,255,20,0.12)', border: '1px solid var(--primary)' }}>
+                  <Dumbbell size={18} style={{ color: 'var(--primary)' }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold mb-0.5" style={{ color: 'var(--primary)' }}>New training synced</p>
+                  <p className="text-sm font-semibold truncate">{n.training.name ?? n.training.category.label}</p>
+                  <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+                    {[
+                      n.training.distance_m ? (n.training.distance_m >= 1000 ? `${(n.training.distance_m / 1000).toFixed(1)} km` : `${Math.round(n.training.distance_m)} m`) : null,
+                      n.training.duration_s ? `${Math.round(n.training.duration_s / 60)} min` : null,
+                    ].filter(Boolean).join(' · ') || n.training.category.label}
+                  </p>
+                  <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{timeAgo(n.created_at)}</p>
+                </div>
+              </div>
             ) : n.type === 'announcement' ? (
               <div key={n.id}
                 className="rounded-2xl border p-4 flex items-start gap-3"

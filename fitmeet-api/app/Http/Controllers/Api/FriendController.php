@@ -12,6 +12,7 @@ use App\Models\AnnouncementRead;
 use App\Models\EventNotification;
 use App\Models\EventReminder;
 use App\Models\FriendRequest;
+use App\Models\TrainingNotification;
 use App\Models\User;
 use App\Services\BadgeService;
 use Illuminate\Http\JsonResponse;
@@ -125,6 +126,7 @@ class FriendController extends Controller
         $me = $request->user();
         FriendRequest::where('sender_id', $me->id)->where('status', 'accepted')->whereNull('accepted_read_at')->update(['accepted_read_at' => now()]);
         EventNotification::where('user_id', $me->id)->delete();
+        TrainingNotification::where('user_id', $me->id)->delete();
         EventReminder::where('user_id', $me->id)->whereNotNull('sent_at')->update(['read_at' => now(), 'sent_at' => now()->subHours(25)]);
         $allAnnouncementIds = Announcement::where('created_at', '>=', now()->subDays(30))->pluck('id');
         foreach ($allAnnouncementIds as $announcementId) {
@@ -148,6 +150,10 @@ class FriendController extends Controller
             ->update(['accepted_read_at' => now()]);
 
         EventNotification::where('user_id', $me->id)
+            ->whereNull('read_at')
+            ->update(['read_at' => now()]);
+
+        TrainingNotification::where('user_id', $me->id)
             ->whereNull('read_at')
             ->update(['read_at' => now()]);
 
@@ -197,6 +203,10 @@ class FriendController extends Controller
             ->whereNull('read_at')
             ->where('created_at', '>=', now()->subHours(48))
             ->count();
+        $trainingsSynced = TrainingNotification::where('user_id', $me->id)
+            ->whereNull('read_at')
+            ->where('created_at', '>=', now()->subDays(14))
+            ->count();
 
         $readAnnouncementIds = AnnouncementRead::where('user_id', $me->id)->pluck('announcement_id');
         $announcements = Announcement::where('created_at', '>=', now()->subDays(30))
@@ -204,7 +214,7 @@ class FriendController extends Controller
             ->where(fn ($q) => $q->whereNull('target_country')->orWhere('target_country', $me->country))
             ->count();
 
-        return response()->json(['count' => $pending + $accepted + $reminders + $newEvents + $cancelled + $started + $eventComments + $eventMentions + $momentReminders + $announcements]);
+        return response()->json(['count' => $pending + $accepted + $reminders + $newEvents + $cancelled + $started + $eventComments + $eventMentions + $momentReminders + $trainingsSynced + $announcements]);
     }
 
     // GET /notifications
@@ -400,6 +410,27 @@ class FriendController extends Controller
                 'created_at' => $n->created_at->toDateTimeString(),
             ]);
 
+        $trainingsSynced = TrainingNotification::with('training')
+            ->where('user_id', $me->id)
+            ->where('created_at', '>=', now()->subDays(14))
+            ->latest()
+            ->get()
+            ->filter(fn ($n) => $n->training !== null)
+            ->map(fn ($n) => [
+                'id'         => $n->id,
+                'type'       => 'training_synced',
+                'unread'     => $n->read_at === null,
+                'training'   => [
+                    'id'         => $n->training->id,
+                    'name'       => $n->training->name,
+                    'category'   => ['value' => $n->training->category->value, 'label' => $n->training->category->label()],
+                    'provider'   => $n->training->provider,
+                    'distance_m' => $n->training->distance_m,
+                    'duration_s' => $n->training->duration_s,
+                ],
+                'created_at' => $n->created_at->toDateTimeString(),
+            ]);
+
         $announcementReads = AnnouncementRead::where('user_id', $me->id)->get()->keyBy('announcement_id');
         $dismissedIds = $announcementReads->filter(fn ($r) => $r->dismissed_at !== null)->keys()->all();
         $announcements = Announcement::where('created_at', '>=', now()->subDays(30))
@@ -433,6 +464,7 @@ class FriendController extends Controller
                 ->concat($eventComments)
                 ->concat($eventMentions)
                 ->concat($momentReminders)
+                ->concat($trainingsSynced)
                 ->concat($announcements)
                 ->sortByDesc('created_at')
                 ->values(),

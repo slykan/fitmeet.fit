@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { EmptyEvents } from '@/src/components/EmptyEvents'
 import { EventCommentsPreview } from '@/src/components/EventCommentsPreview'
 import { InProgressBadge } from '@/src/components/InProgressBadge'
-import { router, useFocusEffect } from 'expo-router'
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, Share,
@@ -1781,8 +1781,13 @@ const TAB_ICONS: Record<'events' | 'routes' | 'trainings' | 'people' | 'market',
 
 export default function MeetScreen() {
   const tabBarHeight = useBottomTabBarHeight()
+  const { tab: initialTab } = useLocalSearchParams<{ tab?: string }>()
   const [tab, setTab] = useState<'events' | 'people' | 'routes' | 'trainings' | 'market'>('events')
   const [showCalendar, setShowCalendar] = useState(false)
+
+  useEffect(() => {
+    if (initialTab === 'trainings') setTab('trainings')
+  }, [initialTab])
 
   function handleHeaderPlus() {
     if (tab === 'events')    return router.push('/event/create' as never)

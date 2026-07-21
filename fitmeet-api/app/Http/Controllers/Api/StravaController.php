@@ -302,7 +302,7 @@ class StravaController
 
         $res = Http::withToken($accessToken)->get("https://www.strava.com/api/v3/activities/{$objectId}");
         if ($res->successful()) {
-            $sync->storeStravaActivity($connection->user, $res->json());
+            $sync->storeStravaActivity($connection->user, $res->json(), notify: true);
             $connection->update(['last_synced_at' => now()]);
         }
 

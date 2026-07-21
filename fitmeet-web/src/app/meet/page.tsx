@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useState, useCallback, useRef, useMemo, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import {
@@ -1141,14 +1141,27 @@ function EventsTab() {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function MeetPage() {
+  return (
+    <Suspense fallback={null}>
+      <MeetPageInner />
+    </Suspense>
+  )
+}
+
+function MeetPageInner() {
   const { token } = useAuthStore()
   const router    = useRouter()
+  const searchParams = useSearchParams()
   const [tab, setTab] = useState<'people' | 'events' | 'routes' | 'market' | 'trainings'>('events')
   const [showCalendar, setShowCalendar] = useState(false)
 
   useEffect(() => {
     if (!token) router.replace('/login')
   }, [token, router])
+
+  useEffect(() => {
+    if (searchParams.get('tab') === 'trainings') setTab('trainings')
+  }, [searchParams])
 
   if (!token) return null
 
