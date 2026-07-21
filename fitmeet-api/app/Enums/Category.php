@@ -21,6 +21,9 @@ enum Category: string
     case Climbing     = 'climbing';
     case Padel        = 'padel';
     case Darts        = 'darts';
+    case IceSkating   = 'ice_skating';
+    case InlineSkating = 'inline_skating';
+    case Walking      = 'walking';
 
     // Social
     case Party        = 'party';
@@ -60,6 +63,9 @@ enum Category: string
             self::Climbing    => 'Climbing',
             self::Padel       => 'Padel',
             self::Darts       => 'Pikado',
+            self::IceSkating  => 'Ice Skating',
+            self::InlineSkating => 'Inline Skating',
+            self::Walking     => 'Walking',
             self::Party       => 'Party',
             self::Chill       => 'Chill',
             self::FoodDrinks  => 'Food & Drinks',
@@ -80,7 +86,8 @@ enum Category: string
             self::Running, self::Cycling, self::Hiking, self::Swimming,
             self::Football, self::Basketball, self::Tennis, self::Volleyball,
             self::Yoga, self::Fitness, self::MartialArts, self::Skiing,
-            self::Surfing, self::Climbing, self::Padel, self::Darts => 'Sports',
+            self::Surfing, self::Climbing, self::Padel, self::Darts,
+            self::IceSkating, self::InlineSkating, self::Walking => 'Sports',
 
             self::Party, self::Chill, self::FoodDrinks,
             self::Music, self::Gaming => 'Social',
