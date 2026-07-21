@@ -166,6 +166,13 @@ export default function ProfileScreen() {
           <Ionicons name="chevron-forward" size={16} color={palette.textDim} />
         </Pressable>
 
+        {/* Connected apps link */}
+        <Pressable style={styles.settingsLink} onPress={() => router.push('/connected-apps' as never)}>
+          <Ionicons name="link-outline" size={18} color={palette.accent} />
+          <Text style={styles.settingsLinkText}>Connected apps</Text>
+          <Ionicons name="chevron-forward" size={16} color={palette.textDim} />
+        </Pressable>
+
         {/* Admin broadcast */}
         {user.is_admin && (
           <Pressable style={styles.settingsLink} onPress={() => router.push('/admin-broadcast' as never)}>
