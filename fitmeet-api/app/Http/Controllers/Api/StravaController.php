@@ -300,7 +300,13 @@ class StravaController
 
         $count = 0;
         foreach ($res->json() ?? [] as $activity) {
-            if ($sync->storeStravaActivity($connection->user, $activity)) {
+            // The summary list is missing calories/description/gear/relative effort —
+            // fetch the full detail per activity so backfilled trainings aren't sparse.
+            $detail = Http::withToken($connection->access_token)
+                ->get("https://www.strava.com/api/v3/activities/{$activity['id']}");
+            $payload = $detail->successful() ? $detail->json() : $activity;
+
+            if ($sync->storeStravaActivity($connection->user, $payload)) {
                 $count++;
             }
         }

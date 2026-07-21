@@ -31,6 +31,18 @@ class TrainingSyncService
                 'duration_s'     => $activity['moving_time'] ?? $activity['elapsed_time'] ?? null,
                 'distance_m'     => $activity['distance'] ?? null,
                 'elevation_gain' => $activity['total_elevation_gain'] ?? null,
+                'avg_heartrate'  => $activity['average_heartrate'] ?? null,
+                'max_heartrate'  => $activity['max_heartrate'] ?? null,
+                'avg_watts'      => $activity['average_watts'] ?? null,
+                'max_watts'      => $activity['max_watts'] ?? null,
+                'avg_cadence'    => $activity['average_cadence'] ?? null,
+                'calories'       => $activity['calories'] ?? null,
+                'avg_speed_mps'  => $activity['average_speed'] ?? null,
+                'max_speed_mps'  => $activity['max_speed'] ?? null,
+                'kilojoules'     => $activity['kilojoules'] ?? null,
+                'suffer_score'   => $activity['suffer_score'] ?? null,
+                'gear_name'      => $activity['gear']['name'] ?? null,
+                'description'    => $activity['description'] ?? null,
             ],
         );
 
