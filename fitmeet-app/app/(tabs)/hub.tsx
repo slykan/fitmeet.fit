@@ -86,6 +86,7 @@ export default function HubScreen() {
   const [weather, setWeather] = useState<CurrentWeather | null>(null)
   const [rainForecast, setRainForecast] = useState<RainForecast | null>(null)
   const [dailyForecast, setDailyForecast] = useState<DailyForecastDay[] | null>(null)
+  const [showForecast, setShowForecast] = useState(false)
   const [showFilter, setShowFilter] = useState(false)
   const [mapTouching, setMapTouching] = useState(false)
   const [weatherCenter, setWeatherCenter] = useState<{ lat: number; lng: number } | null>(null)
@@ -548,28 +549,42 @@ export default function HubScreen() {
         )}
 
         {dailyForecast && dailyForecast.length > 0 && (
-          <View style={styles.forecastCard}>
-            {dailyForecast.map((day, i) => (
-              <View key={day.date} style={styles.forecastDay}>
-                <Text style={styles.forecastDayLabel}>
-                  {i === 0 ? 'Today' : new Date(`${day.date}T12:00:00`).toLocaleDateString('en-GB', { weekday: 'short' })}
-                </Text>
-                <Ionicons name={weatherIconName(day.code) as never} size={22} color="#f5f7ff" />
-                <Text style={styles.forecastTemp}>
-                  {day.tempMax}°<Text style={styles.forecastTempMin}> / {day.tempMin}°</Text>
-                </Text>
-                <View style={styles.forecastWindRow}>
-                  <View style={{ transform: [{ rotate: `${(day.windDir + 180) % 360}deg` }] }}>
-                    <Ionicons name="arrow-up-outline" size={11} color="#f5f7ff" />
+          showForecast ? (
+            <View style={styles.forecastCard}>
+              <Pressable
+                onPress={() => setShowForecast(false)}
+                style={styles.forecastCollapseBtn}
+                hitSlop={8}
+              >
+                <Ionicons name="chevron-down" size={13} color={palette.text} />
+              </Pressable>
+              {dailyForecast.map((day, i) => (
+                <View key={day.date} style={styles.forecastDay}>
+                  <Text style={styles.forecastDayLabel}>
+                    {i === 0 ? 'Today' : new Date(`${day.date}T12:00:00`).toLocaleDateString('en-GB', { weekday: 'short' })}
+                  </Text>
+                  <Ionicons name={weatherIconName(day.code) as never} size={22} color="#f5f7ff" />
+                  <Text style={styles.forecastTemp}>
+                    {day.tempMax}°<Text style={styles.forecastTempMin}> / {day.tempMin}°</Text>
+                  </Text>
+                  <View style={styles.forecastWindRow}>
+                    <View style={{ transform: [{ rotate: `${(day.windDir + 180) % 360}deg` }] }}>
+                      <Ionicons name="arrow-up-outline" size={11} color="#f5f7ff" />
+                    </View>
+                    <Text style={styles.forecastWindText}>{day.windSpeed} km/h</Text>
                   </View>
-                  <Text style={styles.forecastWindText}>{day.windSpeed} km/h</Text>
+                  {day.humidity != null && (
+                    <Text style={styles.forecastHumidity}>💧 {day.humidity}%</Text>
+                  )}
                 </View>
-                {day.humidity != null && (
-                  <Text style={styles.forecastHumidity}>💧 {day.humidity}%</Text>
-                )}
-              </View>
-            ))}
-          </View>
+              ))}
+            </View>
+          ) : (
+            <Pressable style={styles.forecastPill} onPress={() => setShowForecast(true)}>
+              <Ionicons name="chevron-up" size={13} color={palette.textMuted} />
+              <Text style={styles.forecastPillText}>5-day forecast</Text>
+            </Pressable>
+          )
         )}
       </View>
 
@@ -643,6 +658,7 @@ const styles = StyleSheet.create({
   radarNowBtnTextActive: { color: '#031109' },
 
   forecastCard: {
+    position: 'relative',
     flexDirection: 'row',
     justifyContent: 'space-between',
     backgroundColor: palette.panel,
@@ -652,6 +668,35 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 6,
   },
+  forecastCollapseBtn: {
+    position: 'absolute',
+    top: -11,
+    left: '50%',
+    marginLeft: -11,
+    width: 22,
+    height: 22,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: palette.panelRaised,
+    borderWidth: 1,
+    borderColor: palette.line,
+    zIndex: 1,
+  },
+  forecastPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    alignSelf: 'center',
+    backgroundColor: palette.panel,
+    borderWidth: 1,
+    borderColor: palette.line,
+    borderRadius: 999,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+  },
+  forecastPillText: { color: palette.textMuted, fontSize: 11, fontWeight: '700' },
   forecastDay: { flex: 1, alignItems: 'center', gap: 4 },
   forecastDayLabel: { color: palette.textMuted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase' },
   forecastTemp: { color: palette.text, fontSize: 13, fontWeight: '800' },
