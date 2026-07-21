@@ -15,6 +15,56 @@ export interface Post {
 
 export const posts: Post[] = [
   {
+    slug: 'fitmeet-training-sync-strava',
+    title: 'Your Strava Trainings Now Sync Automatically Into FitMeet',
+    description: 'Connect Strava once and every run, ride or workout shows up in FitMeet automatically — categorized, deduplicated, and packed with heart rate, power, cadence and pace. Garmin and Huawei Health are next.',
+    publishedAt: '2026-07-21',
+    readTime: 4,
+    category: 'Training',
+    sections: [
+      {
+        heading: 'One Place for Every Training, Not Just Events',
+        paragraphs: [
+          'FitMeet has always been about the events you join and organise. But most people training for those events are also logging solo runs, rides and gym sessions somewhere else — usually Strava. Until now, that history lived in a completely separate app with no connection to FitMeet at all.',
+          'That changes today. Connect your Strava account once, and every training you record shows up automatically in FitMeet — no manual import, no copy-pasting a screenshot into a group chat.',
+        ],
+      },
+      {
+        heading: 'Connect Once, Sync Forever',
+        paragraphs: [
+          'Head to Profile → Connected apps and connect Strava. FitMeet immediately pulls in your recent training history, then stays in sync in real time from that point on — a Strava webhook notifies FitMeet the moment you finish a new activity, so it typically appears within seconds, not after some overnight batch job.',
+          'Disconnecting is just as simple, and your already-synced history stays in your FitMeet log either way — nothing gets deleted just because you unlink an account.',
+        ],
+      },
+      {
+        heading: 'Categorized and Fully Detailed',
+        paragraphs: [
+          'Every synced training is automatically mapped onto the same sport categories FitMeet already uses for events — running, cycling, hiking, swimming, fitness and more — so it fits right alongside everything else in the app.',
+          'It is not just a title and a distance either. Where Strava has the data, FitMeet shows it: average and max heart rate, power in watts, cadence, calories, pace or speed depending on the sport, elevation gain, relative effort, even the gear you used and any notes you added. It is all there under a "Show details" toggle on each training, so the summary stays clean but the full picture is one tap away.',
+        ],
+      },
+      {
+        heading: 'A New Log Tab, With Filters and Totals',
+        paragraphs: [
+          'Trainings live in a new tab under Meet, filterable by category, month and year. Filter down to "Cycling, July" and a totals strip above the list adds up your distance, time, elevation and calories for exactly that slice — and it only shows the numbers that make sense for what you filtered, so a month of swims will not show a bogus elevation total.',
+          'Get a notification the moment a new training lands, too — a "New training synced" alert shows up right in your Alerts, tapping it drops you straight into the Log tab to see it.',
+        ],
+      },
+      {
+        heading: 'Built to Handle More Than One Source',
+        paragraphs: [
+          'Strava is live today, but it will not be the only source for long — Garmin Connect and Huawei Health are next on the roadmap. FitMeet already has the groundwork in place for that: if the same training ever ends up reported by two connected providers, it gets matched and merged instead of showing up twice, and you decide which provider wins by ranking them in Connected apps.',
+        ],
+      },
+      {
+        heading: 'Available Now',
+        paragraphs: [
+          'Strava sync is live today on fitmeet.fit, rolling out to the Android and iOS apps in the next update. If you train on Strava, connecting it takes about ten seconds — and from then on, FitMeet just stays current.',
+        ],
+      },
+    ],
+  },
+  {
     slug: 'fitmeet-block-report-trust-and-safety',
     title: 'Report, Block and Stay in Control: New Trust & Safety Tools on FitMeet',
     description: 'FitMeet now lets you report and block other members directly from events, messages, moments and the marketplace, backed by an admin review team and a Terms of Service you accept at sign-up.',
