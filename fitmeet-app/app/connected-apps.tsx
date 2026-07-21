@@ -185,11 +185,11 @@ export default function ConnectedAppsScreen() {
                 {p.available && (
                   connection ? (
                     <View style={styles.actions}>
-                      <Pressable style={styles.secondaryBtn} onPress={resyncStrava} disabled={anyBusy}>
+                      <Pressable style={[styles.secondaryBtn, { flex: 1 }]} onPress={resyncStrava} disabled={anyBusy}>
                         {isResyncing ? <ActivityIndicator size="small" color={palette.textMuted} /> : <Ionicons name="refresh-outline" size={14} color={palette.textMuted} />}
                         <Text style={styles.secondaryBtnText}>Resync</Text>
                       </Pressable>
-                      <Pressable style={styles.secondaryBtn} onPress={disconnectStrava} disabled={anyBusy}>
+                      <Pressable style={[styles.secondaryBtn, { flex: 1 }]} onPress={disconnectStrava} disabled={anyBusy}>
                         {isBusy ? <ActivityIndicator size="small" color={palette.textMuted} /> : <Ionicons name="checkmark" size={14} color={p.color} />}
                         <Text style={styles.secondaryBtnText}>Disconnect</Text>
                       </Pressable>
@@ -220,11 +220,11 @@ const styles = StyleSheet.create({
   subtitle: { color: palette.textMuted, fontSize: 13, lineHeight: 18, marginBottom: 4 },
 
   row: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+    gap: 12,
     backgroundColor: palette.panel, borderRadius: 18,
     borderWidth: 1, borderColor: palette.line, padding: spacing.md,
   },
-  rowInfo: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 },
+  rowInfo: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   dot: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   dotInner: { width: 10, height: 10, borderRadius: 5 },
   providerName: { color: palette.text, fontSize: 15, fontWeight: '700' },
