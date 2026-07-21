@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Check, Link2, Loader2 } from 'lucide-react'
+import { Check, Link2, Loader2, RefreshCw } from 'lucide-react'
 
 import api from '@/lib/api'
 
@@ -75,6 +75,20 @@ function ConnectedAppsCardInner() {
       `&scope=read,activity:read_all&state=web-connect`
   }
 
+  async function resyncStrava() {
+    setBusyProvider('strava-resync')
+    setNotice(null)
+    try {
+      const { data } = await api.post('/strava/resync')
+      setNotice(`Resynced — refreshed ${data.synced} training(s) with full detail.`)
+      load()
+    } catch {
+      setNotice('Could not resync Strava. Please try again.')
+    } finally {
+      setBusyProvider(null)
+    }
+  }
+
   async function disconnectStrava() {
     setBusyProvider('strava')
     try {
@@ -107,6 +121,8 @@ function ConnectedAppsCardInner() {
         {PROVIDERS.map(p => {
           const connection = connections.find(c => c.provider === p.key)
           const isBusy = busyProvider === p.key
+          const isResyncing = busyProvider === `${p.key}-resync`
+          const anyBusy = busyProvider !== null
 
           return (
             <div key={p.key} className="flex items-center justify-between gap-3">
@@ -131,15 +147,27 @@ function ConnectedAppsCardInner() {
 
               {p.available && !loading && (
                 connection ? (
-                  <button
-                    onClick={disconnectStrava}
-                    disabled={isBusy}
-                    className="shrink-0 flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg border font-semibold transition-opacity hover:opacity-80 disabled:opacity-50"
-                    style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}
-                  >
-                    {isBusy ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} style={{ color: p.color }} />}
-                    Disconnect
-                  </button>
+                  <div className="shrink-0 flex items-center gap-2">
+                    <button
+                      onClick={resyncStrava}
+                      disabled={anyBusy}
+                      title="Re-fetch full detail (heart rate, power, calories...) for recent activities"
+                      className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg border font-semibold transition-opacity hover:opacity-80 disabled:opacity-50"
+                      style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}
+                    >
+                      {isResyncing ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
+                      Resync
+                    </button>
+                    <button
+                      onClick={disconnectStrava}
+                      disabled={anyBusy}
+                      className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg border font-semibold transition-opacity hover:opacity-80 disabled:opacity-50"
+                      style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}
+                    >
+                      {isBusy ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} style={{ color: p.color }} />}
+                      Disconnect
+                    </button>
+                  </div>
                 ) : (
                   <button
                     onClick={connectStrava}

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Activity, ChevronDown, Clock, Flame, Gauge, HeartPulse, Layers, Link2, Tag, Wind, Zap } from 'lucide-react'
+import { Activity, ChevronDown, Clock, Flame, Gauge, HeartPulse, Layers, Link2, Mountain, Tag, Wind, Zap } from 'lucide-react'
 
 import api from '@/lib/api'
 import { CATEGORIES, CATEGORY_EMOJI } from '@/lib/categories'
@@ -29,6 +29,14 @@ interface TrainingItem {
   gear_name: string | null
   description: string | null
   is_merged: boolean
+}
+
+interface Totals {
+  count: number
+  distance_m: number
+  duration_s: number
+  elevation_gain: number
+  calories: number
 }
 
 const PROVIDER_LABEL: Record<string, string> = {
@@ -103,6 +111,18 @@ function buildDetails(t: TrainingItem): DetailStat[] {
   return details.filter((d): d is DetailStat => d !== false)
 }
 
+function TotalStat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+  return (
+    <div className="flex items-center gap-2">
+      <span style={{ color: 'var(--primary)' }}>{icon}</span>
+      <div>
+        <p className="text-sm font-bold leading-none">{value}</p>
+        <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{label}</p>
+      </div>
+    </div>
+  )
+}
+
 const MONTHS = [
   { value: 0, label: 'All months' },
   { value: 1, label: 'January' },
@@ -125,6 +145,7 @@ const YEARS = [0, ...Array.from({ length: 6 }, (_, i) => CURRENT_YEAR - i)]
 export function TrainingsTab() {
   const router = useRouter()
   const [trainings, setTrainings] = useState<TrainingItem[]>([])
+  const [totals, setTotals] = useState<Totals | null>(null)
   const [loading, setLoading] = useState(true)
   const [category, setCategory] = useState('')
   const [month, setMonth] = useState(0)
@@ -141,8 +162,11 @@ export function TrainingsTab() {
   const load = useCallback(() => {
     setLoading(true)
     api.get('/trainings', { params })
-      .then(({ data }) => setTrainings(data.data ?? []))
-      .catch(() => setTrainings([]))
+      .then(({ data }) => {
+        setTrainings(data.data ?? [])
+        setTotals(data.totals ?? null)
+      })
+      .catch(() => { setTrainings([]); setTotals(null) })
       .finally(() => setLoading(false))
   }, [params])
 
@@ -175,6 +199,25 @@ export function TrainingsTab() {
           {YEARS.map(y => <option key={y} value={y}>{y === 0 ? 'All years' : y}</option>)}
         </select>
       </div>
+
+      {!loading && totals && totals.count > 0 && (
+        <div className="rounded-2xl border p-4 flex flex-wrap gap-x-6 gap-y-3"
+          style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
+          <TotalStat icon={<Activity size={15} />} label={totals.count === 1 ? 'Training' : 'Trainings'} value={String(totals.count)} />
+          {formatDistance(totals.distance_m) && (
+            <TotalStat icon={<Zap size={15} />} label="Total distance" value={formatDistance(totals.distance_m)!} />
+          )}
+          {formatDuration(totals.duration_s) && (
+            <TotalStat icon={<Clock size={15} />} label="Total time" value={formatDuration(totals.duration_s)!} />
+          )}
+          {totals.elevation_gain > 0 && (
+            <TotalStat icon={<Mountain size={15} />} label="Total elevation" value={`${Math.round(totals.elevation_gain)} m`} />
+          )}
+          {totals.calories > 0 && (
+            <TotalStat icon={<Flame size={15} />} label="Total calories" value={`${Math.round(totals.calories)} kcal`} />
+          )}
+        </div>
+      )}
 
       {loading && (
         <div className="text-center py-12 text-sm" style={{ color: 'var(--text-muted)' }}>Loading...</div>

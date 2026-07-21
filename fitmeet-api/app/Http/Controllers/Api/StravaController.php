@@ -237,6 +237,26 @@ class StravaController
         return response()->json(['connected' => false]);
     }
 
+    // POST /api/strava/resync - re-fetch full activity detail for recent activities
+    public function resync(Request $request, TrainingSyncService $sync): JsonResponse
+    {
+        $connection = ProviderConnection::where('user_id', $request->user()->id)
+            ->where('provider', 'strava')
+            ->first();
+
+        if (!$connection) {
+            return response()->json(['message' => 'Not connected.'], 404);
+        }
+
+        if (!$this->ensureFreshToken($connection)) {
+            return response()->json(['message' => 'Strava session expired. Reconnect Strava.'], 422);
+        }
+
+        $synced = $this->backfillStrava($connection, $sync);
+
+        return response()->json(['synced' => $synced]);
+    }
+
     // GET /api/strava/webhook - subscription verification handshake
     public function webhookVerify(Request $request): JsonResponse
     {

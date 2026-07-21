@@ -12,8 +12,7 @@ class TrainingController
     public function index(Request $request): JsonResponse
     {
         $query = Training::where('user_id', $request->user()->id)
-            ->where('is_primary', true)
-            ->orderByDesc('started_at');
+            ->where('is_primary', true);
 
         if ($request->filled('category')) {
             $query->where('category', $request->string('category'));
@@ -27,7 +26,16 @@ class TrainingController
             $query->whereMonth('started_at', $request->integer('month'));
         }
 
-        $trainings = $query->paginate(30)->through(fn (Training $t) => [
+        // Aggregate over the full filtered set (not just the current page).
+        $totals = (clone $query)->selectRaw('
+            COUNT(*) as count,
+            COALESCE(SUM(distance_m), 0) as distance_m,
+            COALESCE(SUM(duration_s), 0) as duration_s,
+            COALESCE(SUM(elevation_gain), 0) as elevation_gain,
+            COALESCE(SUM(calories), 0) as calories
+        ')->first();
+
+        $trainings = $query->orderByDesc('started_at')->paginate(30)->through(fn (Training $t) => [
             'id'             => $t->id,
             'provider'       => $t->provider,
             'category'       => ['value' => $t->category->value, 'label' => $t->category->label()],
@@ -51,6 +59,14 @@ class TrainingController
             'is_merged'      => $t->dedup_group_id !== null,
         ]);
 
-        return response()->json($trainings);
+        return response()->json(array_merge($trainings->toArray(), [
+            'totals' => [
+                'count'          => (int) $totals->count,
+                'distance_m'     => (float) $totals->distance_m,
+                'duration_s'     => (int) $totals->duration_s,
+                'elevation_gain' => (float) $totals->elevation_gain,
+                'calories'       => (float) $totals->calories,
+            ],
+        ]));
     }
 }

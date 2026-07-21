@@ -129,6 +129,7 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\EnsureNotBanned::class])
     Route::post('strava/routes/{routeId}/gpx',     [\App\Http\Controllers\Api\StravaController::class, 'routeGpx']);
     Route::post('strava/connect',                  [\App\Http\Controllers\Api\StravaController::class, 'connect']);
     Route::delete('strava/connect',                [\App\Http\Controllers\Api\StravaController::class, 'disconnect']);
+    Route::post('strava/resync',                   [\App\Http\Controllers\Api\StravaController::class, 'resync']);
 
     // Trainings (Strava/Garmin/Huawei sync)
     Route::get('connections', [ProviderConnectionController::class, 'index']);
