@@ -4,10 +4,13 @@ import {
   CheckCircle2,
   Compass,
   Download,
+  HeartPulse,
+  Layers,
   MessageSquareText,
   PencilLine,
   Route,
   Share2,
+  SlidersHorizontal,
   Zap,
 } from 'lucide-react'
 import Link from 'next/link'
@@ -113,6 +116,29 @@ const latestFeatures = [
     title: 'Better route drawing',
     description: 'Create routes with search, current location, cleaner controls and an elevation preview.',
     href: '/blog/route-surface-mix-event-updates',
+  },
+]
+
+const trainingNews = [
+  {
+    icon: Zap,
+    title: 'Real-time sync',
+    description: 'Finish a training on Strava and it lands in your FitMeet Log within seconds — no manual import, no waiting for an overnight job.',
+  },
+  {
+    icon: HeartPulse,
+    title: 'Full training detail',
+    description: 'Heart rate, power, cadence, calories, pace and elevation come across too, not just a title and a distance.',
+  },
+  {
+    icon: SlidersHorizontal,
+    title: 'Filters and totals',
+    description: 'Browse your Log by category, month and year, with a running total for distance, time, elevation and calories.',
+  },
+  {
+    icon: Layers,
+    title: 'More providers coming',
+    description: 'Garmin Connect and Huawei Health are next. FitMeet already knows how to merge a training reported by more than one source instead of showing it twice.',
   },
 ]
 
@@ -417,6 +443,54 @@ export default async function HomePage() {
         <LatestMarketCarousel listings={latestListings} />
 
         <LatestRoutesSection />
+
+        <section className="py-14 md:py-16 border-b" style={{ borderColor: 'var(--border)' }}>
+          <div className="max-w-6xl mx-auto px-4">
+            <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between mb-8">
+              <div className="max-w-2xl">
+                <p className="text-sm font-semibold mb-3" style={{ color: 'var(--primary)' }}>
+                  What&apos;s new
+                </p>
+                <h2 className="text-3xl md:text-4xl font-bold mb-3">Every Strava training, automatically in FitMeet.</h2>
+                <p className="text-base leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+                  Connect Strava once under Profile → Connected apps, and FitMeet stays in sync from that point on — every
+                  run, ride or workout shows up automatically, categorized the same way as everything else in the app and
+                  filled in with the numbers that actually matter: heart rate, power, cadence, calories, pace and
+                  elevation. Strava is live today, and FitMeet already has dedup logic in place for when Garmin Connect
+                  and Huawei Health join it, so a training reported by two sources gets merged instead of duplicated.
+                </p>
+              </div>
+              <Link
+                href="/blog/fitmeet-training-sync-strava"
+                className="inline-flex items-center gap-2 text-sm font-semibold transition-opacity hover:opacity-80"
+                style={{ color: 'var(--primary)' }}
+              >
+                Read the update <ArrowRight size={14} />
+              </Link>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {trainingNews.map(({ icon: Icon, title, description }) => (
+                <div
+                  key={title}
+                  className="rounded-2xl border p-5"
+                  style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
+                >
+                  <div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center mb-4"
+                    style={{ background: 'rgba(57,255,20,0.1)' }}
+                  >
+                    <Icon size={18} style={{ color: 'var(--primary)' }} />
+                  </div>
+                  <h3 className="font-bold mb-2">{title}</h3>
+                  <p className="text-sm leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+                    {description}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
 
         <section className="py-14 md:py-16 border-b" style={{ borderColor: 'var(--border)' }}>
           <div className="max-w-6xl mx-auto px-4">
