@@ -23,14 +23,6 @@ const HUAWEI_CLIENT_ID = '118410135'
 const HUAWEI_REDIRECT_URI = 'https://fitmeet.fit/huawei-callback'
 const HUAWEI_SCOPES = [
   'openid',
-  'https://www.huawei.com/healthkit/step.read',
-  'https://www.huawei.com/healthkit/distance.read',
-  'https://www.huawei.com/healthkit/calories.read',
-  'https://www.huawei.com/healthkit/altitude.read',
-  'https://www.huawei.com/healthkit/heartrate.read',
-  'https://www.huawei.com/healthkit/activityrecord.read',
-  'https://www.huawei.com/healthkit/activityrecord.readdetail',
-  'https://www.huawei.com/healthkit/historydata.read',
 ].join(' ')
 
 function timeAgo(iso: string | null): string {
