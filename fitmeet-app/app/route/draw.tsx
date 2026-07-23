@@ -809,7 +809,7 @@ async function removeWaypoint(idx) {
 
   selectedIdx = null;
 
-  if (idx > 0 && idx <= waypoints.length) {
+  if (idx > 0 && idx < waypoints.length) {
     await routeSegment(idx-1);
   } else {
     updateStats();

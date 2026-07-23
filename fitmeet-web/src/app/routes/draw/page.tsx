@@ -330,47 +330,6 @@ function DrawContent() {
 
           {fullscreen && (
             <>
-              {/* Floating top bar — name, undo, save */}
-              <div
-                className="flex-none flex items-center gap-2 px-3 py-2"
-                style={{ background: 'rgba(5,8,22,0.94)', borderBottom: '1px solid rgba(255,255,255,0.1)' }}
-              >
-                <button
-                  type="button"
-                  onClick={() => setFullscreen(false)}
-                  aria-label="Exit fullscreen"
-                  className="flex items-center justify-center rounded-xl border"
-                  style={{ width: 40, height: 40, flex: 'none', borderColor: 'rgba(255,255,255,0.16)', color: '#f5f7ff', background: 'rgba(255,255,255,0.06)' }}
-                >
-                  <ChevronLeft size={18} />
-                </button>
-                <input
-                  value={title}
-                  onChange={e => setTitle(e.target.value)}
-                  placeholder="Route name"
-                  maxLength={140}
-                  className="min-w-0 flex-1 rounded-xl border px-3 py-2.5 text-sm font-semibold outline-none"
-                  style={{ background: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.16)', color: '#f5f7ff' }}
-                />
-                <button
-                  type="button"
-                  onClick={() => setUndoRequestId(id => id + 1)}
-                  disabled={drawPointCount === 0}
-                  className="rounded-xl border px-3 py-2.5 text-xs font-black disabled:opacity-40"
-                  style={{ flex: 'none', borderColor: 'rgba(255,255,255,0.16)', color: '#f5f7ff', background: 'rgba(255,255,255,0.06)' }}
-                >
-                  Undo
-                </button>
-                <button
-                  onClick={handleSave}
-                  disabled={saving}
-                  className="rounded-xl px-4 py-2.5 text-xs font-black disabled:opacity-40"
-                  style={{ flex: 'none', background: 'var(--primary)', color: '#000' }}
-                >
-                  {saving ? 'Saving...' : 'Save'}
-                </button>
-              </div>
-
               {/* Category chips row */}
               <div
                 className="flex-none px-3 py-2 overflow-x-auto"
@@ -398,7 +357,7 @@ function DrawContent() {
           <div className={fullscreen ? 'flex-1 relative min-h-0' : ''}>
             <Suspense fallback={<div style={{ height: fullscreen ? '100%' : 500, borderRadius: fullscreen ? 0 : 16, background: 'var(--surface)', border: fullscreen ? 'none' : '1px solid var(--border)' }} />}>
               <RouteDrawMap
-                key={`${editId ?? 'new'}-${category}-${initialWaypoints?.length ?? 0}-${initialTrack?.length ?? 0}`}
+                key={`${editId ?? 'new'}-${initialWaypoints?.length ?? 0}-${initialTrack?.length ?? 0}`}
                 category={category}
                 height={500}
                 fullscreen={fullscreen}
@@ -410,6 +369,12 @@ function DrawContent() {
                   drawResultRef.current = result
                   setDrawPointCount(result.waypoints.length)
                 }}
+                title={title}
+                onTitleChange={setTitle}
+                onSave={handleSave}
+                saving={saving}
+                onUndo={() => setUndoRequestId(id => id + 1)}
+                canUndo={drawPointCount > 0}
               />
             </Suspense>
           </div>

@@ -3,6 +3,7 @@
 import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import { Check, Loader2, Undo2 } from 'lucide-react'
 import { slopeColor } from '@/lib/parse-gpx'
 
 export type LatLng = [number, number]
@@ -49,6 +50,12 @@ interface Props {
   fullscreen?: boolean
   onToggleFullscreen?: () => void
   onUpdate: (result: DrawResult) => void
+  title?: string
+  onTitleChange?: (title: string) => void
+  onSave?: () => void
+  saving?: boolean
+  onUndo?: () => void
+  canUndo?: boolean
 }
 
 function createMapBaseLayers() {
@@ -365,7 +372,7 @@ function straightLine(from: LatLng, to: LatLng): { coords: LatLng[]; distanceM: 
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function RouteDrawMap({ category, height = 500, initialWaypoints, initialTrack, undoRequestId = 0, fullscreen = false, onToggleFullscreen, onUpdate }: Props) {
+export default function RouteDrawMap({ category, height = 500, initialWaypoints, initialTrack, undoRequestId = 0, fullscreen = false, onToggleFullscreen, onUpdate, title, onTitleChange, onSave, saving, onUndo, canUndo }: Props) {
   const mapDivRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
   const waypointsRef = useRef<WaypointEntry[]>([])
@@ -685,7 +692,7 @@ export default function RouteDrawMap({ category, height = 500, initialWaypoints,
     setSelectedIdx(null)
 
     // If there are now two waypoints that were previously non-adjacent, add segment between them
-    if (idx > 0 && idx <= wps.length) {
+    if (idx > 0 && idx < wps.length) {
       await routeSegment(idx - 1)
     } else {
       const km = totalDistanceKm()
@@ -937,51 +944,93 @@ export default function RouteDrawMap({ category, height = 500, initialWaypoints,
         }}
       />
 
-      <form
-        onSubmit={handleSearch}
-        className="absolute left-3 top-3 z-[850] flex max-w-[calc(100%-150px)] gap-2"
-      >
-        <div className="min-w-0 flex-1">
-          <input
-            value={searchQuery}
-            onChange={event => setSearchQuery(event.target.value)}
-            placeholder="Search city or place"
-            className="h-10 w-full rounded-xl border px-3 text-sm font-semibold outline-none"
+      <div className="absolute left-3 top-3 z-[850] flex max-w-[calc(100%-150px)] flex-col gap-2">
+        <form onSubmit={handleSearch} className="flex gap-2">
+          <div className="min-w-0 flex-1">
+            <input
+              value={searchQuery}
+              onChange={event => setSearchQuery(event.target.value)}
+              placeholder="Search city or place"
+              className="h-10 w-full rounded-xl border px-3 text-sm font-semibold outline-none"
+              style={{
+                background: 'rgba(5,8,22,0.9)',
+                borderColor: 'rgba(255,255,255,0.16)',
+                color: '#f5f7ff',
+                boxShadow: '0 10px 28px rgba(0,0,0,0.28)',
+              }}
+            />
+            {searchError && (
+              <div className="mt-1 rounded-lg px-2 py-1 text-xs font-bold text-red-300"
+                style={{ background: 'rgba(5,8,22,0.9)' }}>
+                {searchError}
+              </div>
+            )}
+          </div>
+          <button
+            type="submit"
+            disabled={searching || !searchQuery.trim()}
+            className="h-10 rounded-xl border px-3 text-xs font-black disabled:opacity-50"
+            style={{ background: 'var(--primary)', borderColor: 'var(--primary)', color: '#031109' }}
+          >
+            {searching ? '...' : 'Go'}
+          </button>
+          <button
+            type="button"
+            onClick={goToCurrentLocation}
+            className="h-10 rounded-xl border px-3 text-xs font-black"
             style={{
               background: 'rgba(5,8,22,0.9)',
               borderColor: 'rgba(255,255,255,0.16)',
               color: '#f5f7ff',
-              boxShadow: '0 10px 28px rgba(0,0,0,0.28)',
             }}
-          />
-          {searchError && (
-            <div className="mt-1 rounded-lg px-2 py-1 text-xs font-bold text-red-300"
-              style={{ background: 'rgba(5,8,22,0.9)' }}>
-              {searchError}
-            </div>
-          )}
-        </div>
-        <button
-          type="submit"
-          disabled={searching || !searchQuery.trim()}
-          className="h-10 rounded-xl border px-3 text-xs font-black disabled:opacity-50"
-          style={{ background: 'var(--primary)', borderColor: 'var(--primary)', color: '#031109' }}
-        >
-          {searching ? '...' : 'Go'}
-        </button>
-        <button
-          type="button"
-          onClick={goToCurrentLocation}
-          className="h-10 rounded-xl border px-3 text-xs font-black"
-          style={{
-            background: 'rgba(5,8,22,0.9)',
-            borderColor: 'rgba(255,255,255,0.16)',
-            color: '#f5f7ff',
-          }}
-        >
-          Current
-        </button>
-      </form>
+          >
+            Current
+          </button>
+        </form>
+
+        {fullscreen && onSave && (
+          <form onSubmit={e => { e.preventDefault(); onSave() }} className="flex gap-2">
+            <input
+              value={title}
+              onChange={e => onTitleChange?.(e.target.value)}
+              placeholder="Route name"
+              maxLength={140}
+              className="h-10 min-w-0 flex-1 rounded-xl border px-3 text-sm font-semibold outline-none"
+              style={{
+                background: 'rgba(5,8,22,0.9)',
+                borderColor: 'rgba(255,255,255,0.16)',
+                color: '#f5f7ff',
+                boxShadow: '0 10px 28px rgba(0,0,0,0.28)',
+              }}
+            />
+            <button
+              type="button"
+              onClick={onUndo}
+              disabled={!canUndo}
+              aria-label="Undo last point"
+              title="Undo last point"
+              className="flex h-10 w-10 flex-none items-center justify-center rounded-xl border disabled:opacity-40"
+              style={{
+                background: 'rgba(5,8,22,0.9)',
+                borderColor: 'rgba(255,255,255,0.16)',
+                color: '#f5f7ff',
+              }}
+            >
+              <Undo2 size={16} />
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              aria-label="Save route"
+              title="Save route"
+              className="flex h-10 w-10 flex-none items-center justify-center rounded-xl border disabled:opacity-50"
+              style={{ background: 'var(--primary)', borderColor: 'var(--primary)', color: '#031109' }}
+            >
+              {saving ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
+            </button>
+          </form>
+        )}
+      </div>
 
       {/* Stats + elevation chart + controls — floats over the map edge in fullscreen */}
       <div

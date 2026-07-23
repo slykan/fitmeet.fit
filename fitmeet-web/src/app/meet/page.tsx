@@ -1167,7 +1167,7 @@ function MeetPageInner() {
 
   function handleHeaderPlus() {
     if (tab === 'events') return router.push('/events/create')
-    if (tab === 'routes') return router.push('/routes/create')
+    if (tab === 'routes') return router.push('/routes/draw')
     if (tab === 'market') return router.push('/market/create')
     if (tab === 'trainings') return router.push('/profile')
     // people → invite
