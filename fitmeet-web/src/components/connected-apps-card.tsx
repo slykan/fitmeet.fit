@@ -16,8 +16,22 @@ interface Connection {
 const PROVIDERS = [
   { key: 'strava', label: 'Strava', color: '#FC4C02', available: true },
   { key: 'garmin', label: 'Garmin', color: '#00799B', available: false },
-  { key: 'huawei', label: 'Huawei Health', color: '#C7000B', available: false },
+  { key: 'huawei', label: 'Huawei Health (test)', color: '#C7000B', available: true },
 ] as const
+
+const HUAWEI_CLIENT_ID = '118410135'
+const HUAWEI_REDIRECT_URI = 'https://fitmeet.fit/huawei-callback'
+const HUAWEI_SCOPES = [
+  'openid',
+  'https://www.huawei.com/healthkit/step.read',
+  'https://www.huawei.com/healthkit/distance.read',
+  'https://www.huawei.com/healthkit/calories.read',
+  'https://www.huawei.com/healthkit/altitude.read',
+  'https://www.huawei.com/healthkit/heartrate.read',
+  'https://www.huawei.com/healthkit/activityrecord.read',
+  'https://www.huawei.com/healthkit/activityrecord.readdetail',
+  'https://www.huawei.com/healthkit/historydata.read',
+].join(' ')
 
 function timeAgo(iso: string | null): string {
   if (!iso) return 'never'
@@ -87,6 +101,16 @@ function ConnectedAppsCardInner() {
     } finally {
       setBusyProvider(null)
     }
+  }
+
+  function connectHuawei() {
+    setBusyProvider('huawei')
+    const redirectUri = encodeURIComponent(HUAWEI_REDIRECT_URI)
+    const scope = encodeURIComponent(HUAWEI_SCOPES)
+    window.location.href =
+      `https://oauth-login.cloud.huawei.com/oauth2/v3/authorize?` +
+      `response_type=code&client_id=${HUAWEI_CLIENT_ID}` +
+      `&redirect_uri=${redirectUri}&scope=${scope}&state=web-connect-test&access_type=offline`
   }
 
   async function disconnectStrava() {
@@ -170,7 +194,7 @@ function ConnectedAppsCardInner() {
                   </div>
                 ) : (
                   <button
-                    onClick={connectStrava}
+                    onClick={p.key === 'huawei' ? connectHuawei : connectStrava}
                     disabled={isBusy}
                     className="shrink-0 flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg font-semibold transition-opacity hover:opacity-80 disabled:opacity-50"
                     style={{ background: p.color, color: '#fff' }}
