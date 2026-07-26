@@ -159,6 +159,13 @@ export default function ProfileScreen() {
         {/* Badges */}
         <BadgeGrid />
 
+        {/* Share profile link */}
+        <Pressable style={styles.settingsLink} onPress={() => router.push(`/user/${user.id}` as never)}>
+          <Ionicons name="share-social-outline" size={18} color={palette.accent} />
+          <Text style={styles.settingsLinkText}>Share profile</Text>
+          <Ionicons name="chevron-forward" size={16} color={palette.textDim} />
+        </Pressable>
+
         {/* Edit profile link */}
         <Pressable style={styles.settingsLink} onPress={() => router.push('/settings' as never)}>
           <Ionicons name="settings-outline" size={18} color={palette.accent} />

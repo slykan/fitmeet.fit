@@ -9,7 +9,7 @@ import { Navbar } from '@/components/navbar'
 import { Button } from '@/components/ui/button'
 import { BadgeGrid } from '@/components/badge-grid'
 import { ConnectedAppsCard } from '@/components/connected-apps-card'
-import { AlertTriangle, Bell, Calendar, Camera, Mail, MapPin, Phone, Globe, Navigation, Pencil, Trash2, UserPlus } from 'lucide-react'
+import { AlertTriangle, Bell, Calendar, Camera, Mail, MapPin, Phone, Globe, Navigation, Pencil, Share2, Trash2, UserPlus } from 'lucide-react'
 import api from '@/lib/api'
 
 interface AlibiStats {
@@ -256,11 +256,18 @@ export default function ProfilePage() {
             )}
           </div>
 
-          <Link href="/onboarding" className="w-full sm:w-auto">
-            <Button size="sm" variant="ghost" className="w-full sm:w-auto">
-              <Pencil size={14} className="mr-1.5" /> Edit
-            </Button>
-          </Link>
+          <div className="flex gap-1.5 w-full sm:w-auto">
+            <Link href={`/users/view?id=${user.id}`} className="flex-1 sm:flex-none">
+              <Button size="sm" variant="ghost" className="w-full sm:w-auto">
+                <Share2 size={14} className="mr-1.5" /> Share
+              </Button>
+            </Link>
+            <Link href="/onboarding" className="flex-1 sm:flex-none">
+              <Button size="sm" variant="ghost" className="w-full sm:w-auto">
+                <Pencil size={14} className="mr-1.5" /> Edit
+              </Button>
+            </Link>
+          </div>
         </div>
 
         <AlibiCard />

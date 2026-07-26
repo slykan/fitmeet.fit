@@ -9,6 +9,7 @@ import { useAuthStore } from '@/store/auth'
 import api from '@/lib/api'
 import { blockUser, reportContent, unblockUser } from '@/lib/moderation'
 import { BadgeGrid, BadgeGridItem } from '@/components/badge-grid'
+import { ShareButton } from '@/components/share-button'
 import { useBadgesStore } from '@/store/badges'
 
 interface UserProfile {
@@ -175,6 +176,16 @@ function UserProfileContent() {
               <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Member since {formatDate(profile.member_since)}</p>
             )}
           </div>
+
+          {profile.is_self && (
+            <div className="shrink-0">
+              <ShareButton
+                title={`${profile.name} on FitMeet`}
+                text={`Check out ${profile.name}'s profile on FitMeet`}
+                url={typeof window !== 'undefined' ? `${window.location.origin}/users/view?id=${profile.id}` : ''}
+              />
+            </div>
+          )}
 
           {!profile.is_self && (
             <div className="shrink-0 flex items-center gap-2">
