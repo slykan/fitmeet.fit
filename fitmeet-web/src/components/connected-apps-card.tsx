@@ -19,7 +19,7 @@ const PROVIDERS = [
   { key: 'huawei', label: 'Huawei Health (test)', color: '#C7000B', available: true },
 ] as const
 
-const HUAWEI_CLIENT_ID = '118410135'
+const HUAWEI_CLIENT_ID = '118410313'
 const HUAWEI_REDIRECT_URI = 'https://fitmeet.fit/huawei-callback'
 const HUAWEI_SCOPES = [
   'openid',
