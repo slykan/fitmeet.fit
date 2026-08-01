@@ -223,7 +223,7 @@ function buildHtml(
     if (allTrackCoords.length > 1) {
       const finishIcon = L.divIcon({
         className:'fm-finish-marker',
-        html:'<div style="width:26px;height:26px;border-radius:999px;background:#fff;border:2px solid #111;display:flex;align-items:center;justify-content:center;font-size:13px;box-shadow:0 2px 6px rgba(0,0,0,0.4);">🏁</div>',
+        html:'<div style="opacity:0.3;width:26px;height:26px;border-radius:999px;background:#fff;border:2px solid #111;display:flex;align-items:center;justify-content:center;font-size:13px;box-shadow:0 2px 6px rgba(0,0,0,0.4);">🏁</div>',
         iconSize:[26,26],
         iconAnchor:[13,13]
       });
