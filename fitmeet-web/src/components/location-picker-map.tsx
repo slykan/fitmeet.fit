@@ -26,6 +26,8 @@ interface Props {
   coloredSegments?: TrackSegment[]
   elevationSegments?: TrackSegment[]
   surfaceSegments?: TrackSegment[]
+  /** 0..1 reveal fraction while the route "play" animation runs. Omit/null for the normal, fully-drawn route. */
+  playProgress?:    number | null
   readOnly?:        boolean
   height?:          number
   weather?:         EventWeather | null
@@ -424,6 +426,7 @@ export default function LocationPickerMap({
   coloredSegments,
   elevationSegments,
   surfaceSegments,
+  playProgress = null,
   readOnly = false,
   height = 220,
   weather = null,
@@ -442,6 +445,19 @@ export default function LocationPickerMap({
         ...(coloredSegments ?? []),
       ].flatMap(segment => segment.coords)
       return layeredCoords.length > 0 ? layeredCoords : track ?? []
+    },
+    [coloredSegments, elevationSegments, surfaceSegments, track],
+  )
+  // Single, sequentially-ordered coordinate path for the "play" reveal animation.
+  // (allCoords above concatenates multiple segment layers that each re-trace the
+  // whole route, which would make the snake loop back on itself mid-animation.)
+  const playCoords = useMemo(
+    () => {
+      const source = surfaceSegments?.length ? surfaceSegments
+        : elevationSegments?.length ? elevationSegments
+        : coloredSegments?.length ? coloredSegments
+        : null
+      return source ? source.flatMap(segment => segment.coords) : track ?? []
     },
     [coloredSegments, elevationSegments, surfaceSegments, track],
   )
@@ -487,7 +503,15 @@ export default function LocationPickerMap({
         {readOnly && <ReadOnlyViewSync onViewChange={onViewChange} onInteractionChange={onInteractionChange} />}
         {hasPin && <Marker position={[lat!, lng!]} />}
 
-        {hasLayeredSegments ? (
+        {playProgress != null && playCoords.length > 1 ? (
+          <>
+            <Polyline
+              positions={playCoords.slice(0, Math.max(2, Math.ceil(playProgress * playCoords.length)))}
+              pathOptions={{ color: '#39ff14', weight: 5, opacity: 0.95, lineCap: 'round', lineJoin: 'round' }}
+            />
+            <FitTrack coords={allCoords} />
+          </>
+        ) : hasLayeredSegments ? (
           <>
             {surfaceSegments?.map((seg, i) => (
               <Polyline

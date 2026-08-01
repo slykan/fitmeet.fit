@@ -17,6 +17,8 @@ type Props = {
   coloredSegments?: TrackSegment[]
   elevationSegments?: TrackSegment[]
   surfaceSegments?: TrackSegment[]
+  /** 0..1 reveal fraction while the route "play" animation runs. Omit/null for the normal, fully-drawn route. */
+  playProgress?: number | null
   onMapEnabledChange?: (enabled: boolean) => void
   loading?: boolean
 }
@@ -167,6 +169,19 @@ function buildHtml(
     L.marker([${lat},${lng}],{icon}).addTo(map);
 
     const hasLayeredSegments = (surfaceSegments && surfaceSegments.length > 0) || (elevationSegments && elevationSegments.length > 0);
+    const staticLayers = [];
+    let snakeLine = null;
+    // Single, sequentially-ordered coordinate path for the "play" reveal animation.
+    // (Concatenating surface + elevation segments would re-trace the whole route twice,
+    // since each layer independently covers it start-to-end.)
+    let allTrackCoords = [];
+    if (surfaceSegments && surfaceSegments.length > 0) {
+      allTrackCoords = [].concat(...surfaceSegments.map(function(seg) { return seg.coords; }));
+    } else if (elevationSegments && elevationSegments.length > 0) {
+      allTrackCoords = [].concat(...elevationSegments.map(function(seg) { return seg.coords; }));
+    } else {
+      allTrackCoords = [].concat(...(coloredSegments || []).map(function(seg) { return seg.coords; }));
+    }
     if (hasLayeredSegments || (coloredSegments && coloredSegments.length > 0)) {
       const allBounds = [];
       function drawSegments(segments, options) {
@@ -181,6 +196,7 @@ function buildHtml(
               dashArray:seg.dashArray||null
             }).addTo(map);
             allBounds.push(poly.getBounds());
+            staticLayers.push(poly);
           }
         });
       }
@@ -198,6 +214,22 @@ function buildHtml(
           bounds = bounds.extend([${lat},${lng}]);
           map.fitBounds(bounds,{padding:[32,32]});
         }, 200);
+      }
+    }
+    function setPlayProgress(progress) {
+      if (allTrackCoords.length < 2) return;
+      if (progress >= 1) {
+        if (snakeLine) { map.removeLayer(snakeLine); snakeLine = null; }
+        staticLayers.forEach(function(l) { if (!map.hasLayer(l)) l.addTo(map); });
+        return;
+      }
+      staticLayers.forEach(function(l) { if (map.hasLayer(l)) map.removeLayer(l); });
+      const n = Math.max(2, Math.ceil(progress * allTrackCoords.length));
+      const pts = allTrackCoords.slice(0, n);
+      if (!snakeLine) {
+        snakeLine = L.polyline(pts, { color:'#39ff14', weight:5, opacity:0.95, lineCap:'round', lineJoin:'round' }).addTo(map);
+      } else {
+        snakeLine.setLatLngs(pts);
       }
     }
 
@@ -305,6 +337,7 @@ function buildHtml(
           updateRadarTiles(showClouds);
         }
         if (data.type === 'mapLayer') setBaseLayer(data.layer);
+        if (data.type === 'playProgress') setPlayProgress(data.progress);
       } catch (e) {}
     }
     document.addEventListener('message', handleMessage);
@@ -316,7 +349,7 @@ function buildHtml(
 </html>`
 }
 
-export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegments, elevationSegments, surfaceSegments, onMapEnabledChange, loading }: Props) {
+export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegments, elevationSegments, surfaceSegments, playProgress = null, onMapEnabledChange, loading }: Props) {
   const webViewRef = useRef<WebViewType>(null)
   const [weather, setWeather] = useState<CurrentWeather | null>(null)
   const [center, setCenter] = useState({ lat, lng })
@@ -381,6 +414,10 @@ export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegment
     webViewRef.current?.postMessage(JSON.stringify({ type: 'mapLayer', layer: mapLayer }))
   }, [mapLayer])
 
+  useEffect(() => {
+    webViewRef.current?.postMessage(JSON.stringify({ type: 'playProgress', progress: playProgress == null ? 1 : playProgress }))
+  }, [playProgress])
+
   return (
     <View style={styles.card}>
       <WebView
@@ -399,6 +436,7 @@ export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegment
           }
           if (radarPath) webViewRef.current?.postMessage(JSON.stringify({ type: 'radarUpdate', path: radarPath }))
           webViewRef.current?.postMessage(JSON.stringify({ type: 'mapLayer', layer: mapLayer }))
+          webViewRef.current?.postMessage(JSON.stringify({ type: 'playProgress', progress: playProgress == null ? 1 : playProgress }))
         }}
         onMessage={(event) => {
           try {

@@ -7,15 +7,24 @@ interface Point { km: number; ele: number }
 interface Props {
   profile:  Point[]
   totalKm?: number
+  /** 0..1 reveal fraction while the route "play" animation runs. Omit for the normal, fully-drawn chart. */
+  progress?: number
 }
 
-export default function ElevationChart({ profile, totalKm }: Props) {
+export default function ElevationChart({ profile, totalKm, progress }: Props) {
   if (profile.length < 2) return null
+
+  const animating = progress != null && progress < 1
+  const visibleProfile = animating
+    ? profile.slice(0, Math.max(2, Math.ceil(progress * profile.length)))
+    : profile
+  const head = animating ? visibleProfile[visibleProfile.length - 1] : null
 
   const W = 600
   const H = 120
   const padL = 44, padR = 12, padT = 10, padB = 28
 
+  // Axis scale stays fixed to the full profile so it doesn't jump around while animating
   const minEle  = Math.min(...profile.map(p => p.ele))
   const maxEle  = Math.max(...profile.map(p => p.ele))
   const eleRange = maxEle - minEle || 1
@@ -51,12 +60,12 @@ export default function ElevationChart({ profile, totalKm }: Props) {
         ))}
 
         {/* Colored fill + line — one segment per pair of points */}
-        {profile.slice(1).map((p, i) => {
-          const prev  = profile[i]
+        {visibleProfile.slice(1).map((p, i) => {
+          const prev  = visibleProfile[i]
           const distKm = p.km - prev.km
           const eleM   = p.ele - prev.ele
           const grade  = distKm > 0 ? (eleM / (distKm * 1000)) * 100 : 0
-          const color  = slopeColor(grade)
+          const color  = animating ? '#39ff14' : slopeColor(grade)
           const x1 = toX(prev.km), y1 = toY(prev.ele)
           const x2 = toX(p.km),   y2 = toY(p.ele)
 
@@ -74,6 +83,11 @@ export default function ElevationChart({ profile, totalKm }: Props) {
             </g>
           )
         })}
+
+        {/* Playhead dot while animating */}
+        {head && (
+          <circle cx={toX(head.km)} cy={toY(head.ele)} r={4} fill="#39ff14" stroke="#0A0A12" strokeWidth={1.5} />
+        )}
 
         {/* Y labels */}
         {yLabels.map((l, i) => (

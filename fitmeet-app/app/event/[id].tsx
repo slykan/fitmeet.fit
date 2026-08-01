@@ -162,6 +162,22 @@ function gpxStatsFromParsed(parsed: GpxActivityStats & { elevationProfile?: Elev
   }
 }
 
+const ROUTE_PLAY_DURATION_MS = 15000
+
+function statsUpToProgress(profile: ElevationPoint[], progress: number) {
+  const n = Math.max(2, Math.ceil(progress * profile.length))
+  const visible = profile.slice(0, n)
+  let gain = 0
+  for (let i = 1; i < visible.length; i++) {
+    const d = visible[i].ele - visible[i - 1].ele
+    if (d > 0) gain += d
+  }
+  return {
+    distanceKm: Math.round((visible[visible.length - 1]?.km ?? 0) * 10) / 10,
+    elevGain: Math.round(gain),
+  }
+}
+
 function activeMentionAt(text: string, cursor: number) {
   if (cursor < 1) return null
 
@@ -292,6 +308,38 @@ export default function EventDetailScreen() {
   const [gpxStats, setGpxStats] = useState<GpxActivityStats | null>(null)
   const [gpxLoading, setGpxLoading] = useState(false)
   const [gpxError, setGpxError] = useState(false)
+  const [playState, setPlayState] = useState<'idle' | 'playing' | 'paused'>('idle')
+  const [playProgress, setPlayProgress] = useState(0)
+  const playFrameRef = useRef<number | null>(null)
+  const isAnimating = playState !== 'idle'
+
+  useEffect(() => {
+    return () => {
+      if (playFrameRef.current != null) cancelAnimationFrame(playFrameRef.current)
+    }
+  }, [])
+
+  function handlePlayToggle() {
+    if (playState === 'playing') {
+      if (playFrameRef.current != null) cancelAnimationFrame(playFrameRef.current)
+      setPlayState('paused')
+      return
+    }
+    const resumeFrom = playState === 'paused' ? playProgress : 0
+    if (playState === 'idle') setPlayProgress(0)
+    setPlayState('playing')
+    const startTime = performance.now() - resumeFrom * ROUTE_PLAY_DURATION_MS
+    const step = (now: number) => {
+      const p = Math.min(1, (now - startTime) / ROUTE_PLAY_DURATION_MS)
+      setPlayProgress(p)
+      if (p < 1) {
+        playFrameRef.current = requestAnimationFrame(step)
+      } else {
+        setPlayState('idle')
+      }
+    }
+    playFrameRef.current = requestAnimationFrame(step)
+  }
   const [showWall, setShowWall] = useState(wall === '1')
   const [comments, setComments] = useState<EventComment[]>([])
   const [commentsLoading, setCommentsLoading] = useState(false)
@@ -675,6 +723,9 @@ export default function EventDetailScreen() {
   const activityProfileStats = elevationProfile.length >= 2
     ? statsFromElevationProfile(elevationProfile)
     : null
+  const playStats = isAnimating && elevationProfile.length >= 2
+    ? statsUpToProgress(elevationProfile, playProgress)
+    : null
   const wallMembers = [
     ...(event.organizer ? [event.organizer] : []),
     ...event.participants,
@@ -987,12 +1038,28 @@ export default function EventDetailScreen() {
             <DetailRow
               icon="flash-outline"
               iconColor={palette.accent}
-              primary={[
-                activityDistanceKm != null && `${activityDistanceKm} km`,
-                activityElevGain != null && `↑${activityElevGain} m`,
-                event.activity.pace           && `⏱ ${event.activity.pace}`,
-              ].filter(Boolean).join(' · ')}
+              primary={
+                playStats
+                  ? `${playStats.distanceKm} km · ↑${playStats.elevGain} m`
+                  : [
+                      activityDistanceKm != null && `${activityDistanceKm} km`,
+                      activityElevGain != null && `↑${activityElevGain} m`,
+                      event.activity.pace           && `⏱ ${event.activity.pace}`,
+                    ].filter(Boolean).join(' · ')
+              }
             />
+          ) : null}
+          {elevationProfile.length >= 2 ? (
+            <Pressable
+              style={[styles.playBtn, playState === 'playing' && styles.playBtnActive]}
+              onPress={handlePlayToggle}
+              disabled={surfaceLoading}
+            >
+              <Ionicons name={playState === 'playing' ? 'pause' : 'play'} size={16} color={palette.accent} />
+              <Text style={styles.playBtnText}>
+                {playState === 'playing' ? 'Pause' : playState === 'paused' ? 'Resume' : 'Play route'}
+              </Text>
+            </Pressable>
           ) : null}
           {(activityMaxGrade != null || activityMaxDowngrade != null) ? (
             <DetailRow
@@ -1042,6 +1109,7 @@ export default function EventDetailScreen() {
             emoji={CATEGORY_EMOJI[event.category.value] ?? '📍'}
             elevationSegments={coloredSegments}
             surfaceSegments={surfaceAnalysis?.segments}
+            playProgress={isAnimating ? playProgress : null}
             onMapEnabledChange={setMapEnabled}
             loading={gpxLoading || surfaceLoading}
           />
@@ -1074,7 +1142,7 @@ export default function EventDetailScreen() {
         {/* Elevation profile */}
         {elevationProfile.length >= 2 && (
           <View style={{ paddingHorizontal: spacing.md }}>
-            <ElevationChart profile={elevationProfile} />
+            <ElevationChart profile={elevationProfile} progress={isAnimating ? playProgress : null} />
           </View>
         )}
 
@@ -1606,6 +1674,20 @@ const styles = StyleSheet.create({
 
   detailRow:      { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   gpxActionRow:   { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 2 },
+  playBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(108,255,47,0.28)',
+    backgroundColor: 'rgba(108,255,47,0.08)',
+    borderRadius: 14,
+    paddingVertical: 10,
+    marginTop: 4,
+  },
+  playBtnActive: { backgroundColor: 'rgba(108,255,47,0.18)' },
+  playBtnText: { color: palette.accent, fontSize: 14, fontWeight: '800' },
   detailPrimary:  { color: palette.textMuted, fontSize: 14, lineHeight: 20 },
   detailSecondary:{ color: palette.textDim, fontSize: 13 },
 

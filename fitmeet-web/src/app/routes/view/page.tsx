@@ -1,9 +1,9 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ChevronLeft, Download, Eye, MapPin, PenLine, Share2, Trash2, Zap } from 'lucide-react'
+import { ChevronLeft, Download, Eye, MapPin, Pause, PenLine, Play, Share2, Trash2, Zap } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
 import ElevationChart from '@/components/elevation-chart'
@@ -67,6 +67,20 @@ function statsFromElevationProfile(profile: GpxResult['elevationProfile']) {
   }
 }
 
+function statsUpToProgress(profile: GpxResult['elevationProfile'], progress: number) {
+  const n = Math.max(2, Math.ceil(progress * profile.length))
+  const visible = profile.slice(0, n)
+  let gain = 0
+  for (let i = 1; i < visible.length; i++) {
+    const d = visible[i].ele - visible[i - 1].ele
+    if (d > 0) gain += d
+  }
+  return {
+    distanceKm: Math.round((visible[visible.length - 1]?.km ?? 0) * 10) / 10,
+    elevationGain: Math.round(gain),
+  }
+}
+
 function withProfileStats(result: GpxResult): GpxResult {
   if (result.elevationProfile.length < 2) return result
   const stats = statsFromElevationProfile(result.elevationProfile)
@@ -77,6 +91,8 @@ function withProfileStats(result: GpxResult): GpxResult {
     maxDowngrade: result.maxDowngrade || stats.maxDowngrade,
   }
 }
+
+const ROUTE_PLAY_DURATION_MS = 15000
 
 function RouteContent() {
   const router = useRouter()
@@ -90,6 +106,42 @@ function RouteContent() {
   const [copied, setCopied] = useState(false)
   const [surfaceAnalysis, setSurfaceAnalysis] = useState<SurfaceAnalysis | null>(null)
   const [surfaceLoading, setSurfaceLoading] = useState(false)
+  const [playState, setPlayState] = useState<'idle' | 'playing' | 'paused'>('idle')
+  const [playProgress, setPlayProgress] = useState(0)
+  const playFrameRef = useRef<number | null>(null)
+  const isAnimating = playState !== 'idle'
+
+  useEffect(() => {
+    return () => {
+      if (playFrameRef.current != null) cancelAnimationFrame(playFrameRef.current)
+    }
+  }, [])
+
+  function handlePlayToggle() {
+    if (playState === 'playing') {
+      if (playFrameRef.current != null) cancelAnimationFrame(playFrameRef.current)
+      setPlayState('paused')
+      return
+    }
+    const resumeFrom = playState === 'paused' ? playProgress : 0
+    if (playState === 'idle') setPlayProgress(0)
+    setPlayState('playing')
+    const startTime = performance.now() - resumeFrom * ROUTE_PLAY_DURATION_MS
+    const step = (now: number) => {
+      const p = Math.min(1, (now - startTime) / ROUTE_PLAY_DURATION_MS)
+      setPlayProgress(p)
+      if (p < 1) {
+        playFrameRef.current = requestAnimationFrame(step)
+      } else {
+        setPlayState('idle')
+      }
+    }
+    playFrameRef.current = requestAnimationFrame(step)
+  }
+
+  const playStats = isAnimating && gpxResult
+    ? statsUpToProgress(gpxResult.elevationProfile, playProgress)
+    : null
 
   useEffect(() => {
     if (!hasHydrated) return
@@ -274,16 +326,12 @@ function RouteContent() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             {[
-              ['Distance', distanceKm != null ? `${distanceKm} km` : '-'],
-              ['Elevation', elevationGain != null ? `${elevationGain} m` : '-'],
-              ['Max uphill', maxGrade != null ? `${maxGrade}%` : '-'],
-              ['Max downhill', maxDowngrade != null ? `${Math.abs(maxDowngrade)}%` : '-'],
-              ['Uphill distance', profileStats ? `${profileStats.uphillKm} km` : '-'],
-              ['Downhill distance', profileStats ? `${profileStats.downhillKm} km` : '-'],
+              ['Distance', playStats ? `${playStats.distanceKm} km` : (distanceKm != null ? `${distanceKm} km` : '-')],
+              ['Elevation', playStats ? `${playStats.elevationGain} m` : (elevationGain != null ? `${elevationGain} m` : '-')],
             ].map(([label, value]) => (
-              <div key={label} className="rounded-xl border p-3" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
+              <div key={label} className="rounded-xl border p-3" style={{ background: 'var(--surface)', borderColor: playStats ? 'var(--primary)' : 'var(--border)' }}>
                 <p className="text-[11px] uppercase font-bold" style={{ color: 'var(--text-muted)' }}>{label}</p>
                 <p className="text-lg font-black mt-1">{value}</p>
               </div>
@@ -295,14 +343,25 @@ function RouteContent() {
               <div className="flex items-center gap-2 font-bold">
                 <Zap size={16} style={{ color: 'var(--primary)' }} /> Route
               </div>
-              <button
-                type="button"
-                onClick={handleGpxDownload}
-                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border font-semibold"
-                style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}
-              >
-                <Download size={13} /> GPX
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handlePlayToggle}
+                  disabled={surfaceLoading || !gpxResult || gpxResult.track.length < 2}
+                  className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border font-semibold disabled:opacity-50"
+                  style={{ borderColor: 'var(--primary)', color: 'var(--primary)' }}
+                >
+                  {playState === 'playing' ? <><Pause size={13} /> Pause</> : <><Play size={13} /> {playState === 'paused' ? 'Resume' : 'Play'}</>}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleGpxDownload}
+                  className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border font-semibold"
+                  style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}
+                >
+                  <Download size={13} /> GPX
+                </button>
+              </div>
             </div>
             <div className="relative">
               <LocationPickerMap
@@ -311,6 +370,7 @@ function RouteContent() {
                 track={gpxResult?.track}
                 elevationSegments={gpxResult?.coloredSegments}
                 surfaceSegments={surfaceAnalysis?.segments}
+                playProgress={isAnimating ? playProgress : null}
                 readOnly
                 height={720}
                 showWindOverlay={false}
@@ -319,6 +379,21 @@ function RouteContent() {
               />
               {surfaceLoading && <MapLoadingOverlay />}
             </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {[
+                ['Max uphill', maxGrade != null ? `${maxGrade}%` : '-'],
+                ['Max downhill', maxDowngrade != null ? `${Math.abs(maxDowngrade)}%` : '-'],
+                ['Uphill distance', profileStats ? `${profileStats.uphillKm} km` : '-'],
+                ['Downhill distance', profileStats ? `${profileStats.downhillKm} km` : '-'],
+              ].map(([label, value]) => (
+                <div key={label} className="rounded-xl border p-3" style={{ background: 'var(--background)', borderColor: 'var(--border)' }}>
+                  <p className="text-[11px] uppercase font-bold" style={{ color: 'var(--text-muted)' }}>{label}</p>
+                  <p className="text-lg font-black mt-1">{value}</p>
+                </div>
+              ))}
+            </div>
+
             {surfaceAnalysis?.summary.length ? (
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5 sm:gap-2">
                 {surfaceMixText && (
@@ -343,7 +418,11 @@ function RouteContent() {
               </div>
             ) : null}
             {gpxResult && gpxResult.elevationProfile.length >= 2 && (
-              <ElevationChart profile={gpxResult.elevationProfile} totalKm={gpxResult.distanceKm} />
+              <ElevationChart
+                profile={gpxResult.elevationProfile}
+                totalKm={gpxResult.distanceKm}
+                progress={isAnimating ? playProgress : undefined}
+              />
             )}
           </div>
 

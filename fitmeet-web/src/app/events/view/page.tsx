@@ -5,7 +5,7 @@ import { useEffect, useState, useRef, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Calendar, MapPin, Users, Zap, ChevronLeft, Lock, Pencil, ChevronDown, ChevronUp, Bell, Check, X, Share2, XCircle, Download, Wind, Cloud, Eye, CheckCircle2, Camera, Flag } from 'lucide-react'
+import { Calendar, MapPin, Users, Zap, ChevronLeft, Lock, Pencil, ChevronDown, ChevronUp, Bell, Check, X, Share2, XCircle, Download, Wind, Cloud, Eye, CheckCircle2, Camera, Flag, Play, Pause } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
 import { WeatherBadge } from '@/components/WeatherBadge'
@@ -140,6 +140,22 @@ function withProfileStats(result: GpxResult): GpxResult {
   }
 }
 
+const ROUTE_PLAY_DURATION_MS = 15000
+
+function statsUpToProgress(profile: GpxResult['elevationProfile'], progress: number) {
+  const n = Math.max(2, Math.ceil(progress * profile.length))
+  const visible = profile.slice(0, n)
+  let gain = 0
+  for (let i = 1; i < visible.length; i++) {
+    const d = visible[i].ele - visible[i - 1].ele
+    if (d > 0) gain += d
+  }
+  return {
+    distanceKm: Math.round((visible[visible.length - 1]?.km ?? 0) * 10) / 10,
+    elevationGain: Math.round(gain),
+  }
+}
+
 function EventContent() {
   const searchParams = useSearchParams()
   const { token, user, hasHydrated } = useAuthStore()
@@ -156,6 +172,38 @@ function EventContent() {
   const [surfaceAnalysis, setSurfaceAnalysis] = useState<SurfaceAnalysis | null>(null)
   const [gpxLoading, setGpxLoading] = useState(false)
   const [surfaceLoading, setSurfaceLoading] = useState(false)
+  const [playState, setPlayState] = useState<'idle' | 'playing' | 'paused'>('idle')
+  const [playProgress, setPlayProgress] = useState(0)
+  const playFrameRef = useRef<number | null>(null)
+  const isAnimating = playState !== 'idle'
+
+  useEffect(() => {
+    return () => {
+      if (playFrameRef.current != null) cancelAnimationFrame(playFrameRef.current)
+    }
+  }, [])
+
+  function handlePlayToggle() {
+    if (playState === 'playing') {
+      if (playFrameRef.current != null) cancelAnimationFrame(playFrameRef.current)
+      setPlayState('paused')
+      return
+    }
+    const resumeFrom = playState === 'paused' ? playProgress : 0
+    if (playState === 'idle') setPlayProgress(0)
+    setPlayState('playing')
+    const startTime = performance.now() - resumeFrom * ROUTE_PLAY_DURATION_MS
+    const step = (now: number) => {
+      const p = Math.min(1, (now - startTime) / ROUTE_PLAY_DURATION_MS)
+      setPlayProgress(p)
+      if (p < 1) {
+        playFrameRef.current = requestAnimationFrame(step)
+      } else {
+        setPlayState('idle')
+      }
+    }
+    playFrameRef.current = requestAnimationFrame(step)
+  }
   const [showParticipants, setShowParticipants] = useState(false)
   const [showReminderModal, setShowReminderModal] = useState(false)
   const [selectedOffsets,  setSelectedOffsets]  = useState<Set<string>>(new Set())
@@ -440,6 +488,9 @@ function EventContent() {
   const activityProfileStats = gpxResult?.elevationProfile.length
     ? statsFromElevationProfile(gpxResult.elevationProfile)
     : null
+  const playStats = isAnimating && gpxResult
+    ? statsUpToProgress(gpxResult.elevationProfile, playProgress)
+    : null
   const rainDataReliable = event ? isLiveEventWeatherWindow(event.schedule.start_at, event.schedule.timezone) : false
   const surfaceMixText = surfaceAnalysis?.summary.length
     ? surfaceAnalysis.summary.map(item => `${item.percent}% ${item.label.toLowerCase()}`).join(' - ')
@@ -655,14 +706,16 @@ function EventContent() {
               {(activityDistanceKm != null || event.activity.pace || activityElevationGain != null || activityMaxGrade != null || activityMaxDowngrade != null) && (
                 <div className="flex items-start gap-2.5 text-sm">
                   <Zap size={15} style={{ color: 'var(--primary)', flexShrink: 0, marginTop: 2 }} />
-                  <span style={{ color: 'var(--text-muted)' }}>
-                    {[
-                      activityDistanceKm != null && `${activityDistanceKm} km`,
-                      activityElevationGain != null && `↑${activityElevationGain} m`,
-                      activityMaxGrade != null && `▲ ${activityMaxGrade}%`,
-                      activityMaxDowngrade != null && `▼ ${Math.abs(activityMaxDowngrade)}%`,
-                      event.activity.pace,
-                    ].filter(Boolean).join(' · ')}
+                  <span style={{ color: playStats ? 'var(--primary)' : 'var(--text-muted)' }}>
+                    {playStats
+                      ? `${playStats.distanceKm} km · ↑${playStats.elevationGain} m`
+                      : [
+                          activityDistanceKm != null && `${activityDistanceKm} km`,
+                          activityElevationGain != null && `↑${activityElevationGain} m`,
+                          activityMaxGrade != null && `▲ ${activityMaxGrade}%`,
+                          activityMaxDowngrade != null && `▼ ${Math.abs(activityMaxDowngrade)}%`,
+                          event.activity.pace,
+                        ].filter(Boolean).join(' · ')}
                     {activityProfileStats && (
                       <span className="block mt-1">
                         Uphill {activityProfileStats.uphillKm} km · Downhill {activityProfileStats.downhillKm} km
@@ -713,6 +766,7 @@ function EventContent() {
                 track={gpxResult?.track}
                 elevationSegments={gpxResult?.coloredSegments}
                 surfaceSegments={surfaceAnalysis?.segments}
+                playProgress={isAnimating ? playProgress : null}
                 weather={weather}
                 weatherVariant="hub"
                 showWindOverlay={showWindOverlay && !isMapInteracting}
@@ -760,6 +814,22 @@ function EventContent() {
                       <span>Clouds</span>
                     </button>
                   )}
+                  {gpxResult && gpxResult.track.length >= 2 && (
+                    <button
+                      type="button"
+                      onClick={handlePlayToggle}
+                      disabled={surfaceLoading}
+                      className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-colors sm:text-xs disabled:opacity-50"
+                      style={{
+                        borderColor: 'var(--primary)',
+                        color: 'var(--primary)',
+                        background: playState === 'playing' ? 'rgba(57,255,20,0.1)' : 'rgba(255,255,255,0.03)',
+                      }}
+                    >
+                      {playState === 'playing' ? <Pause size={13} /> : <Play size={13} />}
+                      <span>{playState === 'playing' ? 'Pause' : playState === 'paused' ? 'Resume' : 'Play'}</span>
+                    </button>
+                  )}
                 </div>
                 {weather && (
                   <div
@@ -798,7 +868,11 @@ function EventContent() {
           {gpxResult && gpxResult.elevationProfile.length >= 2 && (
             <div>
               <p className="text-xs font-medium mb-2 px-1" style={{ color: 'var(--text-muted)' }}>Elevation profile</p>
-              <ElevationChart profile={gpxResult.elevationProfile} totalKm={gpxResult.distanceKm} />
+              <ElevationChart
+                profile={gpxResult.elevationProfile}
+                totalKm={gpxResult.distanceKm}
+                progress={isAnimating ? playProgress : undefined}
+              />
             </div>
           )}
 

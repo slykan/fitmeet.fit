@@ -1,6 +1,7 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { WebView } from 'react-native-webview'
+import type { WebView as WebViewType } from 'react-native-webview'
 
 export interface ElevationPoint { km: number; ele: number }
 
@@ -84,28 +85,66 @@ function buildHtml(profile: ElevationPoint[]): string {
   ${lines}
   ${yText}
   ${xText}
+  <rect id="revealMask" x="${W}" y="0" width="0" height="${H}" fill="#060c1a"/>
 </svg>
+<script>
+  const maxKm = ${maxKm};
+  const W = ${W};
+  const padL = ${padL};
+  const padR = ${padR};
+  function toX(km) { return padL + (km / maxKm) * (W - padL - padR); }
+  const mask = document.getElementById('revealMask');
+  function setProgress(progress) {
+    if (progress >= 1) {
+      mask.setAttribute('x', String(W));
+      mask.setAttribute('width', '0');
+      return;
+    }
+    const x = toX(Math.max(0, progress) * maxKm);
+    mask.setAttribute('x', String(x));
+    mask.setAttribute('width', String(Math.max(0, W - x)));
+  }
+  function handleMessage(event) {
+    try {
+      const data = JSON.parse(event.data);
+      if (data.type === 'playProgress') setProgress(data.progress);
+    } catch (e) {}
+  }
+  document.addEventListener('message', handleMessage);
+  window.addEventListener('message', handleMessage);
+</script>
 </body>
 </html>`
 }
 
 interface Props {
   profile: ElevationPoint[]
+  /** 0..1 reveal fraction while the route "play" animation runs. Omit/null for the normal, fully-drawn chart. */
+  progress?: number | null
 }
 
-export function ElevationChart({ profile }: Props) {
+export function ElevationChart({ profile, progress = null }: Props) {
+  const webViewRef = useRef<WebViewType>(null)
   const html = useMemo(() => buildHtml(profile), [profile])
+
+  useEffect(() => {
+    webViewRef.current?.postMessage(JSON.stringify({ type: 'playProgress', progress: progress == null ? 1 : progress }))
+  }, [progress])
 
   if (profile.length < 2) return null
 
   return (
     <View style={styles.wrap}>
       <WebView
+        ref={webViewRef}
         source={{ html }}
         originWhitelist={['*']}
-        javaScriptEnabled={false}
+        javaScriptEnabled
         scrollEnabled={false}
         style={styles.webview}
+        onLoadEnd={() => {
+          webViewRef.current?.postMessage(JSON.stringify({ type: 'playProgress', progress: progress == null ? 1 : progress }))
+        }}
       />
     </View>
   )

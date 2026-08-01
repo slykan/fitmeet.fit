@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
 import { router, useLocalSearchParams } from 'expo-router'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ActivityIndicator, Alert, Linking, Platform, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
@@ -80,6 +80,22 @@ function withProfileStats(parsed: GpxParsed): GpxParsed {
   }
 }
 
+const ROUTE_PLAY_DURATION_MS = 15000
+
+function statsUpToProgress(profile: { km: number; ele: number }[], progress: number) {
+  const n = Math.max(2, Math.ceil(progress * profile.length))
+  const visible = profile.slice(0, n)
+  let gain = 0
+  for (let i = 1; i < visible.length; i++) {
+    const d = visible[i].ele - visible[i - 1].ele
+    if (d > 0) gain += d
+  }
+  return {
+    distanceKm: Math.round((visible[visible.length - 1]?.km ?? 0) * 10) / 10,
+    elevGain: Math.round(gain),
+  }
+}
+
 export default function RouteViewScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const { user } = useAuthStore()
@@ -91,6 +107,38 @@ export default function RouteViewScreen() {
   const [surfaceAnalysis, setSurfaceAnalysis] = useState<SurfaceAnalysis | null>(null)
   const [surfaceLoading, setSurfaceLoading] = useState(false)
   const [surfaceChecked, setSurfaceChecked] = useState(false)
+  const [playState, setPlayState] = useState<'idle' | 'playing' | 'paused'>('idle')
+  const [playProgress, setPlayProgress] = useState(0)
+  const playFrameRef = useRef<number | null>(null)
+  const isAnimating = playState !== 'idle'
+
+  useEffect(() => {
+    return () => {
+      if (playFrameRef.current != null) cancelAnimationFrame(playFrameRef.current)
+    }
+  }, [])
+
+  function handlePlayToggle() {
+    if (playState === 'playing') {
+      if (playFrameRef.current != null) cancelAnimationFrame(playFrameRef.current)
+      setPlayState('paused')
+      return
+    }
+    const resumeFrom = playState === 'paused' ? playProgress : 0
+    if (playState === 'idle') setPlayProgress(0)
+    setPlayState('playing')
+    const startTime = performance.now() - resumeFrom * ROUTE_PLAY_DURATION_MS
+    const step = (now: number) => {
+      const p = Math.min(1, (now - startTime) / ROUTE_PLAY_DURATION_MS)
+      setPlayProgress(p)
+      if (p < 1) {
+        playFrameRef.current = requestAnimationFrame(step)
+      } else {
+        setPlayState('idle')
+      }
+    }
+    playFrameRef.current = requestAnimationFrame(step)
+  }
 
   async function deleteRoute() {
     if (!route) return
@@ -233,6 +281,9 @@ export default function RouteViewScreen() {
     ? surfaceAnalysis.summary.map(item => `${item.percent}% ${item.label.toLowerCase()}`).join(' - ')
     : null
   const showSurfaceSection = Boolean(gpx?.track.length && (surfaceLoading || surfaceChecked || surfaceAnalysis?.summary.length))
+  const playStats = isAnimating && gpx?.elevationProfile.length
+    ? statsUpToProgress(gpx.elevationProfile, playProgress)
+    : null
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -289,8 +340,44 @@ export default function RouteViewScreen() {
 
         <View style={styles.statsGrid}>
           {[
-            ['Distance', distanceKm != null ? `${distanceKm} km` : '-'],
-            ['Elevation', elevGain != null ? `${elevGain} m` : '-'],
+            ['Distance', playStats ? `${playStats.distanceKm} km` : (distanceKm != null ? `${distanceKm} km` : '-')],
+            ['Elevation', playStats ? `${playStats.elevGain} m` : (elevGain != null ? `${elevGain} m` : '-')],
+          ].map(([label, value]) => (
+            <View key={label} style={[styles.statCard, playStats && styles.statCardLive]}>
+              <Text style={styles.statLabel}>{label}</Text>
+              <Text style={styles.statValue}>{value}</Text>
+            </View>
+          ))}
+        </View>
+
+        {gpx && gpx.track.length >= 2 ? (
+          <Pressable
+            style={[styles.playBtn, (isAnimating && playState === 'playing') && styles.playBtnActive]}
+            onPress={handlePlayToggle}
+            disabled={surfaceLoading}
+          >
+            <Ionicons name={playState === 'playing' ? 'pause' : 'play'} size={16} color={palette.accent} />
+            <Text style={styles.playBtnText}>
+              {playState === 'playing' ? 'Pause' : playState === 'paused' ? 'Resume' : 'Play'}
+            </Text>
+          </Pressable>
+        ) : null}
+
+        {route.location.start_lat != null && route.location.start_lng != null ? (
+          <EventMapCard
+            lat={route.location.start_lat}
+            lng={route.location.start_lng}
+            emoji={emoji}
+            elevationSegments={gpx?.coloredSegments}
+            surfaceSegments={surfaceAnalysis?.segments}
+            playProgress={isAnimating ? playProgress : null}
+            onMapEnabledChange={setMapEnabled}
+            loading={surfaceLoading}
+          />
+        ) : null}
+
+        <View style={styles.statsGrid}>
+          {[
             ['Max uphill', maxGrade != null ? `${maxGrade}%` : '-'],
             ['Max downhill', maxDowngrade != null ? `${Math.abs(maxDowngrade)}%` : '-'],
             ['Uphill distance', profileStats ? `${profileStats.uphillKm} km` : '-'],
@@ -302,18 +389,6 @@ export default function RouteViewScreen() {
             </View>
           ))}
         </View>
-
-        {route.location.start_lat != null && route.location.start_lng != null ? (
-          <EventMapCard
-            lat={route.location.start_lat}
-            lng={route.location.start_lng}
-            emoji={emoji}
-            elevationSegments={gpx?.coloredSegments}
-            surfaceSegments={surfaceAnalysis?.segments}
-            onMapEnabledChange={setMapEnabled}
-            loading={surfaceLoading}
-          />
-        ) : null}
 
         {showSurfaceSection ? (
           <View style={styles.surfaceSection}>
@@ -339,7 +414,9 @@ export default function RouteViewScreen() {
           </View>
         ) : null}
 
-        {gpx && gpx.elevationProfile.length >= 2 ? <ElevationChart profile={gpx.elevationProfile} /> : null}
+        {gpx && gpx.elevationProfile.length >= 2 ? (
+          <ElevationChart profile={gpx.elevationProfile} progress={isAnimating ? playProgress : null} />
+        ) : null}
 
         {gpx?.track.length ? <WikiPhotosStrip track={gpx.track} /> : null}
       </ScrollView>
@@ -421,6 +498,20 @@ const styles = StyleSheet.create({
   },
   statLabel: { color: palette.textMuted, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
   statValue: { color: palette.text, fontSize: 18, fontWeight: '900', marginTop: 4 },
+  statCardLive: { borderColor: palette.accent },
+  playBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(108,255,47,0.28)',
+    backgroundColor: 'rgba(108,255,47,0.08)',
+    borderRadius: 14,
+    paddingVertical: 11,
+  },
+  playBtnActive: { backgroundColor: 'rgba(108,255,47,0.18)' },
+  playBtnText: { color: palette.accent, fontSize: 14, fontWeight: '800' },
   surfaceSection: { gap: 8 },
   surfaceMixText: { color: palette.text, fontSize: 13, fontWeight: '900' },
   surfaceMixMuted: { color: palette.textMuted, fontWeight: '700' },
