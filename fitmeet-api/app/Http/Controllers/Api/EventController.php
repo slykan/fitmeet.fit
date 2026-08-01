@@ -124,9 +124,12 @@ class EventController extends Controller
             $query->nearby($lat, $lng, $radiusKm);
         }
 
-        // Category filter
+        // Category filter — accepts a single value or a comma-separated list
         if ($request->filled('category')) {
-            $query->where('category', $request->category);
+            $categories = is_array($request->category)
+                ? $request->category
+                : explode(',', $request->category);
+            $query->whereIn('category', $categories);
         }
 
         // Skill level filter

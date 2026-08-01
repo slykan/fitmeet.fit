@@ -321,7 +321,7 @@ function EventsTab() {
   const [page,       setPage]       = useState(1)
   const [lastPage,   setLastPage]   = useState(1)
   const [loadingMore, setLoadingMore] = useState(false)
-  const [category,   setCategory]   = useState('')
+  const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set())
   const [radiusKm,   setRadiusKm]   = useState<number | null>(null)
   const [goingOnly,   setGoingOnly]   = useState(false)
   const [friendsOnly, setFriendsOnly] = useState(false)
@@ -336,6 +336,25 @@ function EventsTab() {
   const [gpxStats, setGpxStats] = useState<Record<number, GpxActivityStats>>({})
   const discoveryLat = user?.home?.lat ?? user?.location?.lat ?? null
   const discoveryLng = user?.home?.lng ?? user?.location?.lng ?? null
+
+  // Prefill category + radius filters from the user's profile settings
+  useEffect(() => {
+    setSelectedCategories(new Set(user?.categories ?? []))
+  }, [user?.categories])
+
+  useEffect(() => {
+    if (user?.radius_km == null) return
+    setRadiusKm(user.radius_km >= 9999 ? null : user.radius_km)
+  }, [user?.radius_km])
+
+  function toggleCategory(value: string) {
+    setSelectedCategories(prev => {
+      const next = new Set(prev)
+      if (next.has(value)) next.delete(value)
+      else next.add(value)
+      return next
+    })
+  }
 
   const load = useCallback(async (pageNum = 1) => {
     if (pageNum === 1) setLoading(true)
@@ -353,7 +372,7 @@ function EventsTab() {
       } else if (myOnly) {
         url = '/events/my'
       } else {
-        if (category) params.category = category
+        if (selectedCategories.size > 0) params.category = Array.from(selectedCategories).join(',')
         if (radiusKm) {
           params.radius_km = radiusKm
           if (typeof discoveryLat === 'number' && typeof discoveryLng === 'number') {
@@ -375,7 +394,7 @@ function EventsTab() {
       setLastPage(data.meta?.last_page ?? 1)
     } catch {}
     finally { setLoading(false); setLoadingMore(false) }
-  }, [category, radiusKm, goingOnly, friendsOnly, myOnly, pastOnly, sortKey, sortDirection, discoveryLat, discoveryLng])
+  }, [selectedCategories, radiusKm, goingOnly, friendsOnly, myOnly, pastOnly, sortKey, sortDirection, discoveryLat, discoveryLng])
 
   useFocusEffect(useCallback(() => { load() }, [load]))
   useEffect(() => {
@@ -460,7 +479,7 @@ function EventsTab() {
   }
 
   const activeFilterCount =
-    (category ? 1 : 0) + (radiusKm !== null ? 1 : 0) +
+    (selectedCategories.size > 0 ? 1 : 0) + (radiusKm !== null ? 1 : 0) +
     (goingOnly ? 1 : 0) + (friendsOnly ? 1 : 0) + (myOnly ? 1 : 0) + (pastOnly ? 1 : 0)
 
   const activeSort = SORT_OPTIONS.find(option => option.key === sortKey) ?? SORT_OPTIONS[0]
@@ -509,16 +528,16 @@ function EventsTab() {
         <View style={styles.filterDropdown}>
           <Text style={styles.filterSectionLabel}>Category</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
-            <Pressable style={[styles.filterChip, !category && styles.filterChipActive]} onPress={() => setCategory('')}>
-              <Text style={[styles.filterLabel, !category && styles.filterLabelActive]}>All</Text>
+            <Pressable style={[styles.filterChip, selectedCategories.size === 0 && styles.filterChipActive]} onPress={() => setSelectedCategories(new Set())}>
+              <Text style={[styles.filterLabel, selectedCategories.size === 0 && styles.filterLabelActive]}>All</Text>
             </Pressable>
             {CATEGORIES.map(cat => (
               <Pressable
                 key={cat.value}
-                style={[styles.filterChip, category === cat.value && styles.filterChipActive]}
-                onPress={() => setCategory(v => v === cat.value ? '' : cat.value)}
+                style={[styles.filterChip, selectedCategories.has(cat.value) && styles.filterChipActive]}
+                onPress={() => toggleCategory(cat.value)}
               >
-                <Text style={[styles.filterLabel, category === cat.value && styles.filterLabelActive]}>
+                <Text style={[styles.filterLabel, selectedCategories.has(cat.value) && styles.filterLabelActive]}>
                   {cat.emoji} {cat.label}
                 </Text>
               </Pressable>

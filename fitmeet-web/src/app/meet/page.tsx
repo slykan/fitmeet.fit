@@ -702,15 +702,15 @@ function PeopleTab() {
 
 const ALL_CATS = [{ value: '', label: 'All' }, ...CATEGORIES]
 
-function CategoryFilter({ category, setCategory }: { category: string; setCategory: (v: string) => void }) {
+function CategoryFilter({ selectedCategories, toggleCategory }: { selectedCategories: Set<string>; toggleCategory: (v: string) => void }) {
   return (
     <div className="filter-chip-scroll" aria-label="Event category filters">
       {ALL_CATS.map(c => {
-        const active = category === c.value
+        const active = c.value === '' ? selectedCategories.size === 0 : selectedCategories.has(c.value)
         return (
           <button
             key={c.value}
-            onClick={() => setCategory(c.value)}
+            onClick={() => toggleCategory(c.value)}
             className="text-xs px-3 py-1.5 rounded-full border font-medium transition-colors"
             style={{
               borderColor: active ? 'var(--primary)' : 'var(--border)',
@@ -731,7 +731,7 @@ function EventsTab() {
   const router        = useRouter()
   const [events,   setEvents]   = useState<EventItem[]>([])
   const [loading,  setLoading]  = useState(true)
-  const [category, setCategory] = useState('')
+  const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set())
   const [radiusKm, setRadiusKm] = useState<number | null>(null)
   const [goingOnly, setGoingOnly] = useState(false)
   const [friendsOnly, setFriendsOnly] = useState(false)
@@ -767,6 +767,29 @@ function EventsTab() {
       .catch(() => setFriendIds(new Set()))
   }, [])
 
+  // Prefill category + radius filters from the user's profile settings
+  useEffect(() => {
+    setSelectedCategories(new Set(user?.categories ?? []))
+  }, [user?.categories])
+
+  useEffect(() => {
+    if (user?.radius_km == null) return
+    setRadiusKm(user.radius_km >= 9999 ? null : user.radius_km)
+  }, [user?.radius_km])
+
+  function toggleCategory(value: string) {
+    if (value === '') {
+      setSelectedCategories(new Set())
+      return
+    }
+    setSelectedCategories(prev => {
+      const next = new Set(prev)
+      if (next.has(value)) next.delete(value)
+      else next.add(value)
+      return next
+    })
+  }
+
   function applyFriendsFilter(items: EventItem[]) {
     return items.filter(ev => {
       if (friendsOnly && (!ev.organizer?.id || !friendIds.has(ev.organizer.id))) return false
@@ -774,6 +797,11 @@ function EventsTab() {
       return true
     })
   }
+
+  const visibleEvents = useMemo(() => {
+    if (selectedCategories.size === 0) return events
+    return events.filter(ev => selectedCategories.has(ev.category.value))
+  }, [events, selectedCategories])
 
   useEffect(() => {
     const targets = events.filter((event) => event.activity.gpx_url)
@@ -825,7 +853,6 @@ function EventsTab() {
     const params: Record<string, unknown> = {}
     params.per_page = 100
     if (pastOnly) params.past = 1
-    if (category) params.category = category
     if (friendsOnly) params.friends_only = 1
     if (radiusKm !== null && user?.location?.lat && user?.location?.lng) {
       params.lat       = user.location.lat
@@ -839,7 +866,7 @@ function EventsTab() {
     api.get('/events', { params })
       .then(({ data }) => setEvents(sortEventsBySchedule(applyFriendsFilter(data.data ?? []), pastOnly)))
       .finally(() => setLoading(false))
-  }, [category, radiusKm, goingOnly, friendsOnly, myOnly, pastOnly, friendIds, user])
+  }, [radiusKm, goingOnly, friendsOnly, myOnly, pastOnly, friendIds, user])
 
   async function handleSetReminders() {
     if (!reminderEvent) { setReminderEvent(null); return }
@@ -872,7 +899,7 @@ function EventsTab() {
   return (
     <div className="space-y-3">
       {/* Category filter */}
-      <CategoryFilter category={category} setCategory={setCategory} />
+      <CategoryFilter selectedCategories={selectedCategories} toggleCategory={toggleCategory} />
 
       {/* Radius filter */}
       <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
@@ -944,7 +971,7 @@ function EventsTab() {
         <div className="text-center py-12 text-sm" style={{ color: 'var(--text-muted)' }}>Loading…</div>
       )}
 
-      {!loading && events.length === 0 && (
+      {!loading && visibleEvents.length === 0 && (
         <div className="text-center py-12 text-sm" style={{ color: 'var(--text-muted)' }}>
           {goingOnly
             ? pastOnly ? "You don't have any past matching joined events." : "You haven't joined any matching events yet."
@@ -954,9 +981,9 @@ function EventsTab() {
         </div>
       )}
 
-      {!loading && events.length > 0 && (
+      {!loading && visibleEvents.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {events.map(ev => {
+          {visibleEvents.map(ev => {
             const { past: pastEvent, inProgress } = eventTiming(ev)
             const mutedEvent = ev.status === 'cancelled' || pastEvent
             const activityDistanceKm = gpxStats[ev.id]?.distanceKm ?? ev.activity.distance_km
