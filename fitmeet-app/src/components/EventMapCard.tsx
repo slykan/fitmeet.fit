@@ -518,9 +518,9 @@ export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegment
           <Pressable style={styles.playToggleBtn} onPress={onPlayToggle} hitSlop={8}>
             <Ionicons
               name={playState === 'playing' ? 'pause' : 'play'}
-              size={18}
+              size={15}
               color="#041109"
-              style={playState !== 'playing' ? { marginLeft: 2 } : undefined}
+              style={playState !== 'playing' ? { marginLeft: 1 } : undefined}
             />
           </Pressable>
         )}
@@ -578,15 +578,14 @@ const styles = StyleSheet.create({
   },
   weatherToggleBtnActive: { backgroundColor: palette.accent, borderColor: palette.accent },
   playToggleBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 999,
+    width: 30,
+    height: 30,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.82)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.9)',
-    marginBottom: 4,
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
