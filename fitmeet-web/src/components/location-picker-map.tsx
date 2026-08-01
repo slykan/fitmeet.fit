@@ -16,6 +16,13 @@ L.Icon.Default.mergeOptions({
   shadowUrl:     'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 })
 
+const finishIcon = L.divIcon({
+  className: 'fm-finish-marker',
+  html: '<div style="width:26px;height:26px;border-radius:999px;background:#fff;border:2px solid #111;display:flex;align-items:center;justify-content:center;font-size:13px;box-shadow:0 2px 6px rgba(0,0,0,0.4);">🏁</div>',
+  iconSize: [26, 26],
+  iconAnchor: [13, 13],
+})
+
 interface Props {
   lat?:             number | null
   lng?:             number | null
@@ -510,7 +517,7 @@ export default function LocationPickerMap({
               pathOptions={{ color: '#39ff14', weight: 5, opacity: 0.95, lineCap: 'round', lineJoin: 'round' }}
             />
             <CircleMarker
-              center={playCoords[0]}
+              center={playCoords[Math.max(1, Math.ceil(playProgress * playCoords.length)) - 1]}
               radius={6}
               pathOptions={{ color: '#ff2d2d', weight: 2, fillColor: '#ff2d2d', fillOpacity: 1 }}
             />
@@ -553,6 +560,13 @@ export default function LocationPickerMap({
             />
             <FitTrack coords={allCoords} />
           </>
+        )}
+
+        {(playCoords.length > 0 || allCoords.length > 0) && (
+          <Marker
+            position={playCoords.length > 0 ? playCoords[playCoords.length - 1] : allCoords[allCoords.length - 1]}
+            icon={finishIcon}
+          />
         )}
       </MapContainer>
       {showMapLayerControl && (

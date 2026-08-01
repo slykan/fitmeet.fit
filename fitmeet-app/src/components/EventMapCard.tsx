@@ -174,7 +174,7 @@ function buildHtml(
     const hasLayeredSegments = (surfaceSegments && surfaceSegments.length > 0) || (elevationSegments && elevationSegments.length > 0);
     const staticLayers = [];
     let snakeLine = null;
-    let snakeStartDot = null;
+    let snakeHeadDot = null;
     // Single, sequentially-ordered coordinate path for the "play" reveal animation.
     // (Concatenating surface + elevation segments would re-trace the whole route twice,
     // since each layer independently covers it start-to-end.)
@@ -220,11 +220,20 @@ function buildHtml(
         }, 200);
       }
     }
+    if (allTrackCoords.length > 1) {
+      const finishIcon = L.divIcon({
+        className:'fm-finish-marker',
+        html:'<div style="width:26px;height:26px;border-radius:999px;background:#fff;border:2px solid #111;display:flex;align-items:center;justify-content:center;font-size:13px;box-shadow:0 2px 6px rgba(0,0,0,0.4);">🏁</div>',
+        iconSize:[26,26],
+        iconAnchor:[13,13]
+      });
+      L.marker(allTrackCoords[allTrackCoords.length - 1], { icon: finishIcon }).addTo(map);
+    }
     function setPlayProgress(progress) {
       if (allTrackCoords.length < 2) return;
       if (progress >= 1) {
         if (snakeLine) { map.removeLayer(snakeLine); snakeLine = null; }
-        if (snakeStartDot) { map.removeLayer(snakeStartDot); snakeStartDot = null; }
+        if (snakeHeadDot) { map.removeLayer(snakeHeadDot); snakeHeadDot = null; }
         staticLayers.forEach(function(l) { if (!map.hasLayer(l)) l.addTo(map); });
         return;
       }
@@ -236,8 +245,11 @@ function buildHtml(
       } else {
         snakeLine.setLatLngs(pts);
       }
-      if (!snakeStartDot) {
-        snakeStartDot = L.circleMarker(allTrackCoords[0], { radius:6, color:'#ff2d2d', weight:2, fillColor:'#ff2d2d', fillOpacity:1 }).addTo(map);
+      const head = pts[pts.length - 1];
+      if (!snakeHeadDot) {
+        snakeHeadDot = L.circleMarker(head, { radius:6, color:'#ff2d2d', weight:2, fillColor:'#ff2d2d', fillOpacity:1 }).addTo(map);
+      } else {
+        snakeHeadDot.setLatLng(head);
       }
     }
 
