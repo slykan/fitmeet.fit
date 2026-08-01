@@ -19,6 +19,9 @@ type Props = {
   surfaceSegments?: TrackSegment[]
   /** 0..1 reveal fraction while the route "play" animation runs. Omit/null for the normal, fully-drawn route. */
   playProgress?: number | null
+  /** When provided (with onPlayToggle), shows a Play/Pause control overlaid on the map. */
+  playState?: 'idle' | 'playing' | 'paused'
+  onPlayToggle?: () => void
   onMapEnabledChange?: (enabled: boolean) => void
   loading?: boolean
 }
@@ -171,6 +174,7 @@ function buildHtml(
     const hasLayeredSegments = (surfaceSegments && surfaceSegments.length > 0) || (elevationSegments && elevationSegments.length > 0);
     const staticLayers = [];
     let snakeLine = null;
+    let snakeStartDot = null;
     // Single, sequentially-ordered coordinate path for the "play" reveal animation.
     // (Concatenating surface + elevation segments would re-trace the whole route twice,
     // since each layer independently covers it start-to-end.)
@@ -220,6 +224,7 @@ function buildHtml(
       if (allTrackCoords.length < 2) return;
       if (progress >= 1) {
         if (snakeLine) { map.removeLayer(snakeLine); snakeLine = null; }
+        if (snakeStartDot) { map.removeLayer(snakeStartDot); snakeStartDot = null; }
         staticLayers.forEach(function(l) { if (!map.hasLayer(l)) l.addTo(map); });
         return;
       }
@@ -230,6 +235,9 @@ function buildHtml(
         snakeLine = L.polyline(pts, { color:'#39ff14', weight:5, opacity:0.95, lineCap:'round', lineJoin:'round' }).addTo(map);
       } else {
         snakeLine.setLatLngs(pts);
+      }
+      if (!snakeStartDot) {
+        snakeStartDot = L.circleMarker(allTrackCoords[0], { radius:6, color:'#ff2d2d', weight:2, fillColor:'#ff2d2d', fillOpacity:1 }).addTo(map);
       }
     }
 
@@ -349,7 +357,7 @@ function buildHtml(
 </html>`
 }
 
-export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegments, elevationSegments, surfaceSegments, playProgress = null, onMapEnabledChange, loading }: Props) {
+export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegments, elevationSegments, surfaceSegments, playProgress = null, playState, onPlayToggle, onMapEnabledChange, loading }: Props) {
   const webViewRef = useRef<WebViewType>(null)
   const [weather, setWeather] = useState<CurrentWeather | null>(null)
   const [center, setCenter] = useState({ lat, lng })
@@ -494,6 +502,16 @@ export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegment
         )}
       </View>
       <View style={styles.weatherToggles} pointerEvents="box-none">
+        {onPlayToggle && (
+          <Pressable style={styles.playToggleBtn} onPress={onPlayToggle} hitSlop={8}>
+            <Ionicons
+              name={playState === 'playing' ? 'pause' : 'play'}
+              size={18}
+              color="#041109"
+              style={playState !== 'playing' ? { marginLeft: 2 } : undefined}
+            />
+          </Pressable>
+        )}
         <Pressable
           style={[styles.weatherToggleBtn, showWind && styles.weatherToggleBtnActive]}
           onPress={() => setShowWind((v) => !v)}
@@ -547,6 +565,17 @@ const styles = StyleSheet.create({
     borderColor: palette.line,
   },
   weatherToggleBtnActive: { backgroundColor: palette.accent, borderColor: palette.accent },
+  playToggleBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.82)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.9)',
+    marginBottom: 4,
+  },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',

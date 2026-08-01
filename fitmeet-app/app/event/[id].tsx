@@ -1049,18 +1049,6 @@ export default function EventDetailScreen() {
               }
             />
           ) : null}
-          {elevationProfile.length >= 2 ? (
-            <Pressable
-              style={[styles.playBtn, playState === 'playing' && styles.playBtnActive]}
-              onPress={handlePlayToggle}
-              disabled={surfaceLoading}
-            >
-              <Ionicons name={playState === 'playing' ? 'pause' : 'play'} size={16} color={palette.accent} />
-              <Text style={styles.playBtnText}>
-                {playState === 'playing' ? 'Pause' : playState === 'paused' ? 'Resume' : 'Play route'}
-              </Text>
-            </Pressable>
-          ) : null}
           {(activityMaxGrade != null || activityMaxDowngrade != null) ? (
             <DetailRow
               icon="trending-up-outline"
@@ -1110,6 +1098,8 @@ export default function EventDetailScreen() {
             elevationSegments={coloredSegments}
             surfaceSegments={surfaceAnalysis?.segments}
             playProgress={isAnimating ? playProgress : null}
+            playState={elevationProfile.length >= 2 ? playState : undefined}
+            onPlayToggle={elevationProfile.length >= 2 ? handlePlayToggle : undefined}
             onMapEnabledChange={setMapEnabled}
             loading={gpxLoading || surfaceLoading}
           />
@@ -1674,20 +1664,6 @@ const styles = StyleSheet.create({
 
   detailRow:      { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   gpxActionRow:   { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 2 },
-  playBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(108,255,47,0.28)',
-    backgroundColor: 'rgba(108,255,47,0.08)',
-    borderRadius: 14,
-    paddingVertical: 10,
-    marginTop: 4,
-  },
-  playBtnActive: { backgroundColor: 'rgba(108,255,47,0.18)' },
-  playBtnText: { color: palette.accent, fontSize: 14, fontWeight: '800' },
   detailPrimary:  { color: palette.textMuted, fontSize: 14, lineHeight: 20 },
   detailSecondary:{ color: palette.textDim, fontSize: 13 },
 

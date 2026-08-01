@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { MapContainer, TileLayer, Marker, Polyline, useMapEvents, useMap, ZoomControl } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Polyline, CircleMarker, useMapEvents, useMap, ZoomControl } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import type { TrackSegment } from '@/lib/parse-gpx'
@@ -508,6 +508,11 @@ export default function LocationPickerMap({
             <Polyline
               positions={playCoords.slice(0, Math.max(2, Math.ceil(playProgress * playCoords.length)))}
               pathOptions={{ color: '#39ff14', weight: 5, opacity: 0.95, lineCap: 'round', lineJoin: 'round' }}
+            />
+            <CircleMarker
+              center={playCoords[0]}
+              radius={6}
+              pathOptions={{ color: '#ff2d2d', weight: 2, fillColor: '#ff2d2d', fillOpacity: 1 }}
             />
             <FitTrack coords={allCoords} />
           </>

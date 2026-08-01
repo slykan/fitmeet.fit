@@ -350,19 +350,6 @@ export default function RouteViewScreen() {
           ))}
         </View>
 
-        {gpx && gpx.track.length >= 2 ? (
-          <Pressable
-            style={[styles.playBtn, (isAnimating && playState === 'playing') && styles.playBtnActive]}
-            onPress={handlePlayToggle}
-            disabled={surfaceLoading}
-          >
-            <Ionicons name={playState === 'playing' ? 'pause' : 'play'} size={16} color={palette.accent} />
-            <Text style={styles.playBtnText}>
-              {playState === 'playing' ? 'Pause' : playState === 'paused' ? 'Resume' : 'Play'}
-            </Text>
-          </Pressable>
-        ) : null}
-
         {route.location.start_lat != null && route.location.start_lng != null ? (
           <EventMapCard
             lat={route.location.start_lat}
@@ -371,6 +358,8 @@ export default function RouteViewScreen() {
             elevationSegments={gpx?.coloredSegments}
             surfaceSegments={surfaceAnalysis?.segments}
             playProgress={isAnimating ? playProgress : null}
+            playState={gpx && gpx.track.length >= 2 ? playState : undefined}
+            onPlayToggle={gpx && gpx.track.length >= 2 ? handlePlayToggle : undefined}
             onMapEnabledChange={setMapEnabled}
             loading={surfaceLoading}
           />
@@ -499,19 +488,6 @@ const styles = StyleSheet.create({
   statLabel: { color: palette.textMuted, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
   statValue: { color: palette.text, fontSize: 18, fontWeight: '900', marginTop: 4 },
   statCardLive: { borderColor: palette.accent },
-  playBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(108,255,47,0.28)',
-    backgroundColor: 'rgba(108,255,47,0.08)',
-    borderRadius: 14,
-    paddingVertical: 11,
-  },
-  playBtnActive: { backgroundColor: 'rgba(108,255,47,0.18)' },
-  playBtnText: { color: palette.accent, fontSize: 14, fontWeight: '800' },
   surfaceSection: { gap: 8 },
   surfaceMixText: { color: palette.text, fontSize: 13, fontWeight: '900' },
   surfaceMixMuted: { color: palette.textMuted, fontWeight: '700' },
