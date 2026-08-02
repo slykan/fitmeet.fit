@@ -114,10 +114,9 @@ function buildHtml(
     .leaflet-control-attribution{display:none;}
     .fm-marker{background:transparent;border:0;}
     .fm-pin{
-      width:38px;height:38px;border-radius:999px;
-      display:flex;align-items:center;justify-content:center;
-      background:rgba(7,13,28,0.92);border:2px solid #6cff2f;
-      box-shadow:0 0 0 3px rgba(108,255,47,0.18);font-size:18px;
+      width:18px;height:18px;border-radius:999px;
+      background:radial-gradient(circle at 35% 30%, #ff9a8a 0%, #ff2d2d 55%, #8b0000 100%);
+      box-shadow:0 1px 4px rgba(0,0,0,0.5), inset 0 -1px 2px rgba(0,0,0,0.35);
     }
     ${WIND_CSS}
   </style>
@@ -170,7 +169,7 @@ function buildHtml(
     }
     updateRadarTiles(showClouds);
 
-    const icon = L.divIcon({className:'fm-marker',html:'<div class="fm-pin">${emoji}</div>',iconSize:[38,38],iconAnchor:[19,19]});
+    const icon = L.divIcon({className:'fm-marker',html:'<div class="fm-pin"></div>',iconSize:[18,18],iconAnchor:[9,9]});
     L.marker([${lat},${lng}],{icon}).addTo(map);
 
     const hasLayeredSegments = (surfaceSegments && surfaceSegments.length > 0) || (elevationSegments && elevationSegments.length > 0);
@@ -549,11 +548,15 @@ export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegment
       </View>
       <View style={styles.weatherToggles} pointerEvents="box-none">
         {onPlayToggle && (
-          <Pressable style={styles.playToggleBtn} onPress={onPlayToggle} hitSlop={8}>
+          <Pressable
+            style={[styles.weatherToggleBtn, playState === 'playing' && styles.weatherToggleBtnActive]}
+            onPress={onPlayToggle}
+            hitSlop={8}
+          >
             <Ionicons
               name={playState === 'playing' ? 'pause' : 'play'}
               size={15}
-              color="#041109"
+              color={playState === 'playing' ? '#031109' : palette.text}
               style={playState !== 'playing' ? { marginLeft: 1 } : undefined}
             />
           </Pressable>
@@ -611,16 +614,6 @@ const styles = StyleSheet.create({
     borderColor: palette.line,
   },
   weatherToggleBtnActive: { backgroundColor: palette.accent, borderColor: palette.accent },
-  playToggleBtn: {
-    width: 30,
-    height: 30,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.82)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.9)',
-  },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
