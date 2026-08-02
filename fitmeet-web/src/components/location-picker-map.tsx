@@ -189,7 +189,7 @@ function PlayCameraFollow({ position }: { position: [number, number] }) {
   const map = useMap()
   const followZoomRef = useRef<number | null>(null)
   useEffect(() => {
-    followZoomRef.current = Math.min(map.getZoom() + 3, 18)
+    followZoomRef.current = Math.min(map.getZoom() + 2, 17)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   useEffect(() => {

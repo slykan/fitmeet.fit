@@ -80,9 +80,9 @@ function withProfileStats(parsed: GpxParsed): GpxParsed {
   }
 }
 
-const ROUTE_PLAY_DURATION_MS = 15000
+const ROUTE_PLAY_DURATION_MS = 20000
 const MILESTONE_STEP_KM = 10
-const MILESTONE_PAUSE_MS = 30
+const MILESTONE_PAUSE_MS = 600
 const MILESTONE_LABEL_MS = 5000
 const MILESTONE_EXIT_MS = 350
 const PROGRESS_UPDATE_INTERVAL_MS = 1000 / 30

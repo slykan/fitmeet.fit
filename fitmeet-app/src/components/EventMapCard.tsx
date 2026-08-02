@@ -334,7 +334,7 @@ function buildHtml(
       }
       const head = pts[pts.length - 1];
       lastHeadLatLng = head;
-      if (wasStatic) { followZoom = Math.min(map.getZoom() + 3, 18); }
+      if (wasStatic) { followZoom = Math.min(map.getZoom() + 2, 17); }
       map.setView(head, followZoom, { animate: false });
       if (!snakeHeadDot) {
         const headIcon = L.divIcon({
@@ -499,6 +499,7 @@ export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegment
   const [showSurfaceLayer, setShowSurfaceLayer] = useState(false)
   const [showKmMarkers, setShowKmMarkers] = useState(false)
   const hasSurfaceOrElevation = Boolean(surfaceSegments?.length || elevationSegments?.length)
+  const isAnimating = playState === 'playing' || playState === 'paused'
   const html = useMemo(
     () => buildHtml(lat, lng, { lat, lng }, emoji, null, showWind, effectiveShowClouds, radarPath, coloredSegments ?? [], elevationSegments ?? [], surfaceSegments ?? [], 'standard', true, false, false),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -540,8 +541,12 @@ export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegment
   weatherRef.current = weather
 
   useEffect(() => {
-    webViewRef.current?.postMessage(JSON.stringify({ type: 'weatherUpdate', weather, showWind, showClouds: effectiveShowClouds }))
-  }, [weather, showWind, effectiveShowClouds])
+    webViewRef.current?.postMessage(JSON.stringify({
+      type: 'weatherUpdate', weather,
+      showWind: showWind && !isAnimating,
+      showClouds: effectiveShowClouds && !isAnimating,
+    }))
+  }, [weather, showWind, effectiveShowClouds, isAnimating])
 
   useEffect(() => {
     if (radarPath) webViewRef.current?.postMessage(JSON.stringify({ type: 'radarUpdate', path: radarPath }))
@@ -579,7 +584,11 @@ export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegment
         onLoadEnd={() => {
           if (weatherRef.current) {
             webViewRef.current?.postMessage(
-              JSON.stringify({ type: 'weatherUpdate', weather: weatherRef.current, showWind, showClouds: effectiveShowClouds }),
+              JSON.stringify({
+                type: 'weatherUpdate', weather: weatherRef.current,
+                showWind: showWind && !isAnimating,
+                showClouds: effectiveShowClouds && !isAnimating,
+              }),
             )
           }
           if (radarPath) webViewRef.current?.postMessage(JSON.stringify({ type: 'radarUpdate', path: radarPath }))
