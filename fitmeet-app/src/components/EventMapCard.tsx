@@ -224,6 +224,7 @@ function buildHtml(
         }, 200);
       }
     }
+    let finishMarker = null;
     if (allTrackCoords.length > 1) {
       const finishIcon = L.divIcon({
         className:'fm-finish-marker',
@@ -231,7 +232,7 @@ function buildHtml(
         iconSize:[26,26],
         iconAnchor:[13,13]
       });
-      L.marker(allTrackCoords[allTrackCoords.length - 1], { icon: finishIcon }).addTo(map);
+      finishMarker = L.marker(allTrackCoords[allTrackCoords.length - 1], { icon: finishIcon });
     }
     function setPlayProgress(progress) {
       if (allTrackCoords.length < 2) return;
@@ -239,8 +240,10 @@ function buildHtml(
         if (snakeLine) { map.removeLayer(snakeLine); snakeLine = null; }
         if (snakeHeadDot) { map.removeLayer(snakeHeadDot); snakeHeadDot = null; }
         staticLayers.forEach(function(l) { if (!map.hasLayer(l)) l.addTo(map); });
+        if (finishMarker && !map.hasLayer(finishMarker)) finishMarker.addTo(map);
         return;
       }
+      if (finishMarker && map.hasLayer(finishMarker)) map.removeLayer(finishMarker);
       staticLayers.forEach(function(l) { if (map.hasLayer(l)) map.removeLayer(l); });
       const n = Math.max(2, Math.ceil(progress * allTrackCoords.length));
       const pts = allTrackCoords.slice(0, n);
@@ -262,7 +265,6 @@ function buildHtml(
       } else {
         snakeHeadDot.setLatLng(head);
       }
-      if (milestoneMarker) milestoneMarker.setLatLng(head);
     }
     function milestoneIcon(km, exiting) {
       return L.divIcon({

@@ -495,6 +495,14 @@ export default function LocationPickerMap({
     },
     [coloredSegments, elevationSegments, surfaceSegments, track],
   )
+  // Frozen at the coordinate where the milestone was hit — deliberately not
+  // re-computed as playProgress advances, so the badge stays put at that
+  // point on the route instead of following the moving head marker.
+  const milestonePosition = useMemo(
+    () => (playMilestone ? playCoords[Math.max(1, Math.ceil(playProgress! * playCoords.length)) - 1] : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [playMilestone?.km, playCoords],
+  )
   const hasTrack    = allCoords.length > 1
   const hasLayeredSegments = Boolean(surfaceSegments?.length || elevationSegments?.length)
   const [selectedLayerName, setSelectedLayerName] = useState<MapBaseLayerName>('Standard')
@@ -547,9 +555,9 @@ export default function LocationPickerMap({
               position={playCoords[Math.max(1, Math.ceil(playProgress * playCoords.length)) - 1]}
               icon={headIcon}
             />
-            {playMilestone && (
+            {playMilestone && milestonePosition && (
               <Marker
-                position={playCoords[Math.max(1, Math.ceil(playProgress * playCoords.length)) - 1]}
+                position={milestonePosition}
                 icon={milestoneIcon(playMilestone.km, playMilestone.exiting)}
                 zIndexOffset={1000}
               />
@@ -595,7 +603,7 @@ export default function LocationPickerMap({
           </>
         )}
 
-        {(playCoords.length > 0 || allCoords.length > 0) && (
+        {(playCoords.length > 0 || allCoords.length > 0) && (playProgress == null || playProgress >= 1) && (
           <Marker
             position={playCoords.length > 0 ? playCoords[playCoords.length - 1] : allCoords[allCoords.length - 1]}
             icon={finishIcon}
