@@ -403,10 +403,16 @@ function RouteContent() {
                   type="button"
                   onClick={handlePlayToggle}
                   disabled={surfaceLoading || !gpxResult || gpxResult.track.length < 2}
-                  className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border font-semibold disabled:opacity-50"
-                  style={{ borderColor: 'var(--primary)', color: 'var(--primary)' }}
+                  className="inline-flex items-center justify-center rounded-[10px] border transition-colors disabled:opacity-50"
+                  style={{
+                    width: 32, height: 32,
+                    borderColor: playState === 'playing' ? 'var(--primary)' : 'rgba(255,255,255,0.12)',
+                    background: playState === 'playing' ? 'var(--primary)' : 'rgba(255,255,255,0.03)',
+                  }}
                 >
-                  {playState === 'playing' ? <><Pause size={13} /> Pause</> : <><Play size={13} /> {playState === 'paused' ? 'Resume' : 'Play'}</>}
+                  {playState === 'playing'
+                    ? <Pause size={15} color="#031109" />
+                    : <Play size={15} color="var(--text-muted)" />}
                 </button>
                 <button
                   type="button"
@@ -423,38 +429,38 @@ function RouteContent() {
                 <button
                   type="button"
                   onClick={() => setShowElevationLayer(v => !v)}
-                  className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-colors"
+                  className="inline-flex items-center justify-center rounded-[10px] border transition-colors"
                   style={{
+                    width: 32, height: 32,
                     borderColor: showElevationLayer ? 'var(--primary)' : 'rgba(255,255,255,0.12)',
-                    color: showElevationLayer ? 'var(--primary)' : 'var(--text-muted)',
-                    background: showElevationLayer ? 'rgba(57,255,20,0.1)' : 'rgba(255,255,255,0.03)',
+                    background: showElevationLayer ? 'var(--primary)' : 'rgba(255,255,255,0.03)',
                   }}
                 >
-                  <Mountain size={13} /> Elevation
+                  <Mountain size={15} color={showElevationLayer ? '#031109' : 'var(--text-muted)'} />
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowSurfaceLayer(v => !v)}
-                  className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-colors"
+                  className="inline-flex items-center justify-center rounded-[10px] border transition-colors"
                   style={{
+                    width: 32, height: 32,
                     borderColor: showSurfaceLayer ? 'var(--primary)' : 'rgba(255,255,255,0.12)',
-                    color: showSurfaceLayer ? 'var(--primary)' : 'var(--text-muted)',
-                    background: showSurfaceLayer ? 'rgba(57,255,20,0.1)' : 'rgba(255,255,255,0.03)',
+                    background: showSurfaceLayer ? 'var(--primary)' : 'rgba(255,255,255,0.03)',
                   }}
                 >
-                  <RouteIcon size={13} /> Surface
+                  <RouteIcon size={15} color={showSurfaceLayer ? '#031109' : 'var(--text-muted)'} />
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowKmMarkers(v => !v)}
-                  className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-colors"
+                  className="inline-flex items-center justify-center rounded-[10px] border transition-colors"
                   style={{
+                    width: 32, height: 32,
                     borderColor: showKmMarkers ? 'var(--primary)' : 'rgba(255,255,255,0.12)',
-                    color: showKmMarkers ? 'var(--primary)' : 'var(--text-muted)',
-                    background: showKmMarkers ? 'rgba(57,255,20,0.1)' : 'rgba(255,255,255,0.03)',
+                    background: showKmMarkers ? 'var(--primary)' : 'rgba(255,255,255,0.03)',
                   }}
                 >
-                  <Milestone size={13} /> Km
+                  <Milestone size={15} color={showKmMarkers ? '#031109' : 'var(--text-muted)'} />
                 </button>
               </div>
             ) : null}

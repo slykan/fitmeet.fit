@@ -848,29 +848,27 @@ function EventContent() {
                   <button
                     type="button"
                     onClick={() => setShowWindOverlay(v => !v)}
-                    className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-colors sm:text-xs"
+                    className="inline-flex items-center justify-center rounded-[10px] border transition-colors"
                     style={{
+                      width: 32, height: 32,
                       borderColor: showWindOverlay ? 'var(--primary)' : 'rgba(255,255,255,0.12)',
-                      color: showWindOverlay ? 'var(--primary)' : 'var(--text-muted)',
-                      background: showWindOverlay ? 'rgba(57,255,20,0.1)' : 'rgba(255,255,255,0.03)',
+                      background: showWindOverlay ? 'var(--primary)' : 'rgba(255,255,255,0.03)',
                     }}
                   >
-                    <Wind size={13} />
-                    <span>Wind</span>
+                    <Wind size={15} color={showWindOverlay ? '#031109' : 'var(--text-muted)'} />
                   </button>
                   {rainDataReliable && (
                     <button
                       type="button"
                       onClick={() => setShowCloudOverlay(v => !v)}
-                      className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-colors sm:text-xs"
+                      className="inline-flex items-center justify-center rounded-[10px] border transition-colors"
                       style={{
+                        width: 32, height: 32,
                         borderColor: showCloudOverlay ? 'var(--primary)' : 'rgba(255,255,255,0.12)',
-                        color: showCloudOverlay ? 'var(--primary)' : 'var(--text-muted)',
-                        background: showCloudOverlay ? 'rgba(57,255,20,0.1)' : 'rgba(255,255,255,0.03)',
+                        background: showCloudOverlay ? 'var(--primary)' : 'rgba(255,255,255,0.03)',
                       }}
                     >
-                      <Cloud size={13} />
-                      <span>Clouds</span>
+                      <Cloud size={15} color={showCloudOverlay ? '#031109' : 'var(--text-muted)'} />
                     </button>
                   )}
                   {gpxResult && gpxResult.track.length >= 2 && (
@@ -878,15 +876,16 @@ function EventContent() {
                       type="button"
                       onClick={handlePlayToggle}
                       disabled={surfaceLoading}
-                      className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-colors sm:text-xs disabled:opacity-50"
+                      className="inline-flex items-center justify-center rounded-[10px] border transition-colors disabled:opacity-50"
                       style={{
-                        borderColor: 'var(--primary)',
-                        color: 'var(--primary)',
-                        background: playState === 'playing' ? 'rgba(57,255,20,0.1)' : 'rgba(255,255,255,0.03)',
+                        width: 32, height: 32,
+                        borderColor: playState === 'playing' ? 'var(--primary)' : 'rgba(255,255,255,0.12)',
+                        background: playState === 'playing' ? 'var(--primary)' : 'rgba(255,255,255,0.03)',
                       }}
                     >
-                      {playState === 'playing' ? <Pause size={13} /> : <Play size={13} />}
-                      <span>{playState === 'playing' ? 'Pause' : playState === 'paused' ? 'Resume' : 'Play'}</span>
+                      {playState === 'playing'
+                        ? <Pause size={15} color="#031109" />
+                        : <Play size={15} color="var(--text-muted)" />}
                     </button>
                   )}
                   {(surfaceAnalysis?.segments?.length || gpxResult?.coloredSegments?.length) ? (
@@ -894,41 +893,38 @@ function EventContent() {
                       <button
                         type="button"
                         onClick={() => setShowElevationLayer(v => !v)}
-                        className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-colors sm:text-xs"
+                        className="inline-flex items-center justify-center rounded-[10px] border transition-colors"
                         style={{
+                          width: 32, height: 32,
                           borderColor: showElevationLayer ? 'var(--primary)' : 'rgba(255,255,255,0.12)',
-                          color: showElevationLayer ? 'var(--primary)' : 'var(--text-muted)',
-                          background: showElevationLayer ? 'rgba(57,255,20,0.1)' : 'rgba(255,255,255,0.03)',
+                          background: showElevationLayer ? 'var(--primary)' : 'rgba(255,255,255,0.03)',
                         }}
                       >
-                        <Mountain size={13} />
-                        <span>Elevation</span>
+                        <Mountain size={15} color={showElevationLayer ? '#031109' : 'var(--text-muted)'} />
                       </button>
                       <button
                         type="button"
                         onClick={() => setShowSurfaceLayer(v => !v)}
-                        className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-colors sm:text-xs"
+                        className="inline-flex items-center justify-center rounded-[10px] border transition-colors"
                         style={{
+                          width: 32, height: 32,
                           borderColor: showSurfaceLayer ? 'var(--primary)' : 'rgba(255,255,255,0.12)',
-                          color: showSurfaceLayer ? 'var(--primary)' : 'var(--text-muted)',
-                          background: showSurfaceLayer ? 'rgba(57,255,20,0.1)' : 'rgba(255,255,255,0.03)',
+                          background: showSurfaceLayer ? 'var(--primary)' : 'rgba(255,255,255,0.03)',
                         }}
                       >
-                        <RouteIcon size={13} />
-                        <span>Surface</span>
+                        <RouteIcon size={15} color={showSurfaceLayer ? '#031109' : 'var(--text-muted)'} />
                       </button>
                       <button
                         type="button"
                         onClick={() => setShowKmMarkers(v => !v)}
-                        className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-colors sm:text-xs"
+                        className="inline-flex items-center justify-center rounded-[10px] border transition-colors"
                         style={{
+                          width: 32, height: 32,
                           borderColor: showKmMarkers ? 'var(--primary)' : 'rgba(255,255,255,0.12)',
-                          color: showKmMarkers ? 'var(--primary)' : 'var(--text-muted)',
-                          background: showKmMarkers ? 'rgba(57,255,20,0.1)' : 'rgba(255,255,255,0.03)',
+                          background: showKmMarkers ? 'var(--primary)' : 'rgba(255,255,255,0.03)',
                         }}
                       >
-                        <Milestone size={13} />
-                        <span>Km</span>
+                        <Milestone size={15} color={showKmMarkers ? '#031109' : 'var(--text-muted)'} />
                       </button>
                     </>
                   ) : null}
