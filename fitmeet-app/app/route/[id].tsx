@@ -85,6 +85,7 @@ const MILESTONE_STEP_KM = 10
 const MILESTONE_PAUSE_MS = 30
 const MILESTONE_LABEL_MS = 5000
 const MILESTONE_EXIT_MS = 350
+const PROGRESS_UPDATE_INTERVAL_MS = 1000 / 30
 
 function statsUpToProgress(profile: { km: number; ele: number }[], progress: number) {
   const n = Math.max(2, Math.ceil(progress * profile.length))
@@ -146,6 +147,7 @@ export default function RouteViewScreen() {
     const totalKm = gpx?.distanceKm ?? route?.stats.distance_km ?? 0
     let startTime = performance.now() - resumeFrom * ROUTE_PLAY_DURATION_MS
     let pauseUntil: number | null = null
+    let lastUpdateTime = 0
     const step = (now: number) => {
       if (pauseUntil != null) {
         if (now < pauseUntil) {
@@ -156,21 +158,28 @@ export default function RouteViewScreen() {
         pauseUntil = null
       }
       const p = Math.min(1, (now - startTime) / ROUTE_PLAY_DURATION_MS)
-      setPlayProgress(p)
 
-      if (totalKm > 0) {
-        for (let km = MILESTONE_STEP_KM; km < totalKm; km += MILESTONE_STEP_KM) {
-          if (hitMilestonesRef.current.has(km) || p < km / totalKm) continue
-          hitMilestonesRef.current.add(km)
-          pauseUntil = now + MILESTONE_PAUSE_MS
-          if (milestoneExitTimerRef.current != null) clearTimeout(milestoneExitTimerRef.current)
-          if (milestoneClearTimerRef.current != null) clearTimeout(milestoneClearTimerRef.current)
-          setPlayMilestone({ km, exiting: false })
-          milestoneExitTimerRef.current = setTimeout(() => {
-            setPlayMilestone(current => (current ? { ...current, exiting: true } : current))
-          }, MILESTONE_LABEL_MS - MILESTONE_EXIT_MS)
-          milestoneClearTimerRef.current = setTimeout(() => setPlayMilestone(null), MILESTONE_LABEL_MS)
-          break
+      // Throttled to ~30fps: driving React state (and two WebView postMessage
+      // bridges for the map + elevation chart) at the full 60fps refresh rate
+      // causes jank on slower devices for no visible benefit.
+      if (p >= 1 || now - lastUpdateTime >= PROGRESS_UPDATE_INTERVAL_MS) {
+        lastUpdateTime = now
+        setPlayProgress(p)
+
+        if (totalKm > 0) {
+          for (let km = MILESTONE_STEP_KM; km < totalKm; km += MILESTONE_STEP_KM) {
+            if (hitMilestonesRef.current.has(km) || p < km / totalKm) continue
+            hitMilestonesRef.current.add(km)
+            pauseUntil = now + MILESTONE_PAUSE_MS
+            if (milestoneExitTimerRef.current != null) clearTimeout(milestoneExitTimerRef.current)
+            if (milestoneClearTimerRef.current != null) clearTimeout(milestoneClearTimerRef.current)
+            setPlayMilestone({ km, exiting: false })
+            milestoneExitTimerRef.current = setTimeout(() => {
+              setPlayMilestone(current => (current ? { ...current, exiting: true } : current))
+            }, MILESTONE_LABEL_MS - MILESTONE_EXIT_MS)
+            milestoneClearTimerRef.current = setTimeout(() => setPlayMilestone(null), MILESTONE_LABEL_MS)
+            break
+          }
         }
       }
 
