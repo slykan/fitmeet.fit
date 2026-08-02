@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import { yieldToMain } from '@/src/lib/async-chunk'
 
 export interface TrackSegment {
@@ -115,19 +116,57 @@ function sampleTrackWithIndexes(track: [number, number][], maxPoints = 100): { p
   return { points, indexes }
 }
 
+// The open-meteo elevation API is a free, rate-limited service and every
+// viewer of a route/event was hitting it fresh on every screen open. Caching
+// the result per-track means a given route only needs one successful fetch
+// ever (per device), instead of one per view.
+const ELEVATION_CACHE_PREFIX = 'fitmeet:elevation:'
+
+function elevationCacheKey(track: [number, number][]): string | null {
+  if (track.length < 2) return null
+  const [firstLat, firstLng] = track[0]
+  const [lastLat, lastLng] = track[track.length - 1]
+  return `${track.length}:${firstLat.toFixed(5)},${firstLng.toFixed(5)}:${lastLat.toFixed(5)},${lastLng.toFixed(5)}`
+}
+
+async function requestElevations(latitudes: string, longitudes: string): Promise<number[]> {
+  const response = await fetch(`https://api.open-meteo.com/v1/elevation?latitude=${latitudes}&longitude=${longitudes}`)
+  if (!response.ok) throw new Error(`Elevation request failed: ${response.status}`)
+  const data = await response.json() as { elevation?: number[] }
+  return data.elevation ?? []
+}
+
 export async function fetchElevationProfile(track: [number, number][]): Promise<ElevationProfileResult> {
+  const cacheKey = elevationCacheKey(track)
+  if (cacheKey) {
+    try {
+      const cached = await AsyncStorage.getItem(ELEVATION_CACHE_PREFIX + cacheKey)
+      if (cached) return JSON.parse(cached) as ElevationProfileResult
+    } catch {}
+  }
+
   const sampledInfo = sampleTrackWithIndexes(track)
   const sampled = sampledInfo.points
   if (sampled.length < 2) return { elevationProfile: [], coloredSegments: [] }
 
   const latitudes = sampled.map(([lat]) => lat.toFixed(5)).join(',')
   const longitudes = sampled.map(([, lon]) => lon.toFixed(5)).join(',')
-  const response = await fetch(`https://api.open-meteo.com/v1/elevation?latitude=${latitudes}&longitude=${longitudes}`)
-  if (!response.ok) throw new Error(`Elevation request failed: ${response.status}`)
-  const data = await response.json() as { elevation?: number[] }
-  const elevs = data.elevation ?? []
 
-  return buildElevationProfile(sampled, elevs, track, sampledInfo.indexes)
+  let elevs: number[]
+  try {
+    elevs = await requestElevations(latitudes, longitudes)
+  } catch {
+    // Transient network hiccup / timeout — retry once before giving up.
+    elevs = await requestElevations(latitudes, longitudes)
+  }
+
+  const result = buildElevationProfile(sampled, elevs, track, sampledInfo.indexes)
+  if (cacheKey) {
+    try {
+      await AsyncStorage.setItem(ELEVATION_CACHE_PREFIX + cacheKey, JSON.stringify(result))
+    } catch {}
+  }
+  return result
 }
 
 function readPoints(xml: string, tagNames: string): { coords: [number, number]; ele: number | null }[] {

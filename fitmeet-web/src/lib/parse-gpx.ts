@@ -129,7 +129,43 @@ async function requestElevations(latitudes: string, longitudes: string): Promise
   return data.elevation ?? []
 }
 
+// The open-meteo elevation API is a free, rate-limited service and every
+// viewer of a route/event was hitting it fresh on every page load. Caching
+// the result per-track in localStorage means a given route only needs one
+// successful fetch ever (per browser), instead of one per view.
+const ELEVATION_CACHE_PREFIX = 'fitmeet:elevation:'
+
+function elevationCacheKey(track: [number, number][]): string | null {
+  if (track.length < 2) return null
+  const [firstLat, firstLng] = track[0]
+  const [lastLat, lastLng] = track[track.length - 1]
+  return `${track.length}:${firstLat.toFixed(5)},${firstLng.toFixed(5)}:${lastLat.toFixed(5)},${lastLng.toFixed(5)}`
+}
+
+function readElevationCache(key: string): ElevationProfileResult | null {
+  try {
+    const raw = window.localStorage.getItem(ELEVATION_CACHE_PREFIX + key)
+    return raw ? JSON.parse(raw) as ElevationProfileResult : null
+  } catch {
+    return null
+  }
+}
+
+function writeElevationCache(key: string, result: ElevationProfileResult) {
+  try {
+    window.localStorage.setItem(ELEVATION_CACHE_PREFIX + key, JSON.stringify(result))
+  } catch {
+    // Storage full or unavailable (private browsing) — caching is a nice-to-have, skip silently.
+  }
+}
+
 export async function fetchElevationProfile(track: [number, number][]): Promise<ElevationProfileResult> {
+  const cacheKey = typeof window !== 'undefined' ? elevationCacheKey(track) : null
+  if (cacheKey) {
+    const cached = readElevationCache(cacheKey)
+    if (cached) return cached
+  }
+
   const sampledInfo = sampleTrackWithIndexes(track)
   const sampled = sampledInfo.points
   if (sampled.length < 2) return { elevationProfile: [], coloredSegments: [] }
@@ -145,7 +181,9 @@ export async function fetchElevationProfile(track: [number, number][]): Promise<
     elevations = await requestElevations(latitudes, longitudes)
   }
 
-  return buildElevationProfile(sampled, elevations, track, sampledInfo.indexes)
+  const result = buildElevationProfile(sampled, elevations, track, sampledInfo.indexes)
+  if (cacheKey) writeElevationCache(cacheKey, result)
+  return result
 }
 
 function readPoints(xml: string, tagNames: string): { coords: [number, number]; ele: number | null }[] {
