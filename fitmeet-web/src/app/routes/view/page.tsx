@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic'
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ChevronLeft, Download, Eye, MapPin, Pause, PenLine, Play, Share2, Trash2, Zap } from 'lucide-react'
+import { ChevronLeft, Download, Eye, MapPin, Mountain, Milestone, Pause, PenLine, Play, Route as RouteIcon, Share2, Trash2, Zap } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
 import ElevationChart from '@/components/elevation-chart'
@@ -114,6 +114,9 @@ function RouteContent() {
   const [playState, setPlayState] = useState<'idle' | 'playing' | 'paused'>('idle')
   const [playProgress, setPlayProgress] = useState(0)
   const [playMilestone, setPlayMilestone] = useState<{ km: number; exiting: boolean } | null>(null)
+  const [showElevationLayer, setShowElevationLayer] = useState(true)
+  const [showSurfaceLayer, setShowSurfaceLayer] = useState(false)
+  const [showKmMarkers, setShowKmMarkers] = useState(false)
   const playFrameRef = useRef<number | null>(null)
   const hitMilestonesRef = useRef<Set<number>>(new Set())
   const milestoneExitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -415,6 +418,46 @@ function RouteContent() {
                 </button>
               </div>
             </div>
+            {(surfaceAnalysis?.segments?.length || gpxResult?.coloredSegments?.length) ? (
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => setShowElevationLayer(v => !v)}
+                  className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-colors"
+                  style={{
+                    borderColor: showElevationLayer ? 'var(--primary)' : 'rgba(255,255,255,0.12)',
+                    color: showElevationLayer ? 'var(--primary)' : 'var(--text-muted)',
+                    background: showElevationLayer ? 'rgba(57,255,20,0.1)' : 'rgba(255,255,255,0.03)',
+                  }}
+                >
+                  <Mountain size={13} /> Elevation
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowSurfaceLayer(v => !v)}
+                  className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-colors"
+                  style={{
+                    borderColor: showSurfaceLayer ? 'var(--primary)' : 'rgba(255,255,255,0.12)',
+                    color: showSurfaceLayer ? 'var(--primary)' : 'var(--text-muted)',
+                    background: showSurfaceLayer ? 'rgba(57,255,20,0.1)' : 'rgba(255,255,255,0.03)',
+                  }}
+                >
+                  <RouteIcon size={13} /> Surface
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowKmMarkers(v => !v)}
+                  className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-colors"
+                  style={{
+                    borderColor: showKmMarkers ? 'var(--primary)' : 'rgba(255,255,255,0.12)',
+                    color: showKmMarkers ? 'var(--primary)' : 'var(--text-muted)',
+                    background: showKmMarkers ? 'rgba(57,255,20,0.1)' : 'rgba(255,255,255,0.03)',
+                  }}
+                >
+                  <Milestone size={13} /> Km
+                </button>
+              </div>
+            ) : null}
             <div className="relative">
               <LocationPickerMap
                 lat={route.location.start_lat}
@@ -424,6 +467,9 @@ function RouteContent() {
                 surfaceSegments={surfaceAnalysis?.segments}
                 playProgress={isAnimating ? playProgress : null}
                 playMilestone={isAnimating ? playMilestone : null}
+                showElevationLayer={showElevationLayer}
+                showSurfaceLayer={showSurfaceLayer}
+                showKmMarkers={showKmMarkers}
                 readOnly
                 height={720}
                 showWindOverlay={false}

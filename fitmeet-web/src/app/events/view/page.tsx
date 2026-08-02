@@ -5,7 +5,7 @@ import { useEffect, useState, useRef, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Calendar, MapPin, Users, Zap, ChevronLeft, Lock, Pencil, ChevronDown, ChevronUp, Bell, Check, X, Share2, XCircle, Download, Wind, Cloud, Eye, CheckCircle2, Camera, Flag, Play, Pause } from 'lucide-react'
+import { Calendar, MapPin, Users, Zap, ChevronLeft, Lock, Pencil, ChevronDown, ChevronUp, Bell, Check, X, Share2, XCircle, Download, Wind, Cloud, Eye, CheckCircle2, Camera, Flag, Play, Pause, Mountain, Milestone, Route as RouteIcon } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
 import { WeatherBadge } from '@/components/WeatherBadge'
@@ -180,6 +180,9 @@ function EventContent() {
   const [playState, setPlayState] = useState<'idle' | 'playing' | 'paused'>('idle')
   const [playProgress, setPlayProgress] = useState(0)
   const [playMilestone, setPlayMilestone] = useState<{ km: number; exiting: boolean } | null>(null)
+  const [showElevationLayer, setShowElevationLayer] = useState(true)
+  const [showSurfaceLayer, setShowSurfaceLayer] = useState(false)
+  const [showKmMarkers, setShowKmMarkers] = useState(false)
   const playFrameRef = useRef<number | null>(null)
   const hitMilestonesRef = useRef<Set<number>>(new Set())
   const milestoneExitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -820,6 +823,9 @@ function EventContent() {
                 surfaceSegments={surfaceAnalysis?.segments}
                 playProgress={isAnimating ? playProgress : null}
                 playMilestone={isAnimating ? playMilestone : null}
+                showElevationLayer={showElevationLayer}
+                showSurfaceLayer={showSurfaceLayer}
+                showKmMarkers={showKmMarkers}
                 weather={weather}
                 weatherVariant="hub"
                 showWindOverlay={showWindOverlay && !isMapInteracting}
@@ -838,7 +844,7 @@ function EventContent() {
                   backdropFilter: 'blur(10px)',
                 }}
               >
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <button
                     type="button"
                     onClick={() => setShowWindOverlay(v => !v)}
@@ -883,6 +889,49 @@ function EventContent() {
                       <span>{playState === 'playing' ? 'Pause' : playState === 'paused' ? 'Resume' : 'Play'}</span>
                     </button>
                   )}
+                  {(surfaceAnalysis?.segments?.length || gpxResult?.coloredSegments?.length) ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setShowElevationLayer(v => !v)}
+                        className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-colors sm:text-xs"
+                        style={{
+                          borderColor: showElevationLayer ? 'var(--primary)' : 'rgba(255,255,255,0.12)',
+                          color: showElevationLayer ? 'var(--primary)' : 'var(--text-muted)',
+                          background: showElevationLayer ? 'rgba(57,255,20,0.1)' : 'rgba(255,255,255,0.03)',
+                        }}
+                      >
+                        <Mountain size={13} />
+                        <span>Elevation</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowSurfaceLayer(v => !v)}
+                        className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-colors sm:text-xs"
+                        style={{
+                          borderColor: showSurfaceLayer ? 'var(--primary)' : 'rgba(255,255,255,0.12)',
+                          color: showSurfaceLayer ? 'var(--primary)' : 'var(--text-muted)',
+                          background: showSurfaceLayer ? 'rgba(57,255,20,0.1)' : 'rgba(255,255,255,0.03)',
+                        }}
+                      >
+                        <RouteIcon size={13} />
+                        <span>Surface</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowKmMarkers(v => !v)}
+                        className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-colors sm:text-xs"
+                        style={{
+                          borderColor: showKmMarkers ? 'var(--primary)' : 'rgba(255,255,255,0.12)',
+                          color: showKmMarkers ? 'var(--primary)' : 'var(--text-muted)',
+                          background: showKmMarkers ? 'rgba(57,255,20,0.1)' : 'rgba(255,255,255,0.03)',
+                        }}
+                      >
+                        <Milestone size={13} />
+                        <span>Km</span>
+                      </button>
+                    </>
+                  ) : null}
                 </div>
                 {weather && (
                   <div

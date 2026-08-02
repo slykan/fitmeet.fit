@@ -98,6 +98,9 @@ function buildHtml(
   elevationSegments: TrackSegment[],
   surfaceSegments: TrackSegment[],
   initialLayer: MapLayer,
+  initialShowElevation: boolean,
+  initialShowSurface: boolean,
+  initialShowKm: boolean,
 ) {
   const wJson = JSON.stringify(weather)
   const radarPathJson = JSON.stringify(radarPath)
@@ -173,11 +176,17 @@ function buildHtml(
     L.marker([${lat},${lng}],{icon}).addTo(map);
 
     const hasLayeredSegments = (surfaceSegments && surfaceSegments.length > 0) || (elevationSegments && elevationSegments.length > 0);
-    const staticLayers = [];
+    const elevationLayers = [];
+    const surfaceLayersArr = [];
+    let baseLine = null;
     let snakeLine = null;
     let snakeHeadDot = null;
     let lastHeadLatLng = null;
     let milestoneMarker = null;
+    let showElevation = ${initialShowElevation ? 'true' : 'false'};
+    let showSurface = ${initialShowSurface ? 'true' : 'false'};
+    let showKm = ${initialShowKm ? 'true' : 'false'};
+    let isStaticView = true;
     // Single, sequentially-ordered coordinate path for the "play" reveal animation.
     // (Concatenating surface + elevation segments would re-trace the whole route twice,
     // since each layer independently covers it start-to-end.)
@@ -189,9 +198,12 @@ function buildHtml(
     } else {
       allTrackCoords = [].concat(...(coloredSegments || []).map(function(seg) { return seg.coords; }));
     }
+    if (allTrackCoords.length > 1) {
+      baseLine = L.polyline(allTrackCoords, { color:'#39ff14', weight:4, opacity:0.9, lineCap:'round', lineJoin:'round' });
+    }
     if (hasLayeredSegments || (coloredSegments && coloredSegments.length > 0)) {
       const allBounds = [];
-      function drawSegments(segments, options) {
+      function drawSegments(segments, options, bucket) {
         (segments || []).forEach(function(seg) {
           if (seg.coords.length > 1) {
             const poly = L.polyline(seg.coords,{
@@ -201,17 +213,17 @@ function buildHtml(
               lineJoin:'round',
               lineCap:'round',
               dashArray:seg.dashArray||null
-            }).addTo(map);
+            });
             allBounds.push(poly.getBounds());
-            staticLayers.push(poly);
+            bucket.push(poly);
           }
         });
       }
       if (hasLayeredSegments) {
-        drawSegments(surfaceSegments, { weight: 9, opacity: 0.72 });
-        drawSegments(elevationSegments, { weight: 4, opacity: 0.98 });
+        drawSegments(surfaceSegments, { weight: 9, opacity: 0.72 }, surfaceLayersArr);
+        drawSegments(elevationSegments, { weight: 4, opacity: 0.98 }, elevationLayers);
       } else {
-        drawSegments(coloredSegments, { weight: 4, opacity: 0.95 });
+        drawSegments(coloredSegments, { weight: 4, opacity: 0.95 }, elevationLayers);
       }
       if (allBounds.length > 0) {
         setTimeout(function() {
@@ -233,17 +245,80 @@ function buildHtml(
       });
       finishMarker = L.marker(allTrackCoords[allTrackCoords.length - 1], { icon: finishIcon });
     }
+    function haversineKm(lat1, lng1, lat2, lng2) {
+      const R = 6371;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLng = (lng2 - lng1) * Math.PI / 180;
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng/2) * Math.sin(dLng/2);
+      return 2 * R * Math.asin(Math.sqrt(a));
+    }
+    let kmMarkerLayers = [];
+    function refreshKmMarkers() {
+      kmMarkerLayers.forEach(function(m) { map.removeLayer(m); });
+      kmMarkerLayers = [];
+      if (!isStaticView || !showKm || allTrackCoords.length < 2) return;
+      let cum = 0;
+      let next = 10;
+      for (let i = 1; i < allTrackCoords.length; i++) {
+        const a = allTrackCoords[i - 1], b = allTrackCoords[i];
+        const segLen = haversineKm(a[0], a[1], b[0], b[1]);
+        while (segLen > 0 && next <= cum + segLen) {
+          const t = (next - cum) / segLen;
+          const lat = a[0] + (b[0] - a[0]) * t;
+          const lng = a[1] + (b[1] - a[1]) * t;
+          const km = Math.round(next);
+          const icon = L.divIcon({
+            className:'fm-static-km-marker',
+            html:'<div style="width:70px;height:22px;display:flex;align-items:center;justify-content:center;"><span style="background:#0b1120;border:1px solid #39ff14;color:#eafff0;font-weight:800;font-size:11px;padding:3px 8px;border-radius:999px;box-shadow:0 2px 6px rgba(0,0,0,0.4);white-space:nowrap;">' + km + ' km</span></div>',
+            iconSize:[70,22],
+            iconAnchor:[35,32]
+          });
+          kmMarkerLayers.push(L.marker([lat, lng], { icon }).addTo(map));
+          next += 10;
+        }
+        cum += segLen;
+      }
+    }
+    function applyStaticLayers() {
+      if (!isStaticView) return;
+      const anyColor = showElevation || showSurface;
+      if (baseLine) {
+        if (!anyColor) { if (!map.hasLayer(baseLine)) baseLine.addTo(map); }
+        else if (map.hasLayer(baseLine)) map.removeLayer(baseLine);
+      }
+      surfaceLayersArr.forEach(function(l) {
+        if (showSurface) { if (!map.hasLayer(l)) l.addTo(map); }
+        else if (map.hasLayer(l)) map.removeLayer(l);
+      });
+      elevationLayers.forEach(function(l) {
+        if (showElevation) { if (!map.hasLayer(l)) l.addTo(map); }
+        else if (map.hasLayer(l)) map.removeLayer(l);
+      });
+      refreshKmMarkers();
+    }
+    function setLayerToggles(toggles) {
+      showElevation = toggles.showElevation;
+      showSurface = toggles.showSurface;
+      showKm = toggles.showKm;
+      applyStaticLayers();
+    }
+    applyStaticLayers();
     function setPlayProgress(progress) {
       if (allTrackCoords.length < 2) return;
       if (progress >= 1) {
+        isStaticView = true;
         if (snakeLine) { map.removeLayer(snakeLine); snakeLine = null; }
         if (snakeHeadDot) { map.removeLayer(snakeHeadDot); snakeHeadDot = null; }
-        staticLayers.forEach(function(l) { if (!map.hasLayer(l)) l.addTo(map); });
+        applyStaticLayers();
         if (finishMarker && !map.hasLayer(finishMarker)) finishMarker.addTo(map);
         return;
       }
+      isStaticView = false;
       if (finishMarker && map.hasLayer(finishMarker)) map.removeLayer(finishMarker);
-      staticLayers.forEach(function(l) { if (map.hasLayer(l)) map.removeLayer(l); });
+      if (baseLine && map.hasLayer(baseLine)) map.removeLayer(baseLine);
+      surfaceLayersArr.forEach(function(l) { if (map.hasLayer(l)) map.removeLayer(l); });
+      elevationLayers.forEach(function(l) { if (map.hasLayer(l)) map.removeLayer(l); });
+      kmMarkerLayers.forEach(function(l) { if (map.hasLayer(l)) map.removeLayer(l); });
       const n = Math.max(2, Math.ceil(progress * allTrackCoords.length));
       const pts = allTrackCoords.slice(0, n);
       if (!snakeLine) {
@@ -387,6 +462,7 @@ function buildHtml(
         if (data.type === 'mapLayer') setBaseLayer(data.layer);
         if (data.type === 'playProgress') setPlayProgress(data.progress);
         if (data.type === 'playMilestone') setPlayMilestone(data.milestone);
+        if (data.type === 'layerToggles') setLayerToggles(data.toggles);
       } catch (e) {}
     }
     document.addEventListener('message', handleMessage);
@@ -411,8 +487,12 @@ export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegment
   const [layerPickerOpen, setLayerPickerOpen] = useState(false)
   const [weatherRefreshTick, setWeatherRefreshTick] = useState(0)
   const [radarPath, setRadarPath] = useState<string | null>(null)
+  const [showElevationLayer, setShowElevationLayer] = useState(true)
+  const [showSurfaceLayer, setShowSurfaceLayer] = useState(false)
+  const [showKmMarkers, setShowKmMarkers] = useState(false)
+  const hasSurfaceOrElevation = Boolean(surfaceSegments?.length || elevationSegments?.length)
   const html = useMemo(
-    () => buildHtml(lat, lng, { lat, lng }, emoji, null, showWind, effectiveShowClouds, radarPath, coloredSegments ?? [], elevationSegments ?? [], surfaceSegments ?? [], 'standard'),
+    () => buildHtml(lat, lng, { lat, lng }, emoji, null, showWind, effectiveShowClouds, radarPath, coloredSegments ?? [], elevationSegments ?? [], surfaceSegments ?? [], 'standard', true, false, false),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [lat, lng, emoji, coloredSegments, elevationSegments, surfaceSegments],
   )
@@ -471,6 +551,13 @@ export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegment
     webViewRef.current?.postMessage(JSON.stringify({ type: 'playMilestone', milestone: playMilestone }))
   }, [playMilestone])
 
+  useEffect(() => {
+    webViewRef.current?.postMessage(JSON.stringify({
+      type: 'layerToggles',
+      toggles: { showElevation: showElevationLayer, showSurface: showSurfaceLayer, showKm: showKmMarkers },
+    }))
+  }, [showElevationLayer, showSurfaceLayer, showKmMarkers])
+
   return (
     <View style={styles.card}>
       <WebView
@@ -490,6 +577,10 @@ export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegment
           if (radarPath) webViewRef.current?.postMessage(JSON.stringify({ type: 'radarUpdate', path: radarPath }))
           webViewRef.current?.postMessage(JSON.stringify({ type: 'mapLayer', layer: mapLayer }))
           webViewRef.current?.postMessage(JSON.stringify({ type: 'playProgress', progress: playProgress == null ? 1 : playProgress }))
+          webViewRef.current?.postMessage(JSON.stringify({
+            type: 'layerToggles',
+            toggles: { showElevation: showElevationLayer, showSurface: showSurfaceLayer, showKm: showKmMarkers },
+          }))
         }}
         onMessage={(event) => {
           try {
@@ -560,6 +651,31 @@ export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegment
               style={playState !== 'playing' ? { marginLeft: 1 } : undefined}
             />
           </Pressable>
+        )}
+        {hasSurfaceOrElevation && (
+          <>
+            <Pressable
+              style={[styles.weatherToggleBtn, showElevationLayer && styles.weatherToggleBtnActive]}
+              onPress={() => setShowElevationLayer((v) => !v)}
+              hitSlop={8}
+            >
+              <Ionicons name="trending-up-outline" size={15} color={showElevationLayer ? '#031109' : palette.text} />
+            </Pressable>
+            <Pressable
+              style={[styles.weatherToggleBtn, showSurfaceLayer && styles.weatherToggleBtnActive]}
+              onPress={() => setShowSurfaceLayer((v) => !v)}
+              hitSlop={8}
+            >
+              <Ionicons name="car-outline" size={15} color={showSurfaceLayer ? '#031109' : palette.text} />
+            </Pressable>
+            <Pressable
+              style={[styles.weatherToggleBtn, showKmMarkers && styles.weatherToggleBtnActive]}
+              onPress={() => setShowKmMarkers((v) => !v)}
+              hitSlop={8}
+            >
+              <Ionicons name="location-outline" size={15} color={showKmMarkers ? '#031109' : palette.text} />
+            </Pressable>
+          </>
         )}
         <Pressable
           style={[styles.weatherToggleBtn, showWind && styles.weatherToggleBtnActive]}

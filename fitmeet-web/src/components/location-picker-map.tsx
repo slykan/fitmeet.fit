@@ -47,6 +47,43 @@ function milestoneIcon(km: number, exiting: boolean) {
   })
 }
 
+function staticKmIcon(km: number) {
+  return L.divIcon({
+    className: 'fm-static-km-marker',
+    html: `<div style="width:70px;height:22px;display:flex;align-items:center;justify-content:center;">
+      <span style="background:#0b1120;border:1px solid #39ff14;color:#eafff0;font-weight:800;font-size:11px;padding:3px 8px;border-radius:999px;box-shadow:0 2px 6px rgba(0,0,0,0.4);white-space:nowrap;">${km} km</span>
+    </div>`,
+    iconSize: [70, 22],
+    iconAnchor: [35, 32],
+  })
+}
+
+function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number) {
+  const R = 6371
+  const dLat = (lat2 - lat1) * Math.PI / 180
+  const dLng = (lng2 - lng1) * Math.PI / 180
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2
+  return 2 * R * Math.asin(Math.sqrt(a))
+}
+
+function computeKmMarkerPoints(coords: [number, number][], stepKm: number) {
+  const points: { km: number; pos: [number, number] }[] = []
+  let cum = 0
+  let next = stepKm
+  for (let i = 1; i < coords.length; i++) {
+    const [lat1, lng1] = coords[i - 1]
+    const [lat2, lng2] = coords[i]
+    const segLen = haversineKm(lat1, lng1, lat2, lng2)
+    while (segLen > 0 && next <= cum + segLen) {
+      const t = (next - cum) / segLen
+      points.push({ km: Math.round(next), pos: [lat1 + (lat2 - lat1) * t, lng1 + (lng2 - lng1) * t] })
+      next += stepKm
+    }
+    cum += segLen
+  }
+  return points
+}
+
 interface Props {
   lat?:             number | null
   lng?:             number | null
@@ -61,6 +98,10 @@ interface Props {
   playProgress?:    number | null
   /** Shows a "X km" badge above the play-animation head marker while a distance milestone is being announced. */
   playMilestone?:   { km: number; exiting: boolean } | null
+  /** Static (non-animated) route coloring/marker layers — independent toggles, all default except elevation are off. */
+  showElevationLayer?: boolean
+  showSurfaceLayer?:   boolean
+  showKmMarkers?:      boolean
   readOnly?:        boolean
   height?:          number
   weather?:         EventWeather | null
@@ -461,6 +502,9 @@ export default function LocationPickerMap({
   surfaceSegments,
   playProgress = null,
   playMilestone = null,
+  showElevationLayer = true,
+  showSurfaceLayer = false,
+  showKmMarkers = false,
   readOnly = false,
   height = 220,
   weather = null,
@@ -503,6 +547,9 @@ export default function LocationPickerMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [playMilestone?.km, playCoords],
   )
+  // Static "X km" waypoint badges shown along the whole route when the km-markers
+  // toggle is on — independent of the play-animation milestones above.
+  const kmMarkerPoints = useMemo(() => computeKmMarkerPoints(allCoords, 10), [allCoords])
   const hasTrack    = allCoords.length > 1
   const hasLayeredSegments = Boolean(surfaceSegments?.length || elevationSegments?.length)
   const [selectedLayerName, setSelectedLayerName] = useState<MapBaseLayerName>('Standard')
@@ -566,20 +613,23 @@ export default function LocationPickerMap({
           </>
         ) : hasLayeredSegments ? (
           <>
-            {surfaceSegments?.map((seg, i) => (
+            {showSurfaceLayer && surfaceSegments?.map((seg, i) => (
               <Polyline
                 key={`surface-${i}`}
                 positions={seg.coords}
                 pathOptions={{ color: seg.color, weight: 9, opacity: 0.72, dashArray: seg.dashArray, lineCap: 'round', lineJoin: 'round' }}
               />
             ))}
-            {elevationSegments?.map((seg, i) => (
+            {showElevationLayer && elevationSegments?.map((seg, i) => (
               <Polyline
                 key={`elevation-${i}`}
                 positions={seg.coords}
                 pathOptions={{ color: seg.color, weight: 4, opacity: 0.98, lineCap: 'round', lineJoin: 'round' }}
               />
             ))}
+            {!showSurfaceLayer && !showElevationLayer && (
+              <Polyline positions={allCoords} pathOptions={{ color: '#39ff14', weight: 4, opacity: 0.9 }} />
+            )}
             <FitTrack coords={allCoords} />
           </>
         ) : coloredSegments && coloredSegments.length > 0 ? (
@@ -609,6 +659,10 @@ export default function LocationPickerMap({
             icon={finishIcon}
           />
         )}
+
+        {showKmMarkers && (playProgress == null || playProgress >= 1) && kmMarkerPoints.map(p => (
+          <Marker key={p.km} position={p.pos} icon={staticKmIcon(p.km)} />
+        ))}
       </MapContainer>
       {showMapLayerControl && (
         <div
