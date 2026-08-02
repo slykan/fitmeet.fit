@@ -198,8 +198,10 @@ function buildHtml(
     } else {
       allTrackCoords = [].concat(...(coloredSegments || []).map(function(seg) { return seg.coords; }));
     }
+    let routeBounds = null;
     if (allTrackCoords.length > 1) {
       baseLine = L.polyline(allTrackCoords, { color:'#39ff14', weight:4, opacity:0.9, lineCap:'round', lineJoin:'round' });
+      routeBounds = L.latLngBounds(allTrackCoords).extend([${lat},${lng}]);
     }
     if (hasLayeredSegments || (coloredSegments && coloredSegments.length > 0)) {
       const allBounds = [];
@@ -303,16 +305,20 @@ function buildHtml(
       applyStaticLayers();
     }
     applyStaticLayers();
+    let followZoom = null;
     function setPlayProgress(progress) {
       if (allTrackCoords.length < 2) return;
       if (progress >= 1) {
         isStaticView = true;
+        followZoom = null;
         if (snakeLine) { map.removeLayer(snakeLine); snakeLine = null; }
         if (snakeHeadDot) { map.removeLayer(snakeHeadDot); snakeHeadDot = null; }
         applyStaticLayers();
         if (finishMarker && !map.hasLayer(finishMarker)) finishMarker.addTo(map);
+        if (routeBounds) map.fitBounds(routeBounds, { padding: [32, 32] });
         return;
       }
+      const wasStatic = isStaticView;
       isStaticView = false;
       if (finishMarker && map.hasLayer(finishMarker)) map.removeLayer(finishMarker);
       if (baseLine && map.hasLayer(baseLine)) map.removeLayer(baseLine);
@@ -328,6 +334,8 @@ function buildHtml(
       }
       const head = pts[pts.length - 1];
       lastHeadLatLng = head;
+      if (wasStatic) { followZoom = Math.min(map.getZoom() + 3, 18); }
+      map.setView(head, followZoom, { animate: false });
       if (!snakeHeadDot) {
         const headIcon = L.divIcon({
           className:'fm-head-marker',

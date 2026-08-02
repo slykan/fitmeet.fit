@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { MapContainer, TileLayer, Marker, Polyline, useMapEvents, useMap, ZoomControl } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -178,6 +178,23 @@ function FitTrack({ coords }: { coords: [number, number][] }) {
   useEffect(() => {
     if (coords.length > 1) map.fitBounds(L.latLngBounds(coords), { padding: [20, 20] })
   }, [map, coords])
+  return null
+}
+
+// Zooms in and re-centers on the play-animation head marker's position for as
+// long as this is mounted (i.e. only while the animation is running — the
+// surrounding branch swaps back to <FitTrack> once playback ends, which
+// naturally restores the full-route view).
+function PlayCameraFollow({ position }: { position: [number, number] }) {
+  const map = useMap()
+  const followZoomRef = useRef<number | null>(null)
+  useEffect(() => {
+    followZoomRef.current = Math.min(map.getZoom() + 3, 18)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  useEffect(() => {
+    map.setView(position, followZoomRef.current ?? map.getZoom(), { animate: false })
+  }, [map, position])
   return null
 }
 
@@ -550,6 +567,9 @@ export default function LocationPickerMap({
   // Static "X km" waypoint badges shown along the whole route when the km-markers
   // toggle is on — independent of the play-animation milestones above.
   const kmMarkerPoints = useMemo(() => computeKmMarkerPoints(allCoords, 10), [allCoords])
+  const headPosition = playProgress != null && playCoords.length > 1
+    ? playCoords[Math.max(1, Math.ceil(playProgress * playCoords.length)) - 1]
+    : null
   const hasTrack    = allCoords.length > 1
   const hasLayeredSegments = Boolean(surfaceSegments?.length || elevationSegments?.length)
   const [selectedLayerName, setSelectedLayerName] = useState<MapBaseLayerName>('Standard')
@@ -599,7 +619,7 @@ export default function LocationPickerMap({
               pathOptions={{ color: '#39ff14', weight: 5, opacity: 0.95, lineCap: 'round', lineJoin: 'round' }}
             />
             <Marker
-              position={playCoords[Math.max(1, Math.ceil(playProgress * playCoords.length)) - 1]}
+              position={headPosition!}
               icon={headIcon}
             />
             {playMilestone && milestonePosition && (
@@ -609,7 +629,7 @@ export default function LocationPickerMap({
                 zIndexOffset={1000}
               />
             )}
-            <FitTrack coords={allCoords} />
+            <PlayCameraFollow position={headPosition!} />
           </>
         ) : hasLayeredSegments ? (
           <>
