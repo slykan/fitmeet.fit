@@ -30,6 +30,23 @@ const headIcon = L.divIcon({
   iconAnchor: [7, 7],
 })
 
+function milestoneIcon(km: number, exiting: boolean) {
+  return L.divIcon({
+    className: 'fm-milestone-marker',
+    html: `
+      <style>
+        @keyframes fmMilestonePopIn { 0%{opacity:0;transform:scale(0.4);} 65%{opacity:1;transform:scale(1.15);} 100%{opacity:1;transform:scale(1);} }
+        @keyframes fmMilestonePopOut { 0%{opacity:1;transform:scale(1) translateY(0);} 100%{opacity:0;transform:scale(0.5) translateY(-6px);} }
+      </style>
+      <div style="width:90px;height:30px;display:flex;align-items:center;justify-content:center;animation:${exiting ? 'fmMilestonePopOut 0.35s ease-in both' : 'fmMilestonePopIn 0.35s cubic-bezier(.34,1.56,.64,1) both'};">
+        <span style="background:#0b1120;border:1px solid #39ff14;color:#eafff0;font-weight:800;font-size:12px;padding:4px 10px;border-radius:999px;box-shadow:0 4px 10px rgba(0,0,0,0.45);white-space:nowrap;">${km} km</span>
+      </div>
+    `,
+    iconSize: [90, 30],
+    iconAnchor: [45, 44],
+  })
+}
+
 interface Props {
   lat?:             number | null
   lng?:             number | null
@@ -42,6 +59,8 @@ interface Props {
   surfaceSegments?: TrackSegment[]
   /** 0..1 reveal fraction while the route "play" animation runs. Omit/null for the normal, fully-drawn route. */
   playProgress?:    number | null
+  /** Shows a "X km" badge above the play-animation head marker while a distance milestone is being announced. */
+  playMilestone?:   { km: number; exiting: boolean } | null
   readOnly?:        boolean
   height?:          number
   weather?:         EventWeather | null
@@ -441,6 +460,7 @@ export default function LocationPickerMap({
   elevationSegments,
   surfaceSegments,
   playProgress = null,
+  playMilestone = null,
   readOnly = false,
   height = 220,
   weather = null,
@@ -527,6 +547,13 @@ export default function LocationPickerMap({
               position={playCoords[Math.max(1, Math.ceil(playProgress * playCoords.length)) - 1]}
               icon={headIcon}
             />
+            {playMilestone && (
+              <Marker
+                position={playCoords[Math.max(1, Math.ceil(playProgress * playCoords.length)) - 1]}
+                icon={milestoneIcon(playMilestone.km, playMilestone.exiting)}
+                zIndexOffset={1000}
+              />
+            )}
             <FitTrack coords={allCoords} />
           </>
         ) : hasLayeredSegments ? (

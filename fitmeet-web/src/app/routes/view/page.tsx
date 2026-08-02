@@ -93,6 +93,10 @@ function withProfileStats(result: GpxResult): GpxResult {
 }
 
 const ROUTE_PLAY_DURATION_MS = 15000
+const MILESTONE_STEP_KM = 10
+const MILESTONE_PAUSE_MS = 300
+const MILESTONE_LABEL_MS = 5000
+const MILESTONE_EXIT_MS = 350
 
 function RouteContent() {
   const router = useRouter()
@@ -108,12 +112,18 @@ function RouteContent() {
   const [surfaceLoading, setSurfaceLoading] = useState(false)
   const [playState, setPlayState] = useState<'idle' | 'playing' | 'paused'>('idle')
   const [playProgress, setPlayProgress] = useState(0)
+  const [playMilestone, setPlayMilestone] = useState<{ km: number; exiting: boolean } | null>(null)
   const playFrameRef = useRef<number | null>(null)
+  const hitMilestonesRef = useRef<Set<number>>(new Set())
+  const milestoneExitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const milestoneClearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isAnimating = playState !== 'idle'
 
   useEffect(() => {
     return () => {
       if (playFrameRef.current != null) cancelAnimationFrame(playFrameRef.current)
+      if (milestoneExitTimerRef.current != null) clearTimeout(milestoneExitTimerRef.current)
+      if (milestoneClearTimerRef.current != null) clearTimeout(milestoneClearTimerRef.current)
     }
   }, [])
 
@@ -124,12 +134,45 @@ function RouteContent() {
       return
     }
     const resumeFrom = playState === 'paused' ? playProgress : 0
-    if (playState === 'idle') setPlayProgress(0)
+    if (playState === 'idle') {
+      setPlayProgress(0)
+      hitMilestonesRef.current = new Set()
+      setPlayMilestone(null)
+      if (milestoneExitTimerRef.current != null) clearTimeout(milestoneExitTimerRef.current)
+      if (milestoneClearTimerRef.current != null) clearTimeout(milestoneClearTimerRef.current)
+    }
     setPlayState('playing')
-    const startTime = performance.now() - resumeFrom * ROUTE_PLAY_DURATION_MS
+    const totalKm = gpxResult?.distanceKm ?? 0
+    let startTime = performance.now() - resumeFrom * ROUTE_PLAY_DURATION_MS
+    let pauseUntil: number | null = null
     const step = (now: number) => {
+      if (pauseUntil != null) {
+        if (now < pauseUntil) {
+          playFrameRef.current = requestAnimationFrame(step)
+          return
+        }
+        startTime += MILESTONE_PAUSE_MS
+        pauseUntil = null
+      }
       const p = Math.min(1, (now - startTime) / ROUTE_PLAY_DURATION_MS)
       setPlayProgress(p)
+
+      if (totalKm > 0) {
+        for (let km = MILESTONE_STEP_KM; km < totalKm; km += MILESTONE_STEP_KM) {
+          if (hitMilestonesRef.current.has(km) || p < km / totalKm) continue
+          hitMilestonesRef.current.add(km)
+          pauseUntil = now + MILESTONE_PAUSE_MS
+          if (milestoneExitTimerRef.current != null) clearTimeout(milestoneExitTimerRef.current)
+          if (milestoneClearTimerRef.current != null) clearTimeout(milestoneClearTimerRef.current)
+          setPlayMilestone({ km, exiting: false })
+          milestoneExitTimerRef.current = setTimeout(() => {
+            setPlayMilestone(current => (current ? { ...current, exiting: true } : current))
+          }, MILESTONE_LABEL_MS - MILESTONE_EXIT_MS)
+          milestoneClearTimerRef.current = setTimeout(() => setPlayMilestone(null), MILESTONE_LABEL_MS)
+          break
+        }
+      }
+
       if (p < 1) {
         playFrameRef.current = requestAnimationFrame(step)
       } else {
@@ -371,6 +414,7 @@ function RouteContent() {
                 elevationSegments={gpxResult?.coloredSegments}
                 surfaceSegments={surfaceAnalysis?.segments}
                 playProgress={isAnimating ? playProgress : null}
+                playMilestone={isAnimating ? playMilestone : null}
                 readOnly
                 height={720}
                 showWindOverlay={false}

@@ -19,6 +19,8 @@ type Props = {
   surfaceSegments?: TrackSegment[]
   /** 0..1 reveal fraction while the route "play" animation runs. Omit/null for the normal, fully-drawn route. */
   playProgress?: number | null
+  /** Shows a "X km" badge above the play-animation head marker while a distance milestone is being announced. */
+  playMilestone?: { km: number; exiting: boolean } | null
   /** When provided (with onPlayToggle), shows a Play/Pause control overlaid on the map. */
   playState?: 'idle' | 'playing' | 'paused'
   onPlayToggle?: () => void
@@ -175,6 +177,8 @@ function buildHtml(
     const staticLayers = [];
     let snakeLine = null;
     let snakeHeadDot = null;
+    let lastHeadLatLng = null;
+    let milestoneMarker = null;
     // Single, sequentially-ordered coordinate path for the "play" reveal animation.
     // (Concatenating surface + elevation segments would re-trace the whole route twice,
     // since each layer independently covers it start-to-end.)
@@ -246,6 +250,7 @@ function buildHtml(
         snakeLine.setLatLngs(pts);
       }
       const head = pts[pts.length - 1];
+      lastHeadLatLng = head;
       if (!snakeHeadDot) {
         const headIcon = L.divIcon({
           className:'fm-head-marker',
@@ -257,6 +262,22 @@ function buildHtml(
       } else {
         snakeHeadDot.setLatLng(head);
       }
+      if (milestoneMarker) milestoneMarker.setLatLng(head);
+    }
+    function milestoneIcon(km, exiting) {
+      return L.divIcon({
+        className:'fm-milestone-marker',
+        html:'<style>@keyframes fmMilestonePopIn{0%{opacity:0;transform:scale(0.4);}65%{opacity:1;transform:scale(1.15);}100%{opacity:1;transform:scale(1);}}@keyframes fmMilestonePopOut{0%{opacity:1;transform:scale(1) translateY(0);}100%{opacity:0;transform:scale(0.5) translateY(-6px);}}</style>' +
+          '<div style="width:90px;height:30px;display:flex;align-items:center;justify-content:center;animation:' + (exiting ? 'fmMilestonePopOut 0.35s ease-in both' : 'fmMilestonePopIn 0.35s cubic-bezier(.34,1.56,.64,1) both') + ';">' +
+          '<span style="background:#0b1120;border:1px solid #39ff14;color:#eafff0;font-weight:800;font-size:12px;padding:4px 10px;border-radius:999px;box-shadow:0 4px 10px rgba(0,0,0,0.45);white-space:nowrap;">' + km + ' km</span></div>',
+        iconSize:[90,30],
+        iconAnchor:[45,44]
+      });
+    }
+    function setPlayMilestone(milestone) {
+      if (milestoneMarker) { map.removeLayer(milestoneMarker); milestoneMarker = null; }
+      if (!milestone || !lastHeadLatLng) return;
+      milestoneMarker = L.marker(lastHeadLatLng, { icon: milestoneIcon(milestone.km, milestone.exiting), zIndexOffset: 1000 }).addTo(map);
     }
 
     const wo = document.getElementById('wo');
@@ -364,6 +385,7 @@ function buildHtml(
         }
         if (data.type === 'mapLayer') setBaseLayer(data.layer);
         if (data.type === 'playProgress') setPlayProgress(data.progress);
+        if (data.type === 'playMilestone') setPlayMilestone(data.milestone);
       } catch (e) {}
     }
     document.addEventListener('message', handleMessage);
@@ -375,7 +397,7 @@ function buildHtml(
 </html>`
 }
 
-export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegments, elevationSegments, surfaceSegments, playProgress = null, playState, onPlayToggle, onMapEnabledChange, loading }: Props) {
+export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegments, elevationSegments, surfaceSegments, playProgress = null, playMilestone = null, playState, onPlayToggle, onMapEnabledChange, loading }: Props) {
   const webViewRef = useRef<WebViewType>(null)
   const [weather, setWeather] = useState<CurrentWeather | null>(null)
   const [center, setCenter] = useState({ lat, lng })
@@ -443,6 +465,10 @@ export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegment
   useEffect(() => {
     webViewRef.current?.postMessage(JSON.stringify({ type: 'playProgress', progress: playProgress == null ? 1 : playProgress }))
   }, [playProgress])
+
+  useEffect(() => {
+    webViewRef.current?.postMessage(JSON.stringify({ type: 'playMilestone', milestone: playMilestone }))
+  }, [playMilestone])
 
   return (
     <View style={styles.card}>
