@@ -247,7 +247,13 @@ function buildHtml(
       }
       const head = pts[pts.length - 1];
       if (!snakeHeadDot) {
-        snakeHeadDot = L.circleMarker(head, { radius:6, color:'#ff2d2d', weight:2, fillColor:'#ff2d2d', fillOpacity:1 }).addTo(map);
+        const headIcon = L.divIcon({
+          className:'fm-head-marker',
+          html:'<div style="width:14px;height:14px;border-radius:999px;background:radial-gradient(circle at 35% 30%, #ff9a8a 0%, #ff2d2d 55%, #8b0000 100%);box-shadow:0 1px 3px rgba(0,0,0,0.5), inset 0 -1px 2px rgba(0,0,0,0.35);"></div>',
+          iconSize:[14,14],
+          iconAnchor:[7,7]
+        });
+        snakeHeadDot = L.marker(head, { icon: headIcon }).addTo(map);
       } else {
         snakeHeadDot.setLatLng(head);
       }

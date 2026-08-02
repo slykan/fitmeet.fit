@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { MapContainer, TileLayer, Marker, Polyline, CircleMarker, useMapEvents, useMap, ZoomControl } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Polyline, useMapEvents, useMap, ZoomControl } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import type { TrackSegment } from '@/lib/parse-gpx'
@@ -21,6 +21,13 @@ const finishIcon = L.divIcon({
   html: '<div style="display:flex;align-items:center;justify-content:center;font-size:22px;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.6));">🏁</div>',
   iconSize: [26, 26],
   iconAnchor: [13, 13],
+})
+
+const headIcon = L.divIcon({
+  className: 'fm-head-marker',
+  html: '<div style="width:14px;height:14px;border-radius:999px;background:radial-gradient(circle at 35% 30%, #ff9a8a 0%, #ff2d2d 55%, #8b0000 100%);box-shadow:0 1px 3px rgba(0,0,0,0.5), inset 0 -1px 2px rgba(0,0,0,0.35);"></div>',
+  iconSize: [14, 14],
+  iconAnchor: [7, 7],
 })
 
 interface Props {
@@ -516,10 +523,9 @@ export default function LocationPickerMap({
               positions={playCoords.slice(0, Math.max(2, Math.ceil(playProgress * playCoords.length)))}
               pathOptions={{ color: '#39ff14', weight: 5, opacity: 0.95, lineCap: 'round', lineJoin: 'round' }}
             />
-            <CircleMarker
-              center={playCoords[Math.max(1, Math.ceil(playProgress * playCoords.length)) - 1]}
-              radius={6}
-              pathOptions={{ color: '#ff2d2d', weight: 2, fillColor: '#ff2d2d', fillOpacity: 1 }}
+            <Marker
+              position={playCoords[Math.max(1, Math.ceil(playProgress * playCoords.length)) - 1]}
+              icon={headIcon}
             />
             <FitTrack coords={allCoords} />
           </>
