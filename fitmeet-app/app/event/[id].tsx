@@ -1151,8 +1151,8 @@ export default function EventDetailScreen() {
             surfaceSegments={surfaceAnalysis?.segments}
             playProgress={isAnimating ? playProgress : null}
             playMilestone={isAnimating ? playMilestone : null}
-            playState={elevationProfile.length >= 2 ? playState : undefined}
-            onPlayToggle={elevationProfile.length >= 2 ? handlePlayToggle : undefined}
+            playState={gpxTrack.length >= 2 ? playState : undefined}
+            onPlayToggle={gpxTrack.length >= 2 ? handlePlayToggle : undefined}
             onMapEnabledChange={setMapEnabled}
             loading={gpxLoading || surfaceLoading}
           />
