@@ -179,7 +179,7 @@ function buildHtml(
     const elevationLayers = [];
     const surfaceLayersArr = [];
     let baseLine = null;
-    let snakeLine = null;
+    let snakeSegmentLines = [];
     let snakeHeadDot = null;
     let lastHeadLatLng = null;
     let milestoneMarker = null;
@@ -187,16 +187,36 @@ function buildHtml(
     let showSurface = ${initialShowSurface ? 'true' : 'false'};
     let showKm = ${initialShowKm ? 'true' : 'false'};
     let isStaticView = true;
-    // Single, sequentially-ordered coordinate path for the "play" reveal animation.
+    // Single, sequentially-ordered segment list for the "play" reveal animation.
     // (Concatenating surface + elevation segments would re-trace the whole route twice,
-    // since each layer independently covers it start-to-end.)
-    let allTrackCoords = [];
-    if (surfaceSegments && surfaceSegments.length > 0) {
-      allTrackCoords = [].concat(...surfaceSegments.map(function(seg) { return seg.coords; }));
-    } else if (elevationSegments && elevationSegments.length > 0) {
-      allTrackCoords = [].concat(...elevationSegments.map(function(seg) { return seg.coords; }));
-    } else {
-      allTrackCoords = [].concat(...(coloredSegments || []).map(function(seg) { return seg.coords; }));
+    // since each layer independently covers it start-to-end.) Elevation-graded
+    // color takes priority so the reveal paints in the same grade colors as
+    // the static Elevation toggle, not a flat color.
+    let playSegments = null;
+    if (elevationSegments && elevationSegments.length > 0) {
+      playSegments = elevationSegments;
+    } else if (surfaceSegments && surfaceSegments.length > 0) {
+      playSegments = surfaceSegments;
+    } else if (coloredSegments && coloredSegments.length > 0) {
+      playSegments = coloredSegments;
+    }
+    const allTrackCoords = playSegments ? [].concat(...playSegments.map(function(seg) { return seg.coords; })) : [];
+    function revealedSegments(segments, count) {
+      const result = [];
+      let consumed = 0;
+      for (let i = 0; i < segments.length; i++) {
+        if (consumed >= count) break;
+        const seg = segments[i];
+        const remaining = count - consumed;
+        if (remaining >= seg.coords.length) {
+          result.push(seg);
+          consumed += seg.coords.length;
+        } else {
+          result.push({ coords: seg.coords.slice(0, Math.max(2, remaining)), color: seg.color, dashArray: seg.dashArray });
+          break;
+        }
+      }
+      return result;
     }
     let routeBounds = null;
     if (allTrackCoords.length > 1) {
@@ -311,7 +331,7 @@ function buildHtml(
       if (progress >= 1) {
         isStaticView = true;
         followZoom = null;
-        if (snakeLine) { map.removeLayer(snakeLine); snakeLine = null; }
+        if (snakeSegmentLines.length) { snakeSegmentLines.forEach(function(l) { map.removeLayer(l); }); snakeSegmentLines = []; }
         if (snakeHeadDot) { map.removeLayer(snakeHeadDot); snakeHeadDot = null; }
         applyStaticLayers();
         if (finishMarker && !map.hasLayer(finishMarker)) finishMarker.addTo(map);
@@ -327,11 +347,12 @@ function buildHtml(
       kmMarkerLayers.forEach(function(l) { if (map.hasLayer(l)) map.removeLayer(l); });
       const n = Math.max(2, Math.ceil(progress * allTrackCoords.length));
       const pts = allTrackCoords.slice(0, n);
-      if (!snakeLine) {
-        snakeLine = L.polyline(pts, { color:'#39ff14', weight:5, opacity:0.95, lineCap:'round', lineJoin:'round' }).addTo(map);
-      } else {
-        snakeLine.setLatLngs(pts);
-      }
+      snakeSegmentLines.forEach(function(l) { map.removeLayer(l); });
+      snakeSegmentLines = playSegments
+        ? revealedSegments(playSegments, n).map(function(seg) {
+            return L.polyline(seg.coords, { color: seg.color, weight: 5, opacity: 0.95, lineCap: 'round', lineJoin: 'round' }).addTo(map);
+          })
+        : [L.polyline(pts, { color: '#39ff14', weight: 5, opacity: 0.95, lineCap: 'round', lineJoin: 'round' }).addTo(map)];
       const head = pts[pts.length - 1];
       lastHeadLatLng = head;
       if (wasStatic) { followZoom = Math.min(map.getZoom() + 2, 17); }

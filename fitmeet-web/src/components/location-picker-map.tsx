@@ -58,6 +58,26 @@ function staticKmIcon(km: number) {
   })
 }
 
+// Truncates a colored segment list to the first `count` points, splitting the
+// segment that straddles the cut so the reveal animation's leading edge lands
+// mid-segment instead of always snapping to a full segment boundary.
+function revealedSegments(segments: TrackSegment[], count: number): TrackSegment[] {
+  const result: TrackSegment[] = []
+  let consumed = 0
+  for (const seg of segments) {
+    if (consumed >= count) break
+    const remaining = count - consumed
+    if (remaining >= seg.coords.length) {
+      result.push(seg)
+      consumed += seg.coords.length
+    } else {
+      result.push({ ...seg, coords: seg.coords.slice(0, Math.max(2, remaining)) })
+      break
+    }
+  }
+  return result
+}
+
 function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number) {
   const R = 6371
   const dLat = (lat2 - lat1) * Math.PI / 180
@@ -543,18 +563,23 @@ export default function LocationPickerMap({
     },
     [coloredSegments, elevationSegments, surfaceSegments, track],
   )
-  // Single, sequentially-ordered coordinate path for the "play" reveal animation.
+  // Single, sequentially-ordered segment list for the "play" reveal animation.
   // (allCoords above concatenates multiple segment layers that each re-trace the
   // whole route, which would make the snake loop back on itself mid-animation.)
-  const playCoords = useMemo(
+  // Elevation-graded color takes priority so the reveal paints in the same
+  // grade colors as the static Elevation toggle, not a flat color.
+  const playSegments = useMemo(
     () => {
-      const source = surfaceSegments?.length ? surfaceSegments
-        : elevationSegments?.length ? elevationSegments
+      return elevationSegments?.length ? elevationSegments
+        : surfaceSegments?.length ? surfaceSegments
         : coloredSegments?.length ? coloredSegments
         : null
-      return source ? source.flatMap(segment => segment.coords) : track ?? []
     },
-    [coloredSegments, elevationSegments, surfaceSegments, track],
+    [coloredSegments, elevationSegments, surfaceSegments],
+  )
+  const playCoords = useMemo(
+    () => (playSegments ? playSegments.flatMap(segment => segment.coords) : track ?? []),
+    [playSegments, track],
   )
   // Frozen at the coordinate where the milestone was hit — deliberately not
   // re-computed as playProgress advances, so the badge stays put at that
@@ -614,10 +639,20 @@ export default function LocationPickerMap({
 
         {playProgress != null && playCoords.length > 1 ? (
           <>
-            <Polyline
-              positions={playCoords.slice(0, Math.max(2, Math.ceil(playProgress * playCoords.length)))}
-              pathOptions={{ color: '#39ff14', weight: 5, opacity: 0.95, lineCap: 'round', lineJoin: 'round' }}
-            />
+            {playSegments ? (
+              revealedSegments(playSegments, Math.max(2, Math.ceil(playProgress * playCoords.length))).map((seg, i) => (
+                <Polyline
+                  key={i}
+                  positions={seg.coords}
+                  pathOptions={{ color: seg.color, weight: 5, opacity: 0.95, lineCap: 'round', lineJoin: 'round' }}
+                />
+              ))
+            ) : (
+              <Polyline
+                positions={playCoords.slice(0, Math.max(2, Math.ceil(playProgress * playCoords.length)))}
+                pathOptions={{ color: '#39ff14', weight: 5, opacity: 0.95, lineCap: 'round', lineJoin: 'round' }}
+              />
+            )}
             <Marker
               position={headPosition!}
               icon={headIcon}
