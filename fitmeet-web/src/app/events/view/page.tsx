@@ -200,9 +200,13 @@ function EventContent() {
   }, [])
 
   function toggleSpeed() {
-    const next = playSpeedRef.current === 1 ? 1.5 : 1
+    const next = playSpeedRef.current === 1 ? 2 : 1
     playSpeedRef.current = next
     setPlaySpeed(next)
+    if (playState === 'playing') {
+      if (playFrameRef.current != null) cancelAnimationFrame(playFrameRef.current)
+      runAnimation(playProgress)
+    }
   }
 
   function handlePlayToggle() {
@@ -221,6 +225,10 @@ function EventContent() {
       if (milestoneExitTimerRef.current != null) clearTimeout(milestoneExitTimerRef.current)
       if (milestoneClearTimerRef.current != null) clearTimeout(milestoneClearTimerRef.current)
     }
+    runAnimation(resumeFrom)
+  }
+
+  function runAnimation(resumeFrom: number) {
     setPlayState('playing')
     const totalKm = gpxResult?.distanceKm ?? 0
     let virtualElapsed = resumeFrom * ROUTE_PLAY_DURATION_MS
