@@ -162,7 +162,7 @@ function gpxStatsFromParsed(parsed: GpxActivityStats & { elevationProfile?: Elev
   }
 }
 
-const ROUTE_PLAY_DURATION_MS = 20000
+const ROUTE_PLAY_DURATION_MS = 40000
 const MILESTONE_STEP_KM = 10
 const MILESTONE_PAUSE_MS = 600
 const MILESTONE_LABEL_MS = 5000

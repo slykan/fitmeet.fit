@@ -150,7 +150,9 @@ async function requestElevations(latitudes: string, longitudes: string): Promise
 // viewer of a route/event was hitting it fresh on every page load. Caching
 // the result per-track in localStorage means a given route only needs one
 // successful fetch ever (per browser), instead of one per view.
-const ELEVATION_CACHE_PREFIX = 'fitmeet:elevation:'
+// v2: cache shape gained per-segment distanceKm/avgGrade - bump so older
+// cached entries (missing those fields) don't get reused as-is.
+const ELEVATION_CACHE_PREFIX = 'fitmeet:elevation:v2:'
 
 function elevationCacheKey(track: [number, number][]): string | null {
   if (track.length < 2) return null
