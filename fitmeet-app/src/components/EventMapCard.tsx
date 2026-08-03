@@ -201,6 +201,10 @@ function buildHtml(
       playSegments = coloredSegments;
     }
     const allTrackCoords = playSegments ? [].concat(...playSegments.map(function(seg) { return seg.coords; })) : [];
+    function popupText(seg) {
+      const arrow = seg.avgGrade > 0 ? '↑' : (seg.avgGrade < 0 ? '↓' : '');
+      return seg.distanceKm + ' km · ' + arrow + Math.abs(seg.avgGrade) + '%';
+    }
     function revealedSegments(segments, count) {
       const result = [];
       let consumed = 0;
@@ -212,7 +216,7 @@ function buildHtml(
           result.push(seg);
           consumed += seg.coords.length;
         } else {
-          result.push({ coords: seg.coords.slice(0, Math.max(2, remaining)), color: seg.color, dashArray: seg.dashArray });
+          result.push({ coords: seg.coords.slice(0, Math.max(2, remaining)), color: seg.color, dashArray: seg.dashArray, distanceKm: seg.distanceKm, avgGrade: seg.avgGrade });
           break;
         }
       }
@@ -228,6 +232,17 @@ function buildHtml(
       function drawSegments(segments, options, bucket, bindPopups) {
         (segments || []).forEach(function(seg) {
           if (seg.coords.length > 1) {
+            const hasInfo = bindPopups && seg.distanceKm != null && seg.avgGrade != null;
+            // Near-invisible wide twin under the visible line purely to widen
+            // the tap target - a 4-5px line is hard to hit precisely on a touchscreen.
+            if (hasInfo) {
+              const hitLine = L.polyline(seg.coords, {
+                color: seg.color, weight: 24, opacity: 0.02, lineJoin: 'round', lineCap: 'round'
+              });
+              hitLine.bindPopup(popupText(seg));
+              allBounds.push(hitLine.getBounds());
+              bucket.push(hitLine);
+            }
             const poly = L.polyline(seg.coords,{
               color:seg.color,
               weight:options.weight,
@@ -236,10 +251,7 @@ function buildHtml(
               lineCap:'round',
               dashArray:seg.dashArray||null
             });
-            if (bindPopups && seg.distanceKm != null && seg.avgGrade != null) {
-              const arrow = seg.avgGrade > 0 ? '↑' : (seg.avgGrade < 0 ? '↓' : '');
-              poly.bindPopup(seg.distanceKm + ' km · ' + arrow + Math.abs(seg.avgGrade) + '%');
-            }
+            if (hasInfo) poly.bindPopup(popupText(seg));
             allBounds.push(poly.getBounds());
             bucket.push(poly);
           }
@@ -353,9 +365,18 @@ function buildHtml(
       const pts = allTrackCoords.slice(0, n);
       snakeSegmentLines.forEach(function(l) { map.removeLayer(l); });
       snakeSegmentLines = playSegments
-        ? revealedSegments(playSegments, n).map(function(seg) {
-            return L.polyline(seg.coords, { color: seg.color, weight: 5, opacity: 0.95, lineCap: 'round', lineJoin: 'round' }).addTo(map);
-          })
+        ? revealedSegments(playSegments, n).reduce(function(lines, seg) {
+            const hasInfo = seg.distanceKm != null && seg.avgGrade != null;
+            if (hasInfo) {
+              const hitLine = L.polyline(seg.coords, { color: seg.color, weight: 24, opacity: 0.02, lineCap: 'round', lineJoin: 'round' }).addTo(map);
+              hitLine.bindPopup(popupText(seg));
+              lines.push(hitLine);
+            }
+            const poly = L.polyline(seg.coords, { color: seg.color, weight: 5, opacity: 0.95, lineCap: 'round', lineJoin: 'round' }).addTo(map);
+            if (hasInfo) poly.bindPopup(popupText(seg));
+            lines.push(poly);
+            return lines;
+          }, [])
         : [L.polyline(pts, { color: '#39ff14', weight: 5, opacity: 0.95, lineCap: 'round', lineJoin: 'round' }).addTo(map)];
       const head = pts[pts.length - 1];
       lastHeadLatLng = head;

@@ -223,6 +223,29 @@ function PlayCameraFollow({ position }: { position: [number, number] }) {
   return null
 }
 
+// Renders a colored elevation segment along with a much wider, near-invisible
+// twin underneath it purely to widen the tap/click target — the visible line
+// is thin by design, but that makes it hard to hit precisely on a touchscreen.
+// Both copies carry the same popup so a hit on either one shows it.
+function ColoredSegment({ seg, weight, opacity }: { seg: TrackSegment; weight: number; opacity: number }) {
+  const hasInfo = seg.distanceKm != null && seg.avgGrade != null
+  return (
+    <>
+      {hasInfo && (
+        <Polyline positions={seg.coords} pathOptions={{ color: seg.color, weight: 22, opacity: 0.02 }}>
+          <Popup>{segmentPopupText(seg.distanceKm!, seg.avgGrade!)}</Popup>
+        </Polyline>
+      )}
+      <Polyline
+        positions={seg.coords}
+        pathOptions={{ color: seg.color, weight, opacity, dashArray: seg.dashArray, lineCap: 'round', lineJoin: 'round' }}
+      >
+        {hasInfo && <Popup>{segmentPopupText(seg.distanceKm!, seg.avgGrade!)}</Popup>}
+      </Polyline>
+    </>
+  )
+}
+
 export function WindOverlay({
   weather,
   variant = 'default',
@@ -646,11 +669,7 @@ export default function LocationPickerMap({
           <>
             {playSegments ? (
               revealedSegments(playSegments, Math.max(2, Math.ceil(playProgress * playCoords.length))).map((seg, i) => (
-                <Polyline
-                  key={i}
-                  positions={seg.coords}
-                  pathOptions={{ color: seg.color, weight: 5, opacity: 0.95, lineCap: 'round', lineJoin: 'round' }}
-                />
+                <ColoredSegment key={i} seg={seg} weight={5} opacity={0.95} />
               ))
             ) : (
               <Polyline
@@ -681,15 +700,7 @@ export default function LocationPickerMap({
               />
             ))}
             {showElevationLayer && elevationSegments?.map((seg, i) => (
-              <Polyline
-                key={`elevation-${i}`}
-                positions={seg.coords}
-                pathOptions={{ color: seg.color, weight: 4, opacity: 0.98, lineCap: 'round', lineJoin: 'round' }}
-              >
-                {seg.distanceKm != null && seg.avgGrade != null && (
-                  <Popup>{segmentPopupText(seg.distanceKm, seg.avgGrade)}</Popup>
-                )}
-              </Polyline>
+              <ColoredSegment key={`elevation-${i}`} seg={seg} weight={4} opacity={0.98} />
             ))}
             {!showSurfaceLayer && !showElevationLayer && (
               <Polyline positions={allCoords} pathOptions={{ color: '#39ff14', weight: 4, opacity: 0.9 }} />
