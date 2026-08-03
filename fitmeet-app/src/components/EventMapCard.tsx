@@ -24,6 +24,9 @@ type Props = {
   /** When provided (with onPlayToggle), shows a Play/Pause control overlaid on the map. */
   playState?: 'idle' | 'playing' | 'paused'
   onPlayToggle?: () => void
+  /** When provided (with onSpeedToggle), shows a 1x/1.5x speed control next to Play while animating. */
+  playSpeed?: number
+  onSpeedToggle?: () => void
   onMapEnabledChange?: (enabled: boolean) => void
   loading?: boolean
 }
@@ -528,7 +531,7 @@ function buildHtml(
 </html>`
 }
 
-export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegments, elevationSegments, surfaceSegments, playProgress = null, playMilestone = null, playState, onPlayToggle, onMapEnabledChange, loading }: Props) {
+export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegments, elevationSegments, surfaceSegments, playProgress = null, playMilestone = null, playState, onPlayToggle, playSpeed, onSpeedToggle, onMapEnabledChange, loading }: Props) {
   const webViewRef = useRef<WebViewType>(null)
   const [weather, setWeather] = useState<CurrentWeather | null>(null)
   const [center, setCenter] = useState({ lat, lng })
@@ -702,18 +705,29 @@ export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegment
       </View>
       <View style={styles.weatherToggles} pointerEvents="box-none">
         {onPlayToggle && (
-          <Pressable
-            style={[styles.weatherToggleBtn, playState === 'playing' && styles.weatherToggleBtnActive]}
-            onPress={onPlayToggle}
-            hitSlop={8}
-          >
-            <Ionicons
-              name={playState === 'playing' ? 'pause' : 'play'}
-              size={15}
-              color={playState === 'playing' ? '#031109' : palette.text}
-              style={playState !== 'playing' ? { marginLeft: 1 } : undefined}
-            />
-          </Pressable>
+          <View style={{ flexDirection: 'row', gap: 6 }}>
+            <Pressable
+              style={[styles.weatherToggleBtn, playState === 'playing' && styles.weatherToggleBtnActive]}
+              onPress={onPlayToggle}
+              hitSlop={8}
+            >
+              <Ionicons
+                name={playState === 'playing' ? 'pause' : 'play'}
+                size={15}
+                color={playState === 'playing' ? '#031109' : palette.text}
+                style={playState !== 'playing' ? { marginLeft: 1 } : undefined}
+              />
+            </Pressable>
+            {playState !== 'idle' && onSpeedToggle && (
+              <Pressable
+                style={[styles.weatherToggleBtn, playSpeed !== 1 && styles.weatherToggleBtnActive]}
+                onPress={onSpeedToggle}
+                hitSlop={8}
+              >
+                <Ionicons name="play-forward" size={15} color={playSpeed !== 1 ? '#031109' : palette.text} />
+              </Pressable>
+            )}
+          </View>
         )}
         {hasSurfaceOrElevation && (
           <>

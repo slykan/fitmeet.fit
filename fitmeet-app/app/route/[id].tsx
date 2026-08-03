@@ -115,6 +115,8 @@ export default function RouteViewScreen() {
   const [playState, setPlayState] = useState<'idle' | 'playing' | 'paused'>('idle')
   const [playProgress, setPlayProgress] = useState(0)
   const [playMilestone, setPlayMilestone] = useState<{ km: number; exiting: boolean } | null>(null)
+  const [playSpeed, setPlaySpeed] = useState(1)
+  const playSpeedRef = useRef(1)
   const playFrameRef = useRef<number | null>(null)
   const hitMilestonesRef = useRef<Set<number>>(new Set())
   const milestoneExitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -129,6 +131,12 @@ export default function RouteViewScreen() {
     }
   }, [])
 
+  function toggleSpeed() {
+    const next = playSpeedRef.current === 1 ? 1.5 : 1
+    playSpeedRef.current = next
+    setPlaySpeed(next)
+  }
+
   function handlePlayToggle() {
     if (playState === 'playing') {
       if (playFrameRef.current != null) cancelAnimationFrame(playFrameRef.current)
@@ -140,24 +148,30 @@ export default function RouteViewScreen() {
       setPlayProgress(0)
       hitMilestonesRef.current = new Set()
       setPlayMilestone(null)
+      playSpeedRef.current = 1
+      setPlaySpeed(1)
       if (milestoneExitTimerRef.current != null) clearTimeout(milestoneExitTimerRef.current)
       if (milestoneClearTimerRef.current != null) clearTimeout(milestoneClearTimerRef.current)
     }
     setPlayState('playing')
     const totalKm = gpx?.distanceKm ?? route?.stats.distance_km ?? 0
-    let startTime = performance.now() - resumeFrom * ROUTE_PLAY_DURATION_MS
+    let virtualElapsed = resumeFrom * ROUTE_PLAY_DURATION_MS
+    let lastFrameTime = performance.now()
     let pauseUntil: number | null = null
     let lastUpdateTime = 0
     const step = (now: number) => {
+      const dt = now - lastFrameTime
+      lastFrameTime = now
       if (pauseUntil != null) {
         if (now < pauseUntil) {
           playFrameRef.current = requestAnimationFrame(step)
           return
         }
-        startTime += MILESTONE_PAUSE_MS
         pauseUntil = null
+      } else {
+        virtualElapsed += dt * playSpeedRef.current
       }
-      const p = Math.min(1, (now - startTime) / ROUTE_PLAY_DURATION_MS)
+      const p = Math.min(1, virtualElapsed / ROUTE_PLAY_DURATION_MS)
 
       // Throttled to ~30fps: driving React state (and two WebView postMessage
       // bridges for the map + elevation chart) at the full 60fps refresh rate
@@ -413,6 +427,8 @@ export default function RouteViewScreen() {
             playMilestone={isAnimating ? playMilestone : null}
             playState={gpx && gpx.track.length >= 2 ? playState : undefined}
             onPlayToggle={gpx && gpx.track.length >= 2 ? handlePlayToggle : undefined}
+            playSpeed={playSpeed}
+            onSpeedToggle={toggleSpeed}
             onMapEnabledChange={setMapEnabled}
             loading={surfaceLoading}
           />

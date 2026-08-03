@@ -5,7 +5,7 @@ import { useEffect, useState, useRef, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Calendar, MapPin, Users, Zap, ChevronLeft, Lock, Pencil, ChevronDown, ChevronUp, Bell, Check, X, Share2, XCircle, Download, Wind, Cloud, Eye, CheckCircle2, Camera, Flag, Play, Pause, Mountain, Milestone, Route as RouteIcon } from 'lucide-react'
+import { Calendar, MapPin, Users, Zap, ChevronLeft, Lock, Pencil, ChevronDown, ChevronUp, Bell, Check, X, Share2, XCircle, Download, Wind, Cloud, Eye, CheckCircle2, Camera, Flag, Play, Pause, FastForward, Mountain, Milestone, Route as RouteIcon } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
 import { WeatherBadge } from '@/components/WeatherBadge'
@@ -183,6 +183,8 @@ function EventContent() {
   const [showElevationLayer, setShowElevationLayer] = useState(true)
   const [showSurfaceLayer, setShowSurfaceLayer] = useState(false)
   const [showKmMarkers, setShowKmMarkers] = useState(false)
+  const [playSpeed, setPlaySpeed] = useState(1)
+  const playSpeedRef = useRef(1)
   const playFrameRef = useRef<number | null>(null)
   const hitMilestonesRef = useRef<Set<number>>(new Set())
   const milestoneExitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -197,6 +199,12 @@ function EventContent() {
     }
   }, [])
 
+  function toggleSpeed() {
+    const next = playSpeedRef.current === 1 ? 1.5 : 1
+    playSpeedRef.current = next
+    setPlaySpeed(next)
+  }
+
   function handlePlayToggle() {
     if (playState === 'playing') {
       if (playFrameRef.current != null) cancelAnimationFrame(playFrameRef.current)
@@ -208,24 +216,30 @@ function EventContent() {
       setPlayProgress(0)
       hitMilestonesRef.current = new Set()
       setPlayMilestone(null)
+      playSpeedRef.current = 1
+      setPlaySpeed(1)
       if (milestoneExitTimerRef.current != null) clearTimeout(milestoneExitTimerRef.current)
       if (milestoneClearTimerRef.current != null) clearTimeout(milestoneClearTimerRef.current)
     }
     setPlayState('playing')
     const totalKm = gpxResult?.distanceKm ?? 0
-    let startTime = performance.now() - resumeFrom * ROUTE_PLAY_DURATION_MS
+    let virtualElapsed = resumeFrom * ROUTE_PLAY_DURATION_MS
+    let lastFrameTime = performance.now()
     let pauseUntil: number | null = null
     let lastUpdateTime = 0
     const step = (now: number) => {
+      const dt = now - lastFrameTime
+      lastFrameTime = now
       if (pauseUntil != null) {
         if (now < pauseUntil) {
           playFrameRef.current = requestAnimationFrame(step)
           return
         }
-        startTime += MILESTONE_PAUSE_MS
         pauseUntil = null
+      } else {
+        virtualElapsed += dt * playSpeedRef.current
       }
-      const p = Math.min(1, (now - startTime) / ROUTE_PLAY_DURATION_MS)
+      const p = Math.min(1, virtualElapsed / ROUTE_PLAY_DURATION_MS)
 
       // Throttled to ~30fps: driving React state (and, on mobile, two WebView
       // postMessage bridges) at the full 60fps refresh rate causes jank on
@@ -886,6 +900,20 @@ function EventContent() {
                       {playState === 'playing'
                         ? <Pause size={15} color="#031109" />
                         : <Play size={15} color="var(--text-muted)" />}
+                    </button>
+                  )}
+                  {isAnimating && (
+                    <button
+                      type="button"
+                      onClick={toggleSpeed}
+                      className="inline-flex items-center justify-center rounded-[10px] border transition-colors"
+                      style={{
+                        width: 32, height: 32,
+                        borderColor: playSpeed !== 1 ? 'var(--primary)' : 'rgba(255,255,255,0.12)',
+                        background: playSpeed !== 1 ? 'var(--primary)' : 'rgba(255,255,255,0.03)',
+                      }}
+                    >
+                      <FastForward size={15} color={playSpeed !== 1 ? '#031109' : 'var(--text-muted)'} />
                     </button>
                   )}
                   {(surfaceAnalysis?.segments?.length || gpxResult?.coloredSegments?.length) ? (
