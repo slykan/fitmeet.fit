@@ -3,14 +3,64 @@
 use App\Jobs\SendPushNotification;
 use App\Jobs\SendStartedEventNotifications;
 use App\Mail\EventReminderMail;
+use App\Models\ActivityRoute;
 use App\Models\Event;
 use App\Models\EventReminder;
 use App\Models\User;
 use App\Services\BadgeService;
+use App\Services\GpxElevationEnricher;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schedule;
+use Illuminate\Support\Facades\Storage;
+
+Artisan::command('gpx:embed-elevation', function () {
+    $enricher = app(GpxElevationEnricher::class);
+    $enriched = 0;
+    $skipped = 0;
+
+    ActivityRoute::query()->whereNotNull('gpx_path')->chunkById(50, function ($routes) use ($enricher, &$enriched, &$skipped) {
+        foreach ($routes as $route) {
+            if (! Storage::disk('public')->exists($route->gpx_path)) {
+                $skipped++;
+                continue;
+            }
+            $xml = Storage::disk('public')->get($route->gpx_path);
+            $result = $enricher->embed($xml);
+            if ($result === null) {
+                $skipped++;
+                continue;
+            }
+            Storage::disk('public')->put($route->gpx_path, $result);
+            $enriched++;
+            $this->line("route #{$route->id}: embedded elevation");
+        }
+    });
+
+    // Events that don't share a gpx_path with one of the routes above (e.g. private events).
+    $routeGpxPaths = ActivityRoute::query()->whereNotNull('gpx_path')->pluck('gpx_path')->all();
+    Event::query()->whereNotNull('gpx_path')->whereNotIn('gpx_path', $routeGpxPaths)
+        ->chunkById(50, function ($events) use ($enricher, &$enriched, &$skipped) {
+            foreach ($events as $event) {
+                if (! Storage::disk('public')->exists($event->gpx_path)) {
+                    $skipped++;
+                    continue;
+                }
+                $xml = Storage::disk('public')->get($event->gpx_path);
+                $result = $enricher->embed($xml);
+                if ($result === null) {
+                    $skipped++;
+                    continue;
+                }
+                Storage::disk('public')->put($event->gpx_path, $result);
+                $enriched++;
+                $this->line("event #{$event->id}: embedded elevation");
+            }
+        });
+
+    $this->info("Done. Embedded: {$enriched}, skipped (already had elevation / no file / lookup failed): {$skipped}.");
+})->purpose('Backfill elevation into existing GPX files that are missing it');
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());

@@ -6,6 +6,7 @@ use App\Enums\Category;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ActivityRouteResource;
 use App\Models\ActivityRoute;
+use App\Services\GpxElevationEnricher;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -145,6 +146,7 @@ class ActivityRouteController extends Controller
         ]);
 
         $path = $request->file('gpx')->store('gpx/routes', 'public');
+        app(GpxElevationEnricher::class)->enrichStoredFile($path);
 
         $route = ActivityRoute::create([
             'user_id'        => auth()->id(),
@@ -211,6 +213,7 @@ class ActivityRouteController extends Controller
                 Storage::disk('public')->delete($activityRoute->gpx_path);
             }
             $updates['gpx_path'] = $request->file('gpx')->store('gpx/routes', 'public');
+            app(GpxElevationEnricher::class)->enrichStoredFile($updates['gpx_path']);
         }
 
         $activityRoute->update($updates);

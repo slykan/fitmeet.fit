@@ -14,6 +14,7 @@ use App\Models\Event;
 use App\Models\EventReminder;
 use App\Models\FriendRequest;
 use App\Services\BadgeService;
+use App\Services\GpxElevationEnricher;
 use App\Services\GpxRouteParser;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -185,12 +186,14 @@ class EventController extends Controller
             $gpxTextForRoute = file_get_contents($file->getRealPath()) ?: null;
             $gpxNameForRoute = $file->getClientOriginalName();
             $data['gpx_path'] = $file->store('gpx', 'public');
+            $gpxTextForRoute = $this->enrichGpxAndReturnText($data['gpx_path'], $gpxTextForRoute);
         } elseif ($request->filled('gpx_text')) {
             $gpxTextForRoute = (string) $request->string('gpx_text');
             $data['gpx_path'] = $this->storeGpxText(
                 $gpxTextForRoute,
                 (string) $gpxNameForRoute
             );
+            $gpxTextForRoute = $this->enrichGpxAndReturnText($data['gpx_path'], $gpxTextForRoute);
         }
 
         if ($request->hasFile('image_file')) {
@@ -362,6 +365,7 @@ HTML;
             $gpxTextForRoute = file_get_contents($file->getRealPath()) ?: null;
             $gpxNameForRoute = $file->getClientOriginalName();
             $data['gpx_path'] = $file->store('gpx', 'public');
+            $gpxTextForRoute = $this->enrichGpxAndReturnText($data['gpx_path'], $gpxTextForRoute);
         } elseif ($request->filled('gpx_text')) {
             $this->deleteOwnedRouteForEvent($event);
             $this->deleteEventGpxIfUnshared($event->gpx_path);
@@ -370,6 +374,7 @@ HTML;
                 $gpxTextForRoute,
                 (string) $gpxNameForRoute
             );
+            $gpxTextForRoute = $this->enrichGpxAndReturnText($data['gpx_path'], $gpxTextForRoute);
         } elseif ($request->boolean('gpx_remove')) {
             $this->removeEventRouteData($event, $data);
         }
@@ -749,6 +754,23 @@ HTML;
         Storage::disk('public')->put($path, $gpxText);
 
         return $path;
+    }
+
+    /**
+     * Embeds elevation into the stored GPX at $path if it's missing (hand-drawn
+     * routes have none), overwrites the file, and returns the up-to-date GPX
+     * text so callers computing route stats from it see the enriched version.
+     */
+    private function enrichGpxAndReturnText(string $path, ?string $fallbackText): string
+    {
+        $enriched = app(GpxElevationEnricher::class)->embed($fallbackText ?? '');
+        if ($enriched === null) {
+            return $fallbackText ?? '';
+        }
+
+        Storage::disk('public')->put($path, $enriched);
+
+        return $enriched;
     }
 
     private function syncRouteFromEvent(Event $event, string $gpxText, ?string $routeTitle, ?string $gpxName): void
