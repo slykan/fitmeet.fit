@@ -225,7 +225,7 @@ function buildHtml(
     }
     if (hasLayeredSegments || (coloredSegments && coloredSegments.length > 0)) {
       const allBounds = [];
-      function drawSegments(segments, options, bucket) {
+      function drawSegments(segments, options, bucket, bindPopups) {
         (segments || []).forEach(function(seg) {
           if (seg.coords.length > 1) {
             const poly = L.polyline(seg.coords,{
@@ -236,16 +236,20 @@ function buildHtml(
               lineCap:'round',
               dashArray:seg.dashArray||null
             });
+            if (bindPopups && seg.distanceKm != null && seg.avgGrade != null) {
+              const arrow = seg.avgGrade > 0 ? '↑' : (seg.avgGrade < 0 ? '↓' : '');
+              poly.bindPopup(seg.distanceKm + ' km · ' + arrow + Math.abs(seg.avgGrade) + '%');
+            }
             allBounds.push(poly.getBounds());
             bucket.push(poly);
           }
         });
       }
       if (hasLayeredSegments) {
-        drawSegments(surfaceSegments, { weight: 9, opacity: 0.72 }, surfaceLayersArr);
-        drawSegments(elevationSegments, { weight: 4, opacity: 0.98 }, elevationLayers);
+        drawSegments(surfaceSegments, { weight: 9, opacity: 0.72 }, surfaceLayersArr, false);
+        drawSegments(elevationSegments, { weight: 4, opacity: 0.98 }, elevationLayers, true);
       } else {
-        drawSegments(coloredSegments, { weight: 4, opacity: 0.95 }, elevationLayers);
+        drawSegments(coloredSegments, { weight: 4, opacity: 0.95 }, elevationLayers, true);
       }
       if (allBounds.length > 0) {
         setTimeout(function() {

@@ -4,6 +4,9 @@ export interface TrackSegment {
   coords: [number, number][]
   color:  string
   dashArray?: string
+  /** This segment's own length and average grade — shown in the popup when tapped on the Elevation-colored route. */
+  distanceKm?: number
+  avgGrade?: number
 }
 
 export interface GpxResult {
@@ -76,6 +79,14 @@ function buildElevationProfile(
   const coloredSegments: TrackSegment[] = []
   if (profileCoords.length >= 2) {
     let seg: TrackSegment | null = null
+    let segDistKm = 0
+    let segEleM = 0
+    const finishSeg = () => {
+      if (!seg) return
+      seg.distanceKm = Math.round(segDistKm * 100) / 100
+      seg.avgGrade = segDistKm > 0 ? Math.round((segEleM / (segDistKm * 1000)) * 1000) / 10 : 0
+      coloredSegments.push(seg)
+    }
     for (let i = 1; i < profileCoords.length; i++) {
       const distKm = elevationProfile[i].km - elevationProfile[i - 1].km
       const eleM = elevationProfile[i].ele - elevationProfile[i - 1].ele
@@ -88,14 +99,20 @@ function buildElevationProfile(
 
       if (!seg) {
         seg = { coords: segmentCoords, color }
+        segDistKm = distKm
+        segEleM = eleM
       } else if (color === seg.color) {
         seg.coords.push(...segmentCoords.slice(1))
+        segDistKm += distKm
+        segEleM += eleM
       } else {
-        coloredSegments.push(seg)
+        finishSeg()
         seg = { coords: segmentCoords, color }
+        segDistKm = distKm
+        segEleM = eleM
       }
     }
-    if (seg) coloredSegments.push(seg)
+    finishSeg()
   }
 
   return { elevationProfile, coloredSegments }

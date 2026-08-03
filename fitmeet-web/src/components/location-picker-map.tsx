@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { MapContainer, TileLayer, Marker, Polyline, useMapEvents, useMap, ZoomControl } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Polyline, Popup, useMapEvents, useMap, ZoomControl } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import type { TrackSegment } from '@/lib/parse-gpx'
@@ -56,6 +56,11 @@ function staticKmIcon(km: number) {
     iconSize: [70, 22],
     iconAnchor: [35, 32],
   })
+}
+
+function segmentPopupText(distanceKm: number, avgGrade: number) {
+  const arrow = avgGrade > 0 ? '↑' : avgGrade < 0 ? '↓' : ''
+  return `${distanceKm} km · ${arrow}${Math.abs(avgGrade)}%`
 }
 
 // Truncates a colored segment list to the first `count` points, splitting the
@@ -680,7 +685,11 @@ export default function LocationPickerMap({
                 key={`elevation-${i}`}
                 positions={seg.coords}
                 pathOptions={{ color: seg.color, weight: 4, opacity: 0.98, lineCap: 'round', lineJoin: 'round' }}
-              />
+              >
+                {seg.distanceKm != null && seg.avgGrade != null && (
+                  <Popup>{segmentPopupText(seg.distanceKm, seg.avgGrade)}</Popup>
+                )}
+              </Polyline>
             ))}
             {!showSurfaceLayer && !showElevationLayer && (
               <Polyline positions={allCoords} pathOptions={{ color: '#39ff14', weight: 4, opacity: 0.9 }} />
