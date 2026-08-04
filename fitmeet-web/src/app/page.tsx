@@ -1,5 +1,6 @@
 import {
   ArrowRight,
+  Beer,
   Bell,
   CheckCircle2,
   Compass,
@@ -7,7 +8,9 @@ import {
   HeartPulse,
   Layers,
   MessageSquareText,
+  Mountain,
   PencilLine,
+  Play,
   Route,
   Share2,
   SlidersHorizontal,
@@ -98,24 +101,26 @@ const highlights = [
   },
 ]
 
-const latestFeatures = [
+const latestFeatures: Array<{
+  icon: typeof Play
+  title: string
+  description: string
+  href?: string
+}> = [
   {
-    icon: Route,
-    title: 'Surface-aware routes',
-    description: 'Route and event GPX maps now show paved, unpaved, trail and unknown surface mix.',
-    href: '/blog/route-surface-mix-event-updates',
+    icon: Play,
+    title: 'Route play animation',
+    description: 'Hit play on any route or event to watch it draw itself in real elevation colors, with a speed control to fast-forward.',
   },
   {
-    icon: Share2,
-    title: 'Photos and route stats',
-    description: 'Route views now include GPX-linked photos, uphill/downhill km and clearer elevation details.',
-    href: '/blog/route-surface-mix-event-updates',
+    icon: Mountain,
+    title: 'Tap for climb details',
+    description: 'Tap any colored stretch of a route to see that segment\'s distance and average grade.',
   },
   {
-    icon: PencilLine,
-    title: 'Better route drawing',
-    description: 'Create routes with search, current location, cleaner controls and an elevation preview.',
-    href: '/blog/route-surface-mix-event-updates',
+    icon: Beer,
+    title: 'Beer wall shoutouts',
+    description: 'Buy someone a beer and the whole community gets a cheers notification, with a link straight to the wall of fame.',
   },
 ]
 
@@ -403,7 +408,7 @@ export default async function HomePage() {
                       New in FitMeet
                     </p>
                     <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                      Surface mix, GPX, route tools
+                      Play animation, climb detail, beer wall
                     </span>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-3">
