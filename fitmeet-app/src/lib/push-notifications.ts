@@ -14,6 +14,8 @@ export const PUSH_TOKEN_STORAGE_KEY = 'fitmeet-mobile-push-token-v1'
 const BACKGROUND_NOTIFICATION_TASK = 'fitmeet-background-notification'
 const EVENT_STARTED_CATEGORY_ID = 'event_started'
 const EVENT_STARTED_CHANNEL_ID = 'event_started'
+const BEER_PURCHASED_CATEGORY_ID = 'beer_purchased'
+const BEER_PURCHASED_CHANNEL_ID = 'beer_purchased'
 
 function notificationDataFromTaskPayload(data: unknown) {
   const payload = data as Record<string, unknown> | undefined
@@ -34,6 +36,7 @@ TaskManager.defineTask(BACKGROUND_NOTIFICATION_TASK, async ({ data, error }: Tas
   const title     = notifData._title     ?? 'FitMeet'
   const body      = notifData._body      ?? ''
   const categoryId = notifData.categoryId ?? undefined
+  const channelId = notifData.channelId ?? EVENT_STARTED_CHANNEL_ID
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { _title, _body, _data_only, ...cleanData } = notifData
@@ -45,11 +48,13 @@ TaskManager.defineTask(BACKGROUND_NOTIFICATION_TASK, async ({ data, error }: Tas
       data: cleanData,
       ...(categoryId ? { categoryIdentifier: categoryId } : {}),
     },
-    trigger: Platform.OS === 'android' ? { channelId: EVENT_STARTED_CHANNEL_ID } : null,
+    trigger: Platform.OS === 'android' ? { channelId } : null,
   }).catch(() => {})
 })
 const CHECK_IN_ACTION_ID = 'check_in'
 const OPEN_EVENT_ACTION_ID = 'open_event'
+const BUY_BEER_ACTION_ID = 'buy_beer'
+const SEE_RANK_ACTION_ID = 'see_rank'
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -100,6 +105,11 @@ function routeFromNotificationData(data: Record<string, unknown> | undefined) {
     return
   }
 
+  if (type === 'beer_purchased') {
+    router.push('/beer-wall' as never)
+    return
+  }
+
   if (typeof data.url === 'string' && data.url) {
     Linking.openURL(data.url).catch(() => {})
     return
@@ -140,6 +150,12 @@ async function registerNotificationCategories() {
       vibrationPattern: [0, 250, 250, 250],
       lightColor: '#39FF14',
     }).catch(() => {})
+    await Notifications.setNotificationChannelAsync(BEER_PURCHASED_CHANNEL_ID, {
+      name: 'Beer wall',
+      importance: Notifications.AndroidImportance.DEFAULT,
+      vibrationPattern: [0, 150, 150, 150],
+      lightColor: '#39FF14',
+    }).catch(() => {})
   }
 
   await Notifications.setNotificationCategoryAsync(EVENT_STARTED_CATEGORY_ID, [
@@ -151,6 +167,19 @@ async function registerNotificationCategories() {
     {
       identifier: OPEN_EVENT_ACTION_ID,
       buttonTitle: 'Open',
+      options: { opensAppToForeground: true },
+    },
+  ]).catch(() => {})
+
+  await Notifications.setNotificationCategoryAsync(BEER_PURCHASED_CATEGORY_ID, [
+    {
+      identifier: BUY_BEER_ACTION_ID,
+      buttonTitle: 'Buy beer 🍺',
+      options: { opensAppToForeground: true },
+    },
+    {
+      identifier: SEE_RANK_ACTION_ID,
+      buttonTitle: 'See rank',
       options: { opensAppToForeground: true },
     },
   ]).catch(() => {})
@@ -168,6 +197,16 @@ async function handleNotificationResponse(response: Notifications.NotificationRe
 
     await dismissEventNotification(response, eventId)
     router.push(`/event/${eventId}` as never)
+    return
+  }
+
+  if (actionIdentifier === BUY_BEER_ACTION_ID) {
+    router.push('/beer-wall' as never)
+    return
+  }
+
+  if (actionIdentifier === SEE_RANK_ACTION_ID) {
+    router.push('/(tabs)/ranks' as never)
     return
   }
 

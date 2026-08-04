@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\BeerDonation;
+use App\Services\BeerPurchaseNotifier;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -89,6 +90,8 @@ class PaypalController extends Controller
             'user_id'    => $request->user()->id,
             'product_id' => $validated['product_id'],
         ]);
+
+        app(BeerPurchaseNotifier::class)->notify($request->user(), $validated['product_id']);
 
         return response()->json(['status' => 'ok']);
     }
