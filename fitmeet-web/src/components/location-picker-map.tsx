@@ -76,7 +76,12 @@ function revealedSegments(segments: TrackSegment[], count: number): TrackSegment
       result.push(seg)
       consumed += seg.coords.length
     } else {
-      result.push({ ...seg, coords: seg.coords.slice(0, Math.max(2, remaining)) })
+      // Cut to exactly `remaining` points (not clamped to a 2-point minimum):
+      // revealedSegmentsWithHead always appends the interpolated head after
+      // this, so clamping up here would overshoot the true cut point by one
+      // real track vertex — then appending head (which sits *behind* that
+      // overshot vertex) drew a visible one-point "hook" back on itself.
+      result.push({ ...seg, coords: seg.coords.slice(0, Math.max(1, remaining)) })
       break
     }
   }
