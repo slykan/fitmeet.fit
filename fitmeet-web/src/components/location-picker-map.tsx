@@ -91,6 +91,51 @@ function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number) {
   return 2 * R * Math.asin(Math.sqrt(a))
 }
 
+function cumulativeDistancesKm(coords: [number, number][]): number[] {
+  const cum: number[] = [0]
+  for (let i = 1; i < coords.length; i++) {
+    cum.push(cum[i - 1] + haversineKm(coords[i - 1][0], coords[i - 1][1], coords[i][0], coords[i][1]))
+  }
+  return cum
+}
+
+// Maps a 0..1 playback progress to a point on the track by real-world distance
+// travelled, not by point count — GPX points aren't evenly spaced (hilly/curvy
+// stretches pack in far more points per km than flat/straight ones), so indexing
+// by point-count fraction made the play-animation head speed up and stutter on
+// dense stretches. Returns the point index just before the target distance plus
+// the interpolation fraction into the next point, so the caller can lerp a
+// sub-point position and get continuous, constant real-world speed.
+function progressToTrackPointer(cumDistKm: number[], progress: number): { index: number; t: number } | null {
+  if (cumDistKm.length < 2) return null
+  const total = cumDistKm[cumDistKm.length - 1]
+  if (total <= 0) return null
+  const target = Math.max(0, Math.min(1, progress)) * total
+  let lo = 0, hi = cumDistKm.length - 1
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1
+    if (cumDistKm[mid] <= target) lo = mid; else hi = mid - 1
+  }
+  const index = Math.min(lo, cumDistKm.length - 2)
+  const segLen = cumDistKm[index + 1] - cumDistKm[index]
+  const t = segLen > 0 ? (target - cumDistKm[index]) / segLen : 0
+  return { index, t }
+}
+
+function lerpCoord(a: [number, number], b: [number, number], t: number): [number, number] {
+  return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]
+}
+
+// Appends the interpolated head position as an extra vertex so the drawn
+// line's leading edge always lands exactly under the head marker, instead of
+// snapping to the nearest whole track point.
+function revealedSegmentsWithHead(segments: TrackSegment[], count: number, head: [number, number] | null): TrackSegment[] {
+  const revealed = revealedSegments(segments, count)
+  if (!head || revealed.length === 0) return revealed
+  const last = revealed[revealed.length - 1]
+  return [...revealed.slice(0, -1), { ...last, coords: [...last.coords, head] }]
+}
+
 function computeKmMarkerPoints(coords: [number, number][], stepKm: number) {
   const points: { km: number; pos: [number, number] }[] = []
   let cum = 0
@@ -609,20 +654,26 @@ export default function LocationPickerMap({
     () => (playSegments ? playSegments.flatMap(segment => segment.coords) : track ?? []),
     [playSegments, track],
   )
+  // Cumulative real-world distance at each playCoords point — lets progress
+  // map to distance travelled instead of raw point count (see progressToTrackPointer).
+  const playCumDistKm = useMemo(() => cumulativeDistancesKm(playCoords), [playCoords])
+  const playPointer = playProgress != null
+    ? progressToTrackPointer(playCumDistKm, playProgress)
+    : null
+  const headPosition = playPointer
+    ? lerpCoord(playCoords[playPointer.index], playCoords[playPointer.index + 1], playPointer.t)
+    : null
   // Frozen at the coordinate where the milestone was hit — deliberately not
   // re-computed as playProgress advances, so the badge stays put at that
   // point on the route instead of following the moving head marker.
   const milestonePosition = useMemo(
-    () => (playMilestone ? playCoords[Math.max(1, Math.ceil(playProgress! * playCoords.length)) - 1] : null),
+    () => (playMilestone ? headPosition : null),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [playMilestone?.km, playCoords],
   )
   // Static "X km" waypoint badges shown along the whole route when the km-markers
   // toggle is on — independent of the play-animation milestones above.
   const kmMarkerPoints = useMemo(() => computeKmMarkerPoints(allCoords, 10), [allCoords])
-  const headPosition = playProgress != null && playCoords.length > 1
-    ? playCoords[Math.max(1, Math.ceil(playProgress * playCoords.length)) - 1]
-    : null
   const hasTrack    = allCoords.length > 1
   const hasLayeredSegments = Boolean(surfaceSegments?.length || elevationSegments?.length)
   const [selectedLayerName, setSelectedLayerName] = useState<MapBaseLayerName>('Standard')
@@ -665,15 +716,15 @@ export default function LocationPickerMap({
         {readOnly && <ReadOnlyViewSync onViewChange={onViewChange} onInteractionChange={onInteractionChange} />}
         {hasPin && <Marker position={[lat!, lng!]} />}
 
-        {playProgress != null && playCoords.length > 1 ? (
+        {playProgress != null && playPointer && playCoords.length > 1 ? (
           <>
             {playSegments ? (
-              revealedSegments(playSegments, Math.max(2, Math.ceil(playProgress * playCoords.length))).map((seg, i) => (
+              revealedSegmentsWithHead(playSegments, Math.max(2, playPointer.index + 1), headPosition).map((seg, i) => (
                 <ColoredSegment key={i} seg={seg} weight={5} opacity={0.95} />
               ))
             ) : (
               <Polyline
-                positions={playCoords.slice(0, Math.max(2, Math.ceil(playProgress * playCoords.length)))}
+                positions={[...playCoords.slice(0, Math.max(2, playPointer.index + 1)), ...(headPosition ? [headPosition] : [])]}
                 pathOptions={{ color: '#39ff14', weight: 5, opacity: 0.95, lineCap: 'round', lineJoin: 'round' }}
               />
             )}

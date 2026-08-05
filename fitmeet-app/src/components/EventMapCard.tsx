@@ -204,6 +204,35 @@ function buildHtml(
       playSegments = coloredSegments;
     }
     const allTrackCoords = playSegments ? [].concat(...playSegments.map(function(seg) { return seg.coords; })) : [];
+    // Cumulative real-world distance at each allTrackCoords point — lets play
+    // progress map to distance travelled instead of raw point count (GPX points
+    // cluster far more densely on hilly/curvy stretches than flat/straight ones,
+    // which made the head marker speed up and stutter on longer, hillier routes).
+    const allTrackCumKm = (function() {
+      const cum = [0];
+      for (let i = 1; i < allTrackCoords.length; i++) {
+        cum.push(cum[i - 1] + haversineKm(allTrackCoords[i - 1][0], allTrackCoords[i - 1][1], allTrackCoords[i][0], allTrackCoords[i][1]));
+      }
+      return cum;
+    })();
+    function pointerForProgress(progress) {
+      if (allTrackCumKm.length < 2) return null;
+      const total = allTrackCumKm[allTrackCumKm.length - 1];
+      if (total <= 0) return null;
+      const target = Math.max(0, Math.min(1, progress)) * total;
+      let lo = 0, hi = allTrackCumKm.length - 1;
+      while (lo < hi) {
+        const mid = (lo + hi + 1) >> 1;
+        if (allTrackCumKm[mid] <= target) lo = mid; else hi = mid - 1;
+      }
+      const index = Math.min(lo, allTrackCumKm.length - 2);
+      const segLen = allTrackCumKm[index + 1] - allTrackCumKm[index];
+      const t = segLen > 0 ? (target - allTrackCumKm[index]) / segLen : 0;
+      return { index: index, t: t };
+    }
+    function lerpCoord(a, b, t) {
+      return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+    }
     function popupText(seg) {
       const arrow = seg.avgGrade > 0 ? '↑' : (seg.avgGrade < 0 ? '↓' : '');
       return seg.distanceKm + ' km · ' + arrow + Math.abs(seg.avgGrade) + '%';
@@ -224,6 +253,17 @@ function buildHtml(
         }
       }
       return result;
+    }
+    // Appends the interpolated head position as an extra vertex so the drawn
+    // line's leading edge always lands exactly under the head marker, instead
+    // of snapping to the nearest whole track point.
+    function revealedSegmentsWithHead(segments, count, head) {
+      const revealed = revealedSegments(segments, count);
+      if (!head || revealed.length === 0) return revealed;
+      const last = revealed[revealed.length - 1];
+      const merged = revealed.slice(0, -1);
+      merged.push(Object.assign({}, last, { coords: last.coords.concat([head]) }));
+      return merged;
     }
     let routeBounds = null;
     if (allTrackCoords.length > 1) {
@@ -364,11 +404,15 @@ function buildHtml(
       surfaceLayersArr.forEach(function(l) { if (map.hasLayer(l)) map.removeLayer(l); });
       elevationLayers.forEach(function(l) { if (map.hasLayer(l)) map.removeLayer(l); });
       kmMarkerLayers.forEach(function(l) { if (map.hasLayer(l)) map.removeLayer(l); });
-      const n = Math.max(2, Math.ceil(progress * allTrackCoords.length));
-      const pts = allTrackCoords.slice(0, n);
+      const pointer = pointerForProgress(progress);
+      const head = pointer
+        ? lerpCoord(allTrackCoords[pointer.index], allTrackCoords[pointer.index + 1], pointer.t)
+        : allTrackCoords[allTrackCoords.length - 1];
+      const n = pointer ? Math.max(2, pointer.index + 1) : 2;
+      const pts = allTrackCoords.slice(0, n).concat([head]);
       snakeSegmentLines.forEach(function(l) { map.removeLayer(l); });
       snakeSegmentLines = playSegments
-        ? revealedSegments(playSegments, n).reduce(function(lines, seg) {
+        ? revealedSegmentsWithHead(playSegments, n, head).reduce(function(lines, seg) {
             const hasInfo = seg.distanceKm != null && seg.avgGrade != null;
             if (hasInfo) {
               const hitLine = L.polyline(seg.coords, { color: seg.color, weight: 24, opacity: 0.02, lineCap: 'round', lineJoin: 'round' }).addTo(map);
@@ -381,7 +425,6 @@ function buildHtml(
             return lines;
           }, [])
         : [L.polyline(pts, { color: '#39ff14', weight: 5, opacity: 0.95, lineCap: 'round', lineJoin: 'round' }).addTo(map)];
-      const head = pts[pts.length - 1];
       lastHeadLatLng = head;
       if (wasStatic) { followZoom = Math.min(map.getZoom() + 2, 17); }
       map.setView(head, followZoom, { animate: false });

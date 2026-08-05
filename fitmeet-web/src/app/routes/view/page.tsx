@@ -92,7 +92,11 @@ function withProfileStats(result: GpxResult): GpxResult {
   }
 }
 
-const ROUTE_PLAY_DURATION_MS = 40000
+// Pace-based, not a fixed total duration — so every route plays at the same
+// real-world speed instead of longer routes racing through in the same wall-clock time.
+const PLAY_MS_PER_KM_NORMAL = 1500 // 15s per 10km
+const PLAY_MS_PER_KM_FAST = 800    // 8s per 10km
+const PLAY_FAST_FORWARD_RATE = PLAY_MS_PER_KM_NORMAL / PLAY_MS_PER_KM_FAST
 const MILESTONE_STEP_KM = 10
 const MILESTONE_PAUSE_MS = 600
 const MILESTONE_LABEL_MS = 5000
@@ -134,7 +138,7 @@ function RouteContent() {
   }, [])
 
   function toggleSpeed() {
-    const next = playSpeedRef.current === 1 ? 2 : 1
+    const next = playSpeedRef.current === 1 ? PLAY_FAST_FORWARD_RATE : 1
     playSpeedRef.current = next
     setPlaySpeed(next)
     if (playState === 'playing') {
@@ -165,7 +169,8 @@ function RouteContent() {
   function runAnimation(resumeFrom: number) {
     setPlayState('playing')
     const totalKm = gpxResult?.distanceKm ?? 0
-    let virtualElapsed = resumeFrom * ROUTE_PLAY_DURATION_MS
+    const durationMs = Math.max(totalKm, 0.1) * PLAY_MS_PER_KM_NORMAL
+    let virtualElapsed = resumeFrom * durationMs
     let lastFrameTime = performance.now()
     let pauseUntil: number | null = null
     let lastUpdateTime = 0
@@ -181,7 +186,7 @@ function RouteContent() {
       } else {
         virtualElapsed += dt * playSpeedRef.current
       }
-      const p = Math.min(1, virtualElapsed / ROUTE_PLAY_DURATION_MS)
+      const p = Math.min(1, virtualElapsed / durationMs)
 
       // Throttled to ~30fps: driving React state (and, on mobile, two WebView
       // postMessage bridges) at the full 60fps refresh rate causes jank on
