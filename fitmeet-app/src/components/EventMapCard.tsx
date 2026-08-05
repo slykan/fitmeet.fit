@@ -182,7 +182,17 @@ function buildHtml(
     const elevationLayers = [];
     const surfaceLayersArr = [];
     let baseLine = null;
-    let snakeSegmentLines = [];
+    // Play-animation reveal state. Fully-drawn segments move into committedLayers
+    // once and are never touched again; only the in-progress "tail" segment gets
+    // redrawn (via setLatLngs, not remove+recreate) each frame. Rebuilding every
+    // revealed segment's Leaflet layers from scratch 30x/sec was the main cause
+    // of stutter on long, grade-heavy routes with many colored segments.
+    let committedLayers = [];
+    let committedSegIdx = 0;
+    let committedPointCount = 0;
+    let tailPoly = null;
+    let tailHitLine = null;
+    let tailSegIdxDrawn = -1;
     let snakeHeadDot = null;
     let lastHeadLatLng = null;
     let milestoneMarker = null;
@@ -236,34 +246,6 @@ function buildHtml(
     function popupText(seg) {
       const arrow = seg.avgGrade > 0 ? '↑' : (seg.avgGrade < 0 ? '↓' : '');
       return seg.distanceKm + ' km · ' + arrow + Math.abs(seg.avgGrade) + '%';
-    }
-    function revealedSegments(segments, count) {
-      const result = [];
-      let consumed = 0;
-      for (let i = 0; i < segments.length; i++) {
-        if (consumed >= count) break;
-        const seg = segments[i];
-        const remaining = count - consumed;
-        if (remaining >= seg.coords.length) {
-          result.push(seg);
-          consumed += seg.coords.length;
-        } else {
-          result.push({ coords: seg.coords.slice(0, Math.max(2, remaining)), color: seg.color, dashArray: seg.dashArray, distanceKm: seg.distanceKm, avgGrade: seg.avgGrade });
-          break;
-        }
-      }
-      return result;
-    }
-    // Appends the interpolated head position as an extra vertex so the drawn
-    // line's leading edge always lands exactly under the head marker, instead
-    // of snapping to the nearest whole track point.
-    function revealedSegmentsWithHead(segments, count, head) {
-      const revealed = revealedSegments(segments, count);
-      if (!head || revealed.length === 0) return revealed;
-      const last = revealed[revealed.length - 1];
-      const merged = revealed.slice(0, -1);
-      merged.push(Object.assign({}, last, { coords: last.coords.concat([head]) }));
-      return merged;
     }
     let routeBounds = null;
     if (allTrackCoords.length > 1) {
@@ -385,12 +367,21 @@ function buildHtml(
     }
     applyStaticLayers();
     let followZoom = null;
+    function clearPlayLayers() {
+      committedLayers.forEach(function(l) { map.removeLayer(l); });
+      committedLayers = [];
+      committedSegIdx = 0;
+      committedPointCount = 0;
+      if (tailHitLine) { map.removeLayer(tailHitLine); tailHitLine = null; }
+      if (tailPoly) { map.removeLayer(tailPoly); tailPoly = null; }
+      tailSegIdxDrawn = -1;
+    }
     function setPlayProgress(progress) {
       if (allTrackCoords.length < 2) return;
       if (progress >= 1) {
         isStaticView = true;
         followZoom = null;
-        if (snakeSegmentLines.length) { snakeSegmentLines.forEach(function(l) { map.removeLayer(l); }); snakeSegmentLines = []; }
+        clearPlayLayers();
         if (snakeHeadDot) { map.removeLayer(snakeHeadDot); snakeHeadDot = null; }
         applyStaticLayers();
         if (finishMarker && !map.hasLayer(finishMarker)) finishMarker.addTo(map);
@@ -409,22 +400,64 @@ function buildHtml(
         ? lerpCoord(allTrackCoords[pointer.index], allTrackCoords[pointer.index + 1], pointer.t)
         : allTrackCoords[allTrackCoords.length - 1];
       const n = pointer ? Math.max(2, pointer.index + 1) : 2;
-      const pts = allTrackCoords.slice(0, n).concat([head]);
-      snakeSegmentLines.forEach(function(l) { map.removeLayer(l); });
-      snakeSegmentLines = playSegments
-        ? revealedSegmentsWithHead(playSegments, n, head).reduce(function(lines, seg) {
-            const hasInfo = seg.distanceKm != null && seg.avgGrade != null;
+      // A new playthrough started (progress went backwards) — drop everything
+      // from the previous run before drawing again.
+      if (n < committedPointCount) clearPlayLayers();
+
+      if (playSegments) {
+        // Commit any segment now fully covered by n points — drawn once at full
+        // resolution and never rebuilt again, unlike the old approach which
+        // recreated every revealed segment's Leaflet layers on every frame.
+        while (
+          committedSegIdx < playSegments.length &&
+          committedPointCount + playSegments[committedSegIdx].coords.length <= n
+        ) {
+          const seg = playSegments[committedSegIdx];
+          const hasInfo = seg.distanceKm != null && seg.avgGrade != null;
+          if (hasInfo) {
+            const hitLine = L.polyline(seg.coords, { color: seg.color, weight: 24, opacity: 0.02, lineCap: 'round', lineJoin: 'round' }).addTo(map);
+            hitLine.bindPopup(popupText(seg));
+            committedLayers.push(hitLine);
+          }
+          const poly = L.polyline(seg.coords, { color: seg.color, weight: 5, opacity: 0.95, lineCap: 'round', lineJoin: 'round' }).addTo(map);
+          if (hasInfo) poly.bindPopup(popupText(seg));
+          committedLayers.push(poly);
+          committedPointCount += seg.coords.length;
+          committedSegIdx += 1;
+        }
+        // The segment the tail was drawing just got fully committed above —
+        // drop the partial tail layers, a fresh tail gets drawn below.
+        if (tailSegIdxDrawn !== -1 && tailSegIdxDrawn < committedSegIdx) {
+          if (tailHitLine) { map.removeLayer(tailHitLine); tailHitLine = null; }
+          if (tailPoly) { map.removeLayer(tailPoly); tailPoly = null; }
+          tailSegIdxDrawn = -1;
+        }
+        const tailSeg = playSegments[committedSegIdx];
+        if (tailSeg) {
+          const tailCount = Math.max(1, n - committedPointCount);
+          const tailCoords = tailSeg.coords.slice(0, tailCount).concat([head]);
+          if (tailSegIdxDrawn !== committedSegIdx) {
+            const hasInfo = tailSeg.distanceKm != null && tailSeg.avgGrade != null;
             if (hasInfo) {
-              const hitLine = L.polyline(seg.coords, { color: seg.color, weight: 24, opacity: 0.02, lineCap: 'round', lineJoin: 'round' }).addTo(map);
-              hitLine.bindPopup(popupText(seg));
-              lines.push(hitLine);
+              tailHitLine = L.polyline(tailCoords, { color: tailSeg.color, weight: 24, opacity: 0.02, lineCap: 'round', lineJoin: 'round' }).addTo(map);
+              tailHitLine.bindPopup(popupText(tailSeg));
             }
-            const poly = L.polyline(seg.coords, { color: seg.color, weight: 5, opacity: 0.95, lineCap: 'round', lineJoin: 'round' }).addTo(map);
-            if (hasInfo) poly.bindPopup(popupText(seg));
-            lines.push(poly);
-            return lines;
-          }, [])
-        : [L.polyline(pts, { color: '#39ff14', weight: 5, opacity: 0.95, lineCap: 'round', lineJoin: 'round' }).addTo(map)];
+            tailPoly = L.polyline(tailCoords, { color: tailSeg.color, weight: 5, opacity: 0.95, lineCap: 'round', lineJoin: 'round' }).addTo(map);
+            if (hasInfo) tailPoly.bindPopup(popupText(tailSeg));
+            tailSegIdxDrawn = committedSegIdx;
+          } else {
+            if (tailHitLine) tailHitLine.setLatLngs(tailCoords);
+            if (tailPoly) tailPoly.setLatLngs(tailCoords);
+          }
+        }
+      } else {
+        const tailCoords = allTrackCoords.slice(0, n).concat([head]);
+        if (!tailPoly) {
+          tailPoly = L.polyline(tailCoords, { color: '#39ff14', weight: 5, opacity: 0.95, lineCap: 'round', lineJoin: 'round' }).addTo(map);
+        } else {
+          tailPoly.setLatLngs(tailCoords);
+        }
+      }
       lastHeadLatLng = head;
       if (wasStatic) { followZoom = Math.min(map.getZoom() + 2, 17); }
       map.setView(head, followZoom, { animate: false });

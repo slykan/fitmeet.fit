@@ -165,7 +165,7 @@ function gpxStatsFromParsed(parsed: GpxActivityStats & { elevationProfile?: Elev
 // Pace-based, not a fixed total duration — so every route plays at the same
 // real-world speed instead of longer routes racing through in the same wall-clock time.
 const PLAY_MS_PER_KM_NORMAL = 1500 // 15s per 10km
-const PLAY_MS_PER_KM_FAST = 800    // 8s per 10km
+const PLAY_MS_PER_KM_FAST = 500    // 5s per 10km
 const PLAY_FAST_FORWARD_RATE = PLAY_MS_PER_KM_NORMAL / PLAY_MS_PER_KM_FAST
 const MILESTONE_STEP_KM = 10
 const MILESTONE_PAUSE_MS = 600
