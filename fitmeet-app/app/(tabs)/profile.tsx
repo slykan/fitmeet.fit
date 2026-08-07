@@ -334,6 +334,13 @@ export default function ProfileScreen() {
           </View>
         </View>
 
+        {/* About */}
+        <Pressable style={styles.settingsLink} onPress={() => router.push('/about' as never)}>
+          <Ionicons name="information-circle-outline" size={18} color={palette.accent} />
+          <Text style={styles.settingsLinkText}>About</Text>
+          <Ionicons name="chevron-forward" size={16} color={palette.textDim} />
+        </Pressable>
+
         {/* Logout */}
         <Pressable
           onPress={async () => {

@@ -17,6 +17,13 @@ export function Footer() {
         </div>
         <div className="flex items-center gap-5">
           <Link
+            href="/about"
+            className="hover:underline transition-colors"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            About
+          </Link>
+          <Link
             href="/contact"
             className="hover:underline transition-colors"
             style={{ color: 'var(--text-muted)' }}
