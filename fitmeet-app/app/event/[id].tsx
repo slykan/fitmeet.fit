@@ -1228,7 +1228,7 @@ export default function EventDetailScreen() {
         {event.description ? (
           <View style={styles.card}>
             <Text style={styles.cardLabel}>About</Text>
-            <Text style={styles.description}>{event.description}</Text>
+            <Text style={styles.description} selectable>{event.description}</Text>
           </View>
         ) : null}
 
