@@ -1533,10 +1533,10 @@ const styles = StyleSheet.create({
   uploadBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     borderRadius: 14, paddingHorizontal: spacing.md, paddingVertical: 14,
-    backgroundColor: palette.panel, borderWidth: 1, borderColor: palette.line, borderStyle: 'dashed',
+    backgroundColor: palette.panelRaised, borderWidth: 1, borderColor: palette.line,
   },
   uploadBtnActive: { borderColor: palette.accent, backgroundColor: `${palette.accent}12` },
-  uploadLabel:       { color: palette.textMuted, fontSize: 14, flex: 1 },
+  uploadLabel:       { color: palette.textMuted, fontSize: 14, fontWeight: '700', flex: 1 },
   uploadLabelActive: { color: palette.accent },
   stravaBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 14, paddingHorizontal: spacing.md, paddingVertical: 12, backgroundColor: 'rgba(252,76,2,0.08)', borderWidth: 1, borderColor: 'rgba(252,76,2,0.3)' },
   stravaMark: { color: '#FC4C02', fontSize: 10, fontWeight: '900', letterSpacing: 0.7 },
