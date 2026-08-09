@@ -671,11 +671,11 @@ export default function CreateEventPage() {
                     className="flex items-center gap-3 px-3 py-2.5 rounded-xl border cursor-pointer transition-all"
                     style={gpxFile || gpxText
                       ? { borderColor: 'var(--primary)', background: 'rgba(57,255,20,0.06)', color: 'var(--primary)' }
-                      : { borderColor: 'var(--border)', color: 'var(--text-muted)' }
+                      : { borderColor: 'var(--border)', background: 'rgba(255,255,255,0.04)', color: 'var(--text-muted)' }
                     }
                   >
                     <input type="file" accept=".gpx,.xml" className="hidden" onChange={handleGpxChange} />
-                    <span className="text-sm">
+                    <span className="text-sm font-semibold">
                       {fitMeetRouteId
                         ? `📍 ${gpxName} · ${gpxResult?.track.length ?? 0} pts (FitMeet)`
                         : gpxFile
