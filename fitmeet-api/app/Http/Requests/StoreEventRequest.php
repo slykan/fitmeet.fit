@@ -54,6 +54,7 @@ class StoreEventRequest extends FormRequest
                     }
                 },
             ],
+            'link_url'         => ['nullable', 'string', 'url', 'max:500'],
         ];
     }
 

@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useForm, Controller } from 'react-hook-form'
-import { Calendar, MapPin, Info, Settings, Lock, Unlock, LocateFixed, Search, CirclePlay } from 'lucide-react'
+import { Calendar, MapPin, Info, Settings, Lock, Unlock, LocateFixed, Search, CirclePlay, Link2 } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
 import ElevationChart from '@/components/elevation-chart'
@@ -64,6 +64,7 @@ interface FormData {
   max_grade:        string
   max_downgrade:    string
   pace:             string
+  link_url:         string
   youtube_url:      string
 }
 
@@ -116,7 +117,7 @@ export default function CreateEventPage() {
       skill_level: '', max_participants: '',
       is_private: false,
       distance_km: '', elevation_gain: '', max_grade: '', max_downgrade: '', pace: '',
-      youtube_url: '',
+      link_url: '', youtube_url: '',
     },
   })
 
@@ -162,6 +163,7 @@ export default function CreateEventPage() {
     watchedForm.max_grade?.trim().length > 0 ||
     watchedForm.max_downgrade?.trim().length > 0 ||
     watchedForm.pace?.trim().length > 0 ||
+    watchedForm.link_url?.trim().length > 0 ||
     watchedForm.youtube_url?.trim().length > 0 ||
     gpxFile !== null ||
     gpxText !== null ||
@@ -407,6 +409,7 @@ export default function CreateEventPage() {
       else if (gpxText && gpxName) { fd.append('gpx_text', gpxText); fd.append('gpx_name', gpxName) }
       if (!fitMeetRouteId && (gpxFile || gpxText) && routeTitle.trim()) fd.append('route_title', routeTitle.trim())
       if (imageFile)           fd.append('image_file', imageFile)
+      if (data.link_url?.trim())    fd.append('link_url',    data.link_url.trim())
       if (data.youtube_url?.trim()) fd.append('youtube_url', data.youtube_url.trim())
 
       const { data: res } = await api.post('/events', fd)
@@ -517,6 +520,19 @@ export default function CreateEventPage() {
                     </div>
                   )}
                 </div>
+              </Field>
+              <Field label="Link" className="mt-4">
+                <div className="relative">
+                  <Link2 size={18} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
+                  <input
+                    {...register('link_url')}
+                    type="text"
+                    inputMode="url"
+                    placeholder="https://example.com (optional)"
+                    className={cn(inputCls(!!errors.link_url), 'pl-10')}
+                  />
+                </div>
+                {errors.link_url && <p className="text-xs mt-1" style={{ color: '#f87171' }}>{errors.link_url.message}</p>}
               </Field>
               <Field label="YouTube video URL" className="mt-4">
                 <div className="relative">

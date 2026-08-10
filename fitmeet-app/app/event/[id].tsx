@@ -84,6 +84,7 @@ interface EventDetail {
   moment_image_url: string | null
   moment_cover: MomentCoverPosition | null
   youtube_url: string | null
+  link_url: string | null
   organizer: Participant | null
   participants: Participant[]
   skill_level: string | null
@@ -1232,6 +1233,17 @@ export default function EventDetailScreen() {
           </View>
         ) : null}
 
+        {/* Read more link */}
+        {event.link_url ? (
+          <Pressable
+            style={styles.readMoreBtn}
+            onPress={() => event.link_url && Linking.openURL(event.link_url)}
+          >
+            <Text style={styles.readMoreText}>Read more…</Text>
+            <Ionicons name="open-outline" size={16} color={palette.accent} />
+          </Pressable>
+        ) : null}
+
         {/* YouTube */}
         {event.youtube_url ? (
           <View style={styles.card}>
@@ -1741,6 +1753,14 @@ const styles = StyleSheet.create({
     borderRadius: 18, borderWidth: 1, borderColor: palette.line,
     padding: spacing.md, gap: 10,
   },
+  readMoreBtn: {
+    marginHorizontal: spacing.md,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    borderRadius: 18, borderWidth: 1, borderColor: 'rgba(108,255,47,0.35)',
+    backgroundColor: 'rgba(108,255,47,0.05)',
+    paddingVertical: 14,
+  },
+  readMoreText: { color: palette.accent, fontSize: 14, fontWeight: '700' },
   cardLabel: { color: palette.text, fontSize: 13, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 },
   cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
 

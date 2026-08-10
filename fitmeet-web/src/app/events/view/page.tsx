@@ -5,7 +5,7 @@ import { useEffect, useState, useRef, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Calendar, MapPin, Users, Zap, ChevronLeft, Lock, Pencil, ChevronDown, ChevronUp, Bell, Check, X, Share2, XCircle, Download, Wind, Cloud, Eye, CheckCircle2, Camera, Flag, Play, Pause, FastForward, Mountain, Milestone, Route as RouteIcon } from 'lucide-react'
+import { Calendar, MapPin, Users, Zap, ChevronLeft, Lock, Pencil, ChevronDown, ChevronUp, Bell, Check, X, Share2, XCircle, Download, Wind, Cloud, Eye, CheckCircle2, Camera, Flag, Play, Pause, FastForward, Mountain, Milestone, Route as RouteIcon, ArrowUpRight } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
 import { WeatherBadge } from '@/components/WeatherBadge'
@@ -77,6 +77,7 @@ interface Event {
   moment_image_url: string | null
   moment_cover: { x: number; y: number } | null
   youtube_url: string | null
+  link_url: string | null
   organizer: { id: number; name: string; avatar: string | null }
 }
 
@@ -715,6 +716,18 @@ function EventContent() {
 
             {event.description && (
               <p className="text-sm leading-relaxed mb-5" style={{ color: 'var(--text-muted)' }}>{event.description}</p>
+            )}
+
+            {event.link_url && (
+              <a
+                href={event.link_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 mb-5 px-4 py-2.5 rounded-xl border text-sm font-semibold transition-all hover:opacity-80"
+                style={{ borderColor: 'rgba(57,255,20,0.35)', color: 'var(--primary)', background: 'rgba(57,255,20,0.05)' }}
+              >
+                Read more… <ArrowUpRight size={14} />
+              </a>
             )}
 
             {event.status === 'cancelled' && (

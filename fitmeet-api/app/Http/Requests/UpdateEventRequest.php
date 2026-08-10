@@ -52,6 +52,7 @@ class UpdateEventRequest extends FormRequest
                     }
                 },
             ],
+            'link_url'         => ['sometimes', 'nullable', 'string', 'url', 'max:500'],
 
             'skill_level'      => ['sometimes', 'nullable', Rule::in(['beginner', 'advanced', 'pro'])],
             'max_participants' => ['sometimes', 'nullable', 'integer', 'min:2'],

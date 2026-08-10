@@ -39,6 +39,7 @@ class Event extends Model
         'moment_cover_x',
         'moment_cover_y',
         'youtube_url',
+        'link_url',
         'skill_level',
         'max_participants',
         'is_private',

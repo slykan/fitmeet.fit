@@ -275,6 +275,7 @@ export default function CreateEventScreen() {
   const [hasExistingRoute, setHasExistingRoute] = useState(false)
   const [routeRemoved, setRouteRemoved] = useState(false)
 
+  const [linkUrl,      setLinkUrl]      = useState('')
   const [youtubeUrl,   setYoutubeUrl]   = useState('')
   const [joinOnCreate,  setJoinOnCreate]  = useState(true)
   const [notifyOnJoin,  setNotifyOnJoin]  = useState(true)
@@ -325,6 +326,7 @@ export default function CreateEventScreen() {
     gpxContent !== null ||
     routeTitle.trim().length > 0 ||
     fitMeetRouteId !== null ||
+    linkUrl.trim().length > 0 ||
     youtubeUrl.trim().length > 0 ||
     !joinOnCreate ||
     !notifyOnJoin
@@ -386,6 +388,7 @@ export default function CreateEventScreen() {
         setImageUri(null)
         setImageName(null)
         setImageRemoved(false)
+        setLinkUrl(ev.link_url ?? '')
         setYoutubeUrl(ev.youtube_url ?? '')
         const eventHasRoute = Boolean(ev.activity?.route_id || ev.activity?.gpx_url)
         setHasExistingRoute(eventHasRoute)
@@ -711,6 +714,7 @@ export default function CreateEventScreen() {
         fd.append('gpx_name', gpxName)
         if (routeTitle.trim()) fd.append('route_title', routeTitle.trim())
       }
+      if (editId || linkUrl.trim())    fd.append('link_url',    linkUrl.trim())
       if (editId || youtubeUrl.trim()) fd.append('youtube_url', youtubeUrl.trim())
 
       const { data } = editId
@@ -877,6 +881,21 @@ export default function CreateEventScreen() {
               </Pressable>
             </View>
           )}
+        </Field>
+
+        <Field label="Link">
+          <View style={styles.row}>
+            <Ionicons name="link-outline" size={18} color={palette.textMuted} style={{ marginTop: 16 }} />
+            <TextInput
+              style={[styles.input, { flex: 1 }]}
+              value={linkUrl}
+              onChangeText={setLinkUrl}
+              placeholder="https://example.com (optional)"
+              placeholderTextColor={palette.textDim}
+              autoCapitalize="none"
+              keyboardType="url"
+            />
+          </View>
         </Field>
 
         <Field label="YouTube video">

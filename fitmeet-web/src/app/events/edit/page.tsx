@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic'
 import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useForm, Controller } from 'react-hook-form'
-import { Calendar, MapPin, Info, Settings, Lock, Unlock, LocateFixed, Search, CirclePlay } from 'lucide-react'
+import { Calendar, MapPin, Info, Settings, Lock, Unlock, LocateFixed, Search, CirclePlay, Link2 } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
 import ElevationChart from '@/components/elevation-chart'
@@ -60,6 +60,7 @@ interface FormData {
   max_grade:        string
   max_downgrade:    string
   pace:             string
+  link_url:         string
   youtube_url:      string
 }
 
@@ -130,6 +131,7 @@ function EditContent() {
           max_grade:        e.activity.max_grade ? String(e.activity.max_grade) : '',
           max_downgrade:    e.activity.max_downgrade ? String(e.activity.max_downgrade) : '',
           pace:             e.activity.pace ?? '',
+          link_url:         e.link_url ?? '',
           youtube_url:      e.youtube_url ?? '',
         })
         const eventHasRoute = Boolean(e.activity.route_id || e.activity.gpx_url)
@@ -345,6 +347,7 @@ function EditContent() {
       else if (gpxText && gpxName) { fd.append('gpx_text', gpxText); fd.append('gpx_name', gpxName) }
       if (!fitMeetRouteId && (gpxFile || gpxText) && routeTitle.trim()) fd.append('route_title', routeTitle.trim())
       if (imageFile)           fd.append('image_file', imageFile)
+      fd.append('link_url',    data.link_url?.trim() || '')
       fd.append('youtube_url', data.youtube_url?.trim() || '')
 
       await api.patch(`/events/${id}`, fd)
@@ -487,6 +490,20 @@ function EditContent() {
                 </div>
               )}
             </div>
+          </Field>
+
+          <Field label="Link" className="mt-4">
+            <div className="relative">
+              <Link2 size={18} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
+              <input
+                {...register('link_url')}
+                type="text"
+                inputMode="url"
+                placeholder="https://example.com (optional)"
+                className={cn(inputCls(!!errors.link_url), 'pl-10')}
+              />
+            </div>
+            {errors.link_url && <p className="text-xs mt-1" style={{ color: '#f87171' }}>{errors.link_url.message}</p>}
           </Field>
 
           <Field label="YouTube video URL" className="mt-4">
