@@ -152,7 +152,7 @@ export function Navbar() {
             className={`hidden ${user ? 'lg:block' : 'md:block'} text-sm font-medium transition-colors hover:opacity-80`}
             style={{ color: 'var(--text-muted)' }}
           >
-            Blog
+            News
           </Link>
           <Link
             href="/about"
