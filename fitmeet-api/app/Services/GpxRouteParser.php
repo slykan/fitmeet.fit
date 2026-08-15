@@ -56,12 +56,20 @@ class GpxRouteParser
 
     private function readPoints(string $xml, string $tagNames): array
     {
-        $tagPattern = '/<(?:(?:[^:>\s]+):)?(?:' . $tagNames . ')\b([^>]*)>([\s\S]*?)<\/(?:(?:[^:>\s]+):)?(?:' . $tagNames . ')>|<(?:(?:[^:>\s]+):)?(?:' . $tagNames . ')\b([^>]*)\/>/i';
+        // Self-closing alternative MUST come first: with it second, `[^>]*` in
+        // the open-tag alternative doesn't exclude `/`, so it happily "opens"
+        // on a self-closing `<trkpt .../>` too and then scans ahead — greedily,
+        // via `[\s\S]*?` — for the next real `</trkpt>` anywhere later in the
+        // document, silently swallowing every self-closing point in between
+        // into unused "content". Files with elevation embedded on only a
+        // sample of points (self-closing except every ~Nth) lost ~90% of
+        // their points this way.
+        $tagPattern = '/<(?:(?:[^:>\s]+):)?(?:' . $tagNames . ')\b([^>]*)\/>|<(?:(?:[^:>\s]+):)?(?:' . $tagNames . ')\b([^>]*)>([\s\S]*?)<\/(?:(?:[^:>\s]+):)?(?:' . $tagNames . ')>/i';
         preg_match_all($tagPattern, $xml, $matches, PREG_SET_ORDER);
 
         $points = [];
         foreach ($matches as $match) {
-            $attrs = $match[1] ?: ($match[3] ?? '');
+            $attrs = $match[1] ?: ($match[2] ?? '');
             if (! preg_match('/\blat=["\']([^"\']+)["\']/i', $attrs, $latMatch)
                 || ! preg_match('/\blon=["\']([^"\']+)["\']/i', $attrs, $lngMatch)) {
                 continue;
@@ -70,7 +78,7 @@ class GpxRouteParser
             $lat = (float) $latMatch[1];
             $lng = (float) $lngMatch[1];
             $ele = null;
-            if (preg_match('/<(?:[^:>\s]+:)?ele[^>]*>([\d.+-]+)<\/(?:[^:>\s]+:)?ele>/i', $match[2] ?? '', $eleMatch)) {
+            if (preg_match('/<(?:[^:>\s]+:)?ele[^>]*>([\d.+-]+)<\/(?:[^:>\s]+:)?ele>/i', $match[3] ?? '', $eleMatch)) {
                 $ele = (float) $eleMatch[1];
             }
 

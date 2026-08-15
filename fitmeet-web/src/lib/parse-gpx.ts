@@ -206,8 +206,17 @@ export async function fetchElevationProfile(track: [number, number][]): Promise<
 }
 
 function readPoints(xml: string, tagNames: string): { coords: [number, number]; ele: number | null }[] {
+  // Self-closing alternative MUST come first: with it second, `[^>]*` in the
+  // open-tag alternative doesn't exclude `/`, so it happily "opens" on a
+  // self-closing `<trkpt .../>` too and then scans ahead — greedily,
+  // via `[\s\S]*?` — for the next real `</trkpt>` anywhere later in the
+  // document, silently swallowing every self-closing point in between into
+  // unused "content". Files with elevation embedded on only a sample of
+  // points (self-closing except every ~Nth, see GpxElevationEnricher) lost
+  // ~90% of their points this way — enough to turn corners into visible
+  // straight-line shortcuts on the map.
   const tagRe = new RegExp(
-    `<(?:(?:[^:>\\s]+):)?(?:${tagNames})\\b([^>]*)>([\\s\\S]*?)<\\/(?:(?:[^:>\\s]+):)?(?:${tagNames})>|<(?:(?:[^:>\\s]+):)?(?:${tagNames})\\b([^>]*)\\/>`,
+    `<(?:(?:[^:>\\s]+):)?(?:${tagNames})\\b([^>]*)\\/>|<(?:(?:[^:>\\s]+):)?(?:${tagNames})\\b([^>]*)>([\\s\\S]*?)<\\/(?:(?:[^:>\\s]+):)?(?:${tagNames})>`,
     'gi',
   )
   const latRe = /\blat=["']([^"']+)["']/i
@@ -217,11 +226,11 @@ function readPoints(xml: string, tagNames: string): { coords: [number, number]; 
   let match: RegExpExecArray | null
 
   while ((match = tagRe.exec(xml)) !== null) {
-    const attrs = match[1] ?? match[3] ?? ''
+    const attrs = match[1] ?? match[2] ?? ''
     const lat = parseFloat(latRe.exec(attrs)?.[1] ?? '')
     const lon = parseFloat(lonRe.exec(attrs)?.[1] ?? '')
     if (isNaN(lat) || isNaN(lon)) continue
-    const ele = parseFloat(eleRe.exec(match[2] ?? '')?.[1] ?? '')
+    const ele = parseFloat(eleRe.exec(match[3] ?? '')?.[1] ?? '')
     points.push({ coords: [lat, lon], ele: isNaN(ele) ? null : ele })
   }
 
