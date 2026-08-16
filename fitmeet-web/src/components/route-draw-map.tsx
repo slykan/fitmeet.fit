@@ -43,6 +43,7 @@ interface ElevationPoint {
 
 interface Props {
   category: string
+  routePreferences?: RoutePreferences
   height?: number
   initialWaypoints?: LatLng[]
   initialTrack?: LatLng[]
@@ -110,8 +111,28 @@ const VALHALLA_ENDPOINTS = [
   'https://valhalla1.openstreetmap.de/route',
 ]
 
-function valhallaCosting(category: string): ValhallaCosting | null {
-  if (category === 'cycling') return { costing: 'bicycle', options: { use_roads: 1.0 } }
+export interface RoutePreferences {
+  /** Road-bike mode: heavily penalizes gravel/dirt/trail surfaces so a route
+   * between two far-apart points doesn't cut through unpaved terrain. Valhalla
+   * doesn't expose gravel/trail as separate switches — both are controlled by
+   * the same avoid_bad_surfaces knob, which this maxes out together with
+   * bicycle_type=Road. */
+  avoidUnpaved: boolean
+  /** Lowers use_roads so the router favors quieter/secondary roads and
+   * cycleways over busier roads shared with traffic. */
+  preferSecondaryRoads: boolean
+}
+
+function valhallaCosting(category: string, prefs: RoutePreferences): ValhallaCosting | null {
+  if (category === 'cycling') {
+    return {
+      costing: 'bicycle',
+      options: {
+        use_roads: prefs.preferSecondaryRoads ? 0.3 : 1.0,
+        ...(prefs.avoidUnpaved ? { bicycle_type: 'Road', avoid_bad_surfaces: 1.0 } : {}),
+      },
+    }
+  }
   if (category === 'running')  return { costing: 'pedestrian', options: {} }
   if (category === 'hiking')   return { costing: 'pedestrian', options: { max_hiking_difficulty: 1 } }
   return null
@@ -136,8 +157,9 @@ async function fetchValhallaSegment(
   from: LatLng,
   to: LatLng,
   category: string,
+  prefs: RoutePreferences,
 ): Promise<{ coords: LatLng[]; distanceM: number } | null> {
-  const info = valhallaCosting(category)
+  const info = valhallaCosting(category, prefs)
   if (!info) return null
 
   const body = JSON.stringify({
@@ -188,9 +210,13 @@ async function fetchRoutingSegment(
   from: LatLng,
   to: LatLng,
   category: string,
+  prefs: RoutePreferences,
 ): Promise<{ coords: LatLng[]; distanceM: number } | null> {
-  const valhalla = await fetchValhallaSegment(from, to, category)
+  const valhalla = await fetchValhallaSegment(from, to, category, prefs)
   if (valhalla) return valhalla
+  // OSRM's public driving profile has no surface/road-class tuning, so it
+  // can't honor these preferences — it's a last-resort "at least follow real
+  // roads" fallback for when Valhalla is unreachable, not a preference-aware router.
   if (category === 'cycling') return fetchOsrmRoadSegment(from, to)
   return null
 }
@@ -372,7 +398,9 @@ function straightLine(from: LatLng, to: LatLng): { coords: LatLng[]; distanceM: 
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function RouteDrawMap({ category, height = 500, initialWaypoints, initialTrack, undoRequestId = 0, fullscreen = false, onToggleFullscreen, onUpdate, title, onTitleChange, onSave, saving, onUndo, canUndo }: Props) {
+const DEFAULT_ROUTE_PREFERENCES: RoutePreferences = { avoidUnpaved: false, preferSecondaryRoads: false }
+
+export default function RouteDrawMap({ category, routePreferences = DEFAULT_ROUTE_PREFERENCES, height = 500, initialWaypoints, initialTrack, undoRequestId = 0, fullscreen = false, onToggleFullscreen, onUpdate, title, onTitleChange, onSave, saving, onUndo, canUndo }: Props) {
   const mapDivRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
   const waypointsRef = useRef<WaypointEntry[]>([])
@@ -380,6 +408,7 @@ export default function RouteDrawMap({ category, height = 500, initialWaypoints,
   const coloredRouteLayersRef = useRef<L.Polyline[]>([])
   const selectedIdxRef = useRef<number | null>(null)
   const categoryRef = useRef(category)
+  const routePreferencesRef = useRef(routePreferences)
   const elevDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pendingRoutingRef = useRef(0)
   const onUpdateRef = useRef(onUpdate)
@@ -563,7 +592,7 @@ export default function RouteDrawMap({ category, height = 500, initialWaypoints,
       map.removeLayer(segs[fromIdx].polyline)
     }
 
-    let result: { coords: LatLng[]; distanceM: number } | null = await fetchRoutingSegment(from, to, categoryRef.current)
+    let result: { coords: LatLng[]; distanceM: number } | null = await fetchRoutingSegment(from, to, categoryRef.current, routePreferencesRef.current)
 
     if (!result) {
       result = straightLine(from, to)
@@ -916,6 +945,17 @@ export default function RouteDrawMap({ category, height = 500, initialWaypoints,
     categoryRef.current = category
     rerouteAll()
   }, [category, rerouteAll])
+
+  // ─── React to surface/road preference change → re-route ───────────────────
+
+  useEffect(() => {
+    if (
+      routePreferencesRef.current.avoidUnpaved === routePreferences.avoidUnpaved &&
+      routePreferencesRef.current.preferSecondaryRoads === routePreferences.preferSecondaryRoads
+    ) return
+    routePreferencesRef.current = routePreferences
+    rerouteAll()
+  }, [routePreferences, rerouteAll])
 
   // ─── Expose undo/remove via imperative handle (through parent) ────────────
 

@@ -9,7 +9,7 @@ import { Navbar } from '@/components/navbar'
 import api from '@/lib/api'
 import { CATEGORIES, CATEGORY_EMOJI } from '@/lib/categories'
 import { useAuthStore } from '@/store/auth'
-import type { DrawResult, LatLng } from '@/components/route-draw-map'
+import type { DrawResult, LatLng, RoutePreferences } from '@/components/route-draw-map'
 import { parseGpx } from '@/lib/parse-gpx'
 
 const RouteDrawMap = dynamic(() => import('@/components/route-draw-map'), { ssr: false })
@@ -162,6 +162,40 @@ function normalizeWaypoints(input: unknown): LatLng[] {
   })
 }
 
+// ─── Route preference toggle ──────────────────────────────────────────────────
+
+function PreferenceToggle({
+  label,
+  hint,
+  checked,
+  onChange,
+}: {
+  label: string
+  hint: string
+  checked: boolean
+  onChange: (v: boolean) => void
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <div>
+        <p className="text-sm font-semibold">{label}</p>
+        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{hint}</p>
+      </div>
+      <button
+        type="button"
+        onClick={() => onChange(!checked)}
+        className="relative w-12 h-6 flex-shrink-0 rounded-full transition-colors"
+        style={{ background: checked ? 'var(--primary)' : 'var(--border)' }}
+      >
+        <span
+          className="absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all"
+          style={{ left: checked ? '26px' : '2px', boxShadow: '0 1px 4px rgba(0,0,0,0.3)' }}
+        />
+      </button>
+    </div>
+  )
+}
+
 // ─── Page content ─────────────────────────────────────────────────────────────
 
 function DrawContent() {
@@ -182,6 +216,9 @@ function DrawContent() {
   const [drawPointCount, setDrawPointCount] = useState(0)
   const [undoRequestId, setUndoRequestId] = useState(0)
   const [fullscreen, setFullscreen] = useState(false)
+  const [avoidUnpaved, setAvoidUnpaved] = useState(false)
+  const [preferSecondaryRoads, setPreferSecondaryRoads] = useState(false)
+  const routePreferences: RoutePreferences = { avoidUnpaved, preferSecondaryRoads }
 
   const drawResultRef = useRef<DrawResult | null>(null)
 
@@ -324,6 +361,22 @@ function DrawContent() {
                   onChange={v => { setCategory(v); setCategoryLocked(true) }}
                   disabled={false}
                 />
+                {category === 'cycling' && (
+                  <div className="space-y-3 pt-1 border-t" style={{ borderColor: 'var(--border)' }}>
+                    <PreferenceToggle
+                      label="Road bike"
+                      hint="Avoid gravel, dirt and trail sections"
+                      checked={avoidUnpaved}
+                      onChange={setAvoidUnpaved}
+                    />
+                    <PreferenceToggle
+                      label="Prefer secondary roads"
+                      hint="Favor quieter streets and cycleways over busy roads"
+                      checked={preferSecondaryRoads}
+                      onChange={setPreferSecondaryRoads}
+                    />
+                  </div>
+                )}
               </div>
             </>
           )}
@@ -359,6 +412,7 @@ function DrawContent() {
               <RouteDrawMap
                 key={`${editId ?? 'new'}-${initialWaypoints?.length ?? 0}-${initialTrack?.length ?? 0}`}
                 category={category}
+                routePreferences={routePreferences}
                 height={500}
                 fullscreen={fullscreen}
                 onToggleFullscreen={() => setFullscreen(f => !f)}
