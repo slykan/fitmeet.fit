@@ -136,6 +136,31 @@ function sampleTrackWithIndexes(track: [number, number][], maxPoints = 100): { p
   return { points, indexes }
 }
 
+// GpxElevationEnricher embeds <ele> on only a sampled subset of points (open-meteo
+// caps requests at 100 coordinates), leaving the rest without elevation. Sampling
+// the FULL track on an independent fixed-size grid and then intersecting with
+// those elevated points (the old approach) throws away most of the available
+// elevation data purely by grid-alignment bad luck — for a real 2000+ point route
+// with elevation on 100 of them, as few as ~18 could survive the intersection,
+// making elevation gain look like a fraction of what the data actually shows.
+// Sampling from the elevated points directly (and only downsampling if there are
+// more of them than maxPoints — e.g. a dense GPS track with elevation on every
+// point) uses all the elevation data that exists.
+function pickElevatedIndexes(eleData: number[], maxPoints: number): number[] {
+  const elevated: number[] = []
+  for (let i = 0; i < eleData.length; i++) {
+    if (eleData[i] !== -Infinity) elevated.push(i)
+  }
+  if (elevated.length <= maxPoints) return elevated
+
+  const indexes: number[] = []
+  const last = elevated.length - 1
+  for (let i = 0; i < maxPoints; i++) {
+    indexes.push(elevated[Math.round((i / (maxPoints - 1)) * last)])
+  }
+  return indexes
+}
+
 async function requestElevations(latitudes: string, longitudes: string): Promise<number[]> {
   const response = await fetch(
     `https://api.open-meteo.com/v1/elevation?latitude=${latitudes}&longitude=${longitudes}`,
@@ -281,26 +306,21 @@ export async function parseGpxAsync(xml: string): Promise<GpxResult> {
 
   const hasEle    = eleData.some(e => e !== -Infinity)
   const maxPoints = 300
-  const step      = Math.max(1, Math.floor(track.length / maxPoints))
 
   const elevationProfile: { km: number; ele: number }[] = []
   const coloredSegments: TrackSegment[] = []
 
   if (hasEle) {
+    const elevatedIndexes = pickElevatedIndexes(eleData, maxPoints)
     const sampledTrack: [number, number][] = []
     const sampledElevs: number[] = []
     const sampledIndexes: number[] = []
-    for (let i = 0; i < track.length; i += step) {
+    for (let n = 0; n < elevatedIndexes.length; n++) {
+      const i = elevatedIndexes[n]
       sampledTrack.push(track[i])
-      sampledElevs.push(eleData[i] === -Infinity ? NaN : eleData[i])
+      sampledElevs.push(eleData[i])
       sampledIndexes.push(i)
-      if (i % 500 === 0) await yieldToMain()
-    }
-    const last = track.length - 1
-    if (last % step !== 0) {
-      sampledTrack.push(track[last])
-      sampledElevs.push(eleData[last] === -Infinity ? NaN : eleData[last])
-      sampledIndexes.push(last)
+      if (n % 500 === 0) await yieldToMain()
     }
     const profile = buildElevationProfile(sampledTrack, sampledElevs, track, sampledIndexes)
     elevationProfile.push(...profile.elevationProfile)
@@ -360,25 +380,19 @@ export function parseGpx(xml: string): GpxResult {
 
   const hasEle    = eleData.some(e => e !== -Infinity)
   const maxPoints = 300
-  const step      = Math.max(1, Math.floor(track.length / maxPoints))
 
   const elevationProfile: { km: number; ele: number }[] = []
   const coloredSegments: TrackSegment[] = []
 
   if (hasEle) {
+    const elevatedIndexes = pickElevatedIndexes(eleData, maxPoints)
     const sampledTrack: [number, number][] = []
     const sampledElevs: number[] = []
     const sampledIndexes: number[] = []
-    for (let i = 0; i < track.length; i += step) {
+    for (const i of elevatedIndexes) {
       sampledTrack.push(track[i])
-      sampledElevs.push(eleData[i] === -Infinity ? NaN : eleData[i])
+      sampledElevs.push(eleData[i])
       sampledIndexes.push(i)
-    }
-    const last = track.length - 1
-    if (last % step !== 0) {
-      sampledTrack.push(track[last])
-      sampledElevs.push(eleData[last] === -Infinity ? NaN : eleData[last])
-      sampledIndexes.push(last)
     }
     const profile = buildElevationProfile(sampledTrack, sampledElevs, track, sampledIndexes)
     elevationProfile.push(...profile.elevationProfile)

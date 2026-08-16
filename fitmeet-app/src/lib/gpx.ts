@@ -133,6 +133,31 @@ function sampleTrackWithIndexes(track: [number, number][], maxPoints = 100): { p
   return { points, indexes }
 }
 
+// Elevation may be embedded on only a sampled subset of points (see
+// GpxElevationEnricher, which writes <ele> on ~100 evenly-spaced points and
+// leaves the rest without it). Sampling the FULL track on an independent
+// fixed-size grid and then intersecting with those elevated points (the old
+// approach) throws away most of the available elevation data purely by
+// grid-alignment bad luck — for a real 2000+ point route with elevation on
+// 100 of them, as few as ~18 could survive the intersection. Sampling from
+// the elevated points directly (only downsampling if there are more of them
+// than maxPoints — e.g. a dense GPS track with elevation on every point)
+// uses all the elevation data that actually exists.
+function pickElevatedIndexes(elevs: number[], maxPoints: number): number[] {
+  const elevated: number[] = []
+  for (let i = 0; i < elevs.length; i++) {
+    if (!isNaN(elevs[i])) elevated.push(i)
+  }
+  if (elevated.length <= maxPoints) return elevated
+
+  const indexes: number[] = []
+  const last = elevated.length - 1
+  for (let i = 0; i < maxPoints; i++) {
+    indexes.push(elevated[Math.round((i / (maxPoints - 1)) * last)])
+  }
+  return indexes
+}
+
 // The open-meteo elevation API is a free, rate-limited service and every
 // viewer of a route/event was hitting it fresh on every screen open. Caching
 // the result per-track means a given route only needs one successful fetch
@@ -240,23 +265,28 @@ export async function parseGpxTextAsync(xml: string): Promise<GpxParsed> {
   let segStartElev = elevs[0] ?? 0
   let maxGrade = 0
   let maxDowngrade = 0
+  // See pickElevatedIndexes: elevation is often sparse, so track the last
+  // real reading seen (not strictly index i-1) to sum gain across the gaps.
+  let lastElev = isNaN(elevs[0]) ? NaN : elevs[0]
 
   for (let i = 1; i < track.length; i++) {
     const d = haversineM(track[i - 1], track[i])
     distM += d
     segDistM += d
 
-    if (i < elevs.length && !isNaN(elevs[i]) && !isNaN(elevs[i - 1]) && elevs[i] > elevs[i - 1]) {
-      elevGain += elevs[i] - elevs[i - 1]
+    const currentElev = i < elevs.length ? elevs[i] : NaN
+    if (!isNaN(lastElev) && !isNaN(currentElev) && currentElev > lastElev) {
+      elevGain += currentElev - lastElev
     }
+    if (!isNaN(currentElev)) lastElev = currentElev
 
-    if (segDistM >= 50 && i < elevs.length && !isNaN(elevs[i]) && !isNaN(segStartElev)) {
-      const elevChange = elevs[i] - segStartElev
+    if (segDistM >= 50 && !isNaN(currentElev) && !isNaN(segStartElev)) {
+      const elevChange = currentElev - segStartElev
       const grade = (elevChange / segDistM) * 100
       if (grade > maxGrade) maxGrade = grade
       if (grade < maxDowngrade) maxDowngrade = grade
       segDistM = 0
-      segStartElev = elevs[i]
+      segStartElev = currentElev
     }
 
     if (i % 500 === 0) await yieldToMain()
@@ -268,21 +298,16 @@ export async function parseGpxTextAsync(xml: string): Promise<GpxParsed> {
   const coloredSegments: TrackSegment[] = []
 
   if (hasEle && track.length >= 2) {
-    const step = Math.max(1, Math.floor(track.length / 300))
+    const elevatedIndexes = pickElevatedIndexes(elevs, 300)
     const sampledTrack: [number, number][] = []
     const sampledElevs: number[] = []
     const sampledIndexes: number[] = []
-    for (let i = 0; i < track.length; i += step) {
+    for (let n = 0; n < elevatedIndexes.length; n++) {
+      const i = elevatedIndexes[n]
       sampledTrack.push(track[i])
       sampledElevs.push(elevs[i])
       sampledIndexes.push(i)
-      if (i % 500 === 0) await yieldToMain()
-    }
-    const last = track.length - 1
-    if (last % step !== 0) {
-      sampledTrack.push(track[last])
-      sampledElevs.push(elevs[last])
-      sampledIndexes.push(last)
+      if (n % 500 === 0) await yieldToMain()
     }
     const profile = buildElevationProfile(sampledTrack, sampledElevs, track, sampledIndexes)
     elevationProfile.push(...profile.elevationProfile)
@@ -320,23 +345,28 @@ export function parseGpxText(xml: string): GpxParsed {
   let maxGrade = 0
   let maxDowngrade = 0
   const cumM = cumulativeDistancesM(track)
+  // See pickElevatedIndexes: elevation is often sparse, so track the last
+  // real reading seen (not strictly index i-1) to sum gain across the gaps.
+  let lastElev = isNaN(elevs[0]) ? NaN : elevs[0]
 
   for (let i = 1; i < track.length; i++) {
     const d = haversineM(track[i - 1], track[i])
     distM += d
     segDistM += d
 
-    if (i < elevs.length && !isNaN(elevs[i]) && !isNaN(elevs[i - 1]) && elevs[i] > elevs[i - 1]) {
-      elevGain += elevs[i] - elevs[i - 1]
+    const currentElev = i < elevs.length ? elevs[i] : NaN
+    if (!isNaN(lastElev) && !isNaN(currentElev) && currentElev > lastElev) {
+      elevGain += currentElev - lastElev
     }
+    if (!isNaN(currentElev)) lastElev = currentElev
 
-    if (segDistM >= 50 && i < elevs.length && !isNaN(elevs[i]) && !isNaN(segStartElev)) {
-      const elevChange = elevs[i] - segStartElev
+    if (segDistM >= 50 && !isNaN(currentElev) && !isNaN(segStartElev)) {
+      const elevChange = currentElev - segStartElev
       const grade = (elevChange / segDistM) * 100
       if (grade > maxGrade) maxGrade = grade
       if (grade < maxDowngrade) maxDowngrade = grade
       segDistM = 0
-      segStartElev = elevs[i]
+      segStartElev = currentElev
     }
   }
 
@@ -346,20 +376,14 @@ export function parseGpxText(xml: string): GpxParsed {
   const coloredSegments: TrackSegment[] = []
 
   if (hasEle && track.length >= 2) {
-    const step = Math.max(1, Math.floor(track.length / 300))
+    const elevatedIndexes = pickElevatedIndexes(elevs, 300)
     const sampledTrack: [number, number][] = []
     const sampledElevs: number[] = []
     const sampledIndexes: number[] = []
-    for (let i = 0; i < track.length; i += step) {
+    for (const i of elevatedIndexes) {
       sampledTrack.push(track[i])
       sampledElevs.push(elevs[i])
       sampledIndexes.push(i)
-    }
-    const last = track.length - 1
-    if (last % step !== 0) {
-      sampledTrack.push(track[last])
-      sampledElevs.push(elevs[last])
-      sampledIndexes.push(last)
     }
     const profile = buildElevationProfile(sampledTrack, sampledElevs, track, sampledIndexes)
     elevationProfile.push(...profile.elevationProfile)
@@ -382,7 +406,11 @@ export function parseGpxText(xml: string): GpxParsed {
 export async function enrichGpxWithElevation(xml: string): Promise<string> {
   if (/<ele[^>]*>[\d.+-]+<\/ele>/i.test(xml)) return xml
 
-  const trkptRx = /<trkpt\s+lat="([^"]+)"\s+lon="([^"]+)"[^>]*\/?>(?:[\s\S]*?<\/trkpt>)?/gi
+  // Self-closing checked before the open/close form for the same reason as
+  // readPoints above: `[^>]*` doesn't exclude `/`, so an open-tag match left
+  // unguarded would swallow ahead to the next unrelated `</trkpt>` and lose
+  // every self-closing point in between.
+  const trkptRx = /<trkpt\s+lat="([^"]+)"\s+lon="([^"]+)"(?:[^>]*\/>|[^>]*>(?:[\s\S]*?<\/trkpt>)?)/gi
   const points: { lat: number; lon: number; match: string }[] = []
   let m: RegExpExecArray | null
   while ((m = trkptRx.exec(xml)) !== null) {

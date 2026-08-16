@@ -20,17 +20,27 @@ class GpxRouteParser
         $segmentStartElevation = $elevations[0] ?? null;
         $maxGrade = 0.0;
         $maxDowngrade = 0.0;
+        // Elevation may only be embedded on a sampled subset of points (see
+        // GpxElevationEnricher, which writes <ele> on ~100 evenly-spaced points
+        // and leaves the rest without it). Comparing strictly adjacent indices
+        // ($elevations[$i-1] vs $elevations[$i]) means the pair is almost never
+        // both real, so gain came out ~0 for those routes. Tracking the last
+        // real reading seen (however many points back) sums gain across the
+        // actual gaps instead.
+        $lastElevation = $elevations[0] ?? null;
 
         for ($i = 1; $i < count($track); $i++) {
             $distance = $this->haversineM($track[$i - 1], $track[$i]);
             $distanceM += $distance;
             $segmentDistanceM += $distance;
 
-            $previousElevation = $elevations[$i - 1] ?? null;
             $currentElevation = $elevations[$i] ?? null;
 
-            if ($previousElevation !== null && $currentElevation !== null && $currentElevation > $previousElevation) {
-                $elevationGain += $currentElevation - $previousElevation;
+            if ($lastElevation !== null && $currentElevation !== null && $currentElevation > $lastElevation) {
+                $elevationGain += $currentElevation - $lastElevation;
+            }
+            if ($currentElevation !== null) {
+                $lastElevation = $currentElevation;
             }
 
             if ($segmentDistanceM >= 50 && $segmentStartElevation !== null && $currentElevation !== null) {
