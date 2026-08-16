@@ -237,6 +237,13 @@ function buildDrawRouteHtml(
   .cat-chip.active{
     border-color:#6cff2f;background:rgba(108,255,47,0.12);color:#6cff2f;
   }
+  #pref-row{
+    display:none;gap:6px;padding:0 10px 8px;
+    overflow-x:auto;-webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+  }
+  #pref-row.show{display:flex;}
+  #pref-row::-webkit-scrollbar{display:none;}
   #action-row{
     display:flex;gap:8px;padding:4px 10px 6px;
   }
@@ -287,6 +294,7 @@ function buildDrawRouteHtml(
 <div id="bottom-panel">
   <div id="elev-panel"><svg id="elev-chart" viewBox="0 0 320 54"></svg></div>
   <div id="cat-row"></div>
+  <div id="pref-row"></div>
   <div id="action-row">
     <button id="back-btn" onclick="goBack()">&#8592; Back</button>
     <button id="done-btn" onclick="done()" disabled>Save &#8250;</button>
@@ -303,6 +311,8 @@ var waypoints = [];   // [{latlng:[lat,lng], marker}]
 var segments  = [];   // [{fromIdx, toIdx, polyline, coords, distM}]
 var coloredRouteLayers = [];
 var category  = '${initCategory}';
+var avoidUnpaved = false;
+var preferSecondaryRoads = false;
 var pendingRouting = 0;
 var elevDebounce = null;
 var selectedIdx = null;
@@ -536,8 +546,12 @@ async function fetchValhalla(from, to, costing, options) {
   return null;
 }
 
-function valhallaCosting(cat) {
-  if (cat === 'cycling') return { costing: 'bicycle', options: { use_roads: 1.0 } };
+function valhallaCosting(cat, avoidUnpavedPref, preferSecondaryPref) {
+  if (cat === 'cycling') {
+    var opts = { use_roads: preferSecondaryPref ? 0.3 : 1.0 };
+    if (avoidUnpavedPref) { opts.bicycle_type = 'Road'; opts.avoid_bad_surfaces = 1.0; }
+    return { costing: 'bicycle', options: opts };
+  }
   if (cat === 'running') return { costing: 'pedestrian', options: {} };
   if (cat === 'hiking')  return { costing: 'pedestrian', options: { max_hiking_difficulty: 1 } };
   return null;
@@ -698,7 +712,7 @@ async function routeSegment(fromIdx) {
     segments[fromIdx] = null;
   }
 
-  var costingInfo = valhallaCosting(category);
+  var costingInfo = valhallaCosting(category, avoidUnpaved, preferSecondaryRoads);
   var result = null;
   if (costingInfo) result = await fetchValhalla(from.latlng, to.latlng, costingInfo.costing, costingInfo.options);
   if (!result && category === 'cycling') result = await fetchOsrmRoad(from.latlng, to.latlng);
@@ -940,18 +954,50 @@ function renderCats() {
       if (cat.v === category) return;
       category = cat.v;
       renderCats();
+      renderPrefs();
       rerouteAll();
     };
     row.appendChild(btn);
   });
 }
 
-// Stop cat-row touch from propagating to map
+// ── Route preference chips (surface / road-class avoidance, cycling only) ──
+// Valhalla doesn't expose gravel and trail as independently-toggleable
+// switches — both ride on the same avoid_bad_surfaces knob — so "Road bike"
+// is one combined toggle rather than two separate checkboxes that would end
+// up behaving identically.
+var PREFS = [
+  {k:'avoidUnpaved', e:'🚴', l:'Road bike (avoid gravel/trail)'},
+  {k:'preferSecondaryRoads', e:'🛣️', l:'Prefer secondary roads'},
+];
+
+function renderPrefs() {
+  var row = document.getElementById('pref-row');
+  row.innerHTML = '';
+  if (category !== 'cycling') { row.className = ''; return; }
+  row.className = 'show';
+  PREFS.forEach(function(p) {
+    var active = (p.k === 'avoidUnpaved') ? avoidUnpaved : preferSecondaryRoads;
+    var btn = document.createElement('div');
+    btn.className = 'cat-chip' + (active ? ' active' : '');
+    btn.textContent = p.e + ' ' + p.l;
+    btn.onclick = function() {
+      if (p.k === 'avoidUnpaved') avoidUnpaved = !avoidUnpaved; else preferSecondaryRoads = !preferSecondaryRoads;
+      renderPrefs();
+      rerouteAll();
+    };
+    row.appendChild(btn);
+  });
+}
+
+// Stop cat-row/pref-row touch from propagating to map
 document.addEventListener('DOMContentLoaded', function() {
-  var catRow = document.getElementById('cat-row');
-  catRow.addEventListener('touchmove', function(e){ e.stopPropagation(); }, {passive:false});
-  catRow.addEventListener('touchstart', function(e){ e.stopPropagation(); }, {passive:false});
-  catRow.addEventListener('touchend', function(e){ e.stopPropagation(); }, {passive:false});
+  ['cat-row', 'pref-row'].forEach(function(id) {
+    var el = document.getElementById(id);
+    el.addEventListener('touchmove', function(e){ e.stopPropagation(); }, {passive:false});
+    el.addEventListener('touchstart', function(e){ e.stopPropagation(); }, {passive:false});
+    el.addEventListener('touchend', function(e){ e.stopPropagation(); }, {passive:false});
+  });
 });
 
 // ── Map init ─────────────────────────────────────────────────────────────
@@ -969,6 +1015,7 @@ map.on('click', function(e) {
 });
 
 renderCats();
+renderPrefs();
 window._elevGain = 0;
 
 // ── Load initial waypoints ────────────────────────────────────────────────
