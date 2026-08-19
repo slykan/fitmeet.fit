@@ -685,6 +685,7 @@ function EventsTab() {
                   isoDate={ev.schedule.start_at.slice(0, 10)}
                   hour={new Date(ev.schedule.start_at).getHours()}
                   weather={weatherSnapshots[ev.id] ?? null}
+                  indent={18}
                 />
               )}
               {ev.location.address ? (
@@ -2048,7 +2049,7 @@ const styles = StyleSheet.create({
 
   details: { gap: 5 },
   detailRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6 },
-  detailText: { color: palette.textDim, fontSize: 12 },
+  detailText: { color: palette.textMuted, fontSize: 13 },
 
   // Trainings
   providerText: { fontSize: 11, fontWeight: '800' },

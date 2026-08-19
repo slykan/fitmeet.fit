@@ -1103,6 +1103,7 @@ export default function EventDetailScreen() {
               lng={event.location.lng}
               isoDate={event.schedule.start_at.slice(0, 10)}
               hour={new Date(event.schedule.start_at).getHours()}
+              indent={26}
             />
           )}
           {event.location.address ? (

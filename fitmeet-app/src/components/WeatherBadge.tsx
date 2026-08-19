@@ -11,9 +11,10 @@ type Props = {
   isoDate: string
   hour: number
   weather?: EventWeather | null
+  indent?: number
 }
 
-export function WeatherBadge({ lat, lng, isoDate, hour, weather: weatherProp }: Props) {
+export function WeatherBadge({ lat, lng, isoDate, hour, weather: weatherProp, indent = 0 }: Props) {
   const [weather, setWeather] = useState<EventWeather | null>(null)
 
   useEffect(() => {
@@ -29,7 +30,7 @@ export function WeatherBadge({ lat, lng, isoDate, hour, weather: weatherProp }: 
   if (!resolvedWeather) return null
 
   return (
-    <View style={styles.row}>
+    <View style={[styles.row, indent ? { marginLeft: indent } : null]}>
       <Ionicons name={weatherIconName(resolvedWeather.code) as never} size={14} color={palette.textMuted} />
       <Text style={styles.temp}>
         {resolvedWeather.tempMin}°/{resolvedWeather.tempMax}°
@@ -49,7 +50,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    marginLeft: 26,
   },
   temp: {
     color: palette.textMuted,

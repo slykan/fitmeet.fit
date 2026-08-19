@@ -342,6 +342,7 @@ export default function HubScreen() {
             isoDate={ev.schedule.start_at.slice(0, 10)}
             hour={new Date(ev.schedule.start_at).getHours()}
             weather={weatherSnapshots[ev.id] ?? null}
+            indent={18}
           />
           {ev.location.address ? (
             <View style={styles.detailRow}>
@@ -842,5 +843,5 @@ const styles = StyleSheet.create({
   eventCategory: { color: palette.textMuted, fontSize: 13 },
   eventDetails: { gap: 5 },
   detailRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  detailText: { color: palette.textDim, fontSize: 12, flex: 1 },
+  detailText: { color: palette.textMuted, fontSize: 13, flex: 1 },
 })
