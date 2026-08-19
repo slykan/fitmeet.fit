@@ -314,11 +314,15 @@ export default function HubScreen() {
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
               <Text style={styles.eventTitle} numberOfLines={1}>{ev.title}</Text>
               {ev.is_in_progress && <InProgressBadge />}
+              {cancelled && (
+                <View style={styles.cancelledBadge}>
+                  <Text style={styles.cancelledBadgeText}>Cancelled</Text>
+                </View>
+              )}
             </View>
             <Text style={styles.eventCategory}>
               {ev.category.label}
               {ev.is_joined ? ' · Going' : ''}
-              {cancelled ? ' · Cancelled' : ''}
               {ev.is_full && !cancelled ? ' · Full' : ''}
             </Text>
           </View>
@@ -830,6 +834,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   eventBadgeCancelled: { borderWidth: 1, borderColor: 'rgba(248,113,113,0.4)' },
+  cancelledBadge:      { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2, backgroundColor: 'rgba(248,113,113,0.15)', borderWidth: 1, borderColor: 'rgba(248,113,113,0.4)' },
+  cancelledBadgeText:  { color: '#f87171', fontSize: 11, fontWeight: '800' },
   eventEmoji: { fontSize: 24 },
   eventMeta: { flex: 1, gap: 3 },
   eventTitle: { color: palette.text, fontSize: 16, fontWeight: '800' },

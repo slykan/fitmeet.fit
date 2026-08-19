@@ -652,7 +652,11 @@ function EventsTab() {
                   {ev.skill_level && (
                     <Text style={styles.skillText}>{ev.skill_level}</Text>
                   )}
-                  {cancelled && <Text style={styles.cancelText}>Cancelled</Text>}
+                  {cancelled && (
+                    <View style={styles.cancelTag}>
+                      <Text style={styles.cancelText}>Cancelled</Text>
+                    </View>
+                  )}
                   {ev.is_full && !cancelled && <Text style={styles.fullText}>Full</Text>}
                   {past && !cancelled && <Text style={styles.pastText}>Past</Text>}
                   {hasReminder && <Ionicons name="alarm-outline" size={14} color="#58beff" />}
@@ -2033,7 +2037,12 @@ const styles = StyleSheet.create({
   },
   catTagText:  { color: palette.accent, fontSize: 11, fontWeight: '700' },
   skillText:   { color: palette.textDim, fontSize: 11 },
-  cancelText:  { color: '#f87171', fontSize: 11, fontWeight: '700' },
+  cancelTag: {
+    backgroundColor: 'rgba(248,113,113,0.15)', borderRadius: 999,
+    paddingHorizontal: 8, paddingVertical: 2,
+    borderWidth: 1, borderColor: 'rgba(248,113,113,0.4)',
+  },
+  cancelText:  { color: '#f87171', fontSize: 11, fontWeight: '800' },
   fullText:    { color: '#f87171', fontSize: 11, fontWeight: '700' },
   pastText:    { color: '#58beff', fontSize: 11, fontWeight: '700' },
 

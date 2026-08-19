@@ -30,15 +30,15 @@ export function WeatherBadge({ lat, lng, isoDate, hour, weather: weatherProp }: 
 
   return (
     <View style={styles.row}>
-      <Ionicons name={weatherIconName(resolvedWeather.code) as never} size={13} color={palette.textDim} />
+      <Ionicons name={weatherIconName(resolvedWeather.code) as never} size={14} color={palette.textMuted} />
       <Text style={styles.temp}>
         {resolvedWeather.tempMin}°/{resolvedWeather.tempMax}°
       </Text>
       <View style={styles.divider} />
-      <Ionicons name="speedometer-outline" size={13} color={palette.textDim} />
+      <Ionicons name="speedometer-outline" size={14} color={palette.textMuted} />
       <Text style={styles.wind}>{resolvedWeather.windSpeed} km/h</Text>
       <View style={{ transform: [{ rotate: `${(resolvedWeather.windDir + 180) % 360}deg` }] }}>
-        <Ionicons name="arrow-up-outline" size={13} color={palette.textDim} />
+        <Ionicons name="arrow-up-outline" size={14} color={palette.textMuted} />
       </View>
     </View>
   )
@@ -49,15 +49,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
+    marginLeft: 26,
   },
   temp: {
-    color: palette.textDim,
-    fontSize: 12,
+    color: palette.textMuted,
+    fontSize: 13,
     fontWeight: '600',
   },
   wind: {
-    color: palette.textDim,
-    fontSize: 12,
+    color: palette.textMuted,
+    fontSize: 13,
     fontWeight: '600',
   },
   divider: {

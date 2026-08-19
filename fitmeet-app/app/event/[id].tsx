@@ -1151,7 +1151,7 @@ export default function EventDetailScreen() {
           ) : null}
           {event.activity.gpx_url ? (
             <Pressable style={styles.gpxActionRow} onPress={openGpxRoute}>
-              <Ionicons name="map-outline" size={15} color={gpxError ? '#ff6b6b' : palette.textDim} />
+              <Ionicons name="map-outline" size={16} color={gpxError ? '#ff6b6b' : palette.textMuted} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.detailPrimary}>
                   {gpxLoading ? 'Loading GPX route...' : gpxError ? 'GPX route attached' : 'GPX route attached'}
@@ -1629,7 +1629,7 @@ function DetailRow({ icon, primary, secondary, iconColor }: {
 }) {
   return (
     <View style={styles.detailRow}>
-      <Ionicons name={icon as 'flash-outline'} size={15} color={iconColor ?? palette.textDim} />
+      <Ionicons name={icon as 'flash-outline'} size={16} color={iconColor ?? palette.textMuted} />
       <View style={{ flex: 1 }}>
         <Text style={styles.detailPrimary}>{primary}</Text>
         {secondary ? <Text style={styles.detailSecondary}>{secondary}</Text> : null}
@@ -1766,8 +1766,8 @@ const styles = StyleSheet.create({
 
   detailRow:      { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   gpxActionRow:   { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 2 },
-  detailPrimary:  { color: palette.textMuted, fontSize: 14, lineHeight: 20 },
-  detailSecondary:{ color: palette.textDim, fontSize: 13 },
+  detailPrimary:  { color: palette.text, fontSize: 15, lineHeight: 21 },
+  detailSecondary:{ color: palette.textMuted, fontSize: 14 },
 
   surfaceSection: { paddingHorizontal: spacing.md, gap: 8 },
   surfaceMixText: { color: palette.text, fontSize: 13, fontWeight: '900' },
