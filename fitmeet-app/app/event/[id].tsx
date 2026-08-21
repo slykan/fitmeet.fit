@@ -1093,7 +1093,8 @@ export default function EventDetailScreen() {
 
         {/* Details */}
         <View style={styles.card}>
-          <DetailRow icon="calendar-outline" primary={formatDate(event.schedule.start_at)} secondary={
+          <DetailRow icon="calendar-outline" primary={formatDate(event.schedule.start_at)} />
+          <DetailRow icon="time-outline" primary={
             formatTime(event.schedule.start_at) +
             (event.schedule.duration_minutes ? ` · ${event.schedule.duration_minutes} min` : '')
           } />
@@ -1103,7 +1104,6 @@ export default function EventDetailScreen() {
               lng={event.location.lng}
               isoDate={event.schedule.start_at.slice(0, 10)}
               hour={new Date(event.schedule.start_at).getHours()}
-              indent={26}
             />
           )}
           {event.location.address ? (

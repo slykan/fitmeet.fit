@@ -671,12 +671,13 @@ function EventsTab() {
             <View style={styles.details}>
               <View style={styles.detailRow}>
                 <Ionicons name="calendar-outline" size={12} color={palette.textDim} />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.detailText}>{date}</Text>
-                  <Text style={styles.detailText}>
-                    {time}{ev.schedule.duration_minutes ? ` · ${ev.schedule.duration_minutes} min` : ''}
-                  </Text>
-                </View>
+                <Text style={[styles.detailText, styles.eventDetailText]}>{date}</Text>
+              </View>
+              <View style={styles.detailRow}>
+                <Ionicons name="time-outline" size={12} color={palette.textDim} />
+                <Text style={[styles.detailText, styles.eventDetailText]}>
+                  {time}{ev.schedule.duration_minutes ? ` · ${ev.schedule.duration_minutes} min` : ''}
+                </Text>
               </View>
               {ev.location.lat != null && ev.location.lng != null && (
                 <WeatherBadge
@@ -685,20 +686,20 @@ function EventsTab() {
                   isoDate={ev.schedule.start_at.slice(0, 10)}
                   hour={new Date(ev.schedule.start_at).getHours()}
                   weather={weatherSnapshots[ev.id] ?? null}
-                  indent={18}
+                  iconSize={12}
                 />
               )}
               {ev.location.address ? (
                 <View style={styles.detailRow}>
                   <Ionicons name="location-outline" size={12} color={palette.textDim} />
-                  <Text style={[styles.detailText, { flex: 1 }]} numberOfLines={1}>
+                  <Text style={[styles.detailText, styles.eventDetailText, { flex: 1 }]} numberOfLines={1}>
                     {ev.location.address}
                   </Text>
                 </View>
               ) : null}
               <View style={styles.detailRow}>
                 <Ionicons name="people-outline" size={12} color={palette.textDim} />
-                <Text style={styles.detailText}>
+                <Text style={[styles.detailText, styles.eventDetailText]}>
                   {ev.participants_count} joined
                   {ev.max_participants ? ` · max ${ev.max_participants}` : ''}
                   {ev.is_joined ? ' · ✓ Going' : ''}
@@ -707,7 +708,7 @@ function EventsTab() {
               {(activityDistanceKm != null || activityElevGain != null) ? (
                 <View style={styles.detailRow}>
                   <Ionicons name="flash-outline" size={12} color={palette.accent} />
-                  <Text style={styles.detailText}>
+                  <Text style={[styles.detailText, styles.eventDetailText]}>
                     {[
                       activityDistanceKm != null && `${activityDistanceKm} km`,
                       activityElevGain != null && `↑${activityElevGain} m`,
@@ -718,7 +719,7 @@ function EventsTab() {
               {ev.views_count > 0 && (
                 <View style={styles.detailRow}>
                   <Ionicons name="eye-outline" size={12} color={palette.textDim} />
-                  <Text style={styles.detailText}>{ev.views_count} seen</Text>
+                  <Text style={[styles.detailText, styles.eventDetailText]}>{ev.views_count} seen</Text>
                 </View>
               )}
               <EventCommentsPreview eventId={ev.id} count={ev.comments_count ?? 0} />
@@ -2050,6 +2051,7 @@ const styles = StyleSheet.create({
   details: { gap: 5 },
   detailRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6 },
   detailText: { color: palette.textMuted, fontSize: 13 },
+  eventDetailText: { color: palette.text, fontSize: 14 },
 
   // Trainings
   providerText: { fontSize: 11, fontWeight: '800' },

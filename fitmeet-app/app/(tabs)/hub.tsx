@@ -52,9 +52,10 @@ const CATEGORY_EMOJI: Record<string, string> = Object.fromEntries(
 
 function formatDate(iso: string) {
   const d = new Date(iso)
-  const date = d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
-  const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
-  return `${date} · ${time}`
+  return {
+    date: d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }),
+    time: d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+  }
 }
 
 function isPast(iso: string) {
@@ -299,6 +300,7 @@ export default function HubScreen() {
 
     const activityDistanceKm = gpxStats[ev.id]?.distanceKm ?? ev.activity.distance_km
     const activityElevGain = gpxStats[ev.id]?.elevGain ?? ev.activity.elevation_gain
+    const { date, time } = formatDate(ev.schedule.start_at)
 
     return (
       <Pressable
@@ -334,7 +336,13 @@ export default function HubScreen() {
         <View style={styles.eventDetails}>
           <View style={styles.detailRow}>
             <Ionicons name="calendar-outline" size={12} color={palette.textDim} />
-            <Text style={styles.detailText}>{formatDate(ev.schedule.start_at)}</Text>
+            <Text style={styles.detailText}>{date}</Text>
+          </View>
+          <View style={styles.detailRow}>
+            <Ionicons name="time-outline" size={12} color={palette.textDim} />
+            <Text style={styles.detailText}>
+              {time}{ev.schedule.duration_minutes ? ` · ${ev.schedule.duration_minutes} min` : ''}
+            </Text>
           </View>
           <WeatherBadge
             lat={ev.location.lat}
@@ -342,7 +350,7 @@ export default function HubScreen() {
             isoDate={ev.schedule.start_at.slice(0, 10)}
             hour={new Date(ev.schedule.start_at).getHours()}
             weather={weatherSnapshots[ev.id] ?? null}
-            indent={18}
+            iconSize={12}
           />
           {ev.location.address ? (
             <View style={styles.detailRow}>
@@ -843,5 +851,5 @@ const styles = StyleSheet.create({
   eventCategory: { color: palette.textMuted, fontSize: 13 },
   eventDetails: { gap: 5 },
   detailRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  detailText: { color: palette.textMuted, fontSize: 13, flex: 1 },
+  detailText: { color: palette.text, fontSize: 14, flex: 1 },
 })
