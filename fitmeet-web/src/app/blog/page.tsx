@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Apple, ArrowRight, BookOpen, Download, MapPin, MessageCircle, PencilLine, Route, Share2, ShieldCheck, ShoppingBag, Sparkles, Tag, Users } from 'lucide-react'
+import { Apple, ArrowRight, BookOpen, Download, MapPin, MessageCircle, Navigation, PencilLine, Route, Share2, ShieldCheck, ShoppingBag, Sparkles, Tag, Users } from 'lucide-react'
 import { Navbar } from '@/components/navbar'
 import { posts } from '@/lib/posts'
 
@@ -60,7 +60,43 @@ export default function BlogPage() {
               <p className="text-sm font-bold uppercase tracking-widest" style={{ color: 'var(--primary)' }}>News</p>
             </div>
 
-            {/* Trust & Safety — top news */}
+            {/* Live location sharing — top news */}
+            <Link
+              href="/blog/fitmeet-live-location-sharing"
+              className="rounded-2xl border p-6 flex flex-col gap-4 transition-opacity hover:opacity-90 mb-4"
+              style={{
+                background: 'linear-gradient(135deg, rgba(57,255,20,0.09) 0%, rgba(57,255,20,0.02) 100%)',
+                borderColor: 'rgba(57,255,20,0.28)',
+              }}
+            >
+              <div className="flex items-center gap-3">
+                <span
+                  className="text-xs font-bold px-3 py-1 rounded-full"
+                  style={{ background: 'rgba(57,255,20,0.16)', color: 'var(--primary)' }}
+                >
+                  New · Live map
+                </span>
+                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>22 August 2026</span>
+              </div>
+              <div className="flex flex-col md:flex-row md:items-center gap-4">
+                <div className="flex-1">
+                  <h2 className="text-xl font-bold leading-snug mb-2">
+                    See everyone live on the map during group rides and runs
+                  </h2>
+                  <p className="text-sm leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+                    Opt in after checking in to an event and share your live position with the group — see where everyone is in real time, their speed, and never lose the pack, even if your phone is locked.
+                  </p>
+                </div>
+                <div className="flex items-center justify-center w-16 h-16 rounded-2xl shrink-0" style={{ background: 'rgba(57,255,20,0.12)' }}>
+                  <Navigation size={32} style={{ color: 'var(--primary)' }} />
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 text-xs font-semibold mt-auto" style={{ color: 'var(--primary)' }}>
+                Read more <ArrowRight size={12} />
+              </div>
+            </Link>
+
+            {/* Trust & Safety — news */}
             <Link
               href="/blog/fitmeet-block-report-trust-and-safety"
               className="rounded-2xl border p-6 flex flex-col gap-4 transition-opacity hover:opacity-90 mb-4"

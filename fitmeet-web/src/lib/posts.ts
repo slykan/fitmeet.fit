@@ -15,6 +15,49 @@ export interface Post {
 
 export const posts: Post[] = [
   {
+    slug: 'fitmeet-live-location-sharing',
+    title: 'See Everyone Live on the Map During Group Rides and Runs',
+    description: 'Opt in after checking in to an event and share your live position with the group — see where everyone is in real time, their speed, and never lose the pack, even if your phone is locked.',
+    publishedAt: '2026-08-22',
+    readTime: 3,
+    category: 'Safety',
+    sections: [
+      {
+        heading: 'Never Lose the Group Again',
+        paragraphs: [
+          'Anyone who has organised a group ride or run knows the problem: the pack splits on a climb, someone takes a wrong turn, and suddenly nobody knows where anyone else is. Until now, FitMeet showed you the route — but not where your group actually was on it.',
+          'That changes today. During an event, checked-in participants can share their live position with everyone else who is also checked in, right on the same map you already use for the route.',
+        ],
+      },
+      {
+        heading: 'Opt In After You Check In',
+        paragraphs: [
+          'Live sharing is off by default and always your choice. Check in to an event and FitMeet asks if you want to share your position for the rest of the event — nothing is sent before you say yes, and you can turn it off again at any time from the check-in card.',
+          'Sharing is scoped to that one event too: saying yes at one ride does not carry over and quietly enable it at the next one.',
+        ],
+      },
+      {
+        heading: 'Live Positions, Speed and Smart Grouping',
+        paragraphs: [
+          'Everyone sharing shows up on the map with their photo (or initials if they have not set one) and current speed, updating automatically while the event is live. When a few of you are riding or running close together, FitMeet groups those markers into a single badge instead of stacking pins on top of each other — tap it to see exactly who is in the group.',
+        ],
+      },
+      {
+        heading: 'Works Even When Your Phone Is Locked',
+        paragraphs: [
+          'Positions keep updating while your phone is locked or tucked in a jersey pocket, not just while the app is open — FitMeet asks for background location access up front so it can keep sharing without you having to keep the screen on.',
+          'On some Android phones, aggressive battery managers can pause background apps regardless. If that happens, FitMeet will prompt you to exempt it from battery optimization so tracking stays reliable for the whole ride.',
+        ],
+      },
+      {
+        heading: 'Available Now',
+        paragraphs: [
+          'Live location sharing is rolling out today on Android, with the map viewable on fitmeet.fit as well for anyone following along from a laptop. Update the app, join an event, check in, and give it a try on your next group ride or run.',
+        ],
+      },
+    ],
+  },
+  {
     slug: 'fitmeet-training-sync-strava',
     title: 'Your Strava Trainings Now Sync Automatically Into FitMeet',
     description: 'Connect Strava once and every run, ride or workout shows up in FitMeet automatically — categorized, deduplicated, and packed with heart rate, power, cadence and pace. Garmin and Huawei Health are next.',
