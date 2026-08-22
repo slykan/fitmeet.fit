@@ -27,6 +27,7 @@ import { reportContent } from '@/lib/moderation'
 import { useAuthStore } from '@/store/auth'
 import { Button } from '@/components/ui/button'
 import type { LiveParticipant } from '@/components/location-picker-map'
+import { LiveProgressBar } from '@/components/live-progress-bar'
 
 const LocationPickerMap = dynamic(() => import('@/components/location-picker-map'), { ssr: false })
 
@@ -1022,6 +1023,10 @@ function EventContent() {
                 )}
               </div>
             </div>
+          )}
+
+          {livePositions.length > 0 && gpxResult?.track && gpxResult.track.length >= 2 && (
+            <LiveProgressBar track={gpxResult.track} participants={livePositions} onGroupTap={setClusterListParticipants} />
           )}
 
           {surfaceAnalysis?.summary.length ? (

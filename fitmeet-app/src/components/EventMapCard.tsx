@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Animated, Pressable, StyleSheet, Text, View } from 'react-native'
 import { WebView } from 'react-native-webview'
 import type { WebView as WebViewType } from 'react-native-webview'
 
@@ -699,6 +699,26 @@ function buildHtml(
 </html>`
 }
 
+function LiveBadge() {
+  const pulse = useRef(new Animated.Value(1)).current
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 0.35, duration: 900, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 1, duration: 900, useNativeDriver: true }),
+      ]),
+    )
+    loop.start()
+    return () => loop.stop()
+  }, [pulse])
+  return (
+    <View style={styles.liveBadge}>
+      <Animated.View style={[styles.liveBadgeDot, { opacity: pulse }]} />
+      <Text style={styles.liveBadgeText}>LIVE</Text>
+    </View>
+  )
+}
+
 export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegments, elevationSegments, surfaceSegments, participants, onClusterTap, playProgress = null, playMilestone = null, playState, onPlayToggle, playSpeed, onSpeedToggle, onMapEnabledChange, loading }: Props) {
   const webViewRef = useRef<WebViewType>(null)
   const [weather, setWeather] = useState<CurrentWeather | null>(null)
@@ -841,14 +861,17 @@ export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegment
         style={styles.webview}
       />
       <View pointerEvents="box-none" style={styles.mapOverlay}>
-        <Pressable
-          onPress={() => setMapEnabled((current) => !current)}
-          style={[styles.mapModeBtn, mapEnabled && styles.mapModeBtnActive]}
-        >
-          <Text style={[styles.mapModeBtnText, mapEnabled && styles.mapModeBtnTextActive]}>
-            {mapEnabled ? 'Done' : 'Move map'}
-          </Text>
-        </Pressable>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Pressable
+            onPress={() => setMapEnabled((current) => !current)}
+            style={[styles.mapModeBtn, mapEnabled && styles.mapModeBtnActive]}
+          >
+            <Text style={[styles.mapModeBtnText, mapEnabled && styles.mapModeBtnTextActive]}>
+              {mapEnabled ? 'Done' : 'Move map'}
+            </Text>
+          </Pressable>
+          {(participants?.length ?? 0) > 0 && <LiveBadge />}
+        </View>
       </View>
       <View pointerEvents="box-none" style={styles.layerOverlay}>
         <Pressable
@@ -1020,6 +1043,29 @@ const styles = StyleSheet.create({
   },
   mapModeBtnTextActive: {
     color: '#041109',
+  },
+  liveBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    backgroundColor: 'rgba(7,13,28,0.9)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,90,90,0.4)',
+  },
+  liveBadgeDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 999,
+    backgroundColor: '#ff3b30',
+  },
+  liveBadgeText: {
+    color: '#ff6b6b',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
   layerModeBtn: {
     borderRadius: 999,

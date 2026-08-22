@@ -14,6 +14,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import * as FileSystem from 'expo-file-system/legacy'
 import { WeatherBadge } from '@/src/components/WeatherBadge'
 import { EventMapCard, type LiveParticipant } from '@/src/components/EventMapCard'
+import { LiveProgressBar } from '@/src/components/LiveProgressBar'
 import { ElevationChart } from '@/src/components/ElevationChart'
 import { WikiPhotosStrip } from '@/src/components/WikiPhotosStrip'
 import type { ElevationPoint } from '@/src/components/ElevationChart'
@@ -1290,6 +1291,10 @@ export default function EventDetailScreen() {
             onMapEnabledChange={setMapEnabled}
             loading={gpxLoading || surfaceLoading}
           />
+        )}
+
+        {livePositions.length > 0 && gpxTrack.length >= 2 && (
+          <LiveProgressBar track={gpxTrack} participants={livePositions} onGroupTap={setClusterListParticipants} />
         )}
 
         {showSurfaceSection ? (

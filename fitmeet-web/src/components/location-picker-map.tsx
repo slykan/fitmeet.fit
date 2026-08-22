@@ -905,6 +905,40 @@ export default function LocationPickerMap({
           <LiveParticipantsLayer participants={participants} onClusterTap={onClusterTap} />
         )}
       </MapContainer>
+      {readOnly && participants && participants.length > 0 && (
+        <div
+          style={{
+            position: 'absolute',
+            left: 12,
+            top: 12,
+            zIndex: 820,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 5,
+            padding: '7px 10px',
+            borderRadius: 999,
+            border: '1px solid rgba(255,90,90,0.4)',
+            background: 'rgba(7,13,28,0.9)',
+          }}
+        >
+          <span
+            style={{
+              width: 7,
+              height: 7,
+              borderRadius: 999,
+              background: '#ff3b30',
+              animation: 'fm-live-pulse 1.8s ease-in-out infinite',
+            }}
+          />
+          <span style={{ color: '#ff6b6b', fontSize: 11, fontWeight: 800, letterSpacing: 0.5 }}>LIVE</span>
+          <style>{`
+            @keyframes fm-live-pulse {
+              0%, 100% { opacity: 1; }
+              50% { opacity: 0.35; }
+            }
+          `}</style>
+        </div>
+      )}
       {showMapLayerControl && (
         <div
           style={{
