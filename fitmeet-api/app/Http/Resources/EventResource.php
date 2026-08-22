@@ -97,6 +97,7 @@ class EventResource extends JsonResource
             ) : false,
             'notify_on_join' => $user ? (bool) ($currentParticipant?->pivot?->notify_on_join ?? false) : false,
             'checked_in_at' => $user ? $this->isoDate($currentParticipant?->pivot?->checked_in_at) : null,
+            'live_sharing_enabled' => $user ? (bool) ($currentParticipant?->pivot?->live_sharing_enabled ?? false) : false,
 
             // Distance from user (set by scopeNearby)
             'distance_km' => isset($this->distance_from_user)

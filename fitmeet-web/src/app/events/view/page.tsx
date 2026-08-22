@@ -26,6 +26,7 @@ import { analyzeRouteSurface, type SurfaceAnalysis } from '@/lib/route-surface'
 import { reportContent } from '@/lib/moderation'
 import { useAuthStore } from '@/store/auth'
 import { Button } from '@/components/ui/button'
+import type { LiveParticipant } from '@/components/location-picker-map'
 
 const LocationPickerMap = dynamic(() => import('@/components/location-picker-map'), { ssr: false })
 
@@ -74,6 +75,7 @@ interface Event {
   is_joined: boolean
   checked_in_at: string | null
   checked_in_count?: number
+  is_in_progress: boolean
   moment_image_url: string | null
   moment_cover: { x: number; y: number } | null
   youtube_url: string | null
@@ -177,6 +179,8 @@ function EventContent() {
   const [loading,  setLoading]  = useState(true)
   const [joining,  setJoining]  = useState(false)
   const [checkingIn, setCheckingIn] = useState(false)
+  const [livePositions, setLivePositions] = useState<LiveParticipant[]>([])
+  const [clusterListParticipants, setClusterListParticipants] = useState<LiveParticipant[] | null>(null)
   const [error,    setError]    = useState<string | null>(null)
   const [gpxResult, setGpxResult] = useState<GpxResult | null>(null)
   const [surfaceAnalysis, setSurfaceAnalysis] = useState<SurfaceAnalysis | null>(null)
@@ -382,6 +386,26 @@ function EventContent() {
     }, 15 * 60 * 1000)
     return () => window.clearInterval(interval)
   }, [])
+
+  useEffect(() => {
+    if (!event?.id || !event.is_in_progress) {
+      setLivePositions([])
+      return
+    }
+    let cancelled = false
+    const eventId = event.id
+    const fetchPositions = () => {
+      api.get(`/events/${eventId}/live-positions`)
+        .then(({ data }) => { if (!cancelled) setLivePositions(data.data ?? []) })
+        .catch(() => {})
+    }
+    fetchPositions()
+    const interval = window.setInterval(fetchPositions, 12000)
+    return () => {
+      cancelled = true
+      window.clearInterval(interval)
+    }
+  }, [event?.id, event?.is_in_progress])
 
   async function handleJoin() {
     if (!event) return
@@ -874,6 +898,8 @@ function EventContent() {
                 showMapLayerControl
                 readOnly
                 height={720}
+                participants={livePositions}
+                onClusterTap={setClusterListParticipants}
               />
               {(gpxLoading || surfaceLoading) && <MapLoadingOverlay />}
               <div
@@ -1221,6 +1247,44 @@ function EventContent() {
           </div>
         </div>
       </div>
+      )}
+
+      {/* Live-position cluster list */}
+      {clusterListParticipants && (
+        <div className="fixed inset-0 z-[2000] flex items-end sm:items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.7)' }}
+          onClick={() => setClusterListParticipants(null)}>
+          <div className="w-full rounded-2xl border p-6 space-y-4"
+            style={{ maxWidth: 420, background: 'var(--surface)', borderColor: 'var(--border)' }}
+            onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between">
+              <h2 className="font-bold text-lg">{clusterListParticipants.length} people here</h2>
+              <button onClick={() => setClusterListParticipants(null)} style={{ color: 'var(--text-muted)' }}>
+                <X size={20} />
+              </button>
+            </div>
+            <div className="space-y-1">
+              {clusterListParticipants.map((p) => (
+                <div key={p.id} className="flex items-center gap-3 py-2">
+                  {p.avatar ? (
+                    <Image src={p.avatar} alt={p.name} width={34} height={34} className="rounded-full object-cover" />
+                  ) : (
+                    <div className="flex h-[34px] w-[34px] items-center justify-center rounded-full font-bold"
+                      style={{ background: 'var(--border)', color: 'var(--text)' }}>
+                      {p.name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div>
+                    <div className="text-sm font-medium">{p.name}</div>
+                    <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                      {p.speed_kmh != null ? `${p.speed_kmh.toFixed(1)} km/h` : 'Live'}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       )}
       </>
   )

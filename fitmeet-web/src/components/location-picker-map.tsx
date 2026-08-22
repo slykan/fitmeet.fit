@@ -58,6 +58,107 @@ function staticKmIcon(km: number) {
   })
 }
 
+export interface LiveParticipant {
+  id: number
+  name: string
+  avatar: string | null
+  lat: number
+  lng: number
+  speed_kmh: number | null
+}
+
+function initialFor(name: string) {
+  return (name || '?').charAt(0).toUpperCase()
+}
+
+function participantIcon(p: LiveParticipant) {
+  const avatarHtml = p.avatar
+    ? `<div style="width:32px;height:32px;border-radius:999px;background-image:url('${p.avatar}');background-size:cover;background-position:center;border:2px solid #39ff14;box-shadow:0 2px 6px rgba(0,0,0,0.5);"></div>`
+    : `<div style="width:32px;height:32px;border-radius:999px;background:#0b1120;border:2px solid #39ff14;display:flex;align-items:center;justify-content:center;color:#eafff0;font-weight:800;font-size:12px;box-shadow:0 2px 6px rgba(0,0,0,0.5);">${initialFor(p.name)}</div>`
+  const speedHtml = p.speed_kmh != null
+    ? `<div style="margin-top:2px;background:#0b1120;border:1px solid rgba(57,255,20,0.5);color:#eafff0;font-size:9px;font-weight:700;padding:1px 5px;border-radius:999px;white-space:nowrap;">${p.speed_kmh.toFixed(1)} km/h</div>`
+    : ''
+  return L.divIcon({
+    className: 'fm-participant-marker',
+    html: `<div style="display:flex;flex-direction:column;align-items:center;">${avatarHtml}${speedHtml}</div>`,
+    iconSize: [60, 50],
+    iconAnchor: [30, 25],
+  })
+}
+
+function clusterIcon(count: number) {
+  return L.divIcon({
+    className: 'fm-cluster-marker',
+    html: `<div style="width:34px;height:34px;border-radius:999px;background:#39ff14;color:#041109;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,0.5);border:2px solid #0b1120;">${count}</div>`,
+    iconSize: [34, 34],
+    iconAnchor: [17, 17],
+  })
+}
+
+// Hand-rolled greedy pixel-distance clustering (not a Leaflet plugin — this
+// codebase re-implements map logic per platform rather than sharing it, and
+// group sizes here are small). Re-clusters on zoom/move since screen-pixel
+// distance between two fixed lat/lngs changes with zoom.
+function LiveParticipantsLayer({
+  participants,
+  onClusterTap,
+}: {
+  participants: LiveParticipant[]
+  onClusterTap?: (participants: LiveParticipant[]) => void
+}) {
+  const map = useMap()
+  const [tick, setTick] = useState(0)
+  useMapEvents({
+    zoomend: () => setTick((t) => t + 1),
+    moveend: () => setTick((t) => t + 1),
+  })
+
+  const groups = useMemo(() => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+    tick
+    const pts = participants.map((p) => ({ p, pt: map.latLngToContainerPoint([p.lat, p.lng]) }))
+    const used = new Array(pts.length).fill(false)
+    const result: LiveParticipant[][] = []
+    for (let i = 0; i < pts.length; i++) {
+      if (used[i]) continue
+      const group = [pts[i].p]
+      used[i] = true
+      for (let j = i + 1; j < pts.length; j++) {
+        if (used[j]) continue
+        const dx = pts[i].pt.x - pts[j].pt.x
+        const dy = pts[i].pt.y - pts[j].pt.y
+        if (Math.sqrt(dx * dx + dy * dy) < 40) {
+          group.push(pts[j].p)
+          used[j] = true
+        }
+      }
+      result.push(group)
+    }
+    return result
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [participants, map, tick])
+
+  return (
+    <>
+      {groups.map((group) =>
+        group.length === 1 ? (
+          <Marker key={group[0].id} position={[group[0].lat, group[0].lng]} icon={participantIcon(group[0])} />
+        ) : (
+          <Marker
+            key={group.map((p) => p.id).join('-')}
+            position={[
+              group.reduce((sum, p) => sum + p.lat, 0) / group.length,
+              group.reduce((sum, p) => sum + p.lng, 0) / group.length,
+            ]}
+            icon={clusterIcon(group.length)}
+            eventHandlers={{ click: () => onClusterTap?.(group) }}
+          />
+        ),
+      )}
+    </>
+  )
+}
+
 function segmentPopupText(distanceKm: number, avgGrade: number) {
   const arrow = avgGrade > 0 ? '↑' : avgGrade < 0 ? '↓' : ''
   return `${distanceKm} km · ${arrow}${Math.abs(avgGrade)}%`
@@ -185,6 +286,9 @@ interface Props {
   showCloudOverlay?: boolean
   showMapLayerControl?: boolean
   radarFrame?: { path: string } | null
+  /** Live positions of checked-in, sharing participants — read-only maps only. */
+  participants?: LiveParticipant[]
+  onClusterTap?: (participants: LiveParticipant[]) => void
 }
 
 const LIGHTNING_POSITIONS = [
@@ -628,6 +732,8 @@ export default function LocationPickerMap({
   showCloudOverlay = true,
   showMapLayerControl = false,
   radarFrame = null,
+  participants,
+  onClusterTap,
 }: Props) {
   const hasPin      = lat != null && lng != null
   const allCoords   = useMemo(
@@ -794,6 +900,10 @@ export default function LocationPickerMap({
         {showKmMarkers && (playProgress == null || playProgress >= 1) && kmMarkerPoints.map(p => (
           <Marker key={p.km} position={p.pos} icon={staticKmIcon(p.km)} />
         ))}
+
+        {readOnly && participants && participants.length > 0 && (
+          <LiveParticipantsLayer participants={participants} onClusterTap={onClusterTap} />
+        )}
       </MapContainer>
       {showMapLayerControl && (
         <div

@@ -9,6 +9,15 @@ import { fetchRadarFrames, type RadarFrame } from '@/src/lib/radar'
 import type { TrackSegment } from '@/src/lib/gpx'
 import { palette } from '@/src/theme'
 
+export type LiveParticipant = {
+  id: number
+  name: string
+  avatar: string | null
+  lat: number
+  lng: number
+  speed_kmh: number | null
+}
+
 type Props = {
   lat: number
   lng: number
@@ -17,6 +26,10 @@ type Props = {
   coloredSegments?: TrackSegment[]
   elevationSegments?: TrackSegment[]
   surfaceSegments?: TrackSegment[]
+  /** Live positions of checked-in, sharing participants, polled by the caller. */
+  participants?: LiveParticipant[]
+  /** Fired when a clustered "N people" badge is tapped. */
+  onClusterTap?: (participants: LiveParticipant[]) => void
   /** 0..1 reveal fraction while the route "play" animation runs. Omit/null for the normal, fully-drawn route. */
   playProgress?: number | null
   /** Shows a "X km" badge above the play-animation head marker while a distance milestone is being announced. */
@@ -489,6 +502,84 @@ function buildHtml(
       milestoneMarker = L.marker(lastHeadLatLng, { icon: milestoneIcon(milestone.km, milestone.exiting), zIndexOffset: 1000 }).addTo(map);
     }
 
+    // Live participant markers. Updates arrive every ~10-15s for a small
+    // (event-sized) group, and clustering needs to see all points together
+    // each time anyway, so a full clear-and-rebuild per update is simpler
+    // and plenty cheap here — unlike the play-animation head marker (30x/sec),
+    // this doesn't need the create-once/setLatLng optimization.
+    let currentParticipants = [];
+    let participantMarkers = [];
+    function initialsFor(name) {
+      return (name || '?').charAt(0).toUpperCase();
+    }
+    function participantIconHtml(p) {
+      const avatarHtml = p.avatar
+        ? '<div style="width:32px;height:32px;border-radius:999px;background-image:url(\\'' + p.avatar + '\\');background-size:cover;background-position:center;border:2px solid #39ff14;box-shadow:0 2px 6px rgba(0,0,0,0.5);"></div>'
+        : '<div style="width:32px;height:32px;border-radius:999px;background:#0b1120;border:2px solid #39ff14;display:flex;align-items:center;justify-content:center;color:#eafff0;font-weight:800;font-size:12px;box-shadow:0 2px 6px rgba(0,0,0,0.5);">' + initialsFor(p.name) + '</div>';
+      const speedHtml = p.speed_kmh != null
+        ? '<div style="margin-top:2px;background:#0b1120;border:1px solid rgba(57,255,20,0.5);color:#eafff0;font-size:9px;font-weight:700;padding:1px 5px;border-radius:999px;white-space:nowrap;">' + p.speed_kmh.toFixed(1) + ' km/h</div>'
+        : '';
+      return '<div style="display:flex;flex-direction:column;align-items:center;">' + avatarHtml + speedHtml + '</div>';
+    }
+    function participantDivIcon(p) {
+      return L.divIcon({ className:'fm-participant-marker', html: participantIconHtml(p), iconSize:[60,50], iconAnchor:[30,25] });
+    }
+    function clusterDivIcon(count) {
+      return L.divIcon({
+        className:'fm-cluster-marker',
+        html:'<div style="width:34px;height:34px;border-radius:999px;background:#39ff14;color:#041109;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,0.5);border:2px solid #0b1120;">' + count + '</div>',
+        iconSize:[34,34],
+        iconAnchor:[17,17]
+      });
+    }
+    function recomputeParticipantDisplay() {
+      participantMarkers.forEach(function(m) { map.removeLayer(m); });
+      participantMarkers = [];
+      if (!currentParticipants.length) return;
+
+      const pts = currentParticipants.map(function(p) {
+        return { p: p, pt: map.latLngToContainerPoint([p.lat, p.lng]) };
+      });
+      const used = new Array(pts.length).fill(false);
+      const groups = [];
+      for (let i = 0; i < pts.length; i++) {
+        if (used[i]) continue;
+        const group = [pts[i]];
+        used[i] = true;
+        for (let j = i + 1; j < pts.length; j++) {
+          if (used[j]) continue;
+          const dx = pts[i].pt.x - pts[j].pt.x;
+          const dy = pts[i].pt.y - pts[j].pt.y;
+          if (Math.sqrt(dx * dx + dy * dy) < 40) {
+            group.push(pts[j]);
+            used[j] = true;
+          }
+        }
+        groups.push(group);
+      }
+
+      groups.forEach(function(group) {
+        if (group.length === 1) {
+          const p = group[0].p;
+          participantMarkers.push(L.marker([p.lat, p.lng], { icon: participantDivIcon(p) }).addTo(map));
+        } else {
+          let sumLat = 0, sumLng = 0;
+          group.forEach(function(g) { sumLat += g.p.lat; sumLng += g.p.lng; });
+          const centroid = [sumLat / group.length, sumLng / group.length];
+          const marker = L.marker(centroid, { icon: clusterDivIcon(group.length) }).addTo(map);
+          marker.on('click', function() {
+            send('clusterTap', { participants: group.map(function(g) { return g.p; }) });
+          });
+          participantMarkers.push(marker);
+        }
+      });
+    }
+    function updateParticipants(participants) {
+      currentParticipants = participants || [];
+      recomputeParticipantDisplay();
+    }
+    map.on('zoomend', recomputeParticipantDisplay);
+
     const wo = document.getElementById('wo');
     let moveTimer = null;
     let userInteracting = false;
@@ -596,6 +687,7 @@ function buildHtml(
         if (data.type === 'playProgress') setPlayProgress(data.progress);
         if (data.type === 'playMilestone') setPlayMilestone(data.milestone);
         if (data.type === 'layerToggles') setLayerToggles(data.toggles);
+        if (data.type === 'participantsUpdate') updateParticipants(data.participants);
       } catch (e) {}
     }
     document.addEventListener('message', handleMessage);
@@ -607,7 +699,7 @@ function buildHtml(
 </html>`
 }
 
-export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegments, elevationSegments, surfaceSegments, playProgress = null, playMilestone = null, playState, onPlayToggle, playSpeed, onSpeedToggle, onMapEnabledChange, loading }: Props) {
+export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegments, elevationSegments, surfaceSegments, participants, onClusterTap, playProgress = null, playMilestone = null, playState, onPlayToggle, playSpeed, onSpeedToggle, onMapEnabledChange, loading }: Props) {
   const webViewRef = useRef<WebViewType>(null)
   const [weather, setWeather] = useState<CurrentWeather | null>(null)
   const [center, setCenter] = useState({ lat, lng })
@@ -696,6 +788,10 @@ export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegment
     }))
   }, [showElevationLayer, showSurfaceLayer, showKmMarkers])
 
+  useEffect(() => {
+    webViewRef.current?.postMessage(JSON.stringify({ type: 'participantsUpdate', participants: participants ?? [] }))
+  }, [participants])
+
   return (
     <View style={styles.card}>
       <WebView
@@ -723,6 +819,7 @@ export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegment
             type: 'layerToggles',
             toggles: { showElevation: showElevationLayer, showSurface: showSurfaceLayer, showKm: showKmMarkers },
           }))
+          webViewRef.current?.postMessage(JSON.stringify({ type: 'participantsUpdate', participants: participants ?? [] }))
         }}
         onMessage={(event) => {
           try {
@@ -735,6 +832,9 @@ export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegment
             ) {
               setWeather(null)
               setCenter(data.center)
+            }
+            if (data.type === 'clusterTap' && Array.isArray(data.participants)) {
+              onClusterTap?.(data.participants)
             }
           } catch {}
         }}

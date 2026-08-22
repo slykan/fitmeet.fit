@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons'
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router'
 import * as ImagePicker from 'expo-image-picker'
+import * as Location from 'expo-location'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
-  ActivityIndicator, Alert, Image, Modal, Pressable,
+  ActivityIndicator, Alert, AppState, Image, Modal, Pressable,
   Keyboard, KeyboardAvoidingView, Linking, Platform, ScrollView, Share, StyleSheet, Text, TextInput, View,
   type StyleProp, type ViewStyle,
 } from 'react-native'
@@ -12,7 +13,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import * as FileSystem from 'expo-file-system/legacy'
 import { WeatherBadge } from '@/src/components/WeatherBadge'
-import { EventMapCard } from '@/src/components/EventMapCard'
+import { EventMapCard, type LiveParticipant } from '@/src/components/EventMapCard'
 import { ElevationChart } from '@/src/components/ElevationChart'
 import { WikiPhotosStrip } from '@/src/components/WikiPhotosStrip'
 import type { ElevationPoint } from '@/src/components/ElevationChart'
@@ -23,6 +24,12 @@ import type { TrackSegment } from '@/src/lib/gpx'
 import { analyzeRouteSurface, type SurfaceAnalysis } from '@/src/lib/route-surface'
 import { playRandomActionSound } from '@/src/lib/action-sounds'
 import { reportContent } from '@/src/lib/moderation'
+import {
+  openAndroidBatteryOptimizationSettings,
+  postForegroundLocation,
+  startLiveLocationTracking,
+  stopLiveLocationTracking,
+} from '@/src/lib/live-location'
 import { useAuthStore } from '@/src/store/auth'
 import { useBadgesStore } from '@/src/store/badges'
 import { palette, spacing } from '@/src/theme'
@@ -38,7 +45,16 @@ type GpxActivityStats = {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface Participant { id: number; name: string; avatar: string | null; checked_in_at?: string | null }
+interface Participant {
+  id: number
+  name: string
+  avatar: string | null
+  checked_in_at?: string | null
+  lat?: number
+  lng?: number
+  speed_kmh?: number | null
+  live_updated_at?: string
+}
 
 interface EventComment {
   id: number
@@ -79,6 +95,8 @@ interface EventDetail {
   notify_on_join: boolean
   checked_in_at: string | null
   checked_in_count?: number
+  live_sharing_enabled: boolean
+  is_in_progress: boolean
   is_private: boolean
   image_url: string | null
   moment_image_url: string | null
@@ -303,6 +321,12 @@ export default function EventDetailScreen() {
   const [settingReminders, setSettingReminders] = useState(false)
   const [showSupportModal, setShowSupportModal] = useState(false)
   const [checkingIn, setCheckingIn] = useState(false)
+  const [showLocationConsentModal, setShowLocationConsentModal] = useState(false)
+  const [showBatteryOptModal, setShowBatteryOptModal] = useState(false)
+  const [startingLiveTracking, setStartingLiveTracking] = useState(false)
+  const [liveTrackingBackground, setLiveTrackingBackground] = useState(true)
+  const [livePositions, setLivePositions] = useState<LiveParticipant[]>([])
+  const [clusterListParticipants, setClusterListParticipants] = useState<LiveParticipant[] | null>(null)
   const joinedJustNow = useRef(false)
   const checkInPromptShown = useRef(false)
   const [notifyOnJoin, setNotifyOnJoin] = useState(false)
@@ -598,6 +622,51 @@ export default function EventDetailScreen() {
     if (event?.is_joined) setNotifyOnJoin(event.notify_on_join)
   }, [event?.notify_on_join, event?.is_joined])
 
+  // Poll live positions of checked-in, sharing participants while the event is running.
+  useEffect(() => {
+    if (!event?.id || !event.is_joined || !event.checked_in_at || !event.is_in_progress) {
+      setLivePositions([])
+      return
+    }
+    let cancelled = false
+    const eventId = event.id
+    const fetchPositions = () => {
+      api.get(`/events/${eventId}/live-positions`)
+        .then(({ data }) => { if (!cancelled) setLivePositions(data.data ?? []) })
+        .catch(() => {})
+    }
+    fetchPositions()
+    const intervalId = setInterval(fetchPositions, 12000)
+    const subscription = AppState.addEventListener('change', (next) => {
+      if (next === 'active') fetchPositions()
+    })
+    return () => {
+      cancelled = true
+      clearInterval(intervalId)
+      subscription.remove()
+    }
+  }, [event?.id, event?.is_joined, event?.checked_in_at, event?.is_in_progress])
+
+  // Foreground-only fallback: if background location permission was denied,
+  // keep posting our own position while this screen is open and sharing is on.
+  useEffect(() => {
+    if (!event?.id || !event.live_sharing_enabled || liveTrackingBackground || !event.is_in_progress) return
+    let subscription: Location.LocationSubscription | null = null
+    let cancelled = false
+    const eventId = event.id
+    Location.watchPositionAsync(
+      { accuracy: Location.Accuracy.High, timeInterval: 10000, distanceInterval: 15 },
+      (loc) => postForegroundLocation(eventId, loc),
+    ).then((sub) => {
+      if (cancelled) sub.remove()
+      else subscription = sub
+    }).catch(() => {})
+    return () => {
+      cancelled = true
+      subscription?.remove()
+    }
+  }, [event?.id, event?.live_sharing_enabled, event?.is_in_progress, liveTrackingBackground])
+
   useEffect(() => {
     if (checkin !== '1' || checkInPromptShown.current || !event) return
     checkInPromptShown.current = true
@@ -669,6 +738,7 @@ export default function EventDetailScreen() {
         text: 'Leave', style: 'destructive', onPress: async () => {
           setActing(true)
           try {
+            if (event.live_sharing_enabled) await stopLiveLocationTracking(event.id)
             const { data } = await api.post(`/events/${event.id}/leave`)
             await api.post(`/events/${event.id}/remind`, { offsets: [] }).catch(() => {})
             setActiveOffsets([])
@@ -725,10 +795,14 @@ export default function EventDetailScreen() {
     setCheckingIn(true)
     try {
       const { data } = await api.post(`/events/${event.id}/check-in`)
-      if (data.data) setEvent(data.data)
-      else {
+      let nextEvent: EventDetail = data.data
+      if (!nextEvent) {
         const fresh = await api.get(`/events/${event.id}`)
-        setEvent(fresh.data.data)
+        nextEvent = fresh.data.data
+      }
+      setEvent(nextEvent)
+      if (nextEvent.location.lat != null && nextEvent.location.lng != null && !nextEvent.live_sharing_enabled) {
+        setShowLocationConsentModal(true)
       }
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Could not check in.'
@@ -736,6 +810,33 @@ export default function EventDetailScreen() {
     } finally {
       setCheckingIn(false)
     }
+  }
+
+  async function beginLiveLocationSharing() {
+    if (!event) return
+    setStartingLiveTracking(true)
+    try {
+      const result = await startLiveLocationTracking(event.id)
+      if (!result.started) {
+        setShowLocationConsentModal(false)
+        Alert.alert('Location permission needed', 'Enable location access in Settings to share your position with the group.')
+        return
+      }
+      setEvent((prev) => (prev ? { ...prev, live_sharing_enabled: true } : prev))
+      setLiveTrackingBackground(result.background)
+      setShowLocationConsentModal(false)
+      if (Platform.OS === 'android' && result.background) {
+        setShowBatteryOptModal(true)
+      }
+    } finally {
+      setStartingLiveTracking(false)
+    }
+  }
+
+  async function stopLiveLocationSharing() {
+    if (!event) return
+    setEvent((prev) => (prev ? { ...prev, live_sharing_enabled: false } : prev))
+    await stopLiveLocationTracking(event.id)
   }
 
   function toggleReminder(offset: ReminderOffset) {
@@ -1178,6 +1279,8 @@ export default function EventDetailScreen() {
             emoji={CATEGORY_EMOJI[event.category.value] ?? '📍'}
             elevationSegments={coloredSegments}
             surfaceSegments={surfaceAnalysis?.segments}
+            participants={livePositions}
+            onClusterTap={setClusterListParticipants}
             playProgress={isAnimating ? playProgress : null}
             playMilestone={isAnimating ? playMilestone : null}
             playState={gpxTrack.length >= 2 ? playState : undefined}
@@ -1433,17 +1536,21 @@ export default function EventDetailScreen() {
             </Pressable>
             {showParticipants && (
               <View style={styles.participantList}>
-                {event.participants.map(p => (
-                  <Pressable key={p.id} style={styles.participantRow} onPress={() => router.push(`/user/${p.id}` as never)}>
-                    <Avatar user={p} size={34} />
-                    <View style={styles.participantInfo}>
-                      <Text style={styles.participantName} numberOfLines={1}>{p.name}</Text>
-                      <Text style={p.checked_in_at ? styles.participantChecked : styles.participantWaiting}>
-                        {p.checked_in_at ? `Checked in · ${formatTime(p.checked_in_at)}` : 'Waiting'}
-                      </Text>
-                    </View>
-                  </Pressable>
-                ))}
+                {event.participants.map(p => {
+                  const live = livePositions.find(lp => lp.id === p.id)
+                  return (
+                    <Pressable key={p.id} style={styles.participantRow} onPress={() => router.push(`/user/${p.id}` as never)}>
+                      <Avatar user={p} size={34} />
+                      <View style={styles.participantInfo}>
+                        <Text style={styles.participantName} numberOfLines={1}>{p.name}</Text>
+                        <Text style={p.checked_in_at ? styles.participantChecked : styles.participantWaiting}>
+                          {live ? `📍 Live${live.speed_kmh != null ? ` · ${live.speed_kmh.toFixed(1)} km/h` : ''}`
+                            : p.checked_in_at ? `Checked in · ${formatTime(p.checked_in_at)}` : 'Waiting'}
+                        </Text>
+                      </View>
+                    </Pressable>
+                  )
+                })}
               </View>
             )}
           </View>
@@ -1452,24 +1559,40 @@ export default function EventDetailScreen() {
         {/* Check-in */}
         {event.is_joined && !cancelled && (checkInAvailable || event.checked_in_at) && (
           <View style={styles.checkInCard}>
-            <View style={styles.checkInCopy}>
-              <Text style={styles.checkInTitle}>{event.checked_in_at ? 'Checked in' : 'Ready to check in?'}</Text>
-              <Text style={styles.checkInSub}>
-                {event.checked_in_at ? `You checked in at ${formatTime(event.checked_in_at)}.` : 'Mark that you made it to this event.'}
-              </Text>
-            </View>
-            {event.checked_in_at ? (
-              <View style={styles.checkedChip}>
-                <Ionicons name="checkmark-circle" size={16} color={palette.accent} />
-                <Text style={styles.checkedChipText}>Done</Text>
+            <View style={styles.checkInCardRow}>
+              <View style={styles.checkInCopy}>
+                <Text style={styles.checkInTitle}>{event.checked_in_at ? 'Checked in' : 'Ready to check in?'}</Text>
+                <Text style={styles.checkInSub}>
+                  {event.checked_in_at ? `You checked in at ${formatTime(event.checked_in_at)}.` : 'Mark that you made it to this event.'}
+                </Text>
               </View>
-            ) : (
-              <Pressable style={[styles.checkInBtn, checkingIn && styles.disabledBtn]} onPress={checkIn} disabled={checkingIn}>
-                {checkingIn ? (
-                  <ActivityIndicator size="small" color="#041109" />
-                ) : (
-                  <Text style={styles.checkInBtnText}>Check in</Text>
-                )}
+              {event.checked_in_at ? (
+                <View style={styles.checkedChip}>
+                  <Ionicons name="checkmark-circle" size={16} color={palette.accent} />
+                  <Text style={styles.checkedChipText}>Done</Text>
+                </View>
+              ) : (
+                <Pressable style={[styles.checkInBtn, checkingIn && styles.disabledBtn]} onPress={checkIn} disabled={checkingIn}>
+                  {checkingIn ? (
+                    <ActivityIndicator size="small" color="#041109" />
+                  ) : (
+                    <Text style={styles.checkInBtnText}>Check in</Text>
+                  )}
+                </Pressable>
+              )}
+            </View>
+            {event.checked_in_at && event.location.lat != null && event.location.lng != null && (
+              <Pressable
+                style={styles.notifyJoinRow}
+                onPress={() => (event.live_sharing_enabled ? stopLiveLocationSharing() : setShowLocationConsentModal(true))}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.notifyJoinLabel}>Sharing location</Text>
+                  <Text style={styles.notifyJoinSub}>Let other checked-in participants see you live on the map.</Text>
+                </View>
+                <View style={[styles.toggle, event.live_sharing_enabled && styles.toggleOn]}>
+                  <View style={[styles.toggleThumb, event.live_sharing_enabled && styles.toggleThumbOn]} />
+                </View>
               </Pressable>
             )}
           </View>
@@ -1616,6 +1739,109 @@ export default function EventDetailScreen() {
               subtitle="Every coffee or beer helps keep this app running and improving."
               onPurchased={() => setShowSupportModal(false)}
             />
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      <Modal visible={showLocationConsentModal} transparent animationType="slide" onRequestClose={() => setShowLocationConsentModal(false)}>
+        <Pressable style={styles.modalBackdrop} onPress={() => setShowLocationConsentModal(false)}>
+          <Pressable style={styles.reminderModal} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.modalHeader}>
+              <View style={styles.modalIcon}>
+                <Ionicons name="navigate-outline" size={22} color={palette.accent} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.modalTitle}>Share your live location?</Text>
+                <Text style={styles.modalSubtitle}>
+                  See everyone on the map during this event — works even while your phone is locked or in your pocket.
+                </Text>
+              </View>
+              <Pressable style={styles.modalClose} onPress={() => setShowLocationConsentModal(false)}>
+                <Ionicons name="close" size={20} color={palette.textMuted} />
+              </Pressable>
+            </View>
+            <View style={styles.modalActions}>
+              <Pressable style={styles.modalSecondary} onPress={() => setShowLocationConsentModal(false)}>
+                <Text style={styles.modalSecondaryText}>Not now</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.modalPrimary, startingLiveTracking && styles.disabledBtn]}
+                onPress={beginLiveLocationSharing}
+                disabled={startingLiveTracking}
+              >
+                {startingLiveTracking ? (
+                  <ActivityIndicator size="small" color="#041109" />
+                ) : (
+                  <Text style={styles.modalPrimaryText}>Share location</Text>
+                )}
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      <Modal visible={showBatteryOptModal} transparent animationType="fade" onRequestClose={() => setShowBatteryOptModal(false)}>
+        <Pressable style={styles.modalBackdrop} onPress={() => setShowBatteryOptModal(false)}>
+          <Pressable style={styles.reminderModal} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.modalHeader}>
+              <View style={styles.modalIcon}>
+                <Ionicons name="battery-charging-outline" size={22} color={palette.accent} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.modalTitle}>Keep tracking reliable</Text>
+                <Text style={styles.modalSubtitle}>
+                  Some Android phones pause apps in the background to save battery. Exempt FitMeet so your location keeps updating for the group.
+                </Text>
+              </View>
+              <Pressable style={styles.modalClose} onPress={() => setShowBatteryOptModal(false)}>
+                <Ionicons name="close" size={20} color={palette.textMuted} />
+              </Pressable>
+            </View>
+            <View style={styles.modalActions}>
+              <Pressable style={styles.modalSecondary} onPress={() => setShowBatteryOptModal(false)}>
+                <Text style={styles.modalSecondaryText}>Skip</Text>
+              </Pressable>
+              <Pressable
+                style={styles.modalPrimary}
+                onPress={() => {
+                  openAndroidBatteryOptimizationSettings()
+                  setShowBatteryOptModal(false)
+                }}
+              >
+                <Text style={styles.modalPrimaryText}>Open settings</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      <Modal visible={!!clusterListParticipants} transparent animationType="fade" onRequestClose={() => setClusterListParticipants(null)}>
+        <Pressable style={styles.modalBackdrop} onPress={() => setClusterListParticipants(null)}>
+          <Pressable style={styles.reminderModal} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.modalHeader}>
+              <View style={styles.modalIcon}>
+                <Ionicons name="people-outline" size={22} color={palette.accent} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.modalTitle}>{clusterListParticipants?.length ?? 0} people here</Text>
+              </View>
+              <Pressable style={styles.modalClose} onPress={() => setClusterListParticipants(null)}>
+                <Ionicons name="close" size={20} color={palette.textMuted} />
+              </Pressable>
+            </View>
+            <View style={styles.participantList}>
+              {clusterListParticipants?.map((p) => (
+                <Pressable key={p.id} style={styles.participantRow} onPress={() => router.push(`/user/${p.id}` as never)}>
+                  <Avatar user={p} size={34} />
+                  <View style={styles.participantInfo}>
+                    <Text style={styles.participantName} numberOfLines={1}>{p.name}</Text>
+                    <Text style={styles.participantChecked}>
+                      {p.speed_kmh != null ? `${p.speed_kmh.toFixed(1)} km/h` : 'Live'}
+                    </Text>
+                  </View>
+                </Pressable>
+              ))}
+            </View>
           </Pressable>
         </Pressable>
       </Modal>
@@ -1957,6 +2183,9 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(57,255,20,0.28)',
     backgroundColor: 'rgba(57,255,20,0.07)',
     padding: spacing.md,
+    gap: 10,
+  },
+  checkInCardRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,

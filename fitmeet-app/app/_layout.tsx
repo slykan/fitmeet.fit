@@ -11,6 +11,8 @@ import { BadgeUnlockOverlay } from '@/src/components/BadgeUnlockOverlay'
 import { BeerTickerBanner, BEER_TICKER_HEIGHT } from '@/src/components/BeerTickerBanner'
 import { BirthdayOverlay } from '@/src/components/BirthdayOverlay'
 import { WorldCupOverlay } from '@/src/components/WorldCupOverlay'
+import { api } from '@/src/lib/api'
+import { getTrackedLiveLocationEventId, stopLiveLocationTracking } from '@/src/lib/live-location'
 import { setupPushNotificationRouting, syncPushToken } from '@/src/lib/push-notifications'
 import { setupRevenueCat } from '@/src/lib/revenuecat'
 import { useAuthStore } from '@/src/store/auth'
@@ -112,6 +114,23 @@ export default function RootLayout() {
 
     const cleanup = setupPushNotificationRouting()
     return cleanup
+  }, [hasHydrated, token])
+
+  // Orphaned live-location tracking from a previous session/crash — stop it if
+  // the tracked event is no longer live, so the foreground-service notification
+  // doesn't get stuck forever.
+  useEffect(() => {
+    if (!hasHydrated || !token) return
+
+    getTrackedLiveLocationEventId().then((eventId) => {
+      if (!eventId) return
+      api.get(`/events/${eventId}`)
+        .then(({ data }) => {
+          const stillLive = data.data?.is_joined && data.data?.checked_in_at && data.data?.is_in_progress && data.data?.live_sharing_enabled
+          if (!stillLive) stopLiveLocationTracking(eventId)
+        })
+        .catch(() => stopLiveLocationTracking(eventId))
+    })
   }, [hasHydrated, token])
 
   useEffect(() => {

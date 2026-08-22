@@ -176,6 +176,9 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\EnsureNotBanned::class])
     Route::post('events/{event}/remind', [EventController::class, 'setReminders']);
     Route::post('events/{event}/join-notifications', [EventController::class, 'setJoinNotifications']);
     Route::post('events/{event}/check-in', [EventController::class, 'checkIn']);
+    Route::post('events/{event}/location-sharing', [EventController::class, 'setLocationSharing']);
+    Route::post('events/{event}/location', [EventController::class, 'updateLocation']);
+    Route::get('events/{event}/live-positions', [EventController::class, 'livePositions']);
     Route::post('events/{event}/moment', [EventController::class, 'storeMoment']);
     Route::apiResource('events', EventController::class);
 

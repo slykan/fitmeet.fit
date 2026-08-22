@@ -610,6 +610,129 @@ HTML;
         ]);
     }
 
+    // POST /api/events/{event}/location-sharing
+    public function setLocationSharing(Request $request, Event $event): JsonResponse
+    {
+        $user = $request->user();
+
+        $data = $request->validate([
+            'enabled' => 'required|boolean',
+        ]);
+
+        $participant = \DB::table('event_participants')
+            ->where('event_id', $event->id)
+            ->where('user_id', $user->id)
+            ->where('status', 'joined')
+            ->first();
+
+        if (! $participant) {
+            return response()->json(['message' => 'You are not a participant of this event.'], 422);
+        }
+
+        $update = ['live_sharing_enabled' => $data['enabled']];
+
+        if (! $data['enabled']) {
+            $update['live_lat'] = null;
+            $update['live_lng'] = null;
+            $update['live_speed_kmh'] = null;
+            $update['live_updated_at'] = null;
+        }
+
+        \DB::table('event_participants')
+            ->where('event_id', $event->id)
+            ->where('user_id', $user->id)
+            ->update($update);
+
+        return response()->json(['live_sharing_enabled' => $data['enabled']]);
+    }
+
+    // POST /api/events/{event}/location
+    public function updateLocation(Request $request, Event $event): JsonResponse
+    {
+        $user = $request->user();
+
+        $data = $request->validate([
+            'lat' => 'required|numeric|between:-90,90',
+            'lng' => 'required|numeric|between:-180,180',
+            'speed_kmh' => 'nullable|numeric|min:0|max:150',
+        ]);
+
+        $participant = \DB::table('event_participants')
+            ->where('event_id', $event->id)
+            ->where('user_id', $user->id)
+            ->where('status', 'joined')
+            ->first();
+
+        if (! $participant) {
+            return response()->json(['message' => 'You are not a participant of this event.'], 422);
+        }
+
+        if (! $participant->checked_in_at) {
+            return response()->json(['message' => 'Check in before sharing your location.'], 422);
+        }
+
+        if (! $participant->live_sharing_enabled) {
+            return response()->json(['message' => 'Location sharing is not enabled.'], 422);
+        }
+
+        $windowStart = $event->start_at;
+        $windowEnd = $windowStart->copy()->addMinutes($event->duration_minutes ?? 60)->addMinutes(10);
+
+        if ($event->status !== 'active' || now()->lt($windowStart) || now()->gt($windowEnd)) {
+            return response()->json(['message' => 'This event is not currently live.'], 422);
+        }
+
+        \DB::table('event_participants')
+            ->where('event_id', $event->id)
+            ->where('user_id', $user->id)
+            ->update([
+                'live_lat' => $data['lat'],
+                'live_lng' => $data['lng'],
+                'live_speed_kmh' => $data['speed_kmh'] ?? null,
+                'live_updated_at' => now(),
+            ]);
+
+        return response()->json(['updated_at' => now()->toIso8601String()]);
+    }
+
+    // GET /api/events/{event}/live-positions
+    public function livePositions(Request $request, Event $event): JsonResponse
+    {
+        $user = $request->user();
+
+        $isParticipant = \DB::table('event_participants')
+            ->where('event_id', $event->id)
+            ->where('user_id', $user->id)
+            ->where('status', 'joined')
+            ->exists();
+
+        if (! $isParticipant && ! $event->isOrganizer($user)) {
+            return response()->json(['message' => 'You are not a participant of this event.'], 422);
+        }
+
+        if ($event->status !== 'active') {
+            return response()->json(['data' => []]);
+        }
+
+        $positions = $event->participants()
+            ->wherePivot('live_sharing_enabled', true)
+            ->wherePivotNotNull('live_updated_at')
+            ->wherePivot('live_updated_at', '>=', now()->subMinutes(3))
+            ->get()
+            ->map(fn ($p) => [
+                'id' => $p->id,
+                'name' => $p->name,
+                'avatar' => $p->avatar,
+                'lat' => $p->pivot->live_lat,
+                'lng' => $p->pivot->live_lng,
+                'speed_kmh' => $p->pivot->live_speed_kmh,
+                'updated_at' => \Illuminate\Support\Carbon::parse($p->pivot->live_updated_at)->toIso8601String(),
+            ])
+            ->values();
+
+        return response()->json(['data' => $positions]);
+    }
+
     // POST /api/events/{event}/leave
     public function leave(Request $request, Event $event): JsonResponse
     {
