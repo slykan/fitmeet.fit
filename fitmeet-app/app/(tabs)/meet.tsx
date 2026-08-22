@@ -200,16 +200,16 @@ function buildTrainingDetails(t: TrainingItem): TrainingDetailStat[] {
   const avgSpeed = formatTrainingSpeed(t.avg_speed_mps, t.category.value)
   const maxSpeed = formatTrainingSpeed(t.max_speed_mps, t.category.value)
   const details: (TrainingDetailStat | false)[] = [
-    t.avg_heartrate != null && { icon: 'heart-outline', label: 'Avg heart rate', value: `${Math.round(t.avg_heartrate)} bpm` },
-    t.max_heartrate != null && { icon: 'heart-outline', label: 'Max heart rate', value: `${Math.round(t.max_heartrate)} bpm` },
+    t.avg_heartrate != null && { icon: 'heart-outline', label: 'Avg HR', value: `${Math.round(t.avg_heartrate)} bpm` },
+    t.max_heartrate != null && { icon: 'heart-outline', label: 'Max HR', value: `${Math.round(t.max_heartrate)} bpm` },
     t.avg_watts != null && { icon: 'flash-outline', label: 'Avg power', value: `${Math.round(t.avg_watts)} W` },
     t.max_watts != null && { icon: 'flash-outline', label: 'Max power', value: `${Math.round(t.max_watts)} W` },
-    t.avg_cadence != null && { icon: 'speedometer-outline', label: 'Cadence', value: `${Math.round(t.avg_cadence)} rpm` },
-    t.calories != null && { icon: 'flame-outline', label: 'Calories', value: `${Math.round(t.calories)} kcal` },
+    t.avg_cadence != null && { icon: 'speedometer-outline', label: 'Cad.', value: `${Math.round(t.avg_cadence)} rpm` },
+    t.calories != null && { icon: 'flame-outline', label: 'Cal.', value: `${Math.round(t.calories)} kcal` },
     avgSpeed != null && { icon: 'trending-up-outline', label: 'Avg speed', value: avgSpeed },
     maxSpeed != null && { icon: 'trending-up-outline', label: 'Max speed', value: maxSpeed },
     t.kilojoules != null && { icon: 'flash-outline', label: 'Energy', value: `${Math.round(t.kilojoules)} kJ` },
-    t.suffer_score != null && { icon: 'pulse-outline', label: 'Relative effort', value: `${Math.round(t.suffer_score)}` },
+    t.suffer_score != null && { icon: 'pulse-outline', label: 'Effort', value: `${Math.round(t.suffer_score)}` },
     t.gear_name != null && { icon: 'pricetag-outline', label: 'Gear', value: t.gear_name },
   ]
   return details.filter((d): d is TrainingDetailStat => d !== false)

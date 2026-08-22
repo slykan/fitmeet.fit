@@ -96,16 +96,16 @@ interface DetailStat {
 
 function buildDetails(t: TrainingItem): DetailStat[] {
   const details: (DetailStat | false)[] = [
-    t.avg_heartrate != null && { icon: <HeartPulse size={13} />, label: 'Avg heart rate', value: `${Math.round(t.avg_heartrate)} bpm` },
-    t.max_heartrate != null && { icon: <HeartPulse size={13} />, label: 'Max heart rate', value: `${Math.round(t.max_heartrate)} bpm` },
+    t.avg_heartrate != null && { icon: <HeartPulse size={13} />, label: 'Avg HR', value: `${Math.round(t.avg_heartrate)} bpm` },
+    t.max_heartrate != null && { icon: <HeartPulse size={13} />, label: 'Max HR', value: `${Math.round(t.max_heartrate)} bpm` },
     t.avg_watts != null && { icon: <Zap size={13} />, label: 'Avg power', value: `${Math.round(t.avg_watts)} W` },
     t.max_watts != null && { icon: <Zap size={13} />, label: 'Max power', value: `${Math.round(t.max_watts)} W` },
-    t.avg_cadence != null && { icon: <Gauge size={13} />, label: 'Cadence', value: `${Math.round(t.avg_cadence)} rpm` },
-    t.calories != null && { icon: <Flame size={13} />, label: 'Calories', value: `${Math.round(t.calories)} kcal` },
+    t.avg_cadence != null && { icon: <Gauge size={13} />, label: 'Cad.', value: `${Math.round(t.avg_cadence)} rpm` },
+    t.calories != null && { icon: <Flame size={13} />, label: 'Cal.', value: `${Math.round(t.calories)} kcal` },
     formatSpeed(t.avg_speed_mps, t.category.value) != null && { icon: <Wind size={13} />, label: 'Avg speed', value: formatSpeed(t.avg_speed_mps, t.category.value)! },
     formatSpeed(t.max_speed_mps, t.category.value) != null && { icon: <Wind size={13} />, label: 'Max speed', value: formatSpeed(t.max_speed_mps, t.category.value)! },
     t.kilojoules != null && { icon: <Zap size={13} />, label: 'Energy', value: `${Math.round(t.kilojoules)} kJ` },
-    t.suffer_score != null && { icon: <Activity size={13} />, label: 'Relative effort', value: `${Math.round(t.suffer_score)}` },
+    t.suffer_score != null && { icon: <Activity size={13} />, label: 'Effort', value: `${Math.round(t.suffer_score)}` },
     t.gear_name != null && { icon: <Tag size={13} />, label: 'Gear', value: t.gear_name },
   ]
   return details.filter((d): d is DetailStat => d !== false)
