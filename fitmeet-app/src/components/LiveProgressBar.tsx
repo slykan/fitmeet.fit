@@ -1,3 +1,4 @@
+import { LinearGradient } from 'expo-linear-gradient'
 import { useMemo } from 'react'
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native'
 
@@ -78,9 +79,17 @@ export function LiveProgressBar({ track, participants, onGroupTap }: Props) {
 
   if (track.length < 2 || groups.length === 0) return null
 
+  const leadProgress = Math.min(100, Math.max(0, Math.max(...groups.map((g) => g.progress)) * 100))
+
   return (
     <View style={styles.wrap}>
       <View style={styles.track}>
+        <LinearGradient
+          colors={['rgba(57,255,20,0.15)', palette.accent]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={[styles.fill, { width: `${leadProgress}%` }]}
+        />
         {groups.map((group) => (
           <Pressable
             key={group.participants.map((p) => p.id).join('-')}
@@ -113,9 +122,17 @@ const styles = StyleSheet.create({
     height: 28,
     borderRadius: 999,
     backgroundColor: palette.panel,
-    borderWidth: 1,
-    borderColor: palette.line,
+    borderWidth: 1.5,
+    borderColor: palette.accent,
     justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  fill: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    borderRadius: 999,
   },
   bubble: {
     position: 'absolute',

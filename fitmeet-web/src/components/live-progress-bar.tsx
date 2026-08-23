@@ -75,6 +75,8 @@ export function LiveProgressBar({ track, participants, onGroupTap }: Props) {
 
   if (track.length < 2 || groups.length === 0) return null
 
+  const leadProgress = Math.min(100, Math.max(0, Math.max(...groups.map((g) => g.progress)) * 100))
+
   return (
     <div style={{ padding: '10px 4px 0' }}>
       <div
@@ -83,9 +85,21 @@ export function LiveProgressBar({ track, participants, onGroupTap }: Props) {
           height: 28,
           borderRadius: 999,
           background: 'var(--surface)',
-          border: '1px solid var(--border)',
+          border: '1.5px solid var(--primary)',
+          overflow: 'hidden',
         }}
       >
+        <div
+          style={{
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            bottom: 0,
+            width: `${leadProgress}%`,
+            borderRadius: 999,
+            background: 'linear-gradient(90deg, rgba(57,255,20,0.15), var(--primary))',
+          }}
+        />
         {groups.map((group) => (
           <button
             key={group.participants.map((p) => p.id).join('-')}
