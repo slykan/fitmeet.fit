@@ -668,8 +668,11 @@ export default function EventDetailScreen() {
   }, [event?.notify_on_join, event?.is_joined])
 
   // Poll live positions of checked-in, sharing participants while the event is running.
+  // Route-gated: without a GPX route, "stopped" detection would misfire constantly
+  // for stationary activities (yoga, gym meetups, etc.), so live tracking only
+  // activates for events that have an imported route.
   useEffect(() => {
-    if (!event?.id || !event.is_joined || !event.checked_in_at || !event.is_in_progress) {
+    if (!event?.id || !event.is_joined || !event.checked_in_at || !event.is_in_progress || !event.activity.gpx_url) {
       setLivePositions([])
       stoppedTrackerRef.current.clear()
       lastApplauseRef.current = null
@@ -702,7 +705,7 @@ export default function EventDetailScreen() {
       clearInterval(intervalId)
       subscription.remove()
     }
-  }, [event?.id, event?.is_joined, event?.checked_in_at, event?.is_in_progress])
+  }, [event?.id, event?.is_joined, event?.checked_in_at, event?.is_in_progress, event?.activity.gpx_url])
 
   // Foreground-only fallback: if background location permission was denied,
   // keep posting our own position while this screen is open and sharing is on.
@@ -858,7 +861,7 @@ export default function EventDetailScreen() {
         nextEvent = fresh.data.data
       }
       setEvent(nextEvent)
-      if (nextEvent.location.lat != null && nextEvent.location.lng != null && !nextEvent.live_sharing_enabled) {
+      if (nextEvent.activity.gpx_url != null && !nextEvent.live_sharing_enabled) {
         setShowLocationConsentModal(true)
       }
     } catch (e: unknown) {
@@ -1653,7 +1656,7 @@ export default function EventDetailScreen() {
                 </Pressable>
               )}
             </View>
-            {event.checked_in_at && event.location.lat != null && event.location.lng != null && (
+            {event.checked_in_at && event.activity.gpx_url != null && (
               <Pressable
                 style={styles.notifyJoinRow}
                 onPress={() => (event.live_sharing_enabled ? stopLiveLocationSharing() : setShowLocationConsentModal(true))}

@@ -432,8 +432,11 @@ function EventContent() {
     return () => window.clearInterval(interval)
   }, [])
 
+  // Route-gated: without a GPX route, "stopped" detection would misfire for
+  // stationary activities (yoga, gym meetups, etc.), so live tracking only
+  // activates for events that have an imported route.
   useEffect(() => {
-    if (!event?.id || !event.is_in_progress) {
+    if (!event?.id || !event.is_in_progress || !event.activity.gpx_url) {
       setLivePositions([])
       stoppedTrackerRef.current.clear()
       lastApplauseRef.current = null
@@ -462,7 +465,7 @@ function EventContent() {
       cancelled = true
       window.clearInterval(interval)
     }
-  }, [event?.id, event?.is_in_progress, event?.checked_in_at])
+  }, [event?.id, event?.is_in_progress, event?.checked_in_at, event?.activity.gpx_url])
 
   async function handleJoin() {
     if (!event) return
