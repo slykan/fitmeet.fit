@@ -71,28 +71,47 @@ function initialFor(name: string) {
   return (name || '?').charAt(0).toUpperCase()
 }
 
+// Icons are cached by content key so an unchanged participant (same avatar,
+// speed rounded to the nearest km/h) gets the exact same L.divIcon instance
+// back across polls — otherwise every poll tick creates a brand-new icon,
+// forcing Leaflet to tear down and rebuild the marker's DOM (setIcon), which
+// visibly flashes empty/black for a frame before the background-image repaints.
+const participantIconCache = new Map<string, L.DivIcon>()
+const clusterIconCache = new Map<number, L.DivIcon>()
+
 function participantIcon(p: LiveParticipant) {
+  const speedKey = p.speed_kmh != null ? Math.round(p.speed_kmh) : 'x'
+  const key = `${p.id}|${p.avatar ?? ''}|${speedKey}`
+  const cached = participantIconCache.get(key)
+  if (cached) return cached
+
   const avatarHtml = p.avatar
     ? `<div style="width:32px;height:32px;border-radius:999px;background-image:url('${p.avatar}');background-size:cover;background-position:center;border:2px solid #39ff14;box-shadow:0 2px 6px rgba(0,0,0,0.5);"></div>`
     : `<div style="width:32px;height:32px;border-radius:999px;background:#0b1120;border:2px solid #39ff14;display:flex;align-items:center;justify-content:center;color:#eafff0;font-weight:800;font-size:12px;box-shadow:0 2px 6px rgba(0,0,0,0.5);">${initialFor(p.name)}</div>`
   const speedHtml = p.speed_kmh != null
     ? `<div style="margin-top:2px;background:#0b1120;border:1px solid rgba(57,255,20,0.5);color:#eafff0;font-size:9px;font-weight:700;padding:1px 5px;border-radius:999px;white-space:nowrap;">${p.speed_kmh.toFixed(1)} km/h</div>`
     : ''
-  return L.divIcon({
+  const icon = L.divIcon({
     className: 'fm-participant-marker',
     html: `<div style="display:flex;flex-direction:column;align-items:center;">${avatarHtml}${speedHtml}</div>`,
     iconSize: [60, 50],
     iconAnchor: [30, 25],
   })
+  participantIconCache.set(key, icon)
+  return icon
 }
 
 function clusterIcon(count: number) {
-  return L.divIcon({
+  const cached = clusterIconCache.get(count)
+  if (cached) return cached
+  const icon = L.divIcon({
     className: 'fm-cluster-marker',
     html: `<div style="width:34px;height:34px;border-radius:999px;background:#39ff14;color:#041109;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,0.5);border:2px solid #0b1120;">${count}</div>`,
     iconSize: [34, 34],
     iconAnchor: [17, 17],
   })
+  clusterIconCache.set(count, icon)
+  return icon
 }
 
 // Hand-rolled greedy pixel-distance clustering (not a Leaflet plugin — this

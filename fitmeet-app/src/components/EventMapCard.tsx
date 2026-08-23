@@ -508,7 +508,8 @@ function buildHtml(
     // and plenty cheap here — unlike the play-animation head marker (30x/sec),
     // this doesn't need the create-once/setLatLng optimization.
     let currentParticipants = [];
-    let participantMarkers = [];
+    let participantMarkers = {};
+    let clusterMarkers = {};
     function initialsFor(name) {
       return (name || '?').charAt(0).toUpperCase();
     }
@@ -521,21 +522,43 @@ function buildHtml(
         : '';
       return '<div style="display:flex;flex-direction:column;align-items:center;">' + avatarHtml + speedHtml + '</div>';
     }
+    // Icons are cached by content key so an unchanged participant (same avatar,
+    // speed rounded to the nearest km/h) gets the same L.divIcon instance back
+    // across polls — otherwise setIcon() tears down and rebuilds the marker's
+    // DOM every tick, flashing empty/black for a frame before it repaints.
+    var participantIconCache = {};
+    var clusterIconCache = {};
     function participantDivIcon(p) {
-      return L.divIcon({ className:'fm-participant-marker', html: participantIconHtml(p), iconSize:[60,50], iconAnchor:[30,25] });
+      var speedKey = p.speed_kmh != null ? Math.round(p.speed_kmh) : 'x';
+      var key = p.id + '|' + (p.avatar || '') + '|' + speedKey;
+      if (participantIconCache[key]) return participantIconCache[key];
+      var icon = L.divIcon({ className:'fm-participant-marker', html: participantIconHtml(p), iconSize:[60,50], iconAnchor:[30,25] });
+      participantIconCache[key] = icon;
+      return icon;
     }
     function clusterDivIcon(count) {
-      return L.divIcon({
+      if (clusterIconCache[count]) return clusterIconCache[count];
+      var icon = L.divIcon({
         className:'fm-cluster-marker',
         html:'<div style="width:34px;height:34px;border-radius:999px;background:#39ff14;color:#041109;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,0.5);border:2px solid #0b1120;">' + count + '</div>',
         iconSize:[34,34],
         iconAnchor:[17,17]
       });
+      clusterIconCache[count] = icon;
+      return icon;
     }
+    // Individual participant markers persist across updates (keyed by id) and
+    // are only moved/re-iconned, not destroyed and recreated — L.marker/L.divIcon
+    // churn on every ~12s poll was causing a visible black flash each tick.
+    // Cluster markers persist too, keyed by the sorted set of member ids.
     function recomputeParticipantDisplay() {
-      participantMarkers.forEach(function(m) { map.removeLayer(m); });
-      participantMarkers = [];
-      if (!currentParticipants.length) return;
+      if (!currentParticipants.length) {
+        Object.keys(participantMarkers).forEach(function(id) { map.removeLayer(participantMarkers[id]); });
+        participantMarkers = {};
+        Object.keys(clusterMarkers).forEach(function(key) { map.removeLayer(clusterMarkers[key]); });
+        clusterMarkers = {};
+        return;
+      }
 
       const pts = currentParticipants.map(function(p) {
         return { p: p, pt: map.latLngToContainerPoint([p.lat, p.lng]) };
@@ -558,20 +581,50 @@ function buildHtml(
         groups.push(group);
       }
 
+      const nextIds = {};
+      const nextClusterKeys = {};
+
       groups.forEach(function(group) {
         if (group.length === 1) {
           const p = group[0].p;
-          participantMarkers.push(L.marker([p.lat, p.lng], { icon: participantDivIcon(p) }).addTo(map));
+          nextIds[p.id] = true;
+          const iconKey = p.id + '|' + (p.avatar || '') + '|' + (p.speed_kmh != null ? Math.round(p.speed_kmh) : 'x');
+          const existing = participantMarkers[p.id];
+          if (existing) {
+            existing.setLatLng([p.lat, p.lng]);
+            if (existing._fmIconKey !== iconKey) {
+              existing.setIcon(participantDivIcon(p));
+              existing._fmIconKey = iconKey;
+            }
+          } else {
+            const marker = L.marker([p.lat, p.lng], { icon: participantDivIcon(p) }).addTo(map);
+            marker._fmIconKey = iconKey;
+            participantMarkers[p.id] = marker;
+          }
         } else {
+          const key = group.map(function(g) { return g.p.id; }).sort().join('-');
+          nextClusterKeys[key] = true;
           let sumLat = 0, sumLng = 0;
           group.forEach(function(g) { sumLat += g.p.lat; sumLng += g.p.lng; });
           const centroid = [sumLat / group.length, sumLng / group.length];
-          const marker = L.marker(centroid, { icon: clusterDivIcon(group.length) }).addTo(map);
-          marker.on('click', function() {
-            send('clusterTap', { participants: group.map(function(g) { return g.p; }) });
-          });
-          participantMarkers.push(marker);
+          const existing = clusterMarkers[key];
+          if (existing) {
+            existing.setLatLng(centroid);
+          } else {
+            const marker = L.marker(centroid, { icon: clusterDivIcon(group.length) }).addTo(map);
+            marker.on('click', function() {
+              send('clusterTap', { participants: group.map(function(g) { return g.p; }) });
+            });
+            clusterMarkers[key] = marker;
+          }
         }
+      });
+
+      Object.keys(participantMarkers).forEach(function(id) {
+        if (!nextIds[id]) { map.removeLayer(participantMarkers[id]); delete participantMarkers[id]; }
+      });
+      Object.keys(clusterMarkers).forEach(function(key) {
+        if (!nextClusterKeys[key]) { map.removeLayer(clusterMarkers[key]); delete clusterMarkers[key]; }
       });
     }
     function updateParticipants(participants) {
