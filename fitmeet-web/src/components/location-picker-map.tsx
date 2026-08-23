@@ -65,6 +65,8 @@ export interface LiveParticipant {
   lat: number
   lng: number
   speed_kmh: number | null
+  /** Hasn't moved meaningfully in ~60s — shown as a pulsing red ring (approximate safety cue, not a real incident detector). */
+  stopped?: boolean
 }
 
 function initialFor(name: string) {
@@ -81,13 +83,15 @@ const clusterIconCache = new Map<number, L.DivIcon>()
 
 function participantIcon(p: LiveParticipant) {
   const speedKey = p.speed_kmh != null ? Math.round(p.speed_kmh) : 'x'
-  const key = `${p.id}|${p.avatar ?? ''}|${speedKey}`
+  const key = `${p.id}|${p.avatar ?? ''}|${speedKey}|${p.stopped ? 1 : 0}`
   const cached = participantIconCache.get(key)
   if (cached) return cached
 
+  const ringClass = p.stopped ? ' fm-stopped-ring' : ''
+  const borderColor = p.stopped ? '#ff3b30' : '#39ff14'
   const avatarHtml = p.avatar
-    ? `<div style="width:32px;height:32px;border-radius:999px;background:#0b1120;background-image:url('${p.avatar}');background-size:cover;background-position:center;border:2px solid #39ff14;box-shadow:0 2px 6px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;color:#eafff0;font-weight:800;font-size:12px;">${initialFor(p.name)}</div>`
-    : `<div style="width:32px;height:32px;border-radius:999px;background:#0b1120;border:2px solid #39ff14;display:flex;align-items:center;justify-content:center;color:#eafff0;font-weight:800;font-size:12px;box-shadow:0 2px 6px rgba(0,0,0,0.5);">${initialFor(p.name)}</div>`
+    ? `<div class="${ringClass.trim()}" style="width:32px;height:32px;border-radius:999px;background:#0b1120;background-image:url('${p.avatar}');background-size:cover;background-position:center;border:2px solid ${borderColor};box-shadow:0 2px 6px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;color:#eafff0;font-weight:800;font-size:12px;">${initialFor(p.name)}</div>`
+    : `<div class="${ringClass.trim()}" style="width:32px;height:32px;border-radius:999px;background:#0b1120;border:2px solid ${borderColor};display:flex;align-items:center;justify-content:center;color:#eafff0;font-weight:800;font-size:12px;box-shadow:0 2px 6px rgba(0,0,0,0.5);">${initialFor(p.name)}</div>`
   const speedHtml = p.speed_kmh != null
     ? `<div style="margin-top:2px;background:#0b1120;border:1px solid rgba(57,255,20,0.5);color:#eafff0;font-size:9px;font-weight:700;padding:1px 5px;border-radius:999px;white-space:nowrap;">${p.speed_kmh.toFixed(1)} km/h</div>`
     : ''
@@ -924,6 +928,15 @@ export default function LocationPickerMap({
           <LiveParticipantsLayer participants={participants} onClusterTap={onClusterTap} />
         )}
       </MapContainer>
+      {readOnly && participants && participants.length > 0 && (
+        <style>{`
+          @keyframes fm-stopped-pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(255,59,48,0.9); }
+            50% { box-shadow: 0 0 0 7px rgba(255,59,48,0); }
+          }
+          .fm-stopped-ring { animation: fm-stopped-pulse 1.2s ease-in-out infinite; }
+        `}</style>
+      )}
       {readOnly && participants && participants.length > 0 && (
         <div
           style={{

@@ -16,6 +16,8 @@ export type LiveParticipant = {
   lat: number
   lng: number
   speed_kmh: number | null
+  /** Hasn't moved meaningfully in ~60s — shown as a pulsing red ring (approximate safety cue, not a real incident detector). */
+  stopped?: boolean
 }
 
 type Props = {
@@ -137,6 +139,11 @@ function buildHtml(
       background:radial-gradient(circle at 35% 30%, #ff9a8a 0%, #ff2d2d 55%, #8b0000 100%);
       box-shadow:0 1px 4px rgba(0,0,0,0.5), inset 0 -1px 2px rgba(0,0,0,0.35);
     }
+    @keyframes fmStoppedPulse{
+      0%,100%{box-shadow:0 0 0 0 rgba(255,59,48,0.9);}
+      50%{box-shadow:0 0 0 7px rgba(255,59,48,0);}
+    }
+    .fm-stopped-ring{animation:fmStoppedPulse 1.2s ease-in-out infinite;}
     ${WIND_CSS}
   </style>
 </head>
@@ -514,9 +521,10 @@ function buildHtml(
       return (name || '?').charAt(0).toUpperCase();
     }
     function participantIconHtml(p) {
+      const ringClass = p.stopped ? ' fm-stopped-ring' : '';
       const avatarHtml = p.avatar
-        ? '<div style="width:32px;height:32px;border-radius:999px;background:#0b1120;background-image:url(\\'' + p.avatar + '\\');background-size:cover;background-position:center;border:2px solid #39ff14;box-shadow:0 2px 6px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;color:#eafff0;font-weight:800;font-size:12px;">' + initialsFor(p.name) + '</div>'
-        : '<div style="width:32px;height:32px;border-radius:999px;background:#0b1120;border:2px solid #39ff14;display:flex;align-items:center;justify-content:center;color:#eafff0;font-weight:800;font-size:12px;box-shadow:0 2px 6px rgba(0,0,0,0.5);">' + initialsFor(p.name) + '</div>';
+        ? '<div class="' + ringClass.trim() + '" style="width:32px;height:32px;border-radius:999px;background:#0b1120;background-image:url(\\'' + p.avatar + '\\');background-size:cover;background-position:center;border:2px solid ' + (p.stopped ? '#ff3b30' : '#39ff14') + ';box-shadow:0 2px 6px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;color:#eafff0;font-weight:800;font-size:12px;">' + initialsFor(p.name) + '</div>'
+        : '<div class="' + ringClass.trim() + '" style="width:32px;height:32px;border-radius:999px;background:#0b1120;border:2px solid ' + (p.stopped ? '#ff3b30' : '#39ff14') + ';display:flex;align-items:center;justify-content:center;color:#eafff0;font-weight:800;font-size:12px;box-shadow:0 2px 6px rgba(0,0,0,0.5);">' + initialsFor(p.name) + '</div>';
       const speedHtml = p.speed_kmh != null
         ? '<div style="margin-top:2px;background:#0b1120;border:1px solid rgba(57,255,20,0.5);color:#eafff0;font-size:9px;font-weight:700;padding:1px 5px;border-radius:999px;white-space:nowrap;">' + p.speed_kmh.toFixed(1) + ' km/h</div>'
         : '';
@@ -530,7 +538,7 @@ function buildHtml(
     var clusterIconCache = {};
     function participantDivIcon(p) {
       var speedKey = p.speed_kmh != null ? Math.round(p.speed_kmh) : 'x';
-      var key = p.id + '|' + (p.avatar || '') + '|' + speedKey;
+      var key = p.id + '|' + (p.avatar || '') + '|' + speedKey + '|' + (p.stopped ? 1 : 0);
       if (participantIconCache[key]) return participantIconCache[key];
       var icon = L.divIcon({ className:'fm-participant-marker', html: participantIconHtml(p), iconSize:[60,50], iconAnchor:[30,25] });
       participantIconCache[key] = icon;
@@ -588,7 +596,7 @@ function buildHtml(
         if (group.length === 1) {
           const p = group[0].p;
           nextIds[p.id] = true;
-          const iconKey = p.id + '|' + (p.avatar || '') + '|' + (p.speed_kmh != null ? Math.round(p.speed_kmh) : 'x');
+          const iconKey = p.id + '|' + (p.avatar || '') + '|' + (p.speed_kmh != null ? Math.round(p.speed_kmh) : 'x') + '|' + (p.stopped ? 1 : 0);
           const existing = participantMarkers[p.id];
           if (existing) {
             existing.setLatLng([p.lat, p.lng]);
