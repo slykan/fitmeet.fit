@@ -86,7 +86,7 @@ function participantIcon(p: LiveParticipant) {
   if (cached) return cached
 
   const avatarHtml = p.avatar
-    ? `<div style="width:32px;height:32px;border-radius:999px;background-image:url('${p.avatar}');background-size:cover;background-position:center;border:2px solid #39ff14;box-shadow:0 2px 6px rgba(0,0,0,0.5);"></div>`
+    ? `<div style="width:32px;height:32px;border-radius:999px;background:#0b1120;background-image:url('${p.avatar}');background-size:cover;background-position:center;border:2px solid #39ff14;box-shadow:0 2px 6px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;color:#eafff0;font-weight:800;font-size:12px;">${initialFor(p.name)}</div>`
     : `<div style="width:32px;height:32px;border-radius:999px;background:#0b1120;border:2px solid #39ff14;display:flex;align-items:center;justify-content:center;color:#eafff0;font-weight:800;font-size:12px;box-shadow:0 2px 6px rgba(0,0,0,0.5);">${initialFor(p.name)}</div>`
   const speedHtml = p.speed_kmh != null
     ? `<div style="margin-top:2px;background:#0b1120;border:1px solid rgba(57,255,20,0.5);color:#eafff0;font-size:9px;font-weight:700;padding:1px 5px;border-radius:999px;white-space:nowrap;">${p.speed_kmh.toFixed(1)} km/h</div>`
