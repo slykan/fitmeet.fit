@@ -320,6 +320,8 @@ interface Props {
   viewersCount?: number
   /** When provided, shows a tappable applause button that broadcasts a sound to everyone checked in. */
   onApplausePress?: () => void
+  /** Once true, the applause button shows as already used (one clap per viewer per event). */
+  hasApplauded?: boolean
 }
 
 const LIGHTNING_POSITIONS = [
@@ -767,6 +769,7 @@ export default function LocationPickerMap({
   onClusterTap,
   viewersCount = 0,
   onApplausePress,
+  hasApplauded = false,
 }: Props) {
   const hasPin      = lat != null && lng != null
   const allCoords   = useMemo(
@@ -992,7 +995,8 @@ export default function LocationPickerMap({
           {onApplausePress && (
             <button
               type="button"
-              onClick={onApplausePress}
+              onClick={hasApplauded ? undefined : onApplausePress}
+              disabled={hasApplauded}
               style={{
                 width: 30,
                 height: 30,
@@ -1002,9 +1006,10 @@ export default function LocationPickerMap({
                 justifyContent: 'center',
                 border: '1px solid rgba(255,255,255,0.12)',
                 background: 'rgba(7,13,28,0.9)',
-                cursor: 'pointer',
+                cursor: hasApplauded ? 'default' : 'pointer',
                 fontSize: 14,
                 padding: 0,
+                opacity: hasApplauded ? 0.4 : 1,
               }}
             >
               👏

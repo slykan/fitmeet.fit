@@ -36,6 +36,8 @@ type Props = {
   viewersCount?: number
   /** When provided, shows a tappable applause button that broadcasts a sound to everyone checked in. */
   onApplausePress?: () => void
+  /** Once true, the applause button shows as already used (one clap per viewer per event). */
+  hasApplauded?: boolean
   /** 0..1 reveal fraction while the route "play" animation runs. Omit/null for the normal, fully-drawn route. */
   playProgress?: number | null
   /** Shows a "X km" badge above the play-animation head marker while a distance milestone is being announced. */
@@ -787,7 +789,7 @@ function LiveBadge() {
   )
 }
 
-export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegments, elevationSegments, surfaceSegments, participants, onClusterTap, viewersCount = 0, onApplausePress, playProgress = null, playMilestone = null, playState, onPlayToggle, playSpeed, onSpeedToggle, onMapEnabledChange, loading }: Props) {
+export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegments, elevationSegments, surfaceSegments, participants, onClusterTap, viewersCount = 0, onApplausePress, hasApplauded = false, playProgress = null, playMilestone = null, playState, onPlayToggle, playSpeed, onSpeedToggle, onMapEnabledChange, loading }: Props) {
   const webViewRef = useRef<WebViewType>(null)
   const [weather, setWeather] = useState<CurrentWeather | null>(null)
   const [center, setCenter] = useState({ lat, lng })
@@ -948,8 +950,12 @@ export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegment
                 </View>
               )}
               {onApplausePress && (
-                <Pressable style={styles.applauseBtn} onPress={onApplausePress} hitSlop={6}>
-                  <Text style={styles.applauseBtnText}>👏</Text>
+                <Pressable
+                  style={[styles.applauseBtn, hasApplauded && styles.applauseBtnUsed]}
+                  onPress={hasApplauded ? undefined : onApplausePress}
+                  hitSlop={6}
+                >
+                  <Text style={[styles.applauseBtnText, hasApplauded && styles.applauseBtnTextUsed]}>👏</Text>
                 </Pressable>
               )}
             </>
@@ -1178,6 +1184,12 @@ const styles = StyleSheet.create({
   },
   applauseBtnText: {
     fontSize: 14,
+  },
+  applauseBtnUsed: {
+    opacity: 0.4,
+  },
+  applauseBtnTextUsed: {
+    opacity: 0.7,
   },
   layerModeBtn: {
     borderRadius: 999,
