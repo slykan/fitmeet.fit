@@ -23,7 +23,7 @@ import { api } from '@/src/lib/api'
 import { enrichGpxWithElevation, fetchElevationProfile, parseGpxTextAsync } from '@/src/lib/gpx'
 import type { TrackSegment } from '@/src/lib/gpx'
 import { analyzeRouteSurface, type SurfaceAnalysis } from '@/src/lib/route-surface'
-import { playRandomActionSound } from '@/src/lib/action-sounds'
+import { playApplauseSound, playRandomActionSound } from '@/src/lib/action-sounds'
 import { reportContent } from '@/src/lib/moderation'
 import {
   openAndroidBatteryOptimizationSettings,
@@ -370,6 +370,8 @@ export default function EventDetailScreen() {
   const [livePositions, setLivePositions] = useState<LiveParticipant[]>([])
   const stoppedTrackerRef = useRef<Map<number, { lat: number; lng: number; movedAt: number }>>(new Map())
   const [clusterListParticipants, setClusterListParticipants] = useState<LiveParticipant[] | null>(null)
+  const [viewersCount, setViewersCount] = useState(0)
+  const lastApplauseRef = useRef<string | null>(null)
   const joinedJustNow = useRef(false)
   const checkInPromptShown = useRef(false)
   const [notifyOnJoin, setNotifyOnJoin] = useState(false)
@@ -670,13 +672,24 @@ export default function EventDetailScreen() {
     if (!event?.id || !event.is_joined || !event.checked_in_at || !event.is_in_progress) {
       setLivePositions([])
       stoppedTrackerRef.current.clear()
+      lastApplauseRef.current = null
       return
     }
     let cancelled = false
     const eventId = event.id
     const fetchPositions = () => {
       api.get(`/events/${eventId}/live-positions`)
-        .then(({ data }) => { if (!cancelled) setLivePositions(applyStoppedFlags(data.data ?? [], stoppedTrackerRef.current)) })
+        .then(({ data }) => {
+          if (cancelled) return
+          setLivePositions(applyStoppedFlags(data.data ?? [], stoppedTrackerRef.current))
+          setViewersCount(data.viewers_count ?? 0)
+          const applauseAt: string | null = data.last_applause_at ?? null
+          if (applauseAt && applauseAt !== lastApplauseRef.current) {
+            const isFirstLoad = lastApplauseRef.current === null
+            lastApplauseRef.current = applauseAt
+            if (!isFirstLoad) playApplauseSound().catch(() => {})
+          }
+        })
         .catch(() => {})
     }
     fetchPositions()
@@ -881,6 +894,15 @@ export default function EventDetailScreen() {
     if (!event) return
     setEvent((prev) => (prev ? { ...prev, live_sharing_enabled: false } : prev))
     await stopLiveLocationTracking(event.id)
+  }
+
+  async function sendApplause() {
+    if (!event) return
+    playApplauseSound().catch(() => {})
+    try {
+      const { data } = await api.post(`/events/${event.id}/applause`)
+      if (data.last_applause_at) lastApplauseRef.current = data.last_applause_at
+    } catch {}
   }
 
   function toggleReminder(offset: ReminderOffset) {
@@ -1325,6 +1347,8 @@ export default function EventDetailScreen() {
             surfaceSegments={surfaceAnalysis?.segments}
             participants={livePositions}
             onClusterTap={setClusterListParticipants}
+            viewersCount={viewersCount}
+            onApplausePress={event.checked_in_at ? sendApplause : undefined}
             playProgress={isAnimating ? playProgress : null}
             playMilestone={isAnimating ? playMilestone : null}
             playState={gpxTrack.length >= 2 ? playState : undefined}

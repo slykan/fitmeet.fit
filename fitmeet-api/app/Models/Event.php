@@ -50,6 +50,7 @@ class Event extends Model
     {
         return [
             'start_at'         => 'datetime',
+            'last_applause_at' => 'datetime',
             'lat'              => 'float',
             'lng'              => 'float',
             'is_private'       => 'boolean',

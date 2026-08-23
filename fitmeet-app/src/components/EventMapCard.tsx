@@ -32,6 +32,10 @@ type Props = {
   participants?: LiveParticipant[]
   /** Fired when a clustered "N people" badge is tapped. */
   onClusterTap?: (participants: LiveParticipant[]) => void
+  /** Number of joined participants currently viewing this event's live map. */
+  viewersCount?: number
+  /** When provided, shows a tappable applause button that broadcasts a sound to everyone checked in. */
+  onApplausePress?: () => void
   /** 0..1 reveal fraction while the route "play" animation runs. Omit/null for the normal, fully-drawn route. */
   playProgress?: number | null
   /** Shows a "X km" badge above the play-animation head marker while a distance milestone is being announced. */
@@ -783,7 +787,7 @@ function LiveBadge() {
   )
 }
 
-export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegments, elevationSegments, surfaceSegments, participants, onClusterTap, playProgress = null, playMilestone = null, playState, onPlayToggle, playSpeed, onSpeedToggle, onMapEnabledChange, loading }: Props) {
+export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegments, elevationSegments, surfaceSegments, participants, onClusterTap, viewersCount = 0, onApplausePress, playProgress = null, playMilestone = null, playState, onPlayToggle, playSpeed, onSpeedToggle, onMapEnabledChange, loading }: Props) {
   const webViewRef = useRef<WebViewType>(null)
   const [weather, setWeather] = useState<CurrentWeather | null>(null)
   const [center, setCenter] = useState({ lat, lng })
@@ -934,7 +938,22 @@ export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegment
               {mapEnabled ? 'Done' : 'Move map'}
             </Text>
           </Pressable>
-          {(participants?.length ?? 0) > 0 && <LiveBadge />}
+          {((participants?.length ?? 0) > 0 || viewersCount > 0) && (
+            <>
+              <LiveBadge />
+              {viewersCount > 0 && (
+                <View style={styles.viewersBadge}>
+                  <Ionicons name="eye-outline" size={13} color={palette.text} />
+                  <Text style={styles.viewersBadgeText}>{viewersCount}</Text>
+                </View>
+              )}
+              {onApplausePress && (
+                <Pressable style={styles.applauseBtn} onPress={onApplausePress} hitSlop={6}>
+                  <Text style={styles.applauseBtnText}>👏</Text>
+                </Pressable>
+              )}
+            </>
+          )}
         </View>
       </View>
       <View pointerEvents="box-none" style={styles.layerOverlay}>
@@ -1130,6 +1149,35 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 0.5,
+  },
+  viewersBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    backgroundColor: 'rgba(7,13,28,0.9)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+  },
+  viewersBadgeText: {
+    color: palette.text,
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  applauseBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(7,13,28,0.9)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+  },
+  applauseBtnText: {
+    fontSize: 14,
   },
   layerModeBtn: {
     borderRadius: 999,

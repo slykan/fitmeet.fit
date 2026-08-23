@@ -710,8 +710,21 @@ HTML;
             return response()->json(['message' => 'You are not a participant of this event.'], 422);
         }
 
+        if ($isParticipant) {
+            \DB::table('event_participants')
+                ->where('event_id', $event->id)
+                ->where('user_id', $user->id)
+                ->update(['viewer_last_seen_at' => now()]);
+        }
+
+        $viewersCount = \DB::table('event_participants')
+            ->where('event_id', $event->id)
+            ->where('status', 'joined')
+            ->where('viewer_last_seen_at', '>=', now()->subSeconds(30))
+            ->count();
+
         if ($event->status !== 'active') {
-            return response()->json(['data' => []]);
+            return response()->json(['data' => [], 'viewers_count' => $viewersCount, 'last_applause_at' => null]);
         }
 
         $positions = $event->participants()
@@ -730,7 +743,31 @@ HTML;
             ])
             ->values();
 
-        return response()->json(['data' => $positions]);
+        return response()->json([
+            'data' => $positions,
+            'viewers_count' => $viewersCount,
+            'last_applause_at' => $event->last_applause_at?->toIso8601String(),
+        ]);
+    }
+
+    // POST /api/events/{event}/applause
+    public function applause(Request $request, Event $event): JsonResponse
+    {
+        $user = $request->user();
+
+        $isParticipant = \DB::table('event_participants')
+            ->where('event_id', $event->id)
+            ->where('user_id', $user->id)
+            ->where('status', 'joined')
+            ->exists();
+
+        if (! $isParticipant && ! $event->isOrganizer($user)) {
+            return response()->json(['message' => 'You are not a participant of this event.'], 422);
+        }
+
+        $event->update(['last_applause_at' => now()]);
+
+        return response()->json(['last_applause_at' => $event->last_applause_at->toIso8601String()]);
     }
 
     // POST /api/events/{event}/leave

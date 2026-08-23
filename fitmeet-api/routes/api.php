@@ -179,6 +179,7 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\EnsureNotBanned::class])
     Route::post('events/{event}/location-sharing', [EventController::class, 'setLocationSharing']);
     Route::post('events/{event}/location', [EventController::class, 'updateLocation']);
     Route::get('events/{event}/live-positions', [EventController::class, 'livePositions']);
+    Route::post('events/{event}/applause', [EventController::class, 'applause']);
     Route::post('events/{event}/moment', [EventController::class, 'storeMoment']);
     Route::apiResource('events', EventController::class);
 

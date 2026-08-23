@@ -9,11 +9,11 @@ const ACTION_SOUNDS = [
   require('../../assets/sounds/bottle_open.mp3'),
 ]
 
+const APPLAUSE_SOUND = require('../../assets/sounds/applause.mp3')
+
 let currentSound: Audio.Sound | null = null
 
-export async function playRandomActionSound() {
-  const source = ACTION_SOUNDS[Math.floor(Math.random() * ACTION_SOUNDS.length)]
-
+async function playSound(source: number) {
   try {
     if (currentSound) {
       await currentSound.stopAsync().catch(() => {})
@@ -36,4 +36,13 @@ export async function playRandomActionSound() {
   } catch {
     currentSound = null
   }
+}
+
+export async function playRandomActionSound() {
+  const source = ACTION_SOUNDS[Math.floor(Math.random() * ACTION_SOUNDS.length)]
+  await playSound(source)
+}
+
+export async function playApplauseSound() {
+  await playSound(APPLAUSE_SOUND)
 }

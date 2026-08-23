@@ -9,10 +9,9 @@ const ACTION_SOUND_URLS = [
 
 let currentActionSound: HTMLAudioElement | null = null
 
-export function playRandomActionSound() {
+function playSound(source: string) {
   if (typeof window === 'undefined') return
 
-  const source = ACTION_SOUND_URLS[Math.floor(Math.random() * ACTION_SOUND_URLS.length)]
   const audio = new Audio(source)
   audio.volume = 0.85
 
@@ -26,4 +25,13 @@ export function playRandomActionSound() {
   audio.play().catch(() => {
     if (currentActionSound === audio) currentActionSound = null
   })
+}
+
+export function playRandomActionSound() {
+  const source = ACTION_SOUND_URLS[Math.floor(Math.random() * ACTION_SOUND_URLS.length)]
+  playSound(source)
+}
+
+export function playApplauseSound() {
+  playSound('/sounds/applause.mp3')
 }

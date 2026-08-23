@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { MapContainer, TileLayer, Marker, Polyline, Popup, useMapEvents, useMap, ZoomControl } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import { Eye } from 'lucide-react'
 import type { TrackSegment } from '@/lib/parse-gpx'
 import { weatherCloudStrength, weatherRainStrength, windDirectionLabel, type EventWeather } from '@/lib/weather'
 
@@ -315,6 +316,10 @@ interface Props {
   /** Live positions of checked-in, sharing participants — read-only maps only. */
   participants?: LiveParticipant[]
   onClusterTap?: (participants: LiveParticipant[]) => void
+  /** Number of joined participants currently viewing this event's live map. */
+  viewersCount?: number
+  /** When provided, shows a tappable applause button that broadcasts a sound to everyone checked in. */
+  onApplausePress?: () => void
 }
 
 const LIGHTNING_POSITIONS = [
@@ -760,6 +765,8 @@ export default function LocationPickerMap({
   radarFrame = null,
   participants,
   onClusterTap,
+  viewersCount = 0,
+  onApplausePress,
 }: Props) {
   const hasPin      = lat != null && lng != null
   const allCoords   = useMemo(
@@ -940,32 +947,69 @@ export default function LocationPickerMap({
           .fm-stopped-ring { animation: fm-stopped-pulse 1.2s ease-in-out infinite; }
         `}</style>
       )}
-      {readOnly && participants && participants.length > 0 && (
-        <div
-          style={{
-            position: 'absolute',
-            left: 12,
-            top: 12,
-            zIndex: 820,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 5,
-            padding: '7px 10px',
-            borderRadius: 999,
-            border: '1px solid rgba(255,90,90,0.4)',
-            background: 'rgba(7,13,28,0.9)',
-          }}
-        >
-          <span
-            style={{
-              width: 7,
-              height: 7,
-              borderRadius: 999,
-              background: '#ff3b30',
-              animation: 'fm-live-pulse 1.8s ease-in-out infinite',
-            }}
-          />
-          <span style={{ color: '#ff6b6b', fontSize: 11, fontWeight: 800, letterSpacing: 0.5 }}>LIVE</span>
+      {readOnly && ((participants && participants.length > 0) || viewersCount > 0) && (
+        <div style={{ position: 'absolute', left: 12, top: 12, zIndex: 820, display: 'flex', alignItems: 'center', gap: 8 }}>
+          {participants && participants.length > 0 && (
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+                padding: '7px 10px',
+                borderRadius: 999,
+                border: '1px solid rgba(255,90,90,0.4)',
+                background: 'rgba(7,13,28,0.9)',
+              }}
+            >
+              <span
+                style={{
+                  width: 7,
+                  height: 7,
+                  borderRadius: 999,
+                  background: '#ff3b30',
+                  animation: 'fm-live-pulse 1.8s ease-in-out infinite',
+                }}
+              />
+              <span style={{ color: '#ff6b6b', fontSize: 11, fontWeight: 800, letterSpacing: 0.5 }}>LIVE</span>
+            </div>
+          )}
+          {viewersCount > 0 && (
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                padding: '7px 10px',
+                borderRadius: 999,
+                border: '1px solid rgba(255,255,255,0.12)',
+                background: 'rgba(7,13,28,0.9)',
+              }}
+            >
+              <Eye size={13} color="#f5f7ff" />
+              <span style={{ color: '#f5f7ff', fontSize: 11, fontWeight: 800 }}>{viewersCount}</span>
+            </div>
+          )}
+          {onApplausePress && (
+            <button
+              type="button"
+              onClick={onApplausePress}
+              style={{
+                width: 30,
+                height: 30,
+                borderRadius: 999,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '1px solid rgba(255,255,255,0.12)',
+                background: 'rgba(7,13,28,0.9)',
+                cursor: 'pointer',
+                fontSize: 14,
+                padding: 0,
+              }}
+            >
+              👏
+            </button>
+          )}
           <style>{`
             @keyframes fm-live-pulse {
               0%, 100% { opacity: 1; }

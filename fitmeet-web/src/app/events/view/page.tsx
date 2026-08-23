@@ -19,7 +19,7 @@ import { getYouTubeVideoId } from '@/lib/youtube'
 import { fetchRelevantEventWeather, isLiveEventWeatherWindow, windDirectionLabelDetailed, type EventWeather } from '@/lib/weather'
 import { fetchRadarFrames, type RadarFrame } from '@/lib/radar'
 import api from '@/lib/api'
-import { playRandomActionSound } from '@/lib/action-sounds'
+import { playApplauseSound, playRandomActionSound } from '@/lib/action-sounds'
 import { useBadgesStore } from '@/store/badges'
 import { fetchElevationProfile, parseGpxAsync, GpxResult } from '@/lib/parse-gpx'
 import { analyzeRouteSurface, type SurfaceAnalysis } from '@/lib/route-surface'
@@ -224,6 +224,8 @@ function EventContent() {
   const [livePositions, setLivePositions] = useState<LiveParticipant[]>([])
   const stoppedTrackerRef = useRef<Map<number, { lat: number; lng: number; movedAt: number }>>(new Map())
   const [clusterListParticipants, setClusterListParticipants] = useState<LiveParticipant[] | null>(null)
+  const [viewersCount, setViewersCount] = useState(0)
+  const lastApplauseRef = useRef<string | null>(null)
   const [error,    setError]    = useState<string | null>(null)
   const [gpxResult, setGpxResult] = useState<GpxResult | null>(null)
   const [surfaceAnalysis, setSurfaceAnalysis] = useState<SurfaceAnalysis | null>(null)
@@ -434,13 +436,24 @@ function EventContent() {
     if (!event?.id || !event.is_in_progress) {
       setLivePositions([])
       stoppedTrackerRef.current.clear()
+      lastApplauseRef.current = null
       return
     }
     let cancelled = false
     const eventId = event.id
     const fetchPositions = () => {
       api.get(`/events/${eventId}/live-positions`)
-        .then(({ data }) => { if (!cancelled) setLivePositions(applyStoppedFlags(data.data ?? [], stoppedTrackerRef.current)) })
+        .then(({ data }) => {
+          if (cancelled) return
+          setLivePositions(applyStoppedFlags(data.data ?? [], stoppedTrackerRef.current))
+          setViewersCount(data.viewers_count ?? 0)
+          const applauseAt: string | null = data.last_applause_at ?? null
+          if (applauseAt && applauseAt !== lastApplauseRef.current) {
+            const isFirstLoad = lastApplauseRef.current === null
+            lastApplauseRef.current = applauseAt
+            if (!isFirstLoad && event.checked_in_at) playApplauseSound()
+          }
+        })
         .catch(() => {})
     }
     fetchPositions()
@@ -449,7 +462,7 @@ function EventContent() {
       cancelled = true
       window.clearInterval(interval)
     }
-  }, [event?.id, event?.is_in_progress])
+  }, [event?.id, event?.is_in_progress, event?.checked_in_at])
 
   async function handleJoin() {
     if (!event) return
@@ -523,6 +536,15 @@ function EventContent() {
     } finally {
       setCheckingIn(false)
     }
+  }
+
+  async function sendApplause() {
+    if (!event) return
+    playApplauseSound()
+    try {
+      const { data } = await api.post(`/events/${event.id}/applause`)
+      if (data.last_applause_at) lastApplauseRef.current = data.last_applause_at
+    } catch {}
   }
 
   async function handleShare() {
@@ -944,6 +966,8 @@ function EventContent() {
                 height={720}
                 participants={livePositions}
                 onClusterTap={setClusterListParticipants}
+                viewersCount={viewersCount}
+                onApplausePress={event.checked_in_at ? sendApplause : undefined}
               />
               {(gpxLoading || surfaceLoading) && <MapLoadingOverlay />}
               <div
