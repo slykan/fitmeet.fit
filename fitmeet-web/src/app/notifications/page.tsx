@@ -134,6 +134,15 @@ interface TrainingSyncedNotif {
   created_at: string
 }
 
+interface RiderStoppedNotif {
+  id: number
+  type: 'rider_stopped'
+  unread?: boolean
+  event: { id: number; title: string; start_at: string; timezone: string; address: string | null; category: string }
+  stopped_user: { id: number; name: string; avatar: string | null }
+  created_at: string
+}
+
 interface AnnouncementNotif {
   id: string
   type: 'announcement'
@@ -154,6 +163,7 @@ type Notif =
   | EventCommentNotif
   | MomentReminderNotif
   | TrainingSyncedNotif
+  | RiderStoppedNotif
   | AnnouncementNotif
 
 function timeAgo(iso: string) {
@@ -504,6 +514,20 @@ export default function NotificationsPage() {
                   <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{timeAgo(n.created_at)}</p>
                 </div>
               </div>
+            ) : n.type === 'rider_stopped' ? (
+              <a key={n.id} href={`/events/view?id=${n.event.id}`}
+                className="rounded-2xl border p-4 flex items-start gap-3 transition-opacity hover:opacity-80 cursor-pointer block"
+                style={{ background: n.unread ? 'rgba(255,59,48,0.05)' : 'var(--surface)', borderColor: n.unread ? 'rgba(255,59,48,0.3)' : 'var(--border)' }}>
+                <div className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0"
+                  style={{ background: 'rgba(255,59,48,0.12)', border: '1px solid #ff3b30' }}>
+                  <Bell size={18} color="#ff6b6b" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold truncate">{n.stopped_user.name} hasn&apos;t moved in a while</p>
+                  <p className="text-xs mt-1 truncate" style={{ color: 'var(--text-muted)' }}>{n.event.title}</p>
+                  <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{timeAgo(n.created_at)}</p>
+                </div>
+              </a>
             ) : n.type === 'announcement' ? (
               <div key={n.id}
                 className="rounded-2xl border p-4 flex items-start gap-3"

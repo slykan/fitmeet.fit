@@ -12,6 +12,7 @@ use App\Models\AnnouncementRead;
 use App\Models\EventNotification;
 use App\Models\EventReminder;
 use App\Models\FriendRequest;
+use App\Models\RiderStoppedNotification;
 use App\Models\TrainingNotification;
 use App\Models\User;
 use App\Services\BadgeService;
@@ -127,6 +128,7 @@ class FriendController extends Controller
         FriendRequest::where('sender_id', $me->id)->where('status', 'accepted')->whereNull('accepted_read_at')->update(['accepted_read_at' => now()]);
         EventNotification::where('user_id', $me->id)->delete();
         TrainingNotification::where('user_id', $me->id)->delete();
+        RiderStoppedNotification::where('user_id', $me->id)->delete();
         EventReminder::where('user_id', $me->id)->whereNotNull('sent_at')->update(['read_at' => now(), 'sent_at' => now()->subHours(25)]);
         $allAnnouncementIds = Announcement::where('created_at', '>=', now()->subDays(30))->pluck('id');
         foreach ($allAnnouncementIds as $announcementId) {
@@ -154,6 +156,10 @@ class FriendController extends Controller
             ->update(['read_at' => now()]);
 
         TrainingNotification::where('user_id', $me->id)
+            ->whereNull('read_at')
+            ->update(['read_at' => now()]);
+
+        RiderStoppedNotification::where('user_id', $me->id)
             ->whereNull('read_at')
             ->update(['read_at' => now()]);
 
@@ -207,6 +213,10 @@ class FriendController extends Controller
             ->whereNull('read_at')
             ->where('created_at', '>=', now()->subDays(14))
             ->count();
+        $ridersStopped = RiderStoppedNotification::where('user_id', $me->id)
+            ->whereNull('read_at')
+            ->where('created_at', '>=', now()->subDays(7))
+            ->count();
 
         $readAnnouncementIds = AnnouncementRead::where('user_id', $me->id)->pluck('announcement_id');
         $announcements = Announcement::where('created_at', '>=', now()->subDays(30))
@@ -214,7 +224,7 @@ class FriendController extends Controller
             ->where(fn ($q) => $q->whereNull('target_country')->orWhere('target_country', $me->country))
             ->count();
 
-        return response()->json(['count' => $pending + $accepted + $reminders + $newEvents + $cancelled + $started + $eventComments + $eventMentions + $momentReminders + $trainingsSynced + $announcements]);
+        return response()->json(['count' => $pending + $accepted + $reminders + $newEvents + $cancelled + $started + $eventComments + $eventMentions + $momentReminders + $trainingsSynced + $ridersStopped + $announcements]);
     }
 
     // GET /notifications
@@ -431,6 +441,32 @@ class FriendController extends Controller
                 'created_at' => $n->created_at->toDateTimeString(),
             ]);
 
+        $ridersStopped = RiderStoppedNotification::with(['event', 'stoppedUser'])
+            ->where('user_id', $me->id)
+            ->where('created_at', '>=', now()->subDays(7))
+            ->latest()
+            ->get()
+            ->filter(fn ($n) => $n->event !== null && $n->stoppedUser !== null)
+            ->map(fn ($n) => [
+                'id'         => $n->id,
+                'type'       => 'rider_stopped',
+                'unread'     => $n->read_at === null,
+                'event'      => [
+                    'id'       => $n->event->id,
+                    'title'    => $n->event->title,
+                    'start_at' => $n->event->start_at->toIso8601String(),
+                    'timezone' => $n->event->timezone ?? config('app.event_timezone'),
+                    'address'  => $n->event->address,
+                    'category' => $n->event->category?->label() ?? 'Event',
+                ],
+                'stopped_user' => [
+                    'id'     => $n->stoppedUser->id,
+                    'name'   => $n->stoppedUser->name,
+                    'avatar' => $n->stoppedUser->avatar,
+                ],
+                'created_at' => $n->created_at->toDateTimeString(),
+            ]);
+
         $announcementReads = AnnouncementRead::where('user_id', $me->id)->get()->keyBy('announcement_id');
         $dismissedIds = $announcementReads->filter(fn ($r) => $r->dismissed_at !== null)->keys()->all();
         $announcements = Announcement::where('created_at', '>=', now()->subDays(30))
@@ -465,6 +501,7 @@ class FriendController extends Controller
                 ->concat($eventMentions)
                 ->concat($momentReminders)
                 ->concat($trainingsSynced)
+                ->concat($ridersStopped)
                 ->concat($announcements)
                 ->sortByDesc('created_at')
                 ->values(),

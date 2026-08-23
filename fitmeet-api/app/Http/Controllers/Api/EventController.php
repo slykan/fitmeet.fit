@@ -23,6 +23,16 @@ use Illuminate\Support\Str;
 
 class EventController extends Controller
 {
+    private function haversineMeters(float $lat1, float $lng1, float $lat2, float $lng2): float
+    {
+        $r = 6371000;
+        $dLat = deg2rad($lat2 - $lat1);
+        $dLng = deg2rad($lng2 - $lng1);
+        $a = sin($dLat / 2) ** 2 + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($dLng / 2) ** 2;
+
+        return 2 * $r * asin(sqrt($a));
+    }
+
     private function applyTimeWindow(Request $request, $query)
     {
         if ($request->boolean('past')) {
@@ -636,6 +646,9 @@ HTML;
             $update['live_lng'] = null;
             $update['live_speed_kmh'] = null;
             $update['live_updated_at'] = null;
+            $update['stopped_anchor_lat'] = null;
+            $update['stopped_anchor_lng'] = null;
+            $update['stopped_anchor_at'] = null;
         }
 
         \DB::table('event_participants')
@@ -682,15 +695,37 @@ HTML;
             return response()->json(['message' => 'This event is not currently live.'], 422);
         }
 
+        $distanceFromAnchor = ($participant->stopped_anchor_lat !== null && $participant->stopped_anchor_lng !== null)
+            ? $this->haversineMeters(
+                (float) $participant->stopped_anchor_lat,
+                (float) $participant->stopped_anchor_lng,
+                (float) $data['lat'],
+                (float) $data['lng'],
+            )
+            : null;
+
+        $update = [
+            'live_lat' => $data['lat'],
+            'live_lng' => $data['lng'],
+            'live_speed_kmh' => $data['speed_kmh'] ?? null,
+            'live_updated_at' => now(),
+        ];
+
+        if ($distanceFromAnchor === null || $distanceFromAnchor > 25) {
+            $update['stopped_anchor_lat'] = $data['lat'];
+            $update['stopped_anchor_lng'] = $data['lng'];
+            $update['stopped_anchor_at'] = now();
+        } elseif (
+            $participant->stopped_anchor_at
+            && now()->diffInSeconds(\Illuminate\Support\Carbon::parse($participant->stopped_anchor_at)) >= 60
+        ) {
+            app(\App\Services\RiderStoppedNotifier::class)->notify($event, $user);
+        }
+
         \DB::table('event_participants')
             ->where('event_id', $event->id)
             ->where('user_id', $user->id)
-            ->update([
-                'live_lat' => $data['lat'],
-                'live_lng' => $data['lng'],
-                'live_speed_kmh' => $data['speed_kmh'] ?? null,
-                'live_updated_at' => now(),
-            ]);
+            ->update($update);
 
         return response()->json(['updated_at' => now()->toIso8601String()]);
     }

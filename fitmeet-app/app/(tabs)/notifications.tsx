@@ -30,6 +30,7 @@ type Notification =
   | { id: number; type: 'event_comment_mention'; event: EventInfo; created_at: string; unread?: boolean }
   | { id: number; type: 'moment_reminder'; event:   EventInfo; created_at: string; unread?: boolean }
   | { id: number; type: 'training_synced'; training: TrainingInfo; created_at: string; unread?: boolean }
+  | { id: number; type: 'rider_stopped';   event:   EventInfo; stopped_user: UserInfo; created_at: string; unread?: boolean }
   | { id: string; type: 'announcement';   title: string; body: string; data?: { url?: string } | null; created_at: string; unread?: boolean }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -377,6 +378,22 @@ export default function NotificationsScreen() {
                 subtitle={meta || n.training.category.label}
                 time={timeAgo(n.created_at)}
                 onPress={() => router.push('/(tabs)/meet?tab=trainings' as never)}
+                unread={n.unread}
+              />
+            )
+          }
+
+          if (n.type === 'rider_stopped') {
+            return (
+              <GenericCard
+                key={`rs-${n.id}`}
+                icon="alert-circle-outline"
+                iconColor="#ff6b6b"
+                iconBg="rgba(255,59,48,0.12)"
+                title={<><Text style={styles.accent}>{n.stopped_user.name}</Text> hasn&apos;t moved in a while</>}
+                subtitle={n.event.title}
+                time={timeAgo(n.created_at)}
+                onPress={() => router.push(`/event/${n.event.id}` as never)}
                 unread={n.unread}
               />
             )
