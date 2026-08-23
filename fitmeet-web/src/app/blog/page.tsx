@@ -84,7 +84,7 @@ export default function BlogPage() {
                     See everyone live on the map during group rides and runs
                   </h2>
                   <p className="text-sm leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-                    Opt in after checking in to an event and share your live position with the group — see where everyone is in real time, their speed, and never lose the pack, even if your phone is locked.
+                    Opt in after checking in to an event and share your live position with the group — see where everyone is in real time, their speed, a safety signal if someone stops, and never lose the pack, even if your phone is locked.
                   </p>
                 </div>
                 <div className="flex items-center justify-center w-16 h-16 rounded-2xl shrink-0" style={{ background: 'rgba(57,255,20,0.12)' }}>

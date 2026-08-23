@@ -17,9 +17,9 @@ export const posts: Post[] = [
   {
     slug: 'fitmeet-live-location-sharing',
     title: 'See Everyone Live on the Map During Group Rides and Runs',
-    description: 'Opt in after checking in to an event and share your live position with the group — see where everyone is in real time, their speed, and never lose the pack, even if your phone is locked.',
+    description: 'Opt in after checking in to an event and share your live position with the group — see where everyone is in real time, their speed, a safety signal if someone stops, and never lose the pack, even if your phone is locked.',
     publishedAt: '2026-08-22',
-    readTime: 3,
+    readTime: 4,
     category: 'Safety',
     sections: [
       {
@@ -40,6 +40,13 @@ export const posts: Post[] = [
         heading: 'Live Positions, Speed and Smart Grouping',
         paragraphs: [
           'Everyone sharing shows up on the map with their photo (or initials if they have not set one) and current speed, updating automatically while the event is live. When a few of you are riding or running close together, FitMeet groups those markers into a single badge instead of stacking pins on top of each other — tap it to see exactly who is in the group.',
+        ],
+      },
+      {
+        heading: 'A Safety Signal If Someone Stops',
+        paragraphs: [
+          'Live tracking is not just about knowing where the pack is — it is also a lightweight safety net. If someone stops moving for about a minute, whether they pulled over, got a flat, or something worse, their marker gets a pulsing red ring on the map instead of the usual green, so the rest of the group can spot it at a glance and go check on them.',
+          'This is a simple, approximate signal based on position, not a real crash detector — but it turns "does anyone know where Marko is?" into something you can see immediately instead of finding out an hour later. Custom alerts and notifications built on top of this — so the group gets pinged automatically instead of having to notice it themselves — are coming in a future update.',
         ],
       },
       {
