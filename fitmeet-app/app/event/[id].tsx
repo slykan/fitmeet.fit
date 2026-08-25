@@ -725,6 +725,19 @@ export default function EventDetailScreen() {
     }
   }, [event?.id, event?.is_joined, event?.checked_in_at, event?.is_in_progress, event?.activity.gpx_url])
 
+  // liveTrackingBackground defaults to true and is only otherwise set at the
+  // moment the user presses "share location" — on any later remount (nav away
+  // and back, app killed/reopened, deep link from a push) it would still read
+  // true even if background permission was never granted, silently disabling
+  // the foreground fallback below and leaving live_sharing_enabled on with no
+  // location ever posted. Resync it from the real OS permission on load.
+  useEffect(() => {
+    if (!event?.id || !event.live_sharing_enabled) return
+    Location.getBackgroundPermissionsAsync()
+      .then((res) => setLiveTrackingBackground(res.status === 'granted'))
+      .catch(() => {})
+  }, [event?.id, event?.live_sharing_enabled])
+
   // Foreground-only fallback: if background location permission was denied,
   // keep posting our own position while this screen is open and sharing is on.
   useEffect(() => {

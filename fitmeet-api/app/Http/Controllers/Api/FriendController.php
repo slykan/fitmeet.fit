@@ -242,7 +242,7 @@ class FriendController extends Controller
                 'id'         => $r->id,
                 'type'       => 'friend_request',
                 'sender'     => new UserResource($r->sender),
-                'created_at' => $r->created_at->toDateTimeString(),
+                'created_at' => $r->created_at->toIso8601String(),
             ]);
 
         // Accepted requests I sent (unread)
@@ -256,7 +256,7 @@ class FriendController extends Controller
                 'id'         => $r->id,
                 'type'       => 'friend_accepted',
                 'friend'     => new UserResource($r->receiver),
-                'created_at' => $r->updated_at->toDateTimeString(),
+                'created_at' => $r->updated_at->toIso8601String(),
             ]);
 
         // Mark accepted as read now that user fetched them
@@ -285,7 +285,7 @@ class FriendController extends Controller
                     'address'  => $r->event->address,
                     'category' => $r->event->category?->label() ?? 'Event',
                 ],
-                'created_at' => $r->sent_at->toDateTimeString(),
+                'created_at' => $r->sent_at->toIso8601String(),
             ]);
 
         // New events matching interests (last 7 days, event not yet started)
@@ -310,7 +310,7 @@ class FriendController extends Controller
                     'distance_km'  => $n->event->distance_km,
                     'elevation_gain' => $n->event->elevation_gain,
                 ],
-                'created_at' => $n->created_at->toDateTimeString(),
+                'created_at' => $n->created_at->toIso8601String(),
             ]);
 
         $cancelledEvents = EventNotification::with('event')
@@ -332,7 +332,7 @@ class FriendController extends Controller
                     'address'  => $n->event->address,
                     'category' => $n->event->category?->label() ?? 'Event',
                 ],
-                'created_at' => $n->created_at->toDateTimeString(),
+                'created_at' => $n->created_at->toIso8601String(),
             ]);
 
         $startedEvents = EventNotification::with('event')
@@ -354,7 +354,7 @@ class FriendController extends Controller
                     'address'  => $n->event->address,
                     'category' => $n->event->category?->label() ?? 'Event',
                 ],
-                'created_at' => $n->created_at->toDateTimeString(),
+                'created_at' => $n->created_at->toIso8601String(),
             ]);
 
         $eventComments = EventNotification::with('event')
@@ -375,7 +375,7 @@ class FriendController extends Controller
                     'address' => $n->event->address,
                     'category' => $n->event->category?->label() ?? 'Event',
                 ],
-                'created_at' => $n->created_at->toDateTimeString(),
+                'created_at' => $n->created_at->toIso8601String(),
             ]);
 
         $eventMentions = EventNotification::with('event')
@@ -396,7 +396,7 @@ class FriendController extends Controller
                     'address' => $n->event->address,
                     'category' => $n->event->category?->label() ?? 'Event',
                 ],
-                'created_at' => $n->created_at->toDateTimeString(),
+                'created_at' => $n->created_at->toIso8601String(),
             ]);
 
         $momentReminders = EventNotification::with('event')
@@ -417,7 +417,7 @@ class FriendController extends Controller
                     'address'  => $n->event->address,
                     'category' => $n->event->category?->label() ?? 'Event',
                 ],
-                'created_at' => $n->created_at->toDateTimeString(),
+                'created_at' => $n->created_at->toIso8601String(),
             ]);
 
         $trainingsSynced = TrainingNotification::with('training')
@@ -438,7 +438,7 @@ class FriendController extends Controller
                     'distance_m' => $n->training->distance_m,
                     'duration_s' => $n->training->duration_s,
                 ],
-                'created_at' => $n->created_at->toDateTimeString(),
+                'created_at' => $n->created_at->toIso8601String(),
             ]);
 
         $ridersStopped = RiderStoppedNotification::with(['event', 'stoppedUser'])
@@ -464,7 +464,7 @@ class FriendController extends Controller
                     'name'   => $n->stoppedUser->name,
                     'avatar' => $n->stoppedUser->avatar,
                 ],
-                'created_at' => $n->created_at->toDateTimeString(),
+                'created_at' => $n->created_at->toIso8601String(),
             ]);
 
         $announcementReads = AnnouncementRead::where('user_id', $me->id)->get()->keyBy('announcement_id');
@@ -487,7 +487,7 @@ class FriendController extends Controller
                 'title'      => $a->title,
                 'body'       => $a->body,
                 'data'       => $a->data,
-                'created_at' => $a->created_at->toDateTimeString(),
+                'created_at' => $a->created_at->toIso8601String(),
             ]);
 
         return response()->json([
