@@ -249,7 +249,16 @@ export async function analyzeRouteSurface(track: Point[]): Promise<SurfaceAnalys
 
   const { south, west, north, east } = bboxFor(sampled)
   const query = `[out:json][timeout:10];way["highway"](${south},${west},${north},${east});out tags geom;`
-  const response = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`)
+  // The [timeout:10] above only bounds Overpass's own server-side processing —
+  // it does nothing if the request itself never gets a response (the public
+  // overpass-api.de instance is frequently overloaded/unreachable). Without a
+  // client-side abort, that fetch can hang forever, which means the caller's
+  // .finally(() => setSurfaceLoading(false)) never runs and the map's loading
+  // overlay is stuck showing indefinitely instead of just failing this route's
+  // surface analysis and moving on.
+  const response = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`, {
+    signal: AbortSignal.timeout(15000),
+  })
   if (!response.ok) throw new Error(`Overpass request failed: ${response.status}`)
   const data = await response.json() as { elements?: OverpassWay[] }
   const ways = data.elements?.filter(way => way.geometry && way.geometry.length >= 2) ?? []
