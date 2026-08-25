@@ -1,4 +1,5 @@
 export const CATEGORIES = [
+  { value: 'fitness',     emoji: '💪',  label: 'Fitness' },
   { value: 'running',     emoji: '🏃',  label: 'Running' },
   { value: 'cycling',     emoji: '🚴',  label: 'Cycling' },
   { value: 'hiking',      emoji: '🥾',  label: 'Hiking' },
@@ -8,7 +9,6 @@ export const CATEGORIES = [
   { value: 'tennis',      emoji: '🎾',  label: 'Tennis' },
   { value: 'volleyball',  emoji: '🏐',  label: 'Volleyball' },
   { value: 'yoga',        emoji: '🧘',  label: 'Yoga' },
-  { value: 'fitness',     emoji: '💪',  label: 'Fitness' },
   { value: 'martial_arts',emoji: '🥋',  label: 'Martial Arts' },
   { value: 'skiing',      emoji: '⛷️',  label: 'Skiing' },
   { value: 'surfing',     emoji: '🏄',  label: 'Surfing' },
