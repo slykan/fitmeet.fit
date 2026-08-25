@@ -20,11 +20,13 @@ export default function ElevationChart({ profile, totalKm, progress, onScrub }: 
 
   if (profile.length < 2) return null
 
-  const animating = progress != null && progress < 1
-  const visibleProfile = animating
-    ? profile.slice(0, Math.max(2, Math.ceil(progress * profile.length)))
-    : profile
-  const head = animating ? visibleProfile[visibleProfile.length - 1] : null
+  // The chart itself always shows the full elevation-graded profile now —
+  // progress (from either the play animation or a drag) only positions the
+  // vertical playhead line below, it no longer masks/truncates the chart or
+  // flattens its colors.
+  const activePoint = progress != null
+    ? profile[Math.min(profile.length - 1, Math.max(0, Math.round(progress * (profile.length - 1))))]
+    : null
 
   const W = 600
   const H = 120
@@ -103,12 +105,12 @@ export default function ElevationChart({ profile, totalKm, progress, onScrub }: 
         ))}
 
         {/* Colored fill + line — one segment per pair of points */}
-        {visibleProfile.slice(1).map((p, i) => {
-          const prev  = visibleProfile[i]
+        {profile.slice(1).map((p, i) => {
+          const prev  = profile[i]
           const distKm = p.km - prev.km
           const eleM   = p.ele - prev.ele
           const grade  = distKm > 0 ? (eleM / (distKm * 1000)) * 100 : 0
-          const color  = animating ? '#39ff14' : slopeColor(grade)
+          const color  = slopeColor(grade)
           const x1 = toX(prev.km), y1 = toY(prev.ele)
           const x2 = toX(p.km),   y2 = toY(p.ele)
 
@@ -127,9 +129,10 @@ export default function ElevationChart({ profile, totalKm, progress, onScrub }: 
           )
         })}
 
-        {/* Playhead dot while animating */}
-        {head && (
-          <circle cx={toX(head.km)} cy={toY(head.ele)} r={4} fill="#39ff14" stroke="#0A0A12" strokeWidth={1.5} />
+        {/* Vertical playhead line at the current play/scrub position */}
+        {activePoint && (
+          <line x1={toX(activePoint.km)} x2={toX(activePoint.km)} y1={padT} y2={baseline}
+            stroke="#39ff14" strokeWidth="2" />
         )}
 
         {/* Y labels */}
