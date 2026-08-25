@@ -171,7 +171,7 @@ class FriendController extends Controller
         $readIds = AnnouncementRead::where('user_id', $me->id)->pluck('announcement_id');
         $unread = Announcement::where('created_at', '>=', now()->subDays(30))
             ->whereNotIn('id', $readIds)
-            ->where(fn ($q) => $q->whereNull('target_country')->orWhere('target_country', $me->country))
+            ->where(fn ($q) => $q->whereNull('target_country')->orWhere('target_country', $me->home_country))
             ->pluck('id');
         foreach ($unread as $id) {
             AnnouncementRead::firstOrCreate(['user_id' => $me->id, 'announcement_id' => $id], ['read_at' => now()]);
@@ -221,7 +221,7 @@ class FriendController extends Controller
         $readAnnouncementIds = AnnouncementRead::where('user_id', $me->id)->pluck('announcement_id');
         $announcements = Announcement::where('created_at', '>=', now()->subDays(30))
             ->whereNotIn('id', $readAnnouncementIds)
-            ->where(fn ($q) => $q->whereNull('target_country')->orWhere('target_country', $me->country))
+            ->where(fn ($q) => $q->whereNull('target_country')->orWhere('target_country', $me->home_country))
             ->count();
 
         return response()->json(['count' => $pending + $accepted + $reminders + $newEvents + $cancelled + $started + $eventComments + $eventMentions + $momentReminders + $trainingsSynced + $ridersStopped + $announcements]);
@@ -474,7 +474,7 @@ class FriendController extends Controller
             ->where(fn ($q) => $q
                 ->where(fn ($broadcast) => $broadcast
                     ->whereNull('target_user_id')
-                    ->where(fn ($country) => $country->whereNull('target_country')->orWhere('target_country', $me->country))
+                    ->where(fn ($country) => $country->whereNull('target_country')->orWhere('target_country', $me->home_country))
                 )
                 ->orWhere('target_user_id', $me->id)
             )

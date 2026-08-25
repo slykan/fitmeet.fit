@@ -76,11 +76,11 @@ class AdminController extends Controller
 
     public function countries(): JsonResponse
     {
-        $countries = User::whereNotNull('country')
-            ->where('country', '!=', '')
+        $countries = User::whereNotNull('home_country')
+            ->where('home_country', '!=', '')
             ->distinct()
-            ->orderBy('country')
-            ->pluck('country');
+            ->orderBy('home_country')
+            ->pluck('home_country');
 
         return response()->json($countries);
     }
@@ -90,7 +90,7 @@ class AdminController extends Controller
         $query = User::query();
 
         if ($country) {
-            $query->where('country', $country);
+            $query->where('home_country', $country);
         }
 
         if ($platform) {
