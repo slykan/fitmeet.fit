@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { MapContainer, TileLayer, Marker, Polyline, Popup, useMapEvents, useMap, ZoomControl } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Polyline, Popup, Tooltip, useMapEvents, useMap, ZoomControl } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { Eye } from 'lucide-react'
@@ -31,8 +31,19 @@ const headIcon = L.divIcon({
   iconAnchor: [7, 7],
 })
 
+// Cached like participantIcon/clusterIcon below: the head marker's icon prop
+// is re-evaluated on every playProgress tick (~30fps) while a milestone badge
+// is showing, so without caching this returned a brand-new L.divIcon every
+// frame — forcing Leaflet to tear down and rebuild the marker DOM each time,
+// which restarts the CSS pop-in/pop-out animation from 0% every frame instead
+// of letting it play once, i.e. the badge flickers instead of animating.
+const milestoneIconCache = new Map<string, L.DivIcon>()
+
 function milestoneIcon(km: number, exiting: boolean) {
-  return L.divIcon({
+  const key = `${km}|${exiting ? 1 : 0}`
+  const cached = milestoneIconCache.get(key)
+  if (cached) return cached
+  const icon = L.divIcon({
     className: 'fm-milestone-marker',
     html: `
       <style>
@@ -46,6 +57,8 @@ function milestoneIcon(km: number, exiting: boolean) {
     iconSize: [90, 30],
     iconAnchor: [45, 44],
   })
+  milestoneIconCache.set(key, icon)
+  return icon
 }
 
 function staticKmIcon(km: number) {
@@ -77,17 +90,20 @@ function initialFor(name: string) {
   return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase()
 }
 
-// Icons are cached by content key so an unchanged participant (same avatar,
-// speed rounded to the nearest km/h) gets the exact same L.divIcon instance
-// back across polls — otherwise every poll tick creates a brand-new icon,
-// forcing Leaflet to tear down and rebuild the marker's DOM (setIcon), which
-// visibly flashes empty/black for a frame before the background-image repaints.
+// Icons are cached by content key (id + avatar + stopped-state only — NOT
+// speed, which changes almost every poll tick) so an unchanged participant
+// gets the exact same L.divIcon instance back across polls. Otherwise every
+// poll tick creates a brand-new icon, forcing Leaflet to tear down and
+// rebuild the marker's DOM (setIcon) and re-fetch the avatar background-image,
+// which visibly flashes empty/black while the image reloads. Speed is shown
+// via a separate Leaflet Tooltip bound to the (now-stable) marker instead of
+// being baked into the icon HTML, so it can update every poll without ever
+// touching the icon.
 const participantIconCache = new Map<string, L.DivIcon>()
 const clusterIconCache = new Map<number, L.DivIcon>()
 
 function participantIcon(p: LiveParticipant) {
-  const speedKey = p.speed_kmh != null ? Math.round(p.speed_kmh) : 'x'
-  const key = `${p.id}|${p.avatar ?? ''}|${speedKey}|${p.stopped ? 1 : 0}`
+  const key = `${p.id}|${p.avatar ?? ''}|${p.stopped ? 1 : 0}`
   const cached = participantIconCache.get(key)
   if (cached) return cached
 
@@ -96,14 +112,11 @@ function participantIcon(p: LiveParticipant) {
   const avatarHtml = p.avatar
     ? `<div class="${ringClass.trim()}" style="width:32px;height:32px;border-radius:999px;background:#0b1120;background-image:url('${p.avatar}');background-size:cover;background-position:center;border:2px solid ${borderColor};box-shadow:0 2px 6px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;color:#eafff0;font-weight:800;font-size:12px;">${initialFor(p.name)}</div>`
     : `<div class="${ringClass.trim()}" style="width:32px;height:32px;border-radius:999px;background:#0b1120;border:2px solid ${borderColor};display:flex;align-items:center;justify-content:center;color:#eafff0;font-weight:800;font-size:12px;box-shadow:0 2px 6px rgba(0,0,0,0.5);">${initialFor(p.name)}</div>`
-  const speedHtml = p.speed_kmh != null
-    ? `<div style="margin-top:2px;background:#0b1120;border:1px solid rgba(57,255,20,0.5);color:#eafff0;font-size:9px;font-weight:700;padding:1px 5px;border-radius:999px;white-space:nowrap;">${p.speed_kmh.toFixed(1)} km/h</div>`
-    : ''
   const icon = L.divIcon({
     className: 'fm-participant-marker',
-    html: `<div style="display:flex;flex-direction:column;align-items:center;">${avatarHtml}${speedHtml}</div>`,
-    iconSize: [60, 50],
-    iconAnchor: [30, 25],
+    html: avatarHtml,
+    iconSize: [36, 36],
+    iconAnchor: [18, 18],
   })
   participantIconCache.set(key, icon)
   return icon
@@ -169,7 +182,13 @@ function LiveParticipantsLayer({
     <>
       {groups.map((group) =>
         group.length === 1 ? (
-          <Marker key={group[0].id} position={[group[0].lat, group[0].lng]} icon={participantIcon(group[0])} />
+          <Marker key={group[0].id} position={[group[0].lat, group[0].lng]} icon={participantIcon(group[0])}>
+            {group[0].speed_kmh != null && (
+              <Tooltip permanent direction="bottom" offset={[0, 12]} className="fm-speed-tooltip">
+                {group[0].speed_kmh.toFixed(1)} km/h
+              </Tooltip>
+            )}
+          </Marker>
         ) : (
           <Marker
             key={group.map((p) => p.id).join('-')}
@@ -819,8 +838,12 @@ export default function LocationPickerMap({
     [playMilestone?.km, playCoords],
   )
   // Static "X km" waypoint badges shown along the whole route when the km-markers
-  // toggle is on — independent of the play-animation milestones above.
-  const kmMarkerPoints = useMemo(() => computeKmMarkerPoints(allCoords, 10), [allCoords])
+  // toggle is on — independent of the play-animation milestones above. Must use
+  // playCoords (single trace), not allCoords: allCoords concatenates every layer
+  // (surface/elevation/colored) back-to-back for drawing overlaid polylines, so
+  // walking it cumulatively for distance would sum the same route 2-3x over and
+  // place markers (e.g. "20 km") well past the route's real length.
+  const kmMarkerPoints = useMemo(() => computeKmMarkerPoints(playCoords, 10), [playCoords])
   const hasTrack    = allCoords.length > 1
   const hasLayeredSegments = Boolean(surfaceSegments?.length || elevationSegments?.length)
   const [selectedLayerName, setSelectedLayerName] = useState<MapBaseLayerName>('Standard')
@@ -948,6 +971,18 @@ export default function LocationPickerMap({
             50% { box-shadow: 0 0 0 7px rgba(255,59,48,0); }
           }
           .fm-stopped-ring { animation: fm-stopped-pulse 1.2s ease-in-out infinite; }
+          .fm-speed-tooltip {
+            background: #0b1120 !important;
+            border: 1px solid rgba(57,255,20,0.5) !important;
+            color: #eafff0 !important;
+            font-size: 9px !important;
+            font-weight: 700 !important;
+            padding: 1px 5px !important;
+            border-radius: 999px !important;
+            box-shadow: none !important;
+            white-space: nowrap !important;
+          }
+          .fm-speed-tooltip::before { display: none !important; }
         `}</style>
       )}
       {readOnly && ((participants && participants.length > 0) || viewersCount > 0) && (

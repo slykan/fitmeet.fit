@@ -76,7 +76,7 @@ async function reverseGeocode(lat: number, lng: number): Promise<string> {
 
 // ─── Category picker ──────────────────────────────────────────────────────────
 
-const ROUTABLE_CATS = ['running', 'cycling', 'hiking', 'skiing', 'climbing', 'kayaking']
+const ROUTABLE_CATS = ['running', 'walking', 'cycling', 'hiking', 'skiing', 'climbing', 'kayaking']
 const FEATURED_CATS = ['running', 'cycling', 'hiking']
 
 function CategoryPicker({
@@ -123,7 +123,7 @@ function CategoryPicker({
       </div>
       {!ROUTABLE_CATS.includes(value) && (
         <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-          Straight-line segments — road routing only for running, cycling, hiking, skiing, climbing, kayaking.
+          Straight-line segments — road routing only for running, walking, cycling, hiking, skiing, climbing, kayaking.
         </p>
       )}
     </div>

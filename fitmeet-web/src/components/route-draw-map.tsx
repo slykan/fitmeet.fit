@@ -133,7 +133,7 @@ function valhallaCosting(category: string, prefs: RoutePreferences): ValhallaCos
       },
     }
   }
-  if (category === 'running')  return { costing: 'pedestrian', options: {} }
+  if (category === 'running' || category === 'walking') return { costing: 'pedestrian', options: {} }
   if (category === 'hiking')   return { costing: 'pedestrian', options: { max_hiking_difficulty: 1 } }
   return null
 }
