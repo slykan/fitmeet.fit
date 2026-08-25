@@ -8,6 +8,8 @@ import { useState } from 'react'
 import { useAuthStore } from '@/src/store/auth'
 import { CATEGORIES } from '@/src/lib/categories'
 import { CountryPicker } from '@/src/components/CountryPicker'
+import { CityPicker } from '@/src/components/CityPicker'
+import { countryCodeForName } from '@/src/lib/countries'
 import { palette, spacing } from '@/src/theme'
 
 const RADIUS_OPTIONS = [
@@ -34,6 +36,7 @@ export default function OnboardingScreen() {
   const [hidePhone,  setHidePhone]  = useState(false)
   const [city,       setCity]       = useState(user?.home?.city ?? '')
   const [country,    setCountry]    = useState(user?.home?.country ?? '')
+  const [countryCode, setCountryCode] = useState(() => countryCodeForName(user?.home?.country ?? ''))
   const [radius,     setRadius]     = useState<Radius>(user?.radius ?? 'nearby')
   const [categories, setCategories] = useState<string[]>(user?.categories ?? [])
   const [skill,           setSkill]           = useState<Skill | null>(user?.skill_level ?? null)
@@ -42,6 +45,7 @@ export default function OnboardingScreen() {
   const [emailReminders,  setEmailReminders]  = useState(user?.email_preferences?.event_reminders ?? true)
   const [emailFriendEvt,  setEmailFriendEvt]  = useState(user?.email_preferences?.friend_events ?? true)
   const [showCountryPicker, setShowCountryPicker] = useState(false)
+  const [showCityPicker, setShowCityPicker] = useState(false)
   const [locating,        setLocating]        = useState(false)
   const [saving,          setSaving]          = useState(false)
   const [error,           setError]           = useState<string | null>(null)
@@ -169,19 +173,20 @@ export default function OnboardingScreen() {
 
         {/* Home location */}
         <Section label="Home location *">
-          <TextInput
-            style={styles.input}
-            value={city}
-            onChangeText={setCity}
-            placeholder="City *"
-            placeholderTextColor={palette.textDim}
-          />
           <Pressable
-            style={[styles.input, styles.pickerInput, { marginTop: 10 }]}
+            style={[styles.input, styles.pickerInput]}
             onPress={() => setShowCountryPicker(true)}
           >
             <Text style={country ? styles.pickerValue : styles.pickerPlaceholder}>
               {country || 'Country *'}
+            </Text>
+          </Pressable>
+          <Pressable
+            style={[styles.input, styles.pickerInput, { marginTop: 10 }]}
+            onPress={() => { if (countryCode) setShowCityPicker(true) }}
+          >
+            <Text style={city ? styles.pickerValue : styles.pickerPlaceholder}>
+              {city || (countryCode ? 'City *' : 'Pick a country first')}
             </Text>
           </Pressable>
         </Section>
@@ -190,7 +195,13 @@ export default function OnboardingScreen() {
           visible={showCountryPicker}
           value={country}
           onClose={() => setShowCountryPicker(false)}
-          onSelect={setCountry}
+          onSelect={(c) => { setCountry(c.name); setCountryCode(c.code); setCity('') }}
+        />
+        <CityPicker
+          visible={showCityPicker}
+          countryCode={countryCode}
+          onClose={() => setShowCityPicker(false)}
+          onSelect={setCity}
         />
 
         {/* Radius */}

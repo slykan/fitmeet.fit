@@ -10,6 +10,8 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { CATEGORIES } from '@/src/lib/categories'
 import { CountryPicker } from '@/src/components/CountryPicker'
+import { CityPicker } from '@/src/components/CityPicker'
+import { countryCodeForName } from '@/src/lib/countries'
 import { api } from '@/src/lib/api'
 import { useAuthStore } from '@/src/store/auth'
 import { palette, spacing } from '@/src/theme'
@@ -51,6 +53,7 @@ export default function SettingsScreen() {
   const [birthYear,  setBirthYear]  = useState(birth0.y)
   const [city,       setCity]       = useState(user?.home?.city ?? '')
   const [country,    setCountry]    = useState(user?.home?.country ?? '')
+  const [countryCode, setCountryCode] = useState(() => countryCodeForName(user?.home?.country ?? ''))
   const [radius,     setRadius]     = useState<'nearby'|'city'|'region'|'unlimited'>(user?.radius ?? 'nearby')
   const [categories, setCategories] = useState<string[]>(user?.categories ?? [])
   const [skillLevel, setSkillLevel] = useState(user?.skill_level ?? '')
@@ -62,6 +65,7 @@ export default function SettingsScreen() {
   const [saved,      setSaved]      = useState(false)
   const [avatarPreview, setAvatarPreview] = useState(user?.avatar ?? null)
   const [showCountryPicker, setShowCountryPicker] = useState(false)
+  const [showCityPicker, setShowCityPicker] = useState(false)
 
   useEffect(() => {
     setAvatarPreview(user?.avatar ?? null)
@@ -280,14 +284,20 @@ export default function SettingsScreen() {
         <SectionHeader title="Location" icon="location-outline" />
 
         <View style={styles.row}>
-          <Field label="City *" style={{ flex: 1 }}>
-            <TextInput style={styles.input} value={city} onChangeText={setCity}
-              placeholder="Zagreb" placeholderTextColor={palette.textDim} />
-          </Field>
           <Field label="Country *" style={{ flex: 1 }}>
             <Pressable style={[styles.input, styles.pickerInput]} onPress={() => setShowCountryPicker(true)}>
               <Text style={country ? styles.pickerValue : styles.pickerPlaceholder}>
                 {country || 'Select country'}
+              </Text>
+            </Pressable>
+          </Field>
+          <Field label="City *" style={{ flex: 1 }}>
+            <Pressable
+              style={[styles.input, styles.pickerInput]}
+              onPress={() => { if (countryCode) setShowCityPicker(true) }}
+            >
+              <Text style={city ? styles.pickerValue : styles.pickerPlaceholder}>
+                {city || (countryCode ? 'Select city' : 'Pick a country first')}
               </Text>
             </Pressable>
           </Field>
@@ -297,7 +307,13 @@ export default function SettingsScreen() {
           visible={showCountryPicker}
           value={country}
           onClose={() => setShowCountryPicker(false)}
-          onSelect={setCountry}
+          onSelect={(c) => { setCountry(c.name); setCountryCode(c.code); setCity('') }}
+        />
+        <CityPicker
+          visible={showCityPicker}
+          countryCode={countryCode}
+          onClose={() => setShowCityPicker(false)}
+          onSelect={setCity}
         />
 
         <Field label="Discovery radius">

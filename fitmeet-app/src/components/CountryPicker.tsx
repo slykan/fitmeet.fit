@@ -9,7 +9,7 @@ interface Props {
   visible: boolean
   value: string
   onClose: () => void
-  onSelect: (country: string) => void
+  onSelect: (country: { name: string; code: string }) => void
 }
 
 export function CountryPicker({ visible, value, onClose, onSelect }: Props) {
@@ -18,7 +18,7 @@ export function CountryPicker({ visible, value, onClose, onSelect }: Props) {
   const results = useMemo(() => {
     const q = query.trim().toLowerCase()
     if (!q) return COUNTRIES
-    return COUNTRIES.filter(c => c.toLowerCase().includes(q))
+    return COUNTRIES.filter(c => c.name.toLowerCase().includes(q))
   }, [query])
 
   function handleClose() {
@@ -53,7 +53,7 @@ export function CountryPicker({ visible, value, onClose, onSelect }: Props) {
 
           <FlatList
             data={results}
-            keyExtractor={(item) => item}
+            keyExtractor={(item) => item.code}
             style={{ maxHeight: 360 }}
             keyboardShouldPersistTaps="handled"
             ListEmptyComponent={<Text style={styles.emptyText}>No countries found.</Text>}
@@ -62,8 +62,8 @@ export function CountryPicker({ visible, value, onClose, onSelect }: Props) {
                 style={styles.row}
                 onPress={() => { onSelect(item); handleClose() }}
               >
-                <Text style={[styles.rowText, item === value && styles.rowTextActive]}>{item}</Text>
-                {item === value && <Ionicons name="checkmark" size={18} color={palette.accent} />}
+                <Text style={[styles.rowText, item.name === value && styles.rowTextActive]}>{item.name}</Text>
+                {item.name === value && <Ionicons name="checkmark" size={18} color={palette.accent} />}
               </Pressable>
             )}
           />

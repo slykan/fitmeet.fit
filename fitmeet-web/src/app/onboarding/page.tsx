@@ -13,7 +13,8 @@ import { useAuthStore } from '@/store/auth'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { CategoryMultiPicker } from '@/components/category-picker'
-import { COUNTRIES } from '@/lib/countries'
+import { CityAutocomplete } from '@/components/city-autocomplete'
+import { COUNTRIES, countryCodeForName } from '@/lib/countries'
 
 const LocationPickerMap = dynamic(() => import('@/components/location-picker-map'), { ssr: false })
 
@@ -99,6 +100,7 @@ export default function OnboardingPage() {
     if (!token) router.replace('/login')
   }, [token, router])
 
+  const watchedCountry    = watch('home_country')
   const watchedLat        = watch('home_lat')
   const watchedLng        = watch('home_lng')
   const watchedRadius     = watch('radius')
@@ -366,19 +368,29 @@ export default function OnboardingPage() {
                     className={cn(inputCls(!!errors.home_country), 'pl-9')}
                   />
                   <datalist id="country-options">
-                    {COUNTRIES.map(c => <option key={c} value={c} />)}
+                    {COUNTRIES.map(c => <option key={c.code} value={c.name} />)}
                   </datalist>
                 </div>
               </Field>
 
               <Field label="City *" error={errors.home_city?.message}>
                 <div className="flex gap-2">
-                  <input
-                    {...register('home_city', { required: 'City is required' })}
-                    placeholder="Zagreb"
-                    className={inputCls(!!errors.home_city)}
-                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); geocodeHomeLocation() } }}
-                  />
+                  <div className="flex-1">
+                    <Controller
+                      control={control}
+                      name="home_city"
+                      rules={{ required: 'City is required' }}
+                      render={({ field }) => (
+                        <CityAutocomplete
+                          value={field.value}
+                          onChange={field.onChange}
+                          countryCode={countryCodeForName(watchedCountry)}
+                          placeholder="Zagreb"
+                          className={cn(inputCls(!!errors.home_city), 'w-full')}
+                        />
+                      )}
+                    />
+                  </div>
                   <button
                     type="button"
                     onClick={geocodeHomeLocation}
