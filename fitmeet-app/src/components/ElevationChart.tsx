@@ -85,7 +85,7 @@ function buildHtml(profile: ElevationPoint[], scrubbable: boolean): string {
   ${lines}
   ${yText}
   ${xText}
-  <rect id="revealMask" x="${W}" y="0" width="0" height="${H}" fill="#060c1a"/>
+  <line id="playhead" x1="0" y1="${padT}" x2="0" y2="${baseline}" stroke="#39ff14" stroke-width="2" opacity="0"/>
 </svg>
 <script>
   const maxKm = ${maxKm};
@@ -93,17 +93,17 @@ function buildHtml(profile: ElevationPoint[], scrubbable: boolean): string {
   const padL = ${padL};
   const padR = ${padR};
   function toX(km) { return padL + (km / maxKm) * (W - padL - padR); }
-  const mask = document.getElementById('revealMask');
+  const playhead = document.getElementById('playhead');
   const svgEl = document.getElementById('chart');
   function setProgress(progress) {
-    if (progress >= 1) {
-      mask.setAttribute('x', String(W));
-      mask.setAttribute('width', '0');
+    if (progress == null) {
+      playhead.setAttribute('opacity', '0');
       return;
     }
-    const x = toX(Math.max(0, progress) * maxKm);
-    mask.setAttribute('x', String(x));
-    mask.setAttribute('width', String(Math.max(0, W - x)));
+    const x = toX(Math.max(0, Math.min(1, progress)) * maxKm);
+    playhead.setAttribute('x1', String(x));
+    playhead.setAttribute('x2', String(x));
+    playhead.setAttribute('opacity', '1');
   }
   function handleMessage(event) {
     try {
@@ -158,7 +158,7 @@ export function ElevationChart({ profile, progress = null, onScrub }: Props) {
   const html = useMemo(() => buildHtml(profile, onScrub != null), [profile, onScrub != null])
 
   useEffect(() => {
-    webViewRef.current?.postMessage(JSON.stringify({ type: 'playProgress', progress: progress == null ? 1 : progress }))
+    webViewRef.current?.postMessage(JSON.stringify({ type: 'playProgress', progress }))
   }, [progress])
 
   if (profile.length < 2) return null
@@ -173,7 +173,7 @@ export function ElevationChart({ profile, progress = null, onScrub }: Props) {
         scrollEnabled={false}
         style={styles.webview}
         onLoadEnd={() => {
-          webViewRef.current?.postMessage(JSON.stringify({ type: 'playProgress', progress: progress == null ? 1 : progress }))
+          webViewRef.current?.postMessage(JSON.stringify({ type: 'playProgress', progress }))
         }}
         onMessage={(event) => {
           try {

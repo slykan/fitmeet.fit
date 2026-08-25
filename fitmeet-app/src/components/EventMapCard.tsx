@@ -208,17 +208,8 @@ function buildHtml(
     const elevationLayers = [];
     const surfaceLayersArr = [];
     let baseLine = null;
-    // Play-animation reveal state. Fully-drawn segments move into committedLayers
-    // once and are never touched again; only the in-progress "tail" segment gets
-    // redrawn (via setLatLngs, not remove+recreate) each frame. Rebuilding every
-    // revealed segment's Leaflet layers from scratch 30x/sec was the main cause
-    // of stutter on long, grade-heavy routes with many colored segments.
-    let committedLayers = [];
-    let committedSegIdx = 0;
-    let committedPointCount = 0;
-    let tailPoly = null;
-    let tailHitLine = null;
-    let tailSegIdxDrawn = -1;
+    // The route itself is always fully drawn (below) — play/scrub only moves
+    // this head marker along it, it doesn't reveal/redraw the line.
     let snakeHeadDot = null;
     let lastHeadLatLng = null;
     let milestoneMarker = null;
@@ -393,21 +384,11 @@ function buildHtml(
     }
     applyStaticLayers();
     let followZoom = null;
-    function clearPlayLayers() {
-      committedLayers.forEach(function(l) { map.removeLayer(l); });
-      committedLayers = [];
-      committedSegIdx = 0;
-      committedPointCount = 0;
-      if (tailHitLine) { map.removeLayer(tailHitLine); tailHitLine = null; }
-      if (tailPoly) { map.removeLayer(tailPoly); tailPoly = null; }
-      tailSegIdxDrawn = -1;
-    }
     function setPlayProgress(progress) {
       if (allTrackCoords.length < 2) return;
       if (progress >= 1) {
         isStaticView = true;
         followZoom = null;
-        clearPlayLayers();
         if (snakeHeadDot) { map.removeLayer(snakeHeadDot); snakeHeadDot = null; }
         applyStaticLayers();
         if (finishMarker && !map.hasLayer(finishMarker)) finishMarker.addTo(map);
@@ -417,76 +398,25 @@ function buildHtml(
       const wasStatic = isStaticView;
       isStaticView = false;
       if (finishMarker && map.hasLayer(finishMarker)) map.removeLayer(finishMarker);
-      if (baseLine && map.hasLayer(baseLine)) map.removeLayer(baseLine);
-      surfaceLayersArr.forEach(function(l) { if (map.hasLayer(l)) map.removeLayer(l); });
-      elevationLayers.forEach(function(l) { if (map.hasLayer(l)) map.removeLayer(l); });
+      // The static route/layers (baseLine, surfaceLayersArr, elevationLayers)
+      // are left on the map throughout — they used to get removed here to make
+      // room for a progressively-revealed "snake" polyline, but the route is
+      // now always fully drawn and play/scrub just moves the head dot below.
       kmMarkerLayers.forEach(function(l) { if (map.hasLayer(l)) map.removeLayer(l); });
       const pointer = pointerForProgress(progress);
       const head = pointer
         ? lerpCoord(allTrackCoords[pointer.index], allTrackCoords[pointer.index + 1], pointer.t)
         : allTrackCoords[allTrackCoords.length - 1];
-      const n = pointer ? Math.max(2, pointer.index + 1) : 2;
-      // A new playthrough started (progress went backwards) — drop everything
-      // from the previous run before drawing again.
-      if (n < committedPointCount) clearPlayLayers();
-
-      if (playSegments) {
-        // Commit any segment now fully covered by n points — drawn once at full
-        // resolution and never rebuilt again, unlike the old approach which
-        // recreated every revealed segment's Leaflet layers on every frame.
-        while (
-          committedSegIdx < playSegments.length &&
-          committedPointCount + playSegments[committedSegIdx].coords.length <= n
-        ) {
-          const seg = playSegments[committedSegIdx];
-          const hasInfo = seg.distanceKm != null && seg.avgGrade != null;
-          if (hasInfo) {
-            const hitLine = L.polyline(seg.coords, { color: seg.color, weight: 24, opacity: 0.02, lineCap: 'round', lineJoin: 'round' }).addTo(map);
-            hitLine.bindPopup(popupText(seg));
-            committedLayers.push(hitLine);
-          }
-          const poly = L.polyline(seg.coords, { color: seg.color, weight: 5, opacity: 0.95, lineCap: 'round', lineJoin: 'round' }).addTo(map);
-          if (hasInfo) poly.bindPopup(popupText(seg));
-          committedLayers.push(poly);
-          committedPointCount += seg.coords.length;
-          committedSegIdx += 1;
-        }
-        // The segment the tail was drawing just got fully committed above —
-        // drop the partial tail layers, a fresh tail gets drawn below.
-        if (tailSegIdxDrawn !== -1 && tailSegIdxDrawn < committedSegIdx) {
-          if (tailHitLine) { map.removeLayer(tailHitLine); tailHitLine = null; }
-          if (tailPoly) { map.removeLayer(tailPoly); tailPoly = null; }
-          tailSegIdxDrawn = -1;
-        }
-        const tailSeg = playSegments[committedSegIdx];
-        if (tailSeg) {
-          const tailCount = Math.max(1, n - committedPointCount);
-          const tailCoords = tailSeg.coords.slice(0, tailCount).concat([head]);
-          if (tailSegIdxDrawn !== committedSegIdx) {
-            const hasInfo = tailSeg.distanceKm != null && tailSeg.avgGrade != null;
-            if (hasInfo) {
-              tailHitLine = L.polyline(tailCoords, { color: tailSeg.color, weight: 24, opacity: 0.02, lineCap: 'round', lineJoin: 'round' }).addTo(map);
-              tailHitLine.bindPopup(popupText(tailSeg));
-            }
-            tailPoly = L.polyline(tailCoords, { color: tailSeg.color, weight: 5, opacity: 0.95, lineCap: 'round', lineJoin: 'round' }).addTo(map);
-            if (hasInfo) tailPoly.bindPopup(popupText(tailSeg));
-            tailSegIdxDrawn = committedSegIdx;
-          } else {
-            if (tailHitLine) tailHitLine.setLatLngs(tailCoords);
-            if (tailPoly) tailPoly.setLatLngs(tailCoords);
-          }
-        }
-      } else {
-        const tailCoords = allTrackCoords.slice(0, n).concat([head]);
-        if (!tailPoly) {
-          tailPoly = L.polyline(tailCoords, { color: '#39ff14', weight: 5, opacity: 0.95, lineCap: 'round', lineJoin: 'round' }).addTo(map);
-        } else {
-          tailPoly.setLatLngs(tailCoords);
-        }
-      }
       lastHeadLatLng = head;
-      if (wasStatic) { followZoom = Math.min(map.getZoom() + 2, 17); }
-      map.setView(head, followZoom, { animate: false });
+      // Only force the zoom-in on the static->active transition; every later
+      // update just pans, so a manual zoom mid-playback isn't stomped every
+      // frame the way a repeated setView(head, zoom) would.
+      if (wasStatic) {
+        followZoom = Math.min(map.getZoom() + 2, 17);
+        map.setView(head, followZoom, { animate: false });
+      } else {
+        map.panTo(head, { animate: false });
+      }
       if (!snakeHeadDot) {
         const headIcon = L.divIcon({
           className:'fm-head-marker',
