@@ -418,13 +418,19 @@ function FitTrack({ coords }: { coords: [number, number][] }) {
 // naturally restores the full-route view).
 function PlayCameraFollow({ position }: { position: [number, number] }) {
   const map = useMap()
-  const followZoomRef = useRef<number | null>(null)
+  const didInitialZoomRef = useRef(false)
   useEffect(() => {
-    followZoomRef.current = Math.min(map.getZoom() + 2, 17)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-  useEffect(() => {
-    map.setView(position, followZoomRef.current ?? map.getZoom(), { animate: false })
+    // Only force the zoom-in once, when follow mode starts. Every later
+    // position update (every animation frame) just pans to re-center on the
+    // head marker — it used to call setView with a fixed remembered zoom on
+    // every frame, which snapped the map back whenever the viewer manually
+    // zoomed in/out mid-animation, making manual zoom unusable during play.
+    if (!didInitialZoomRef.current) {
+      didInitialZoomRef.current = true
+      map.setView(position, Math.min(map.getZoom() + 2, 17), { animate: false })
+    } else {
+      map.panTo(position, { animate: false })
+    }
   }, [map, position])
   return null
 }
