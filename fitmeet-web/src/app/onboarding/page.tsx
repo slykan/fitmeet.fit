@@ -13,6 +13,7 @@ import { useAuthStore } from '@/store/auth'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { CategoryMultiPicker } from '@/components/category-picker'
+import { COUNTRIES } from '@/lib/countries'
 
 const LocationPickerMap = dynamic(() => import('@/components/location-picker-map'), { ssr: false })
 
@@ -359,9 +360,14 @@ export default function OnboardingPage() {
                   />
                   <input
                     {...register('home_country', { required: 'Country is required' })}
-                    placeholder="Croatia"
+                    placeholder="Search countries..."
+                    list="country-options"
+                    autoComplete="off"
                     className={cn(inputCls(!!errors.home_country), 'pl-9')}
                   />
+                  <datalist id="country-options">
+                    {COUNTRIES.map(c => <option key={c} value={c} />)}
+                  </datalist>
                 </div>
               </Field>
 

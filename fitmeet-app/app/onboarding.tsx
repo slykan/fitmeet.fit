@@ -7,6 +7,7 @@ import { useState } from 'react'
 
 import { useAuthStore } from '@/src/store/auth'
 import { CATEGORIES } from '@/src/lib/categories'
+import { CountryPicker } from '@/src/components/CountryPicker'
 import { palette, spacing } from '@/src/theme'
 
 const RADIUS_OPTIONS = [
@@ -40,6 +41,7 @@ export default function OnboardingScreen() {
   const [emailNewEvents,  setEmailNewEvents]  = useState(user?.email_preferences?.new_events ?? true)
   const [emailReminders,  setEmailReminders]  = useState(user?.email_preferences?.event_reminders ?? true)
   const [emailFriendEvt,  setEmailFriendEvt]  = useState(user?.email_preferences?.friend_events ?? true)
+  const [showCountryPicker, setShowCountryPicker] = useState(false)
   const [locating,        setLocating]        = useState(false)
   const [saving,          setSaving]          = useState(false)
   const [error,           setError]           = useState<string | null>(null)
@@ -174,14 +176,22 @@ export default function OnboardingScreen() {
             placeholder="City *"
             placeholderTextColor={palette.textDim}
           />
-          <TextInput
-            style={[styles.input, { marginTop: 10 }]}
-            value={country}
-            onChangeText={setCountry}
-            placeholder="Country / address *"
-            placeholderTextColor={palette.textDim}
-          />
+          <Pressable
+            style={[styles.input, styles.pickerInput, { marginTop: 10 }]}
+            onPress={() => setShowCountryPicker(true)}
+          >
+            <Text style={country ? styles.pickerValue : styles.pickerPlaceholder}>
+              {country || 'Country *'}
+            </Text>
+          </Pressable>
         </Section>
+
+        <CountryPicker
+          visible={showCountryPicker}
+          value={country}
+          onClose={() => setShowCountryPicker(false)}
+          onSelect={setCountry}
+        />
 
         {/* Radius */}
         <Section label="Event search radius">
@@ -312,6 +322,9 @@ const styles = StyleSheet.create({
     color: palette.text,
     fontSize: 16,
   },
+  pickerInput: { justifyContent: 'center' },
+  pickerValue: { color: palette.text, fontSize: 16 },
+  pickerPlaceholder: { color: palette.textDim, fontSize: 16 },
 
   toggleRow: {
     flexDirection: 'row',

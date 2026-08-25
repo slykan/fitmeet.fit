@@ -9,6 +9,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { CATEGORIES } from '@/src/lib/categories'
+import { CountryPicker } from '@/src/components/CountryPicker'
 import { api } from '@/src/lib/api'
 import { useAuthStore } from '@/src/store/auth'
 import { palette, spacing } from '@/src/theme'
@@ -60,6 +61,7 @@ export default function SettingsScreen() {
   const [error,      setError]      = useState<string | null>(null)
   const [saved,      setSaved]      = useState(false)
   const [avatarPreview, setAvatarPreview] = useState(user?.avatar ?? null)
+  const [showCountryPicker, setShowCountryPicker] = useState(false)
 
   useEffect(() => {
     setAvatarPreview(user?.avatar ?? null)
@@ -282,11 +284,21 @@ export default function SettingsScreen() {
             <TextInput style={styles.input} value={city} onChangeText={setCity}
               placeholder="Zagreb" placeholderTextColor={palette.textDim} />
           </Field>
-          <Field label="Country / address *" style={{ flex: 1 }}>
-            <TextInput style={styles.input} value={country} onChangeText={setCountry}
-              placeholder="Croatia" placeholderTextColor={palette.textDim} />
+          <Field label="Country *" style={{ flex: 1 }}>
+            <Pressable style={[styles.input, styles.pickerInput]} onPress={() => setShowCountryPicker(true)}>
+              <Text style={country ? styles.pickerValue : styles.pickerPlaceholder}>
+                {country || 'Select country'}
+              </Text>
+            </Pressable>
           </Field>
         </View>
+
+        <CountryPicker
+          visible={showCountryPicker}
+          value={country}
+          onClose={() => setShowCountryPicker(false)}
+          onSelect={setCountry}
+        />
 
         <Field label="Discovery radius">
           <View style={styles.radiusGrid}>
@@ -447,6 +459,9 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: palette.line,
     paddingHorizontal: spacing.md, color: palette.text, fontSize: 15,
   },
+  pickerInput: { justifyContent: 'center' },
+  pickerValue: { color: palette.text, fontSize: 15 },
+  pickerPlaceholder: { color: palette.textDim, fontSize: 15 },
 
   toggleRow:  { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 4 },
   toggleInfo: { flex: 1, gap: 2 },
