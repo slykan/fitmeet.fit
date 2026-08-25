@@ -206,7 +206,7 @@ function buildTrainingDetails(t: TrainingItem): TrainingDetailStat[] {
     t.max_watts != null && { icon: 'flash-outline', label: 'Max power', value: `${Math.round(t.max_watts)} W` },
     t.avg_cadence != null && { icon: 'speedometer-outline', label: 'Cad.', value: `${Math.round(t.avg_cadence)} rpm` },
     t.calories != null && { icon: 'flame-outline', label: 'Cal.', value: `${Math.round(t.calories)} kcal` },
-    avgSpeed != null && { icon: 'trending-up-outline', label: 'Avg speed', value: avgSpeed },
+    avgSpeed != null && { icon: 'trending-up-outline', label: 'Avg sp.', value: avgSpeed },
     maxSpeed != null && { icon: 'speedometer-outline', label: 'Max sp.', value: maxSpeed },
     t.kilojoules != null && { icon: 'flash-outline', label: 'Energy', value: `${Math.round(t.kilojoules)} kJ` },
     t.suffer_score != null && { icon: 'pulse-outline', label: 'Effort', value: `${Math.round(t.suffer_score)}` },

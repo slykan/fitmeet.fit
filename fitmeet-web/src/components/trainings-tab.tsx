@@ -102,7 +102,7 @@ function buildDetails(t: TrainingItem): DetailStat[] {
     t.max_watts != null && { icon: <Zap size={13} />, label: 'Max power', value: `${Math.round(t.max_watts)} W` },
     t.avg_cadence != null && { icon: <Gauge size={13} />, label: 'Cad.', value: `${Math.round(t.avg_cadence)} rpm` },
     t.calories != null && { icon: <Flame size={13} />, label: 'Cal.', value: `${Math.round(t.calories)} kcal` },
-    formatSpeed(t.avg_speed_mps, t.category.value) != null && { icon: <Wind size={13} />, label: 'Avg speed', value: formatSpeed(t.avg_speed_mps, t.category.value)! },
+    formatSpeed(t.avg_speed_mps, t.category.value) != null && { icon: <Wind size={13} />, label: 'Avg sp.', value: formatSpeed(t.avg_speed_mps, t.category.value)! },
     formatSpeed(t.max_speed_mps, t.category.value) != null && { icon: <Gauge size={13} />, label: 'Max sp.', value: formatSpeed(t.max_speed_mps, t.category.value)! },
     t.kilojoules != null && { icon: <Zap size={13} />, label: 'Energy', value: `${Math.round(t.kilojoules)} kJ` },
     t.suffer_score != null && { icon: <Activity size={13} />, label: 'Effort', value: `${Math.round(t.suffer_score)}` },
