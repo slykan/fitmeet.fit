@@ -283,6 +283,22 @@ function EventContent() {
     runAnimation(resumeFrom)
   }
 
+  // Dragging on the elevation chart takes manual control of the head marker —
+  // cancel any running auto-play loop so it doesn't fight the dragged
+  // position, and drop into 'paused' (not 'idle') so the map/chart keep
+  // showing the head marker at wherever the viewer left it.
+  function handleScrub(progress: number) {
+    if (playFrameRef.current != null) {
+      cancelAnimationFrame(playFrameRef.current)
+      playFrameRef.current = null
+    }
+    if (playMilestone) setPlayMilestone(null)
+    if (milestoneExitTimerRef.current != null) clearTimeout(milestoneExitTimerRef.current)
+    if (milestoneClearTimerRef.current != null) clearTimeout(milestoneClearTimerRef.current)
+    setPlayState('paused')
+    setPlayProgress(progress)
+  }
+
   function runAnimation(resumeFrom: number) {
     setPlayState('playing')
     const totalKm = gpxResult?.distanceKm ?? 0
@@ -1129,6 +1145,7 @@ function EventContent() {
                 profile={gpxResult.elevationProfile}
                 totalKm={gpxResult.distanceKm}
                 progress={isAnimating ? playProgress : undefined}
+                onScrub={handleScrub}
               />
             </div>
           )}

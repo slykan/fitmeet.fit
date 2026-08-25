@@ -1,5 +1,6 @@
 'use client'
 
+import { useRef } from 'react'
 import { slopeColor } from '@/lib/parse-gpx'
 
 interface Point { km: number; ele: number }
@@ -9,9 +10,14 @@ interface Props {
   totalKm?: number
   /** 0..1 reveal fraction while the route "play" animation runs. Omit for the normal, fully-drawn chart. */
   progress?: number
+  /** Fires while the viewer drags across the chart, with the 0..1 position under the pointer. */
+  onScrub?: (progress: number) => void
 }
 
-export default function ElevationChart({ profile, totalKm, progress }: Props) {
+export default function ElevationChart({ profile, totalKm, progress, onScrub }: Props) {
+  const svgRef = useRef<SVGSVGElement>(null)
+  const draggingRef = useRef(false)
+
   if (profile.length < 2) return null
 
   const animating = progress != null && progress < 1
@@ -35,6 +41,38 @@ export default function ElevationChart({ profile, totalKm, progress }: Props) {
 
   const baseline = H - padB
 
+  // Converts a pointer's clientX into a 0..1 progress fraction, independent of
+  // the SVG's actual rendered CSS size — the viewBox is fixed at W×H, so we
+  // scale by the element's rendered width first, then invert toX's mapping.
+  function progressFromClientX(clientX: number): number | null {
+    const svg = svgRef.current
+    if (!svg) return null
+    const rect = svg.getBoundingClientRect()
+    if (rect.width <= 0) return null
+    const viewBoxX = ((clientX - rect.left) / rect.width) * W
+    const raw = (viewBoxX - padL) / (W - padL - padR)
+    return Math.max(0, Math.min(1, raw))
+  }
+
+  function handlePointerDown(e: React.PointerEvent<SVGSVGElement>) {
+    if (!onScrub) return
+    draggingRef.current = true
+    e.currentTarget.setPointerCapture(e.pointerId)
+    const p = progressFromClientX(e.clientX)
+    if (p != null) onScrub(p)
+  }
+
+  function handlePointerMove(e: React.PointerEvent<SVGSVGElement>) {
+    if (!draggingRef.current || !onScrub) return
+    const p = progressFromClientX(e.clientX)
+    if (p != null) onScrub(p)
+  }
+
+  function handlePointerUp(e: React.PointerEvent<SVGSVGElement>) {
+    draggingRef.current = false
+    try { e.currentTarget.releasePointerCapture(e.pointerId) } catch {}
+  }
+
   // Y axis labels
   const yLabels = [minEle, minEle + eleRange / 2, maxEle].map(e => ({
     y: toY(e), label: `${Math.round(e)}m`,
@@ -48,10 +86,15 @@ export default function ElevationChart({ profile, totalKm, progress }: Props) {
   return (
     <div className="rounded-xl overflow-hidden" style={{ background: 'var(--background)', border: '1px solid var(--border)' }}>
       <svg
+        ref={svgRef}
         viewBox={`0 0 ${W} ${H}`}
         width="100%"
-        style={{ display: 'block' }}
+        style={{ display: 'block', touchAction: onScrub ? 'none' : undefined, cursor: onScrub ? 'ew-resize' : undefined }}
         preserveAspectRatio="none"
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
       >
         {/* Grid lines */}
         {yLabels.map((l, i) => (
