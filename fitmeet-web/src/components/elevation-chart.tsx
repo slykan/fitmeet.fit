@@ -20,14 +20,6 @@ export default function ElevationChart({ profile, totalKm, progress, onScrub }: 
 
   if (profile.length < 2) return null
 
-  // The chart itself always shows the full elevation-graded profile now —
-  // progress (from either the play animation or a drag) only positions the
-  // vertical playhead line below, it no longer masks/truncates the chart or
-  // flattens its colors.
-  const activePoint = progress != null
-    ? profile[Math.min(profile.length - 1, Math.max(0, Math.round(progress * (profile.length - 1))))]
-    : null
-
   const W = 600
   const H = 120
   const padL = 44, padR = 12, padT = 10, padB = 28
@@ -42,6 +34,17 @@ export default function ElevationChart({ profile, totalKm, progress, onScrub }: 
   function toY(ele: number) { return padT + (1 - (ele - minEle) / eleRange) * (H - padT - padB) }
 
   const baseline = H - padB
+
+  // The chart itself always shows the full elevation-graded profile now —
+  // progress (from either the play animation or a drag) only positions the
+  // vertical playhead line below, it no longer masks/truncates the chart or
+  // flattens its colors. Positioned directly from progress*maxKm (real-world
+  // distance), NOT by indexing into `profile` by point-count fraction — the
+  // map's head marker is also distance-based (progressToTrackPointer), and
+  // elevationProfile points aren't evenly spaced by distance (they cluster
+  // around elevation changes), so index-fraction landed the line at a
+  // different point on the route than the map's marker.
+  const activeX = progress != null ? toX(Math.max(0, Math.min(1, progress)) * maxKm) : null
 
   // Converts a pointer's clientX into a 0..1 progress fraction, independent of
   // the SVG's actual rendered CSS size — the viewBox is fixed at W×H, so we
@@ -130,8 +133,8 @@ export default function ElevationChart({ profile, totalKm, progress, onScrub }: 
         })}
 
         {/* Vertical playhead line at the current play/scrub position */}
-        {activePoint && (
-          <line x1={toX(activePoint.km)} x2={toX(activePoint.km)} y1={padT} y2={baseline}
+        {activeX != null && (
+          <line x1={activeX} x2={activeX} y1={padT} y2={baseline}
             stroke="#39ff14" strokeWidth="2" />
         )}
 
