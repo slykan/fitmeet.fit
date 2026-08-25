@@ -436,6 +436,22 @@ export default function EventDetailScreen() {
     runAnimation(resumeFrom)
   }
 
+  // Dragging on the elevation chart takes manual control of the head marker —
+  // cancel any running auto-play loop so it doesn't fight the dragged
+  // position, and drop into 'paused' (not 'idle') so the map/chart keep
+  // showing the head marker at wherever the viewer left it.
+  function handleScrub(progress: number) {
+    if (playFrameRef.current != null) {
+      cancelAnimationFrame(playFrameRef.current)
+      playFrameRef.current = null
+    }
+    if (playMilestone) setPlayMilestone(null)
+    if (milestoneExitTimerRef.current != null) clearTimeout(milestoneExitTimerRef.current)
+    if (milestoneClearTimerRef.current != null) clearTimeout(milestoneClearTimerRef.current)
+    setPlayState('paused')
+    setPlayProgress(progress)
+  }
+
   function runAnimation(resumeFrom: number) {
     setPlayState('playing')
     const totalKm = elevationProfile[elevationProfile.length - 1]?.km ?? 0
@@ -1398,7 +1414,7 @@ export default function EventDetailScreen() {
         {/* Elevation profile */}
         {elevationProfile.length >= 2 && (
           <View style={{ paddingHorizontal: spacing.md }}>
-            <ElevationChart profile={elevationProfile} progress={isAnimating ? playProgress : null} />
+            <ElevationChart profile={elevationProfile} progress={isAnimating ? playProgress : null} onScrub={handleScrub} />
           </View>
         )}
 

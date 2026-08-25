@@ -92,7 +92,14 @@ export function LiveProgressBar({ track, participants, onGroupTap }: Props) {
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={[styles.fill, { width: `${leadProgress}%` }]}
-        />
+        >
+          <LinearGradient
+            colors={['rgba(255,255,255,0.6)', 'rgba(255,255,255,0)']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+            style={styles.sheen}
+          />
+        </LinearGradient>
         {groups.map((group) => (
           <Pressable
             key={group.participants.map((p) => p.id).join('-')}
@@ -122,10 +129,10 @@ export function LiveProgressBar({ track, participants, onGroupTap }: Props) {
 const styles = StyleSheet.create({
   wrap: { paddingHorizontal: 4, paddingTop: 6 },
   track: {
-    height: 28,
+    height: 14,
     borderRadius: 999,
     backgroundColor: palette.panel,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: palette.accent,
     justifyContent: 'center',
     overflow: 'hidden',
@@ -136,11 +143,19 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     borderRadius: 999,
+    overflow: 'hidden',
+  },
+  sheen: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    height: '55%',
   },
   bubble: {
     position: 'absolute',
-    width: 24,
-    height: 24,
+    width: 20,
+    height: 20,
     borderRadius: 999,
     backgroundColor: palette.accent,
     borderWidth: 2,

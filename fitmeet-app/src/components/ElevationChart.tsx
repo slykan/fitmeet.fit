@@ -12,7 +12,7 @@ function slopeColor(grade: number): string {
   return '#ff2200'
 }
 
-function buildHtml(profile: ElevationPoint[]): string {
+function buildHtml(profile: ElevationPoint[], scrubbable: boolean): string {
   if (profile.length < 2) return '<html><body style="background:#060c1a"></body></html>'
 
   const W = 600
@@ -75,11 +75,11 @@ function buildHtml(profile: ElevationPoint[]): string {
 <style>
   *{margin:0;padding:0;box-sizing:border-box;}
   html,body{width:100%;height:100%;background:#060c1a;overflow:hidden;}
-  svg{display:block;width:100%;height:100%;}
+  svg{display:block;width:100%;height:100%;${scrubbable ? 'touch-action:none;' : ''}}
 </style>
 </head>
 <body>
-<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+<svg id="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
   ${gridLines}
   ${fills}
   ${lines}
@@ -94,6 +94,7 @@ function buildHtml(profile: ElevationPoint[]): string {
   const padR = ${padR};
   function toX(km) { return padL + (km / maxKm) * (W - padL - padR); }
   const mask = document.getElementById('revealMask');
+  const svgEl = document.getElementById('chart');
   function setProgress(progress) {
     if (progress >= 1) {
       mask.setAttribute('x', String(W));
@@ -112,6 +113,33 @@ function buildHtml(profile: ElevationPoint[]): string {
   }
   document.addEventListener('message', handleMessage);
   window.addEventListener('message', handleMessage);
+
+  ${scrubbable ? `
+  // Drag-to-scrub: reports the 0..1 position under the finger back to React
+  // Native via the WebView bridge so the host screen can drive the map's
+  // head marker and its own copy of playProgress from it.
+  let dragging = false;
+  function progressFromClientX(clientX) {
+    const rect = svgEl.getBoundingClientRect();
+    if (rect.width <= 0) return null;
+    const viewBoxX = ((clientX - rect.left) / rect.width) * W;
+    const raw = (viewBoxX - padL) / (W - padL - padR);
+    return Math.max(0, Math.min(1, raw));
+  }
+  function sendScrub(clientX) {
+    const p = progressFromClientX(clientX);
+    if (p == null || !window.ReactNativeWebView) return;
+    window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'scrub', progress: p }));
+  }
+  svgEl.addEventListener('pointerdown', (e) => {
+    dragging = true;
+    svgEl.setPointerCapture(e.pointerId);
+    sendScrub(e.clientX);
+  });
+  svgEl.addEventListener('pointermove', (e) => { if (dragging) sendScrub(e.clientX); });
+  svgEl.addEventListener('pointerup', () => { dragging = false; });
+  svgEl.addEventListener('pointercancel', () => { dragging = false; });
+  ` : ''}
 </script>
 </body>
 </html>`
@@ -121,11 +149,13 @@ interface Props {
   profile: ElevationPoint[]
   /** 0..1 reveal fraction while the route "play" animation runs. Omit/null for the normal, fully-drawn chart. */
   progress?: number | null
+  /** Fires while the viewer drags across the chart, with the 0..1 position under the finger. */
+  onScrub?: (progress: number) => void
 }
 
-export function ElevationChart({ profile, progress = null }: Props) {
+export function ElevationChart({ profile, progress = null, onScrub }: Props) {
   const webViewRef = useRef<WebViewType>(null)
-  const html = useMemo(() => buildHtml(profile), [profile])
+  const html = useMemo(() => buildHtml(profile, onScrub != null), [profile, onScrub != null])
 
   useEffect(() => {
     webViewRef.current?.postMessage(JSON.stringify({ type: 'playProgress', progress: progress == null ? 1 : progress }))
@@ -144,6 +174,12 @@ export function ElevationChart({ profile, progress = null }: Props) {
         style={styles.webview}
         onLoadEnd={() => {
           webViewRef.current?.postMessage(JSON.stringify({ type: 'playProgress', progress: progress == null ? 1 : progress }))
+        }}
+        onMessage={(event) => {
+          try {
+            const data = JSON.parse(event.nativeEvent.data)
+            if (data.type === 'scrub' && typeof data.progress === 'number') onScrub?.(data.progress)
+          } catch {}
         }}
       />
     </View>
