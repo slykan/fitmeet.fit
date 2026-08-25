@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
-  ActivityIndicator, Pressable, ScrollView,
+  ActivityIndicator, Image, Pressable, ScrollView,
   StyleSheet, Text, TextInput, View,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -16,8 +16,15 @@ interface Broadcast {
   body: string
   target_platform: string | null
   target_country: string | null
+  target_user: string | null
   sent_by: string
   created_at: string
+}
+
+interface UserResult {
+  id: number
+  name: string
+  avatar: string | null
 }
 
 const PLATFORMS = [
@@ -50,6 +57,26 @@ export default function AdminBroadcastScreen() {
   const [showCountryPicker, setShowCountryPicker] = useState(false)
   const [showPlatformPicker, setShowPlatformPicker] = useState(false)
 
+  const [targetUser,    setTargetUser]    = useState<UserResult | null>(null)
+  const [userQuery,     setUserQuery]     = useState('')
+  const [userResults,   setUserResults]   = useState<UserResult[]>([])
+  const [searchingUser, setSearchingUser] = useState(false)
+  const searchReqId = useRef(0)
+
+  useEffect(() => {
+    const q = userQuery.trim()
+    if (targetUser || q.length < 2) { setUserResults([]); return }
+    const id = ++searchReqId.current
+    setSearchingUser(true)
+    const timer = setTimeout(() => {
+      api.get('/users', { params: { search: q } })
+        .then(({ data }) => { if (id === searchReqId.current) setUserResults(data.data ?? []) })
+        .catch(() => { if (id === searchReqId.current) setUserResults([]) })
+        .finally(() => { if (id === searchReqId.current) setSearchingUser(false) })
+    }, 350)
+    return () => clearTimeout(timer)
+  }, [userQuery, targetUser])
+
   useEffect(() => {
     Promise.all([
       api.get('/admin/broadcasts'),
@@ -70,15 +97,18 @@ export default function AdminBroadcastScreen() {
         title: title.trim(),
         body:  body.trim(),
         data:  link.trim() ? { url: link.trim() } : undefined,
-        target_platform: platform,
-        target_country:  country,
+        target_platform: targetUser ? null : platform,
+        target_country:  targetUser ? null : country,
+        target_user_id:  targetUser?.id ?? null,
       })
-      setSuccess('Broadcast sent!')
+      setSuccess(targetUser ? `Notification sent to ${targetUser.name}!` : 'Broadcast sent!')
       setTitle('')
       setBody('')
       setLink('')
       setPlatform(null)
       setCountry(null)
+      setTargetUser(null)
+      setUserQuery('')
       const { data } = await api.get('/admin/broadcasts')
       setBroadcasts(data)
     } catch {
@@ -149,8 +179,58 @@ export default function AdminBroadcastScreen() {
             />
           </View>
 
-          {/* Platform picker */}
+          {/* Send to one person */}
           <View style={styles.field}>
+            <Text style={styles.fieldLabel}>SEND TO ONE PERSON (OPTIONAL)</Text>
+            {targetUser ? (
+              <View style={styles.selectedUserRow}>
+                {targetUser.avatar
+                  ? <Image source={{ uri: targetUser.avatar }} style={styles.selectedUserAvatar} />
+                  : <View style={[styles.selectedUserAvatar, styles.selectedUserAvatarFallback]}>
+                      <Ionicons name="person" size={16} color={palette.textDim} />
+                    </View>
+                }
+                <Text style={styles.selectedUserName}>{targetUser.name}</Text>
+                <Pressable onPress={() => { setTargetUser(null); setUserQuery('') }} hitSlop={8}>
+                  <Ionicons name="close-circle" size={20} color={palette.textDim} />
+                </Pressable>
+              </View>
+            ) : (
+              <>
+                <TextInput
+                  style={styles.input}
+                  value={userQuery}
+                  onChangeText={setUserQuery}
+                  placeholder="Search by name…"
+                  placeholderTextColor={palette.textDim}
+                  autoCorrect={false}
+                />
+                {searchingUser && <ActivityIndicator size="small" color={palette.accent} style={{ marginTop: 8 }} />}
+                {!searchingUser && userResults.length > 0 && (
+                  <View style={styles.dropdown}>
+                    {userResults.map(u => (
+                      <Pressable
+                        key={u.id}
+                        style={styles.userResultRow}
+                        onPress={() => { setTargetUser(u); setUserQuery(''); setUserResults([]) }}
+                      >
+                        {u.avatar
+                          ? <Image source={{ uri: u.avatar }} style={styles.selectedUserAvatar} />
+                          : <View style={[styles.selectedUserAvatar, styles.selectedUserAvatarFallback]}>
+                              <Ionicons name="person" size={14} color={palette.textDim} />
+                            </View>
+                        }
+                        <Text style={styles.dropdownText}>{u.name}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                )}
+              </>
+            )}
+          </View>
+
+          {/* Platform picker */}
+          <View style={[styles.field, !!targetUser && styles.fieldDisabled]} pointerEvents={targetUser ? 'none' : 'auto'}>
             <Text style={styles.fieldLabel}>PLATFORM</Text>
             <Pressable style={styles.picker} onPress={() => setShowPlatformPicker(v => !v)}>
               <Text style={styles.pickerText}>{PLATFORMS.find(p => p.value === platform)?.label ?? 'All platforms'}</Text>
@@ -171,7 +251,7 @@ export default function AdminBroadcastScreen() {
           </View>
 
           {/* Country picker */}
-          <View style={styles.field}>
+          <View style={[styles.field, !!targetUser && styles.fieldDisabled]} pointerEvents={targetUser ? 'none' : 'auto'}>
             <Text style={styles.fieldLabel}>COUNTRY</Text>
             <Pressable style={styles.picker} onPress={() => setShowCountryPicker(v => !v)}>
               <Text style={styles.pickerText}>{country ?? 'All countries'}</Text>
@@ -205,7 +285,7 @@ export default function AdminBroadcastScreen() {
               ? <ActivityIndicator size="small" color="#041109" />
               : <>
                   <Ionicons name="send-outline" size={16} color="#041109" />
-                  <Text style={styles.sendLabel}>Send broadcast</Text>
+                  <Text style={styles.sendLabel}>{targetUser ? `Send to ${targetUser.name}` : 'Send broadcast'}</Text>
                 </>
             }
           </Pressable>
@@ -228,12 +308,20 @@ export default function AdminBroadcastScreen() {
             </View>
             <Text style={styles.broadcastBody}>{b.body}</Text>
             <View style={styles.broadcastTags}>
-              <View style={styles.tag}>
-                <Text style={styles.tagText}>{b.target_platform ?? 'all platforms'}</Text>
-              </View>
-              <View style={styles.tag}>
-                <Text style={styles.tagText}>{b.target_country ?? 'all countries'}</Text>
-              </View>
+              {b.target_user ? (
+                <View style={styles.tag}>
+                  <Text style={styles.tagText}>to {b.target_user}</Text>
+                </View>
+              ) : (
+                <>
+                  <View style={styles.tag}>
+                    <Text style={styles.tagText}>{b.target_platform ?? 'all platforms'}</Text>
+                  </View>
+                  <View style={styles.tag}>
+                    <Text style={styles.tagText}>{b.target_country ?? 'all countries'}</Text>
+                  </View>
+                </>
+              )}
               <Text style={styles.broadcastBy}>by {b.sent_by}</Text>
             </View>
           </View>
@@ -259,8 +347,24 @@ const styles = StyleSheet.create({
   },
   sectionLabel: { color: palette.text, fontSize: 15, fontWeight: '800', marginBottom: 4 },
 
-  field:      { gap: 6 },
-  fieldLabel: { color: palette.textDim, fontSize: 11, fontWeight: '700', letterSpacing: 0.8 },
+  field:         { gap: 6 },
+  fieldDisabled: { opacity: 0.4 },
+  fieldLabel:    { color: palette.textDim, fontSize: 11, fontWeight: '700', letterSpacing: 0.8 },
+
+  selectedUserRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: palette.bg, borderRadius: 14,
+    borderWidth: 1, borderColor: palette.line,
+    paddingHorizontal: 12, paddingVertical: 10,
+  },
+  selectedUserAvatar: { width: 28, height: 28, borderRadius: 14 },
+  selectedUserAvatarFallback: { backgroundColor: palette.panelRaised, alignItems: 'center', justifyContent: 'center' },
+  selectedUserName: { flex: 1, color: palette.text, fontSize: 14, fontWeight: '700' },
+  userResultRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingHorizontal: 14, paddingVertical: 10,
+    borderBottomWidth: 1, borderBottomColor: palette.line,
+  },
   input: {
     backgroundColor: palette.bg, borderRadius: 14,
     borderWidth: 1, borderColor: palette.line,

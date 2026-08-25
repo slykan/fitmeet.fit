@@ -17,6 +17,11 @@ class Announcement extends Model
         return $this->belongsTo(User::class, 'sent_by');
     }
 
+    public function targetUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'target_user_id');
+    }
+
     public function reads(): HasMany
     {
         return $this->hasMany(AnnouncementRead::class);

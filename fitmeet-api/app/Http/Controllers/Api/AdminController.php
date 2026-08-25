@@ -16,7 +16,7 @@ class AdminController extends Controller
 
     public function broadcasts(): JsonResponse
     {
-        $announcements = Announcement::with('sender:id,name')
+        $announcements = Announcement::with(['sender:id,name', 'targetUser:id,name'])
             ->latest()
             ->limit(50)
             ->get()
@@ -27,6 +27,7 @@ class AdminController extends Controller
                 'data'            => $a->data,
                 'target_platform' => $a->target_platform,
                 'target_country'  => $a->target_country,
+                'target_user'     => $a->targetUser?->name,
                 'sent_by'         => $a->sender?->name,
                 'created_at'      => $a->created_at,
             ]);
@@ -42,6 +43,7 @@ class AdminController extends Controller
             'data'            => 'nullable|array',
             'target_platform' => 'nullable|in:android,ios,web',
             'target_country'  => 'nullable|string|max:64',
+            'target_user_id'  => 'nullable|exists:users,id',
         ]);
 
         $announcement = Announcement::create([
@@ -49,16 +51,19 @@ class AdminController extends Controller
             'title'           => $request->title,
             'body'            => $request->body,
             'data'            => $request->data,
-            'target_platform' => $request->target_platform,
-            'target_country'  => $request->target_country,
+            'target_platform' => $request->target_user_id ? null : $request->target_platform,
+            'target_country'  => $request->target_user_id ? null : $request->target_country,
+            'target_user_id'  => $request->target_user_id,
         ]);
 
         // Web-only announcements don't need a push — they'll appear via GET /notifications
-        if ($request->target_platform !== 'web') {
-            $userIds = $this->resolveTargetUserIds(
-                $request->target_platform,
-                $request->target_country,
-            );
+        if ($request->target_user_id || $request->target_platform !== 'web') {
+            $userIds = $request->target_user_id
+                ? collect([$request->target_user_id])
+                : $this->resolveTargetUserIds(
+                    $request->target_platform,
+                    $request->target_country,
+                );
 
             $this->push->sendToUserIds(
                 $userIds,
