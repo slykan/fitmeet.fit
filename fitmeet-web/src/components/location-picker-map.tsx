@@ -213,28 +213,6 @@ function segmentPopupText(distanceKm: number, avgGrade: number) {
 // Truncates a colored segment list to the first `count` points, splitting the
 // segment that straddles the cut so the reveal animation's leading edge lands
 // mid-segment instead of always snapping to a full segment boundary.
-function revealedSegments(segments: TrackSegment[], count: number): TrackSegment[] {
-  const result: TrackSegment[] = []
-  let consumed = 0
-  for (const seg of segments) {
-    if (consumed >= count) break
-    const remaining = count - consumed
-    if (remaining >= seg.coords.length) {
-      result.push(seg)
-      consumed += seg.coords.length
-    } else {
-      // Cut to exactly `remaining` points (not clamped to a 2-point minimum):
-      // revealedSegmentsWithHead always appends the interpolated head after
-      // this, so clamping up here would overshoot the true cut point by one
-      // real track vertex — then appending head (which sits *behind* that
-      // overshot vertex) drew a visible one-point "hook" back on itself.
-      result.push({ ...seg, coords: seg.coords.slice(0, Math.max(1, remaining)) })
-      break
-    }
-  }
-  return result
-}
-
 function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number) {
   const R = 6371
   const dLat = (lat2 - lat1) * Math.PI / 180
@@ -276,16 +254,6 @@ function progressToTrackPointer(cumDistKm: number[], progress: number): { index:
 
 function lerpCoord(a: [number, number], b: [number, number], t: number): [number, number] {
   return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]
-}
-
-// Appends the interpolated head position as an extra vertex so the drawn
-// line's leading edge always lands exactly under the head marker, instead of
-// snapping to the nearest whole track point.
-function revealedSegmentsWithHead(segments: TrackSegment[], count: number, head: [number, number] | null): TrackSegment[] {
-  const revealed = revealedSegments(segments, count)
-  if (!head || revealed.length === 0) return revealed
-  const last = revealed[revealed.length - 1]
-  return [...revealed.slice(0, -1), { ...last, coords: [...last.coords, head] }]
 }
 
 function computeKmMarkerPoints(coords: [number, number][], stepKm: number) {
@@ -892,32 +860,7 @@ export default function LocationPickerMap({
         {readOnly && <ReadOnlyViewSync onViewChange={onViewChange} onInteractionChange={onInteractionChange} />}
         {hasPin && <Marker position={[lat!, lng!]} />}
 
-        {playProgress != null && playPointer && playCoords.length > 1 ? (
-          <>
-            {playSegments ? (
-              revealedSegmentsWithHead(playSegments, Math.max(2, playPointer.index + 1), headPosition).map((seg, i) => (
-                <ColoredSegment key={i} seg={seg} weight={5} opacity={0.95} />
-              ))
-            ) : (
-              <Polyline
-                positions={[...playCoords.slice(0, Math.max(2, playPointer.index + 1)), ...(headPosition ? [headPosition] : [])]}
-                pathOptions={{ color: '#39ff14', weight: 5, opacity: 0.95, lineCap: 'round', lineJoin: 'round' }}
-              />
-            )}
-            <Marker
-              position={headPosition!}
-              icon={headIcon}
-            />
-            {playMilestone && milestonePosition && (
-              <Marker
-                position={milestonePosition}
-                icon={milestoneIcon(playMilestone.km, playMilestone.exiting)}
-                zIndexOffset={1000}
-              />
-            )}
-            <PlayCameraFollow position={headPosition!} />
-          </>
-        ) : hasLayeredSegments ? (
+        {hasLayeredSegments ? (
           <>
             {showSurfaceLayer && surfaceSegments?.map((seg, i) => (
               <Polyline
@@ -952,6 +895,23 @@ export default function LocationPickerMap({
               pathOptions={{ color: '#39ff14', weight: 4, opacity: 0.9 }}
             />
             <FitTrack coords={allCoords} />
+          </>
+        )}
+
+        {/* Play/scrub head marker — the route above is always drawn in full;
+            this just moves a marker along it rather than progressively
+            revealing/hiding the line as playProgress changes. */}
+        {playProgress != null && playPointer && headPosition && (
+          <>
+            <Marker position={headPosition} icon={headIcon} />
+            {playMilestone && milestonePosition && (
+              <Marker
+                position={milestonePosition}
+                icon={milestoneIcon(playMilestone.km, playMilestone.exiting)}
+                zIndexOffset={1000}
+              />
+            )}
+            <PlayCameraFollow position={headPosition} />
           </>
         )}
 
