@@ -11,10 +11,23 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { CATEGORIES } from '@/src/lib/categories'
 import { CountryPicker } from '@/src/components/CountryPicker'
 import { CityPicker } from '@/src/components/CityPicker'
+import { OptionPicker, type PickerOption } from '@/src/components/OptionPicker'
 import { countryCodeForName } from '@/src/lib/countries'
 import { api } from '@/src/lib/api'
 import { useAuthStore } from '@/src/store/auth'
 import { palette, spacing } from '@/src/theme'
+
+const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+const DAY_OPTIONS: PickerOption[] = Array.from({ length: 31 }, (_, i) => {
+  const d = String(i + 1).padStart(2, '0')
+  return { value: d, label: d }
+})
+const MONTH_OPTIONS: PickerOption[] = MONTH_NAMES.map((name, i) => ({ value: String(i + 1).padStart(2, '0'), label: name }))
+const CURRENT_YEAR = new Date().getFullYear()
+const YEAR_OPTIONS: PickerOption[] = Array.from({ length: 88 }, (_, i) => {
+  const y = String(CURRENT_YEAR - 13 - i)
+  return { value: y, label: y }
+})
 
 const RADIUS_OPTIONS: { label: string; value: 'nearby' | 'city' | 'region' | 'unlimited'; desc: string }[] = [
   { value: 'nearby',    label: 'Nearby',    desc: '50 km'  },
@@ -66,6 +79,9 @@ export default function SettingsScreen() {
   const [avatarPreview, setAvatarPreview] = useState(user?.avatar ?? null)
   const [showCountryPicker, setShowCountryPicker] = useState(false)
   const [showCityPicker, setShowCityPicker] = useState(false)
+  const [showDayPicker, setShowDayPicker] = useState(false)
+  const [showMonthPicker, setShowMonthPicker] = useState(false)
+  const [showYearPicker, setShowYearPicker] = useState(false)
 
   useEffect(() => {
     setAvatarPreview(user?.avatar ?? null)
@@ -240,35 +256,44 @@ export default function SettingsScreen() {
 
         <Field label="Date of birth">
           <View style={styles.row}>
-            <TextInput
-              style={[styles.input, { flex: 1 }]}
-              value={birthDay}
-              onChangeText={t => setBirthDay(t.replace(/\D/g, '').slice(0, 2))}
-              placeholder="DD"
-              placeholderTextColor={palette.textDim}
-              keyboardType="number-pad"
-              maxLength={2}
-            />
-            <TextInput
-              style={[styles.input, { flex: 1 }]}
-              value={birthMonth}
-              onChangeText={t => setBirthMonth(t.replace(/\D/g, '').slice(0, 2))}
-              placeholder="MM"
-              placeholderTextColor={palette.textDim}
-              keyboardType="number-pad"
-              maxLength={2}
-            />
-            <TextInput
-              style={[styles.input, { flex: 2 }]}
-              value={birthYear}
-              onChangeText={t => setBirthYear(t.replace(/\D/g, '').slice(0, 4))}
-              placeholder="YYYY"
-              placeholderTextColor={palette.textDim}
-              keyboardType="number-pad"
-              maxLength={4}
-            />
+            <Pressable style={[styles.input, styles.pickerInput, { flex: 1 }]} onPress={() => setShowDayPicker(true)}>
+              <Text style={birthDay ? styles.pickerValue : styles.pickerPlaceholder}>{birthDay || 'DD'}</Text>
+            </Pressable>
+            <Pressable style={[styles.input, styles.pickerInput, { flex: 1.6 }]} onPress={() => setShowMonthPicker(true)}>
+              <Text style={birthMonth ? styles.pickerValue : styles.pickerPlaceholder} numberOfLines={1}>
+                {MONTH_OPTIONS.find(o => o.value === birthMonth)?.label ?? 'Month'}
+              </Text>
+            </Pressable>
+            <Pressable style={[styles.input, styles.pickerInput, { flex: 1.2 }]} onPress={() => setShowYearPicker(true)}>
+              <Text style={birthYear ? styles.pickerValue : styles.pickerPlaceholder}>{birthYear || 'YYYY'}</Text>
+            </Pressable>
           </View>
         </Field>
+
+        <OptionPicker
+          visible={showDayPicker}
+          title="Day"
+          options={DAY_OPTIONS}
+          value={birthDay}
+          onClose={() => setShowDayPicker(false)}
+          onSelect={setBirthDay}
+        />
+        <OptionPicker
+          visible={showMonthPicker}
+          title="Month"
+          options={MONTH_OPTIONS}
+          value={birthMonth}
+          onClose={() => setShowMonthPicker(false)}
+          onSelect={setBirthMonth}
+        />
+        <OptionPicker
+          visible={showYearPicker}
+          title="Year"
+          options={YEAR_OPTIONS}
+          value={birthYear}
+          onClose={() => setShowYearPicker(false)}
+          onSelect={setBirthYear}
+        />
 
         <Pressable style={styles.toggleRow} onPress={() => setHidePhone(v => !v)}>
           <View style={styles.toggleInfo}>

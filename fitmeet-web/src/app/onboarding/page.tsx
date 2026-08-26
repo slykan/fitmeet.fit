@@ -27,6 +27,12 @@ const RADIUS_OPTIONS = [
   { value: 'unlimited', label: 'Unlimited', km: '∞' },
 ] as const
 
+const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+const DAY_OPTIONS = Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, '0'))
+const MONTH_OPTIONS = MONTH_NAMES.map((name, i) => ({ value: String(i + 1).padStart(2, '0'), label: name }))
+const CURRENT_YEAR = new Date().getFullYear()
+const YEAR_OPTIONS = Array.from({ length: 88 }, (_, i) => String(CURRENT_YEAR - 13 - i))
+
 const SKILL_OPTIONS = [
   { value: 'beginner', label: 'Beginner', desc: 'Just getting started' },
   { value: 'advanced', label: 'Advanced', desc: 'Regular practitioner' },
@@ -323,27 +329,18 @@ export default function OnboardingPage() {
 
             <Field label="Date of birth (optional)" className="mt-4">
               <div className="flex gap-2">
-                <input
-                  {...register('birth_day')}
-                  placeholder="DD"
-                  maxLength={2}
-                  className={cn(inputCls(false), 'w-20 text-center')}
-                  onChange={e => { const v = e.target.value.replace(/\D/g, ''); e.target.value = v }}
-                />
-                <input
-                  {...register('birth_month')}
-                  placeholder="MM"
-                  maxLength={2}
-                  className={cn(inputCls(false), 'w-20 text-center')}
-                  onChange={e => { const v = e.target.value.replace(/\D/g, ''); e.target.value = v }}
-                />
-                <input
-                  {...register('birth_year')}
-                  placeholder="YYYY"
-                  maxLength={4}
-                  className={cn(inputCls(false), 'w-28 text-center')}
-                  onChange={e => { const v = e.target.value.replace(/\D/g, ''); e.target.value = v }}
-                />
+                <select {...register('birth_day')} className={cn(inputCls(false), 'w-20 text-center')}>
+                  <option value="">DD</option>
+                  {DAY_OPTIONS.map(d => <option key={d} value={d}>{d}</option>)}
+                </select>
+                <select {...register('birth_month')} className={cn(inputCls(false), 'flex-1')}>
+                  <option value="">Month</option>
+                  {MONTH_OPTIONS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
+                </select>
+                <select {...register('birth_year')} className={cn(inputCls(false), 'w-24 text-center')}>
+                  <option value="">YYYY</option>
+                  {YEAR_OPTIONS.map(y => <option key={y} value={y}>{y}</option>)}
+                </select>
               </div>
               <p className="text-xs mt-1.5" style={{ color: 'var(--text-muted)' }}>Used to celebrate your birthday in the app 🎂</p>
             </Field>
