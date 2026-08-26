@@ -3,7 +3,7 @@ import { EmptyEvents } from '@/src/components/EmptyEvents'
 import { EventCommentsPreview } from '@/src/components/EventCommentsPreview'
 import { InProgressBadge } from '@/src/components/InProgressBadge'
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import {
   ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, Share,
   StyleSheet, Text, TextInput, View,
@@ -1176,7 +1176,11 @@ function TrainingsTab() {
 
 // ─── People Tab ───────────────────────────────────────────────────────────────
 
-function PeopleTab() {
+export interface PeopleTabHandle {
+  loadMore: () => void
+}
+
+const PeopleTab = forwardRef<PeopleTabHandle>(function PeopleTab(_props, ref) {
   const [users,        setUsers]        = useState<UserItem[]>([])
   const [search,       setSearch]       = useState('')
   const [loading,      setLoading]      = useState(true)
@@ -1278,6 +1282,8 @@ function PeopleTab() {
     if (loading || loadingMore || !hasMore) return
     load(search, sort, direction, friendsOnly, page + 1)
   }
+
+  useImperativeHandle(ref, () => ({ loadMore: loadNextPage }))
 
   async function handleInvite() {
     api.post('/me/invite-tap').catch(() => {})
@@ -1447,18 +1453,14 @@ function PeopleTab() {
         </Pressable>
       ))}
 
-      {!loading && users.length > 0 && hasMore && (
-        <Pressable style={styles.loadMoreBtn} onPress={loadNextPage} disabled={loadingMore}>
-          {loadingMore ? (
-            <ActivityIndicator color={palette.accent} />
-          ) : (
-            <Text style={styles.loadMoreText}>Load more</Text>
-          )}
-        </Pressable>
+      {!loading && loadingMore && (
+        <View style={styles.loadMoreBtn}>
+          <ActivityIndicator color={palette.accent} />
+        </View>
       )}
     </View>
   )
-}
+})
 
 // ─── Market Tab ───────────────────────────────────────────────────────────────
 
@@ -1832,6 +1834,15 @@ export default function MeetScreen() {
   const { tab: initialTab } = useLocalSearchParams<{ tab?: string }>()
   const [tab, setTab] = useState<'events' | 'people' | 'routes' | 'trainings' | 'market'>('events')
   const [showCalendar, setShowCalendar] = useState(false)
+  const peopleTabRef = useRef<PeopleTabHandle>(null)
+
+  function handleScroll({ nativeEvent }: { nativeEvent: { contentOffset: { y: number }; layoutMeasurement: { height: number }; contentSize: { height: number } } }) {
+    if (tab !== 'people') return
+    const { contentOffset, layoutMeasurement, contentSize } = nativeEvent
+    if (contentOffset.y + layoutMeasurement.height >= contentSize.height - 300) {
+      peopleTabRef.current?.loadMore()
+    }
+  }
 
   useEffect(() => {
     if (initialTab === 'trainings') setTab('trainings')
@@ -1859,7 +1870,12 @@ export default function MeetScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: tabBarHeight + 8 }]} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={[styles.content, { paddingBottom: tabBarHeight + 8 }]}
+        showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={200}
+      >
 
         <View style={styles.header}>
           <View>
@@ -1906,7 +1922,7 @@ export default function MeetScreen() {
         {tab === 'events' ? <EventsTab />
           : tab === 'routes' ? <RoutesTab />
           : tab === 'trainings' ? <TrainingsTab />
-          : tab === 'people' ? <PeopleTab />
+          : tab === 'people' ? <PeopleTab ref={peopleTabRef} />
           : <MarketTab />}
 
       </ScrollView>
