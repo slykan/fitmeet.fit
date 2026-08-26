@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useMemo, useState } from 'react'
-import { FlatList, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
+import { FlatList, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller'
 
 import { COUNTRIES } from '@/src/lib/countries'
 import { palette, spacing } from '@/src/theme'
@@ -28,6 +29,7 @@ export function CountryPicker({ visible, value, onClose, onSelect }: Props) {
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <Pressable style={styles.overlay} onPress={handleClose}>
         <Pressable style={styles.card} onPress={(e) => e.stopPropagation()}>
 
@@ -70,6 +72,7 @@ export function CountryPicker({ visible, value, onClose, onSelect }: Props) {
 
         </Pressable>
       </Pressable>
+      </KeyboardAvoidingView>
     </Modal>
   )
 }

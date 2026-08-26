@@ -8,9 +8,10 @@ import { SupportFitMeetCard } from '@/src/components/SupportFitMeetCard'
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
-  ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, Share,
+  ActivityIndicator, Alert, Image, Modal, Platform, Pressable, ScrollView, Share,
   BackHandler, StyleSheet, Text, TextInput, View,
 } from 'react-native'
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { WebView } from 'react-native-webview'
 
@@ -1110,6 +1111,7 @@ export default function CreateEventScreen() {
           animationType="slide"
           onRequestClose={() => setShowFitMeetRoutes(false)}
         >
+          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <Pressable style={styles.modalOverlay} onPress={() => setShowFitMeetRoutes(false)}>
             <Pressable style={styles.routeModal} onPress={(event) => event.stopPropagation()}>
               <View style={styles.routeModalHeader}>
@@ -1181,6 +1183,7 @@ export default function CreateEventScreen() {
               )}
             </Pressable>
           </Pressable>
+          </KeyboardAvoidingView>
         </Modal>
 
         {/* ── Details ── */}
