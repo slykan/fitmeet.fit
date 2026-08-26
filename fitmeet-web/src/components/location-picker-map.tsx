@@ -110,7 +110,7 @@ function participantIcon(p: LiveParticipant) {
   const ringClass = p.stopped ? ' fm-stopped-ring' : ''
   const borderColor = p.stopped ? '#ff3b30' : '#39ff14'
   const avatarHtml = p.avatar
-    ? `<div class="${ringClass.trim()}" style="width:32px;height:32px;border-radius:999px;background:#0b1120;background-image:url('${p.avatar}');background-size:cover;background-position:center;border:2px solid ${borderColor};box-shadow:0 2px 6px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;color:#eafff0;font-weight:800;font-size:12px;">${initialFor(p.name)}</div>`
+    ? `<div class="${ringClass.trim()}" style="position:relative;width:32px;height:32px;border-radius:999px;background:#0b1120;background-image:url('${p.avatar}');background-size:cover;background-position:center;border:2px solid ${borderColor};box-shadow:0 2px 6px rgba(0,0,0,0.5);"><div style="position:absolute;right:-4px;bottom:-4px;min-width:16px;height:16px;padding:0 3px;border-radius:999px;background:#39ff14;border:1.5px solid #0b1120;display:flex;align-items:center;justify-content:center;color:#041109;font-weight:800;font-size:8px;line-height:1;">${initialFor(p.name)}</div></div>`
     : `<div class="${ringClass.trim()}" style="width:32px;height:32px;border-radius:999px;background:#0b1120;border:2px solid ${borderColor};display:flex;align-items:center;justify-content:center;color:#eafff0;font-weight:800;font-size:12px;box-shadow:0 2px 6px rgba(0,0,0,0.5);">${initialFor(p.name)}</div>`
   const icon = L.divIcon({
     className: 'fm-participant-marker',
