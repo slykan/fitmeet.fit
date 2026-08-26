@@ -160,7 +160,13 @@ export function BeerTickerBanner() {
   const itemWidths = useRef<number[]>([])
   const started = useRef(false)
   const lastLoadedAt = useRef(0)
+  const donorsRef = useRef<Donor[]>([])
   const tickerDonors = donors
+
+  function donorsEqual(a: Donor[], b: Donor[]) {
+    if (a.length !== b.length) return false
+    return a.every((d, i) => d.name === b[i].name && d.beer_score === b[i].beer_score && d.beer_top_tier === b[i].beer_top_tier)
+  }
 
   function resetTickerMeasurements() {
     animRef.current?.stop()
@@ -174,8 +180,19 @@ export function BeerTickerBanner() {
     lastLoadedAt.current = Date.now()
     api.get('/beer-donations?sort=recent&limit=10')
       .then(r => {
+        const next: Donor[] = r.data
+        // Same names/order as before -> the ticker's layout won't actually
+        // change, so onLayout won't fire again and the reset-then-wait-for-
+        // remeasure dance below would never restart the loop. Just resume it
+        // with the width we already know is right.
+        if (donorsEqual(donorsRef.current, next)) {
+          started.current = false
+          tryStart()
+          return
+        }
+        donorsRef.current = next
         resetTickerMeasurements()
-        setDonors(r.data)
+        setDonors(next)
       })
       .catch(() => {})
   }
