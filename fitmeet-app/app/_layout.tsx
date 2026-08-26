@@ -4,8 +4,9 @@ import { StatusBar } from 'expo-status-bar'
 import * as Linking from 'expo-linking'
 import * as SplashScreen from 'expo-splash-screen'
 import { Component, useEffect, useRef } from 'react'
-import { AppState, Pressable, Text, View } from 'react-native'
+import { AppState, Platform, Pressable, Text, View } from 'react-native'
 import type { ReactNode, ErrorInfo } from 'react'
+import { KeyboardAvoidingView, KeyboardProvider } from 'react-native-keyboard-controller'
 
 import { BadgeUnlockOverlay } from '@/src/components/BadgeUnlockOverlay'
 import { BeerTickerBanner, BEER_TICKER_HEIGHT } from '@/src/components/BeerTickerBanner'
@@ -160,19 +161,23 @@ export default function RootLayout() {
   }, [hasHydrated, token, user?.id])
 
   return (
-    <ErrorBoundary>
-      <StatusBar style="light" />
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: palette.bg, paddingTop: BEER_TICKER_HEIGHT },
-          animation: 'fade',
-        }}
-      />
-      <BeerTickerBanner />
-      {/* <WorldCupOverlay /> */}
-      <BirthdayOverlay />
-      <BadgeUnlockOverlay />
-    </ErrorBoundary>
+    <KeyboardProvider>
+      <ErrorBoundary>
+        <StatusBar style="light" />
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: palette.bg, paddingTop: BEER_TICKER_HEIGHT },
+              animation: 'fade',
+            }}
+          />
+        </KeyboardAvoidingView>
+        <BeerTickerBanner />
+        {/* <WorldCupOverlay /> */}
+        <BirthdayOverlay />
+        <BadgeUnlockOverlay />
+      </ErrorBoundary>
+    </KeyboardProvider>
   )
 }

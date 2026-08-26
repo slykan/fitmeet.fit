@@ -5,11 +5,11 @@ import * as Location from 'expo-location'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator, Alert, AppState, Image, Modal, Pressable,
-  Keyboard, KeyboardAvoidingView, Linking, Platform, ScrollView, Share, StyleSheet, Text, TextInput, View,
+  Keyboard, Linking, Platform, ScrollView, Share, StyleSheet, Text, TextInput, View,
   type StyleProp, type ViewStyle,
 } from 'react-native'
 import { WebView } from 'react-native-webview'
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
+import { SafeAreaView } from 'react-native-safe-area-context'
 
 import * as FileSystem from 'expo-file-system/legacy'
 import { WeatherBadge } from '@/src/components/WeatherBadge'
@@ -356,7 +356,6 @@ function Avatar({ user, size = 32 }: { user: Participant; size?: number }) {
 export default function EventDetailScreen() {
   const { id, wall, checkin } = useLocalSearchParams<{ id: string; wall?: string; checkin?: string }>()
   const me = useAuthStore(s => s.user)
-  const insets = useSafeAreaInsets()
   const scrollRef = useRef<ScrollView | null>(null)
 
   const [event,      setEvent]      = useState<EventDetail | null>(null)
@@ -1184,11 +1183,7 @@ export default function EventDetailScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <KeyboardAvoidingView
-        style={styles.safe}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={insets.top}
-      >
+      <View style={styles.safe}>
       {/* Full-screen image modal */}
       {event?.image_url && (
         <Modal visible={imageModal} transparent animationType="fade" onRequestClose={() => setImageModal(false)}>
@@ -1956,7 +1951,7 @@ export default function EventDetailScreen() {
         </Pressable>
       </Modal>
 
-      </KeyboardAvoidingView>
+      </View>
     </SafeAreaView>
   )
 }
