@@ -127,7 +127,7 @@ export function LiveProgressBar({ track, participants, onGroupTap }: Props) {
 }
 
 const styles = StyleSheet.create({
-  wrap: { paddingHorizontal: 4, paddingTop: 6 },
+  wrap: { paddingHorizontal: 4, paddingTop: 10 },
   track: {
     height: 14,
     borderRadius: 999,
@@ -135,7 +135,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: palette.accent,
     justifyContent: 'center',
-    overflow: 'hidden',
   },
   fill: {
     position: 'absolute',
@@ -154,8 +153,11 @@ const styles = StyleSheet.create({
   },
   bubble: {
     position: 'absolute',
-    width: 20,
-    height: 20,
+    top: '50%',
+    marginTop: -16,
+    marginLeft: -16,
+    width: 32,
+    height: 32,
     borderRadius: 999,
     backgroundColor: palette.accent,
     borderWidth: 2,
@@ -163,9 +165,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
+    zIndex: 1,
+    elevation: 3,
   },
   bubbleImg: { width: '100%', height: '100%' },
-  bubbleText: { color: '#041109', fontSize: 10, fontWeight: '800' },
-  labels: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 },
+  bubbleText: { color: '#041109', fontSize: 13, fontWeight: '800' },
+  labels: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 },
   labelText: { color: palette.textDim, fontSize: 10, fontWeight: '700' },
 })
