@@ -1111,7 +1111,7 @@ export default function CreateEventScreen() {
           animationType="slide"
           onRequestClose={() => setShowFitMeetRoutes(false)}
         >
-          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <Pressable style={styles.modalOverlay} onPress={() => setShowFitMeetRoutes(false)}>
             <Pressable style={styles.routeModal} onPress={(event) => event.stopPropagation()}>
               <View style={styles.routeModalHeader}>

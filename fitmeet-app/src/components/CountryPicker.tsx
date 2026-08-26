@@ -29,7 +29,7 @@ export function CountryPicker({ visible, value, onClose, onSelect }: Props) {
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <Pressable style={styles.overlay} onPress={handleClose}>
         <Pressable style={styles.card} onPress={(e) => e.stopPropagation()}>
 
