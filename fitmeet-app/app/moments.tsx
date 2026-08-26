@@ -101,14 +101,13 @@ export default function MomentsScreen() {
               )}
             </Pressable>
           )}
+          onEndReached={() => { if (hasMore && !loadMore) load(page + 1) }}
+          onEndReachedThreshold={0.5}
           ListFooterComponent={
-            hasMore ? (
-              <Pressable style={styles.loadMore} onPress={() => load(page + 1)} disabled={loadMore}>
-                {loadMore
-                  ? <ActivityIndicator size="small" color={palette.accent} />
-                  : <Text style={styles.loadMoreText}>Load more</Text>
-                }
-              </Pressable>
+            loadMore ? (
+              <View style={styles.loadMore}>
+                <ActivityIndicator size="small" color={palette.accent} />
+              </View>
             ) : null
           }
           ListEmptyComponent={
