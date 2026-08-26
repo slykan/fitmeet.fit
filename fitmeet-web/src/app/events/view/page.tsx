@@ -29,6 +29,13 @@ import { Button } from '@/components/ui/button'
 import type { LiveParticipant } from '@/components/location-picker-map'
 import { LiveProgressBar } from '@/components/live-progress-bar'
 
+function initialsFor(name: string) {
+  const parts = (name || '?').trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return '?'
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase()
+  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase()
+}
+
 const LocationPickerMap = dynamic(() => import('@/components/location-picker-map'), { ssr: false })
 
 interface Participant {
@@ -896,7 +903,7 @@ function EventContent() {
                         ) : (
                           <div className="w-7 h-7 rounded-full flex items-center justify-center font-bold text-[11px] text-black flex-shrink-0"
                             style={{ background: 'var(--primary)' }}>
-                            {p.name.charAt(0).toUpperCase()}
+                            {initialsFor(p.name)}
                           </div>
                         )}
                         <div className="min-w-0">
@@ -1240,7 +1247,7 @@ function EventContent() {
               <Image src={event.organizer.avatar} alt={event.organizer.name} width={32} height={32} className="rounded-full" />
             ) : (
               <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm text-black" style={{ background: 'var(--primary)' }}>
-                {event.organizer.name.charAt(0).toUpperCase()}
+                {initialsFor(event.organizer.name)}
               </div>
             )}
             <span className="font-medium text-sm">{event.organizer.name}</span>
@@ -1367,7 +1374,7 @@ function EventContent() {
                   ) : (
                     <div className="flex h-[34px] w-[34px] items-center justify-center rounded-full font-bold"
                       style={{ background: 'var(--border)', color: 'var(--text)' }}>
-                      {p.name.charAt(0).toUpperCase()}
+                      {initialsFor(p.name)}
                     </div>
                   )}
                   <div>

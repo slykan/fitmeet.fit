@@ -322,6 +322,13 @@ const REMINDER_OPTIONS: Array<{ value: ReminderOffset; label: string }> = [
   { value: '1d', label: '1 day before' },
 ]
 
+function initialsFor(name: string) {
+  const parts = (name || '?').trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return '?'
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase()
+  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase()
+}
+
 function Avatar({ user, size = 32 }: { user: Participant; size?: number }) {
   if (user.avatar) {
     return (
@@ -337,8 +344,8 @@ function Avatar({ user, size = 32 }: { user: Participant; size?: number }) {
       backgroundColor: palette.accent,
       alignItems: 'center', justifyContent: 'center',
     }}>
-      <Text style={{ color: '#041109', fontSize: size * 0.4, fontWeight: '800' }}>
-        {user.name.charAt(0).toUpperCase()}
+      <Text style={{ color: '#041109', fontSize: size * 0.34, fontWeight: '800' }}>
+        {initialsFor(user.name)}
       </Text>
     </View>
   )
