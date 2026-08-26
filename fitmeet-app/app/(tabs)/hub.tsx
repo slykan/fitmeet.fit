@@ -314,7 +314,7 @@ export default function HubScreen() {
           </View>
           <View style={styles.eventMeta}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
-              <Text style={styles.eventTitle} numberOfLines={1}>{ev.title}</Text>
+              <Text style={[styles.eventTitle, { flex: 1 }]} numberOfLines={1}>{ev.title}</Text>
               {ev.is_in_progress && <InProgressBadge />}
               {cancelled && (
                 <View style={styles.cancelledBadge}>
