@@ -12,7 +12,7 @@ class MomentsController extends Controller
     public function index(Request $request): JsonResponse
     {
         $page    = max(1, (int) $request->query('page', 1));
-        $perPage = 12;
+        $perPage = 18;
 
         $moments = Event::query()
             ->where('is_private', false)

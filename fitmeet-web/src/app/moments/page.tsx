@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Share2, X, ArrowRight, Play, Flag } from 'lucide-react'
@@ -31,6 +31,7 @@ export default function MomentsPage() {
   const [hasMore, setHasMore] = useState(false)
   const [page, setPage] = useState(1)
   const [lightbox, setLightbox] = useState<Moment | null>(null)
+  const sentinelRef = useRef<HTMLDivElement | null>(null)
 
   const load = useCallback(async (p: number) => {
     if (p === 1) setLoading(true); else setLoadingMore(true)
@@ -44,6 +45,18 @@ export default function MomentsPage() {
   }, [])
 
   useEffect(() => { load(1) }, [load])
+
+  // Auto-load the next page once the sentinel at the bottom of the grid
+  // scrolls into view, instead of requiring a "Load more" click.
+  useEffect(() => {
+    const el = sentinelRef.current
+    if (!el || !hasMore) return
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && hasMore && !loadingMore) load(page + 1)
+    }, { rootMargin: '400px' })
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [hasMore, loadingMore, page, load])
 
   function handleShare() {
     const url = 'https://fitmeet.fit/moments'
@@ -127,15 +140,13 @@ export default function MomentsPage() {
             </div>
 
             {hasMore && (
-              <div className="flex justify-center mt-8">
-                <button
-                  onClick={() => load(page + 1)}
-                  disabled={loadingMore}
-                  className="px-6 py-2.5 rounded-xl text-sm font-bold transition-opacity hover:opacity-80 disabled:opacity-50"
-                  style={{ background: 'rgba(57,255,20,0.08)', border: '1px solid rgba(57,255,20,0.25)', color: 'var(--primary)' }}
-                >
-                  {loadingMore ? 'Loading…' : 'Load more'}
-                </button>
+              <div ref={sentinelRef} className="flex justify-center mt-8 h-8">
+                {loadingMore && (
+                  <div
+                    className="w-5 h-5 rounded-full animate-spin"
+                    style={{ border: '2px solid rgba(57,255,20,0.25)', borderTopColor: 'var(--primary)' }}
+                  />
+                )}
               </div>
             )}
           </>
