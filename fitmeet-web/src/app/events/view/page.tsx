@@ -472,7 +472,7 @@ function EventContent() {
           if (applauseAt && applauseAt !== lastApplauseRef.current) {
             const isFirstLoad = lastApplauseRef.current === null
             lastApplauseRef.current = applauseAt
-            if (!isFirstLoad && event.checked_in_at) playApplauseSound()
+            if (!isFirstLoad) playApplauseSound()
           }
         })
         .catch(() => {})
@@ -989,7 +989,7 @@ function EventContent() {
                 participants={livePositions}
                 onClusterTap={setClusterListParticipants}
                 viewersCount={viewersCount}
-                onApplausePress={event.checked_in_at ? sendApplause : undefined}
+                onApplausePress={sendApplause}
                 hasApplauded={hasApplauded}
               />
               {(gpxLoading || surfaceLoading) && <MapLoadingOverlay />}

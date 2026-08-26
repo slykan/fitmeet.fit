@@ -731,6 +731,9 @@ HTML;
     }
 
     // GET /api/events/{event}/live-positions
+    // Anyone signed in can watch, not just joined/checked-in participants --
+    // only actually appearing as a marker requires having joined, checked in,
+    // and turned sharing on (see updateLocation()).
     public function livePositions(Request $request, Event $event): JsonResponse
     {
         $user = $request->user();
@@ -740,10 +743,6 @@ HTML;
             ->where('user_id', $user->id)
             ->where('status', 'joined')
             ->exists();
-
-        if (! $isParticipant && ! $event->isOrganizer($user)) {
-            return response()->json(['message' => 'You are not a participant of this event.'], 422);
-        }
 
         if ($isParticipant) {
             \DB::table('event_participants')
@@ -793,6 +792,7 @@ HTML;
     }
 
     // POST /api/events/{event}/applause
+    // Anyone signed in can applaud, not just joined participants.
     public function applause(Request $request, Event $event): JsonResponse
     {
         $user = $request->user();
@@ -802,10 +802,6 @@ HTML;
             ->where('user_id', $user->id)
             ->where('status', 'joined')
             ->first();
-
-        if (! $participant && ! $event->isOrganizer($user)) {
-            return response()->json(['message' => 'You are not a participant of this event.'], 422);
-        }
 
         if ($participant && $participant->applauded_at) {
             return response()->json(['message' => 'You already sent applause for this event.'], 422);

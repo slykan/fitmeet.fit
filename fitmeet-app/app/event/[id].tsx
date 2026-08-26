@@ -684,11 +684,13 @@ export default function EventDetailScreen() {
   }, [event?.notify_on_join, event?.is_joined])
 
   // Poll live positions of checked-in, sharing participants while the event is running.
+  // Anyone can watch and applaud, joined or not -- only actually appearing as a
+  // marker requires having joined, checked in, and turned sharing on.
   // Route-gated: without a GPX route, "stopped" detection would misfire constantly
   // for stationary activities (yoga, gym meetups, etc.), so live tracking only
   // activates for events that have an imported route.
   useEffect(() => {
-    if (!event?.id || !event.is_joined || !event.checked_in_at || !event.is_in_progress || !event.activity.gpx_url) {
+    if (!event?.id || !event.is_in_progress || !event.activity.gpx_url) {
       setLivePositions([])
       stoppedTrackerRef.current.clear()
       lastApplauseRef.current = null
@@ -722,7 +724,7 @@ export default function EventDetailScreen() {
       clearInterval(intervalId)
       subscription.remove()
     }
-  }, [event?.id, event?.is_joined, event?.checked_in_at, event?.is_in_progress, event?.activity.gpx_url])
+  }, [event?.id, event?.is_in_progress, event?.activity.gpx_url])
 
   // Always run a foreground watcher while this screen is open and sharing is
   // on, even when background permission is granted and the TaskManager task
@@ -1375,7 +1377,7 @@ export default function EventDetailScreen() {
             participants={livePositions}
             onClusterTap={setClusterListParticipants}
             viewersCount={viewersCount}
-            onApplausePress={event.checked_in_at ? sendApplause : undefined}
+            onApplausePress={sendApplause}
             hasApplauded={hasApplauded}
             playProgress={isAnimating ? playProgress : null}
             playMilestone={isAnimating ? playMilestone : null}
