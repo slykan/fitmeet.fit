@@ -772,8 +772,8 @@ function EventContent() {
             {/* Moment */}
             {(() => {
               const endedAt = new Date(event.schedule.start_at).getTime() + (event.schedule.duration_minutes ?? 60) * 60000
-              const past = new Date(event.schedule.start_at).getTime() < Date.now()
-              const withinWindow = past && (Date.now() - endedAt) < 48 * 3600000
+              const ended = endedAt < Date.now()
+              const withinWindow = ended && (Date.now() - endedAt) < 48 * 3600000
               if (event.moment_image_url) {
                 return (
                   <div className="mb-5">

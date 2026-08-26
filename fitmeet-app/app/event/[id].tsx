@@ -987,6 +987,7 @@ export default function EventDetailScreen() {
 
   const cancelled  = event.status === 'cancelled'
   const past       = new Date(event.schedule.start_at).getTime() < Date.now()
+  const ended      = new Date(event.schedule.start_at).getTime() + (event.schedule.duration_minutes ?? 60) * 60000 < Date.now()
   const emoji      = CATEGORY_EMOJI[event.category.value] ?? '📍'
   const isOrg      = event.is_organizer || event.organizer?.id === me?.id
   const checkedInCount = event.checked_in_count ?? event.participants.filter(p => p.checked_in_at).length
@@ -1161,7 +1162,7 @@ export default function EventDetailScreen() {
   if (cancelled) {
     actionLabel = 'Event Cancelled'
     actionDisabled = true
-  } else if (past && !event.is_joined) {
+  } else if (ended && !event.is_joined) {
     actionLabel = 'Event Ended'
     actionDisabled = true
   } else if (event.is_joined) {
@@ -1239,7 +1240,7 @@ export default function EventDetailScreen() {
         {/* Moment image or upload button */}
         {(() => {
           const endedAt = new Date(event.schedule.start_at).getTime() + (event.schedule.duration_minutes ?? 60) * 60000
-          const withinWindow = past && (Date.now() - endedAt) < 48 * 3600000
+          const withinWindow = ended && (Date.now() - endedAt) < 48 * 3600000
           if (event.moment_image_url) {
             return (
               <View style={styles.momentSection}>
@@ -1279,7 +1280,7 @@ export default function EventDetailScreen() {
             {cancelled && <View style={styles.cancelBadge}><Text style={styles.cancelBadgeText}>Cancelled</Text></View>}
             {event.is_full && !cancelled && <View style={styles.fullBadge}><Text style={styles.fullBadgeText}>Full</Text></View>}
             {event.is_joined && <View style={styles.joinedBadge}><Text style={styles.joinedBadgeText}>✓ Going</Text></View>}
-            {past && !cancelled && <View style={styles.pastBadge}><Text style={styles.pastBadgeText}>Past</Text></View>}
+            {ended && !cancelled && <View style={styles.pastBadge}><Text style={styles.pastBadgeText}>Past</Text></View>}
           </View>
           <Text style={styles.title}>{event.title}</Text>
           {event.skill_level && (
@@ -1294,7 +1295,7 @@ export default function EventDetailScreen() {
             formatTime(event.schedule.start_at) +
             (event.schedule.duration_minutes ? ` · ${event.schedule.duration_minutes} min` : '')
           } />
-          {event.location.lat != null && event.location.lng != null && !cancelled && !past && (
+          {event.location.lat != null && event.location.lng != null && !cancelled && !ended && (
             <WeatherBadge
               lat={event.location.lat}
               lng={event.location.lng}
