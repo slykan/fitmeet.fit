@@ -366,7 +366,6 @@ export default function EventDetailScreen() {
   const [showLocationConsentModal, setShowLocationConsentModal] = useState(false)
   const [showBatteryOptModal, setShowBatteryOptModal] = useState(false)
   const [startingLiveTracking, setStartingLiveTracking] = useState(false)
-  const [liveTrackingBackground, setLiveTrackingBackground] = useState(true)
   const [livePositions, setLivePositions] = useState<LiveParticipant[]>([])
   const stoppedTrackerRef = useRef<Map<number, { lat: number; lng: number; movedAt: number }>>(new Map())
   const [clusterListParticipants, setClusterListParticipants] = useState<LiveParticipant[] | null>(null)
@@ -725,23 +724,17 @@ export default function EventDetailScreen() {
     }
   }, [event?.id, event?.is_joined, event?.checked_in_at, event?.is_in_progress, event?.activity.gpx_url])
 
-  // liveTrackingBackground defaults to true and is only otherwise set at the
-  // moment the user presses "share location" — on any later remount (nav away
-  // and back, app killed/reopened, deep link from a push) it would still read
-  // true even if background permission was never granted, silently disabling
-  // the foreground fallback below and leaving live_sharing_enabled on with no
-  // location ever posted. Resync it from the real OS permission on load.
+  // Always run a foreground watcher while this screen is open and sharing is
+  // on, even when background permission is granted and the TaskManager task
+  // is registered -- the background task runs as a headless callback outside
+  // the normal app JS context, and in testing it has repeatedly registered
+  // successfully (persistent "Sharing..." notification showing) while never
+  // once actually posting a location. The foreground watcher runs in the
+  // same JS context as everything else here, so it's the reliable path
+  // whenever the screen is open; the background task is just a best-effort
+  // supplement for when the user navigates away or backgrounds the app.
   useEffect(() => {
-    if (!event?.id || !event.live_sharing_enabled) return
-    Location.getBackgroundPermissionsAsync()
-      .then((res) => setLiveTrackingBackground(res.status === 'granted'))
-      .catch(() => {})
-  }, [event?.id, event?.live_sharing_enabled])
-
-  // Foreground-only fallback: if background location permission was denied,
-  // keep posting our own position while this screen is open and sharing is on.
-  useEffect(() => {
-    if (!event?.id || !event.live_sharing_enabled || liveTrackingBackground || !event.is_in_progress) return
+    if (!event?.id || !event.live_sharing_enabled || !event.is_in_progress) return
     let subscription: Location.LocationSubscription | null = null
     let cancelled = false
     const eventId = event.id
@@ -756,7 +749,7 @@ export default function EventDetailScreen() {
       cancelled = true
       subscription?.remove()
     }
-  }, [event?.id, event?.live_sharing_enabled, event?.is_in_progress, liveTrackingBackground])
+  }, [event?.id, event?.live_sharing_enabled, event?.is_in_progress])
 
   useEffect(() => {
     if (checkin !== '1' || checkInPromptShown.current || !event) return
@@ -914,7 +907,6 @@ export default function EventDetailScreen() {
         return
       }
       setEvent((prev) => (prev ? { ...prev, live_sharing_enabled: true } : prev))
-      setLiveTrackingBackground(result.background)
       setShowLocationConsentModal(false)
       if (Platform.OS === 'android' && result.background) {
         setShowBatteryOptModal(true)
