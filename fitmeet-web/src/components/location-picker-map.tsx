@@ -454,7 +454,7 @@ export function WindOverlay({
 
   const particles = useMemo(
     () =>
-      Array.from({ length: isHub ? (isMobile ? 90 : 75) : (isMobile ? 35 : 28) }, (_, i) => ({
+      Array.from({ length: isHub ? (isMobile ? 117 : 98) : (isMobile ? 46 : 36) }, (_, i) => ({
         id: i,
         left: ((i * 19) % 126) - 12,
         top: (i * (isHub ? (isMobile ? 3.2 : 4) : (isMobile ? 4.8 : 6))) % 100,
