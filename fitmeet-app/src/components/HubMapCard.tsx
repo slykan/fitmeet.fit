@@ -61,6 +61,12 @@ function buildMapHtml(
       box-shadow:0 0 0 3px rgba(108,255,47,0.12); font-size:16px;
     }
     .fm-pin.cancelled { border-color:#ff7c7c; box-shadow:0 0 0 3px rgba(255,124,124,0.14); }
+    .wind-dim {
+      position:absolute; inset:0; pointer-events:none; z-index:440;
+      background:rgba(4,10,22,0.32);
+      opacity:0; transition:opacity .45s ease;
+    }
+    .wind-dim.active { opacity:1; }
     .weather-overlay {
       position:absolute; inset:0; pointer-events:none; overflow:hidden; z-index:450;
       opacity:0; transition:opacity .45s ease;
@@ -109,6 +115,7 @@ function buildMapHtml(
 </head>
 <body>
   <div id="map"></div>
+  <div class="wind-dim" id="wind-dim"></div>
   <div class="weather-overlay" id="weather-overlay"></div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -174,8 +181,10 @@ function buildMapHtml(
 
     // ── CSS weather animation ──────────────────────────────
     const overlay = document.getElementById('weather-overlay');
+    const windDim = document.getElementById('wind-dim');
     let moveTimer = null;
     let userInteracting = false;
+    let windDimShouldShow = false;
     function send(type, payload) {
       window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({ type, ...(payload || {}) }));
     }
@@ -185,6 +194,7 @@ function buildMapHtml(
     function movementStarted() {
       if (!userInteracting) return;
       overlay.classList.add('interacting');
+      windDim.classList.remove('active');
       send('mapMoveStart');
     }
     function movementEnded() {
@@ -194,6 +204,7 @@ function buildMapHtml(
         const c = map.getCenter();
         send('mapMoveEnd', { center:{ lat:c.lat, lng:c.lng } });
         userInteracting = false;
+        windDim.classList.toggle('active', windDimShouldShow);
       }, 160);
     }
     const container = map.getContainer();
@@ -208,6 +219,8 @@ function buildMapHtml(
       updateCloudTiles(nextShowClouds);
       overlay.classList.remove('ready', 'interacting');
       overlay.innerHTML = '';
+      windDimShouldShow = !!(nextWeather && nextShowWind);
+      windDim.classList.toggle('active', windDimShouldShow);
       if (!nextWeather) return;
 
       if (nextShowWind) {

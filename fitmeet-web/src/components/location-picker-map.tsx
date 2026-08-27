@@ -508,6 +508,17 @@ export function WindOverlay({
 
   return (
     <>
+      {showWind && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            pointerEvents: 'none',
+            zIndex: 495,
+            background: 'rgba(4,10,22,0.32)',
+          }}
+        />
+      )}
       <div
         style={{
           position: 'absolute',
@@ -625,28 +636,16 @@ export function WindOverlay({
                 ['--wind-wave' as string]: `${particle.waveAmp}px`,
               }}
             >
-              {/* fading trail behind the dot */}
-              <span
-                style={{
-                  position: 'absolute',
-                  top: '50%',
-                  right: '50%',
-                  transform: 'translateY(-50%)',
-                  width: `${particle.size * 7}px`,
-                  height: `${Math.max(particle.size * 0.55, 1)}px`,
-                  borderRadius: 999,
-                  background: `linear-gradient(90deg, rgba(210,232,255,0), rgba(210,232,255,${Math.min(opacity * (isHub ? 0.6 : 0.5), 0.6)}))`,
-                }}
-              />
-              {/* dot */}
+              {/* streak: transparent tail -> bright leading edge */}
               <span
                 style={{
                   display: 'block',
-                  width: `${particle.size}px`,
-                  height: `${particle.size}px`,
+                  width: `${particle.size * 9}px`,
+                  height: `${Math.max(particle.size * 0.8, 1.2)}px`,
                   borderRadius: 999,
-                  background: `rgba(255,255,255,${Math.min(opacity * (isHub ? 1.3 : 1.14), 1)})`,
-                  boxShadow: `0 0 4px 1.5px rgba(5,8,8,${Math.min(opacity * hubParticleBoost * 0.88, 0.88)}), 0 0 16px rgba(210,232,255,${Math.min(opacity * hubParticleBoost, 1)})`,
+                  transformOrigin: 'right center',
+                  background: `linear-gradient(90deg, rgba(210,232,255,0), rgba(210,232,255,${Math.min(opacity * (isHub ? 0.6 : 0.5), 0.6)}) 55%, rgba(255,255,255,${Math.min(opacity * hubParticleBoost, 1)}))`,
+                  boxShadow: `0 0 2px rgba(210,232,255,${Math.min(opacity * hubParticleBoost * 0.4, 0.4)})`,
                 }}
               />
             </span>

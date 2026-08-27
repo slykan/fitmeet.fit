@@ -61,6 +61,8 @@ const MAP_LAYER_LABELS: Record<MapLayer, string> = {
 }
 
 const WIND_CSS = `
+  .wd { position:absolute;inset:0;pointer-events:none;z-index:440;background:rgba(4,10,22,0.32);opacity:0;transition:opacity .45s ease; }
+  .wd.active { opacity:1; }
   .wo { position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:450; }
   .wo{opacity:0;transition:opacity .45s ease;}
   .wo.ready{opacity:1;}
@@ -145,6 +147,7 @@ function buildHtml(
 </head>
 <body>
   <div id="map"></div>
+  <div class="wd" id="wd"></div>
   <div class="wo" id="wo"></div>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
@@ -571,8 +574,10 @@ function buildHtml(
     map.on('zoomend', recomputeParticipantDisplay);
 
     const wo = document.getElementById('wo');
+    const wd = document.getElementById('wd');
     let moveTimer = null;
     let userInteracting = false;
+    let windDimShouldShow = false;
     function send(type, payload) {
       window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({ type, ...(payload || {}) }));
     }
@@ -582,6 +587,7 @@ function buildHtml(
     function movementStarted() {
       if (!userInteracting) return;
       wo.classList.add('interacting');
+      wd.classList.remove('active');
       send('mapMoveStart');
     }
     function movementEnded() {
@@ -591,6 +597,7 @@ function buildHtml(
         const c = map.getCenter();
         send('mapMoveEnd', { center:{ lat:c.lat, lng:c.lng } });
         userInteracting = false;
+        wd.classList.toggle('active', windDimShouldShow);
       }, 160);
     }
     const container = map.getContainer();
@@ -603,6 +610,8 @@ function buildHtml(
     function renderWeather(nextWeather, nextShowWind, nextShowClouds) {
       wo.classList.remove('ready', 'interacting');
       wo.innerHTML = '';
+      windDimShouldShow = !!(nextWeather && nextShowWind);
+      wd.classList.toggle('active', windDimShouldShow);
       if (!nextWeather) return;
 
       if (nextShowWind) {
