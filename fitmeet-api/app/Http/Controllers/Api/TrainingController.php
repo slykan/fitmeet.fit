@@ -35,7 +35,9 @@ class TrainingController
             COALESCE(SUM(calories), 0) as calories
         ')->first();
 
-        $trainings = $query->orderByDesc('started_at')->paginate(30)->through(fn (Training $t) => [
+        $perPage = max(10, min(100, (int) $request->integer('per_page', 20)));
+
+        $trainings = $query->orderByDesc('started_at')->paginate($perPage)->through(fn (Training $t) => [
             'id'             => $t->id,
             'provider'       => $t->provider,
             'category'       => ['value' => $t->category->value, 'label' => $t->category->label()],
@@ -59,7 +61,13 @@ class TrainingController
             'is_merged'      => $t->dedup_group_id !== null,
         ]);
 
-        return response()->json(array_merge($trainings->toArray(), [
+        return response()->json([
+            'data' => $trainings->items(),
+            'meta' => [
+                'current_page' => $trainings->currentPage(),
+                'last_page'    => $trainings->lastPage(),
+                'total'        => $trainings->total(),
+            ],
             'totals' => [
                 'count'          => (int) $totals->count,
                 'distance_m'     => (float) $totals->distance_m,
@@ -67,6 +75,6 @@ class TrainingController
                 'elevation_gain' => (float) $totals->elevation_gain,
                 'calories'       => (float) $totals->calories,
             ],
-        ]));
+        ]);
     }
 }

@@ -314,7 +314,11 @@ function countryFlag(country?: string | null) {
 
 // ─── Events Tab ───────────────────────────────────────────────────────────────
 
-function EventsTab() {
+export interface LoadMoreHandle {
+  loadMore: () => void
+}
+
+const EventsTab = forwardRef<LoadMoreHandle>(function EventsTab(_props, ref) {
   const user = useAuthStore((s) => s.user)
   const [events,     setEvents]     = useState<EventItem[]>([])
   const [loading,    setLoading]    = useState(true)
@@ -361,7 +365,7 @@ function EventsTab() {
     else setLoadingMore(true)
     try {
       let url = '/events'
-      const params: Record<string, unknown> = { page: pageNum, per_page: 100 }
+      const params: Record<string, unknown> = { page: pageNum, per_page: 20 }
       if (sortKey !== 'soonest') {
         params.sort = sortKey
         params.order = sortDirection
@@ -395,6 +399,15 @@ function EventsTab() {
     } catch {}
     finally { setLoading(false); setLoadingMore(false) }
   }, [selectedCategories, radiusKm, goingOnly, friendsOnly, myOnly, pastOnly, sortKey, sortDirection, discoveryLat, discoveryLng])
+
+  const hasMore = page < lastPage
+
+  function loadNextPage() {
+    if (loading || loadingMore || !hasMore) return
+    load(page + 1)
+  }
+
+  useImperativeHandle(ref, () => ({ loadMore: loadNextPage }))
 
   useFocusEffect(useCallback(() => { load() }, [load]))
   useEffect(() => {
@@ -728,28 +741,22 @@ function EventsTab() {
         )
       })}
 
-      {!loading && events.length > 0 && page < lastPage && (
-        <Pressable
-          style={styles.loadMoreBtn}
-          onPress={() => load(page + 1)}
-          disabled={loadingMore}
-        >
-          {loadingMore
-            ? <ActivityIndicator size="small" color={palette.accent} />
-            : <Text style={styles.loadMoreText}>Load more</Text>
-          }
-        </Pressable>
+      {loadingMore && (
+        <ActivityIndicator color={palette.accent} style={{ paddingVertical: spacing.lg }} />
       )}
     </View>
   )
-}
+})
 
 // ─── Routes Tab ───────────────────────────────────────────────────────────────
 
-function RoutesTab() {
+const RoutesTab = forwardRef<LoadMoreHandle>(function RoutesTab(_props, ref) {
   const user = useAuthStore((s) => s.user)
   const [routes, setRoutes] = useState<RouteItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [page, setPage] = useState(1)
+  const [lastPage, setLastPage] = useState(1)
   const [q, setQ] = useState('')
   const qRef = useRef('')
   const [category, setCategory] = useState('')
@@ -762,12 +769,13 @@ function RoutesTab() {
   const discoveryLat = user?.home?.lat ?? user?.location?.lat ?? null
   const discoveryLng = user?.home?.lng ?? user?.location?.lng ?? null
 
-  const load = useCallback(async () => {
-    setLoading(true)
+  const load = useCallback(async (pageNum = 1) => {
+    if (pageNum === 1) setLoading(true)
+    else setLoadingMore(true)
     try {
       const distance = ROUTE_DISTANCE_FILTERS[distanceFilter]
       const elevation = ROUTE_ELEVATION_FILTERS[elevationFilter]
-      const params: Record<string, unknown> = { per_page: 100, sort: sortKey }
+      const params: Record<string, unknown> = { page: pageNum, per_page: 20, sort: sortKey }
       if (qRef.current.trim()) params.q = qRef.current.trim()
       if (category) params.category = category
       if (distance.min != null) params.distance_min = distance.min
@@ -780,13 +788,26 @@ function RoutesTab() {
         params.radius_km = radiusKm
       }
       const { data } = await api.get('/routes', { params })
-      setRoutes(data.data ?? [])
+      const incoming: RouteItem[] = data.data ?? []
+      setRoutes(prev => pageNum === 1 ? incoming : [...prev, ...incoming])
+      setPage(pageNum)
+      setLastPage(data.meta?.last_page ?? pageNum)
     } catch {
-      setRoutes([])
+      if (pageNum === 1) setRoutes([])
     } finally {
       setLoading(false)
+      setLoadingMore(false)
     }
   }, [category, discoveryLat, discoveryLng, distanceFilter, elevationFilter, radiusKm, sortKey])
+
+  const hasMore = page < lastPage
+
+  function loadNextPage() {
+    if (loading || loadingMore || !hasMore) return
+    load(page + 1)
+  }
+
+  useImperativeHandle(ref, () => ({ loadMore: loadNextPage }))
 
   useFocusEffect(useCallback(() => { load() }, [load]))
 
@@ -951,16 +972,23 @@ function RoutesTab() {
           </Pressable>
         )
       })}
+
+      {loadingMore && (
+        <ActivityIndicator color={palette.accent} style={{ paddingVertical: spacing.lg }} />
+      )}
     </View>
   )
-}
+})
 
 // ─── Trainings Tab ────────────────────────────────────────────────────────────
 
-function TrainingsTab() {
+const TrainingsTab = forwardRef<LoadMoreHandle>(function TrainingsTab(_props, ref) {
   const [trainings, setTrainings] = useState<TrainingItem[]>([])
   const [totals, setTotals] = useState<TrainingTotals | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [page, setPage] = useState(1)
+  const [lastPage, setLastPage] = useState(1)
   const [category, setCategory] = useState('')
   const [month, setMonth] = useState(0)
   const [year, setYear] = useState(0)
@@ -969,23 +997,36 @@ function TrainingsTab() {
 
   const activeFilterCount = (category ? 1 : 0) + (month ? 1 : 0) + (year ? 1 : 0)
 
-  const load = useCallback(async () => {
-    setLoading(true)
+  const load = useCallback(async (pageNum = 1) => {
+    if (pageNum === 1) setLoading(true)
+    else setLoadingMore(true)
     try {
-      const params: Record<string, unknown> = {}
+      const params: Record<string, unknown> = { page: pageNum, per_page: 20 }
       if (category) params.category = category
       if (month) params.month = month
       if (year) params.year = year
       const { data } = await api.get('/trainings', { params })
-      setTrainings(data.data ?? [])
+      const incoming: TrainingItem[] = data.data ?? []
+      setTrainings(prev => pageNum === 1 ? incoming : [...prev, ...incoming])
       setTotals(data.totals ?? null)
+      setPage(pageNum)
+      setLastPage(data.meta?.last_page ?? pageNum)
     } catch {
-      setTrainings([])
-      setTotals(null)
+      if (pageNum === 1) { setTrainings([]); setTotals(null) }
     } finally {
       setLoading(false)
+      setLoadingMore(false)
     }
   }, [category, month, year])
+
+  const hasMore = page < lastPage
+
+  function loadNextPage() {
+    if (loading || loadingMore || !hasMore) return
+    load(page + 1)
+  }
+
+  useImperativeHandle(ref, () => ({ loadMore: loadNextPage }))
 
   useFocusEffect(useCallback(() => { load() }, [load]))
 
@@ -1170,9 +1211,13 @@ function TrainingsTab() {
           </View>
         )
       })}
+
+      {loadingMore && (
+        <ActivityIndicator color={palette.accent} style={{ paddingVertical: spacing.lg }} />
+      )}
     </View>
   )
-}
+})
 
 // ─── People Tab ───────────────────────────────────────────────────────────────
 
@@ -1487,9 +1532,12 @@ const CONDITION_LABEL_MAP: Record<string, string> = { new: 'New', used: 'Used', 
 type MarketType = '' | 'sell' | 'buy'
 type MarketCond = '' | 'new' | 'used' | 'like_new'
 
-function MarketTab() {
+const MarketTab = forwardRef<LoadMoreHandle>(function MarketTab(_props, ref) {
   const [items, setItems] = useState<MarketItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [page, setPage] = useState(1)
+  const [lastPage, setLastPage] = useState(1)
   const [typeFilter, setTypeFilter] = useState<MarketType>('')
   const [category, setCategory] = useState('')
   const [condition, setCondition] = useState<MarketCond>('')
@@ -1500,14 +1548,17 @@ function MarketTab() {
   const [soldOnly, setSoldOnly] = useState(false)
   const searchRef = useRef('')
 
-  const load = useCallback(async () => {
-    setLoading(true)
+  const load = useCallback(async (pageNum = 1) => {
+    if (pageNum === 1) setLoading(true)
+    else setLoadingMore(true)
     try {
       if (savedOnly) {
         const { data } = await api.get('/market/saved')
         setItems(data.data ?? [])
+        setPage(1)
+        setLastPage(1)
       } else {
-        const params: Record<string, string> = {}
+        const params: Record<string, unknown> = { page: pageNum, per_page: 20 }
         if (typeFilter) params.type = typeFilter
         if (category) params.category = category
         if (condition) params.condition = condition
@@ -1515,14 +1566,27 @@ function MarketTab() {
         if (myOnly) params.my = '1'
         if (soldOnly) params.status = 'sold'
         const { data } = await api.get('/market', { params })
-        setItems(data.data ?? [])
+        const incoming: MarketItem[] = data.data ?? []
+        setItems(prev => pageNum === 1 ? incoming : [...prev, ...incoming])
+        setPage(pageNum)
+        setLastPage(data.meta?.last_page ?? pageNum)
       }
     } catch {
-      setItems([])
+      if (pageNum === 1) setItems([])
     } finally {
       setLoading(false)
+      setLoadingMore(false)
     }
   }, [typeFilter, category, condition, savedOnly, myOnly, soldOnly])
+
+  const hasMore = page < lastPage
+
+  function loadNextPage() {
+    if (loading || loadingMore || !hasMore) return
+    load(page + 1)
+  }
+
+  useImperativeHandle(ref, () => ({ loadMore: loadNextPage }))
 
   useFocusEffect(useCallback(() => { load() }, [load]))
 
@@ -1807,9 +1871,13 @@ function MarketTab() {
           ))}
         </View>
       )}
+
+      {loadingMore && (
+        <ActivityIndicator color={palette.accent} style={{ paddingVertical: spacing.lg }} />
+      )}
     </View>
   )
-}
+})
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
@@ -1835,13 +1903,19 @@ export default function MeetScreen() {
   const [tab, setTab] = useState<'events' | 'people' | 'routes' | 'trainings' | 'market'>('events')
   const [showCalendar, setShowCalendar] = useState(false)
   const peopleTabRef = useRef<PeopleTabHandle>(null)
+  const eventsTabRef = useRef<LoadMoreHandle>(null)
+  const routesTabRef = useRef<LoadMoreHandle>(null)
+  const trainingsTabRef = useRef<LoadMoreHandle>(null)
+  const marketTabRef = useRef<LoadMoreHandle>(null)
 
   function handleScroll({ nativeEvent }: { nativeEvent: { contentOffset: { y: number }; layoutMeasurement: { height: number }; contentSize: { height: number } } }) {
-    if (tab !== 'people') return
     const { contentOffset, layoutMeasurement, contentSize } = nativeEvent
-    if (contentOffset.y + layoutMeasurement.height >= contentSize.height - 300) {
-      peopleTabRef.current?.loadMore()
-    }
+    if (contentOffset.y + layoutMeasurement.height < contentSize.height - 300) return
+    if (tab === 'people') peopleTabRef.current?.loadMore()
+    else if (tab === 'events') eventsTabRef.current?.loadMore()
+    else if (tab === 'routes') routesTabRef.current?.loadMore()
+    else if (tab === 'trainings') trainingsTabRef.current?.loadMore()
+    else if (tab === 'market') marketTabRef.current?.loadMore()
   }
 
   useEffect(() => {
@@ -1919,11 +1993,11 @@ export default function MeetScreen() {
           ))}
         </View>
 
-        {tab === 'events' ? <EventsTab />
-          : tab === 'routes' ? <RoutesTab />
-          : tab === 'trainings' ? <TrainingsTab />
+        {tab === 'events' ? <EventsTab ref={eventsTabRef} />
+          : tab === 'routes' ? <RoutesTab ref={routesTabRef} />
+          : tab === 'trainings' ? <TrainingsTab ref={trainingsTabRef} />
           : tab === 'people' ? <PeopleTab ref={peopleTabRef} />
-          : <MarketTab />}
+          : <MarketTab ref={marketTabRef} />}
 
       </ScrollView>
     </SafeAreaView>
