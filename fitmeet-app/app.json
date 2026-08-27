@@ -39,7 +39,7 @@
       ]
     ],
     "ios": {
-      "newArchEnabled": false,
+      "newArchEnabled": true,
       "supportsTablet": false,
       "icon": "./assets/icon.png",
       "bundleIdentifier": "fit.fitmeet.app",
