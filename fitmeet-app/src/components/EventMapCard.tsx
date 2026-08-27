@@ -972,21 +972,19 @@ export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegment
           </>
         )}
         <Pressable
+          style={[styles.weatherToggleBtn, showClouds && styles.weatherToggleBtnActive]}
+          onPress={() => setShowClouds((v) => !v)}
+          hitSlop={8}
+        >
+          <Ionicons name="rainy-outline" size={15} color={showClouds ? '#031109' : palette.text} />
+        </Pressable>
+        <Pressable
           style={[styles.weatherToggleBtn, showWind && styles.weatherToggleBtnActive]}
           onPress={() => setShowWind((v) => !v)}
           hitSlop={8}
         >
           <Ionicons name="flag-outline" size={15} color={showWind ? '#031109' : palette.text} />
         </Pressable>
-        {rainReliable && (
-          <Pressable
-            style={[styles.weatherToggleBtn, showClouds && styles.weatherToggleBtnActive]}
-            onPress={() => setShowClouds((v) => !v)}
-            hitSlop={8}
-          >
-            <Ionicons name="rainy-outline" size={15} color={showClouds ? '#031109' : palette.text} />
-          </Pressable>
-        )}
       </View>
       {loading && (
         <View pointerEvents="none" style={styles.loadingOverlay}>
