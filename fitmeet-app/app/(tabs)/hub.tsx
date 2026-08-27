@@ -82,7 +82,7 @@ export default function HubScreen() {
   const [myOnly,      setMyOnly]      = useState(false)
   const [pastOnly,    setPastOnly]    = useState(false)
   const [reminderIds, setReminderIds] = useState<Set<number>>(new Set())
-  const [showWind, setShowWind] = useState(true)
+  const [showWind, setShowWind] = useState(false)
   const [showClouds, setShowClouds] = useState(false)
   const [weather, setWeather] = useState<CurrentWeather | null>(null)
   const [rainForecast, setRainForecast] = useState<RainForecast | null>(null)
