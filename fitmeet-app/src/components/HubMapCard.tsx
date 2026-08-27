@@ -75,21 +75,11 @@ function buildMapHtml(
       animation-play-state:paused !important;
     }
     .wind-particle {
-      position:absolute; width:3px; height:3px; border-radius:999px;
-      background:rgba(255,255,255,0.92); box-shadow:0 0 4px 1.5px rgba(5,8,8,0.86), 0 0 8px rgba(210,232,255,0.28);
-      transform-origin:center;
+      position:absolute; width:18px; height:1.6px; border-radius:999px;
+      background:linear-gradient(90deg, rgba(210,232,255,0), rgba(210,232,255,0.55) 55%, rgba(255,255,255,0.95));
+      box-shadow:0 0 2px rgba(210,232,255,0.35);
+      transform-origin:right center;
       animation:windMove linear infinite; opacity:0;
-    }
-    .wind-particle::before {
-      content:'';
-      position:absolute;
-      top:50%;
-      right:100%;
-      transform:translateY(-50%);
-      width:16px;
-      height:1.6px;
-      border-radius:999px;
-      background:linear-gradient(90deg, rgba(210,232,255,0), rgba(210,232,255,0.5));
     }
     @keyframes windMove {
       0%   { opacity:0; transform:translate3d(0,0,0) rotate(var(--rot)) scale(0.9); }
