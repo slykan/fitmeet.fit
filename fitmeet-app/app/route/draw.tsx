@@ -1209,8 +1209,8 @@ export default function DrawRouteScreen() {
 
       {/* Save modal */}
       <Modal visible={showModal} animationType="slide" transparent onRequestClose={() => setShowModal(false)}>
-        <View style={styles.modalBackdrop}>
-          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <View style={styles.modalBackdrop}>
             <View style={styles.modalSheet}>
               <View style={styles.modalHandle} />
 
@@ -1262,8 +1262,8 @@ export default function DrawRouteScreen() {
                 <Text style={styles.cancelBtnText}>Cancel</Text>
               </Pressable>
             </View>
-          </KeyboardAvoidingView>
-        </View>
+          </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   )
