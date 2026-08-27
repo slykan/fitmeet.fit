@@ -322,7 +322,7 @@ export default function HubMap() {
   const lat      = (user?.location?.lat  || user?.home?.lat  || null)
   const lng      = (user?.location?.lng  || user?.home?.lng  || null)
   const [weatherCenter, setWeatherCenter] = useState<{ lat: number; lng: number } | null>(
-    (lat && lng) ? { lat, lng } : null
+    (lat && lng) ? { lat, lng } : { lat: 44.5, lng: 16.5 }
   )
   const baseRadiusKm = user?.radius_km ?? 50
   const radiusKm = RADIUS_OPTIONS[radiusIndex]?.km ?? null
