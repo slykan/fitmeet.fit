@@ -735,7 +735,7 @@ export default function EventDetailScreen() {
         .catch(() => {})
     }
     fetchPositions()
-    const intervalId = setInterval(fetchPositions, 12000)
+    const intervalId = setInterval(fetchPositions, 6000)
     const subscription = AppState.addEventListener('change', (next) => {
       if (next === 'active') fetchPositions()
     })
@@ -761,7 +761,7 @@ export default function EventDetailScreen() {
     let cancelled = false
     const eventId = event.id
     Location.watchPositionAsync(
-      { accuracy: Location.Accuracy.High, timeInterval: 10000, distanceInterval: 15 },
+      { accuracy: Location.Accuracy.High, timeInterval: 5000, distanceInterval: 7 },
       (loc) => postForegroundLocation(eventId, loc),
     ).then((sub) => {
       if (cancelled) sub.remove()

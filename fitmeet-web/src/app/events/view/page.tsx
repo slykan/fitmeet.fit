@@ -485,7 +485,7 @@ function EventContent() {
         .catch(() => {})
     }
     fetchPositions()
-    const interval = window.setInterval(fetchPositions, 12000)
+    const interval = window.setInterval(fetchPositions, 6000)
     return () => {
       cancelled = true
       window.clearInterval(interval)

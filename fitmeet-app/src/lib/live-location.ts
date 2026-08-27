@@ -64,8 +64,8 @@ export async function startLiveLocationTracking(eventId: number | string): Promi
     if (!alreadyStarted) {
       await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
         accuracy: Location.Accuracy.High,
-        timeInterval: 10000,
-        distanceInterval: 15,
+        timeInterval: 5000,
+        distanceInterval: 7,
         showsBackgroundLocationIndicator: true,
         foregroundService: {
           notificationTitle: 'FitMeet',
