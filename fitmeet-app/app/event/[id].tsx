@@ -537,6 +537,20 @@ export default function EventDetailScreen() {
 
   useFocusEffect(loadEvent)
 
+  // Silent background refresh (no loading spinner) so `is_in_progress` — which
+  // gates both live-position posting and the live-positions map poll — doesn't
+  // stay stale for a user who opened the screen before the event started and
+  // just sits on it waiting, never triggering a focus refetch.
+  useEffect(() => {
+    if (!id || event?.status !== 'active') return
+    const intervalId = setInterval(() => {
+      api.get(`/events/${id}`)
+        .then(({ data }) => setEvent(data.data))
+        .catch(() => {})
+    }, 20000)
+    return () => clearInterval(intervalId)
+  }, [id, event?.status])
+
   async function pickAndUploadMoment() {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync()
     if (!perm.granted) {
@@ -916,6 +930,9 @@ export default function EventDetailScreen() {
       }
       setEvent((prev) => (prev ? { ...prev, live_sharing_enabled: true } : prev))
       setShowLocationConsentModal(false)
+      // Reconcile is_in_progress etc. right away instead of waiting for the
+      // background poll, in case this was stale from an early check-in.
+      api.get(`/events/${event.id}`).then(({ data }) => setEvent(data.data)).catch(() => {})
       if (Platform.OS === 'android' && result.background) {
         setShowBatteryOptModal(true)
       }
