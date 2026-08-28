@@ -12,7 +12,9 @@ import { WebView } from 'react-native-webview'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import * as FileSystem from 'expo-file-system/legacy'
+import * as MediaLibrary from 'expo-media-library'
 import { WeatherBadge } from '@/src/components/WeatherBadge'
+import { ZoomableImage } from '@/src/components/ZoomableImage'
 import { EventMapCard, type LiveParticipant } from '@/src/components/EventMapCard'
 import { LiveProgressBar } from '@/src/components/LiveProgressBar'
 import { ElevationChart } from '@/src/components/ElevationChart'
@@ -550,6 +552,22 @@ export default function EventDetailScreen() {
     }, 20000)
     return () => clearInterval(intervalId)
   }, [id, event?.status])
+
+  async function downloadCoverImage(url: string) {
+    try {
+      const { status } = await MediaLibrary.requestPermissionsAsync()
+      if (status !== 'granted') {
+        Alert.alert('Permission denied', 'Allow media access to save images.')
+        return
+      }
+      const filename = url.split('/').pop() ?? 'cover.jpg'
+      const { uri } = await FileSystem.downloadAsync(url, FileSystem.cacheDirectory + filename)
+      await MediaLibrary.saveToLibraryAsync(uri)
+      Alert.alert('Saved', 'Image saved to gallery.')
+    } catch {
+      Alert.alert('Error', 'Could not save image.')
+    }
+  }
 
   async function pickAndUploadMoment() {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync()
@@ -1204,12 +1222,16 @@ export default function EventDetailScreen() {
       {/* Full-screen image modal */}
       {event?.image_url && (
         <Modal visible={imageModal} transparent animationType="fade" onRequestClose={() => setImageModal(false)}>
-          <Pressable style={styles.imgOverlay} onPress={() => setImageModal(false)}>
-            <Image source={{ uri: event.image_url }} style={styles.imgFull} resizeMode="contain" />
+          <View style={styles.imgOverlay}>
+            <ZoomableImage source={{ uri: event.image_url }} style={styles.imgFull} resizeMode="contain" />
             <Pressable style={styles.imgClose} onPress={() => setImageModal(false)}>
               <Ionicons name="close" size={22} color="#fff" />
             </Pressable>
-          </Pressable>
+            <Pressable style={styles.imgDownloadBtn} onPress={() => downloadCoverImage(event.image_url!)}>
+              <Ionicons name="download-outline" size={18} color="#fff" />
+              <Text style={styles.imgDownloadText}>Save to gallery</Text>
+            </Pressable>
+          </View>
         </Modal>
       )}
       <Modal visible={!!zoomAvatar} transparent animationType="fade" onRequestClose={() => setZoomAvatar(null)}>
@@ -2069,10 +2091,17 @@ const styles = StyleSheet.create({
   },
   coverPreviewImage: { width: '100%', height: 150, borderRadius: 14 },
 
-  coverImage: { marginHorizontal: spacing.md, borderRadius: 16, height: 220 },
+  coverImage: { marginHorizontal: spacing.md, borderRadius: 16, height: 160 },
   imgOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.92)', alignItems: 'center', justifyContent: 'center' },
   imgFull:    { width: '100%', height: '80%' },
   imgClose:   { position: 'absolute', top: 50, right: 20, width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
+  imgDownloadBtn: {
+    position: 'absolute', bottom: 60, alignSelf: 'center',
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 16,
+    paddingHorizontal: 18, paddingVertical: 11,
+  },
+  imgDownloadText: { color: '#fff', fontSize: 14, fontWeight: '700' },
   coverPlaceholder: {
     height: 160, marginHorizontal: spacing.md, borderRadius: 16,
     backgroundColor: palette.panel,
