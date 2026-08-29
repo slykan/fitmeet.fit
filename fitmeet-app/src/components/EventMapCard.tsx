@@ -741,6 +741,12 @@ export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegment
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [lat, lng, emoji, coloredSegments, elevationSegments, surfaceSegments],
   )
+  // `source` must keep referential identity across renders that don't change `html` --
+  // WebView reloads the whole page whenever it receives a new `source` object, and
+  // during live tracking this component re-renders every ~6s (position poll), which
+  // was silently reloading the map on each poll and wiping the wind/weather/elevation
+  // toggle state inside the page (only patched back in by onLoadEnd a beat later).
+  const source = useMemo(() => ({ html }), [html])
 
   useEffect(() => {
     setCenter({ lat, lng })
@@ -815,7 +821,7 @@ export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegment
     <View style={styles.card}>
       <WebView
         ref={webViewRef}
-        source={{ html }}
+        source={source}
         originWhitelist={['*']}
         javaScriptEnabled
         domStorageEnabled
