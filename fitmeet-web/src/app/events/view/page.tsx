@@ -5,7 +5,7 @@ import { useEffect, useState, useRef, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Calendar, MapPin, Users, Zap, ChevronLeft, Lock, Pencil, ChevronDown, ChevronUp, Bell, Check, X, Share2, XCircle, Download, Wind, Cloud, Eye, CheckCircle2, Camera, Flag, Play, Pause, FastForward, Mountain, Milestone, Route as RouteIcon, ArrowUpRight } from 'lucide-react'
+import { Calendar, MapPin, Users, Zap, ChevronLeft, Lock, Pencil, ChevronDown, ChevronUp, Bell, Check, X, Share2, XCircle, Download, Wind, Cloud, Eye, CheckCircle2, Camera, Flag, Play, Pause, FastForward, Mountain, Milestone, Route as RouteIcon, ArrowUpRight, Maximize2, Minimize2 } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
 import { WeatherBadge } from '@/components/WeatherBadge'
@@ -373,10 +373,25 @@ function EventContent() {
   const [showWindOverlay, setShowWindOverlay] = useState(false)
   const [showCloudOverlay, setShowCloudOverlay] = useState(false)
   const [isMapInteracting, setIsMapInteracting] = useState(false)
+  const [isMapFullscreen, setIsMapFullscreen] = useState(false)
   const [weatherCenter, setWeatherCenter] = useState<{ lat: number; lng: number } | null>(null)
   const [weatherRefreshTick, setWeatherRefreshTick] = useState(0)
   const [momentUploading, setMomentUploading] = useState(false)
   const momentInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (!isMapFullscreen) return
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsMapFullscreen(false)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.body.style.overflow = prevOverflow
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [isMapFullscreen])
 
   useEffect(() => {
     if (!hasHydrated) return
@@ -964,7 +979,7 @@ function EventContent() {
           </div>
 
           {(event.location.lat != null && event.location.lng != null) && (
-            <div className="relative">
+            <div className={isMapFullscreen ? 'fixed inset-0 z-[9999] bg-[#060c1a]' : 'relative'}>
               <LocationPickerMap
                 lat={event.location.lat}
                 lng={event.location.lng}
@@ -992,13 +1007,28 @@ function EventContent() {
                 radarFrame={rainDataReliable && !isAnimating ? radarFrame : null}
                 showMapLayerControl
                 readOnly
-                height={720}
+                height={isMapFullscreen ? 'fill' : 720}
                 participants={livePositions}
                 onClusterTap={setClusterListParticipants}
                 viewersCount={viewersCount}
                 onApplausePress={sendApplause}
                 hasApplauded={hasApplauded}
               />
+              <button
+                type="button"
+                onClick={() => setIsMapFullscreen(v => !v)}
+                title={isMapFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+                className="absolute top-3 right-3 z-[750] inline-flex items-center justify-center rounded-[10px] border transition-colors"
+                style={{
+                  width: 32, height: 32,
+                  borderColor: 'rgba(255,255,255,0.12)',
+                  background: 'rgba(7,11,24,0.78)',
+                }}
+              >
+                {isMapFullscreen
+                  ? <Minimize2 size={15} color="var(--text-muted)" />
+                  : <Maximize2 size={15} color="var(--text-muted)" />}
+              </button>
               {(gpxLoading || surfaceLoading) && <MapLoadingOverlay />}
               <div
                 className="absolute inset-x-0 bottom-0 z-[700] flex items-center justify-between gap-3 border-t px-3 py-2 sm:px-4"

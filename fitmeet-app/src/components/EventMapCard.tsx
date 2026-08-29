@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ActivityIndicator, Animated, Pressable, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Animated, Modal, Pressable, StyleSheet, Text, View } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import { WebView } from 'react-native-webview'
 import type { WebView as WebViewType } from 'react-native-webview'
 
@@ -734,6 +735,7 @@ export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegment
   const [showElevationLayer, setShowElevationLayer] = useState(true)
   const [showSurfaceLayer, setShowSurfaceLayer] = useState(false)
   const [showKmMarkers, setShowKmMarkers] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(false)
   const hasSurfaceOrElevation = Boolean(surfaceSegments?.length || elevationSegments?.length)
   const isAnimating = playState === 'playing' || playState === 'paused'
   const html = useMemo(
@@ -817,8 +819,8 @@ export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegment
     webViewRef.current?.postMessage(JSON.stringify({ type: 'participantsUpdate', participants: participants ?? [] }))
   }, [participants])
 
-  return (
-    <View style={styles.card}>
+  const content = (
+    <View style={[styles.card, isFullscreen && styles.cardFullscreen]}>
       <WebView
         ref={webViewRef}
         source={source}
@@ -992,6 +994,15 @@ export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegment
           <Ionicons name="flag-outline" size={15} color={showWind ? '#031109' : palette.text} />
         </Pressable>
       </View>
+      <View pointerEvents="box-none" style={styles.fullscreenToggleWrap}>
+        <Pressable
+          style={styles.weatherToggleBtn}
+          onPress={() => setIsFullscreen((v) => !v)}
+          hitSlop={8}
+        >
+          <Ionicons name={isFullscreen ? 'contract-outline' : 'expand-outline'} size={15} color={palette.text} />
+        </Pressable>
+      </View>
       {loading && (
         <View pointerEvents="none" style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color={palette.accent} />
@@ -999,6 +1010,15 @@ export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegment
       )}
     </View>
   )
+
+  if (isFullscreen) {
+    return (
+      <Modal visible transparent={false} animationType="fade" onRequestClose={() => setIsFullscreen(false)}>
+        <SafeAreaView style={styles.fullscreenSafeArea}>{content}</SafeAreaView>
+      </Modal>
+    )
+  }
+  return content
 }
 
 const styles = StyleSheet.create({
@@ -1009,6 +1029,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: palette.line,
     backgroundColor: '#060c1a',
+  },
+  cardFullscreen: {
+    flex: 1,
+    height: undefined,
+    borderRadius: 0,
+    borderWidth: 0,
+  },
+  fullscreenSafeArea: { flex: 1, backgroundColor: '#060c1a' },
+  fullscreenToggleWrap: {
+    position: 'absolute',
+    bottom: 78,
+    right: 12,
   },
   webview: { flex: 1, backgroundColor: 'transparent' },
   weatherToggles: {

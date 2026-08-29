@@ -293,7 +293,8 @@ interface Props {
   showSurfaceLayer?:   boolean
   showKmMarkers?:      boolean
   readOnly?:        boolean
-  height?:          number
+  /** Pixel height, or 'fill' to stretch to the parent container's own height (e.g. inside a fullscreen wrapper). */
+  height?:          number | 'fill'
   weather?:         EventWeather | null
   weatherVariant?:  'default' | 'hub'
   showWindOverlay?: boolean
@@ -831,11 +832,16 @@ export default function LocationPickerMap({
   const zoom = hasPin || hasTrack ? 11 : 5
 
   return (
-    <div style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border)' }}>
+    <div style={{
+      position: 'relative', overflow: 'hidden',
+      borderRadius: height === 'fill' ? 0 : '12px',
+      border: height === 'fill' ? 'none' : '1px solid var(--border)',
+      height: height === 'fill' ? '100%' : undefined,
+    }}>
       <MapContainer
         center={center}
         zoom={zoom}
-        style={{ height: `${height}px`, width: '100%' }}
+        style={{ height: height === 'fill' ? '100%' : `${height}px`, width: '100%' }}
         scrollWheelZoom={false}
         zoomControl={false}
       >
