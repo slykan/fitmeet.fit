@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons'
+import * as Clipboard from 'expo-clipboard'
 import { File, Paths } from 'expo-file-system/next'
 import * as MediaLibrary from 'expo-media-library'
 import { router, useLocalSearchParams } from 'expo-router'
@@ -57,6 +58,14 @@ export default function MarketDetailScreen() {
   const [activeImg, setActiveImg] = useState(0)
   const [lightbox, setLightbox] = useState(false)
   const [downloading, setDownloading] = useState(false)
+  const [descCopied, setDescCopied] = useState(false)
+
+  async function copyDescription() {
+    if (!listing?.description) return
+    await Clipboard.setStringAsync(listing.description)
+    setDescCopied(true)
+    setTimeout(() => setDescCopied(false), 1800)
+  }
 
   useEffect(() => {
     if (!id) return
@@ -330,7 +339,15 @@ export default function MarketDetailScreen() {
 
           {/* Description */}
           {listing.description ? (
-            <Text style={styles.description}>{listing.description}</Text>
+            <View style={styles.descriptionBlock}>
+              <Text style={styles.description}>{listing.description}</Text>
+              <Pressable style={styles.copyDescBtn} onPress={copyDescription} hitSlop={8}>
+                <Ionicons name={descCopied ? 'checkmark' : 'copy-outline'} size={14} color={descCopied ? palette.accent : palette.textDim} />
+                <Text style={[styles.copyDescText, descCopied && { color: palette.accent }]}>
+                  {descCopied ? 'Copied' : 'Copy description'}
+                </Text>
+              </Pressable>
+            </View>
           ) : null}
 
           {/* Location */}
@@ -481,7 +498,10 @@ const styles = StyleSheet.create({
   price:    { color: palette.accent, fontSize: 26, fontWeight: '900', flexShrink: 0 },
   currency: { fontSize: 16, fontWeight: '700' },
 
+  descriptionBlock: { gap: 8 },
   description: { color: palette.textMuted, fontSize: 14, lineHeight: 22 },
+  copyDescBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start' },
+  copyDescText: { color: palette.textDim, fontSize: 12, fontWeight: '700' },
 
   locationRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   locationText:{ color: palette.textDim, fontSize: 13 },

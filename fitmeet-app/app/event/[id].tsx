@@ -136,47 +136,6 @@ function checkInWindow(event: EventDetail) {
   }
 }
 
-const STOPPED_THRESHOLD_MS = 60_000
-const STOPPED_DISTANCE_M = 25
-
-function haversineMeters(lat1: number, lng1: number, lat2: number, lng2: number) {
-  const R = 6371000
-  const dLat = (lat2 - lat1) * Math.PI / 180
-  const dLng = (lng2 - lng1) * Math.PI / 180
-  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2
-  return 2 * R * Math.asin(Math.sqrt(a))
-}
-
-// Flags a participant as "stopped" once they haven't moved more than ~25m in
-// 60s — approximate (GPS jitter, not a real crash/incident detector), just a
-// visual safety cue. Anchor position only updates on a genuine move, so slow
-// jitter can't drift the anchor and mask a real stop.
-function applyStoppedFlags(
-  positions: LiveParticipant[],
-  tracker: Map<number, { lat: number; lng: number; movedAt: number }>,
-): LiveParticipant[] {
-  const now = Date.now()
-  const seenIds = new Set<number>()
-  const result = positions.map((p) => {
-    seenIds.add(p.id)
-    const prev = tracker.get(p.id)
-    if (!prev) {
-      tracker.set(p.id, { lat: p.lat, lng: p.lng, movedAt: now })
-      return { ...p, stopped: false }
-    }
-    const distance = haversineMeters(prev.lat, prev.lng, p.lat, p.lng)
-    if (distance > STOPPED_DISTANCE_M) {
-      tracker.set(p.id, { lat: p.lat, lng: p.lng, movedAt: now })
-      return { ...p, stopped: false }
-    }
-    return { ...p, stopped: now - prev.movedAt >= STOPPED_THRESHOLD_MS }
-  })
-  for (const id of Array.from(tracker.keys())) {
-    if (!seenIds.has(id)) tracker.delete(id)
-  }
-  return result
-}
-
 function canCheckInNow(event: EventDetail) {
   const now = Date.now()
   const { opensAt, closesAt } = checkInWindow(event)
@@ -375,7 +334,6 @@ export default function EventDetailScreen() {
   const [showBatteryOptModal, setShowBatteryOptModal] = useState(false)
   const [startingLiveTracking, setStartingLiveTracking] = useState(false)
   const [livePositions, setLivePositions] = useState<LiveParticipant[]>([])
-  const stoppedTrackerRef = useRef<Map<number, { lat: number; lng: number; movedAt: number }>>(new Map())
   const [clusterListParticipants, setClusterListParticipants] = useState<LiveParticipant[] | null>(null)
   const [viewersCount, setViewersCount] = useState(0)
   const [hasApplauded, setHasApplauded] = useState(false)
@@ -730,7 +688,6 @@ export default function EventDetailScreen() {
   useEffect(() => {
     if (!event?.id || !event.is_in_progress || !event.activity.gpx_url) {
       setLivePositions([])
-      stoppedTrackerRef.current.clear()
       lastApplauseRef.current = null
       return
     }
@@ -740,7 +697,7 @@ export default function EventDetailScreen() {
       api.get(`/events/${eventId}/live-positions`)
         .then(({ data }) => {
           if (cancelled) return
-          setLivePositions(applyStoppedFlags(data.data ?? [], stoppedTrackerRef.current))
+          setLivePositions(data.data ?? [])
           setViewersCount(data.viewers_count ?? 0)
           setHasApplauded(Boolean(data.applauded))
           const applauseAt: string | null = data.last_applause_at ?? null
@@ -2091,7 +2048,7 @@ const styles = StyleSheet.create({
   },
   coverPreviewImage: { width: '100%', height: 150, borderRadius: 14 },
 
-  coverImage: { marginHorizontal: spacing.md, borderRadius: 16, height: 160 },
+  coverImage: { marginHorizontal: spacing.md, borderRadius: 16, height: 170 },
   imgOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.92)', alignItems: 'center', justifyContent: 'center' },
   imgFull:    { width: '100%', height: '80%' },
   imgClose:   { position: 'absolute', top: 50, right: 20, width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },

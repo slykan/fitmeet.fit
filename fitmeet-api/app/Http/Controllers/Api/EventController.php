@@ -780,6 +780,12 @@ HTML;
                 'lng' => $p->pivot->live_lng,
                 'speed_kmh' => $p->pivot->live_speed_kmh,
                 'updated_at' => \Illuminate\Support\Carbon::parse($p->pivot->live_updated_at)->toIso8601String(),
+                // Computed from the same server-persisted anchor updateLocation() maintains, not
+                // from this device's own polling history -- a viewer who was backgrounded/killed
+                // during someone's stop (or who just opened the map) sees the correct state
+                // immediately, instead of needing 60s of live polling to rediscover it.
+                'stopped' => $p->pivot->stopped_anchor_at !== null
+                    && now()->diffInSeconds(\Illuminate\Support\Carbon::parse($p->pivot->stopped_anchor_at)) >= 60,
             ])
             ->values();
 
