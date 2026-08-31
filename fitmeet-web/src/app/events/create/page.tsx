@@ -80,6 +80,9 @@ export default function CreateEventPage() {
   const { token } = useAuthStore()
   const router    = useRouter()
   const allowNavigationRef = useRef(false)
+  // Stable for the lifetime of this screen so repeated submit clicks (after a
+  // failed/lost-connection attempt) dedupe server-side instead of creating duplicates.
+  const clientRequestId = useRef(`${Date.now()}-${Math.random().toString(36).slice(2, 10)}`)
   const [saving,   setSaving]   = useState(false)
   const [error,    setError]    = useState<string | null>(null)
   const [locating, setLocating] = useState(false)
@@ -387,6 +390,7 @@ export default function CreateEventPage() {
         ? await resolveTimeZoneFromCoords(data.lat, data.lng, eventTimezone)
         : resolveEventTimeZone(eventTimezone)
 
+      fd.append('client_request_id', clientRequestId.current)
       fd.append('title',    data.title)
       fd.append('category', data.category)
       fd.append('timezone', timezone)
