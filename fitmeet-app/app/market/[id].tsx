@@ -340,7 +340,7 @@ export default function MarketDetailScreen() {
           {/* Description */}
           {listing.description ? (
             <View style={styles.descriptionBlock}>
-              <Text style={styles.description}>{listing.description}</Text>
+              <Text style={styles.description} selectable>{listing.description}</Text>
               <Pressable style={styles.copyDescBtn} onPress={copyDescription} hitSlop={8}>
                 <Ionicons name={descCopied ? 'checkmark' : 'copy-outline'} size={14} color={descCopied ? palette.accent : palette.textDim} />
                 <Text style={[styles.copyDescText, descCopied && { color: palette.accent }]}>

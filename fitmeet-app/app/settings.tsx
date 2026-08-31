@@ -61,6 +61,7 @@ export default function SettingsScreen() {
   const [name,       setName]       = useState(user?.name ?? '')
   const [phone,      setPhone]      = useState(user?.phone ?? '')
   const [hidePhone,  setHidePhone]  = useState(user?.hide_phone ?? false)
+  const [autoShareLiveLocation, setAutoShareLiveLocation] = useState(user?.auto_share_live_location ?? false)
   const [birthDay,   setBirthDay]   = useState(birth0.d)
   const [birthMonth, setBirthMonth] = useState(birth0.m)
   const [birthYear,  setBirthYear]  = useState(birth0.y)
@@ -147,6 +148,7 @@ export default function SettingsScreen() {
         name: name.trim(),
         phone: phone.trim() || null,
         hide_phone: hidePhone,
+        auto_share_live_location: autoShareLiveLocation,
         home_city: city.trim(),
         home_country: country.trim(),
         radius,
@@ -302,6 +304,16 @@ export default function SettingsScreen() {
           </View>
           <View style={[styles.toggle, hidePhone && styles.toggleOn]}>
             <View style={[styles.knob, hidePhone && styles.knobOn]} />
+          </View>
+        </Pressable>
+
+        <Pressable style={styles.toggleRow} onPress={() => setAutoShareLiveLocation(v => !v)}>
+          <View style={styles.toggleInfo}>
+            <Text style={styles.toggleLabel}>Auto-share live location on check-in</Text>
+            <Text style={styles.toggleDesc}>Skip the prompt and start sharing your position automatically when you check in to a live-tracked event</Text>
+          </View>
+          <View style={[styles.toggle, autoShareLiveLocation && styles.toggleOn]}>
+            <View style={[styles.knob, autoShareLiveLocation && styles.knobOn]} />
           </View>
         </Pressable>
 

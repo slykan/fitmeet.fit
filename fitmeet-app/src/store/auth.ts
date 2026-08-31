@@ -16,6 +16,7 @@ export interface MobileUser {
     friend_events: boolean
   }
   push_notifications: boolean | null
+  auto_share_live_location: boolean
   location: { lat: number | null; lng: number | null }
   home: { lat: number | null; lng: number | null; city: string | null; country: string | null }
   radius: 'nearby' | 'city' | 'region' | 'unlimited'
@@ -98,6 +99,7 @@ function normalizeUser(user: MobileUser): MobileUser {
       friend_events: user.email_preferences?.friend_events ?? true,
     },
     push_notifications: user.push_notifications ?? true,
+    auto_share_live_location: user.auto_share_live_location ?? false,
     location: user.location ?? { lat: null, lng: null },
     home: user.home ?? { lat: null, lng: null, city: null, country: null },
     radius: user.radius ?? 'nearby',

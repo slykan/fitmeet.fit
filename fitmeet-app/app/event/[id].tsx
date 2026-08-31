@@ -317,6 +317,7 @@ function Avatar({ user, size = 32 }: { user: Participant; size?: number }) {
 export default function EventDetailScreen() {
   const { id, wall, checkin } = useLocalSearchParams<{ id: string; wall?: string; checkin?: string }>()
   const me = useAuthStore(s => s.user)
+  const refreshMe = useAuthStore(s => s.refreshMe)
   const scrollRef = useRef<ScrollView | null>(null)
 
   const [event,      setEvent]      = useState<EventDetail | null>(null)
@@ -331,6 +332,7 @@ export default function EventDetailScreen() {
   const [showSupportModal, setShowSupportModal] = useState(false)
   const [checkingIn, setCheckingIn] = useState(false)
   const [showLocationConsentModal, setShowLocationConsentModal] = useState(false)
+  const [rememberLiveSharing, setRememberLiveSharing] = useState(true)
   const [showBatteryOptModal, setShowBatteryOptModal] = useState(false)
   const [startingLiveTracking, setStartingLiveTracking] = useState(false)
   const [livePositions, setLivePositions] = useState<LiveParticipant[]>([])
@@ -883,7 +885,11 @@ export default function EventDetailScreen() {
       }
       setEvent(nextEvent)
       if (nextEvent.activity.gpx_url != null && !nextEvent.live_sharing_enabled) {
-        setShowLocationConsentModal(true)
+        if (me?.auto_share_live_location) {
+          beginLiveLocationSharing()
+        } else {
+          setShowLocationConsentModal(true)
+        }
       }
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Could not check in.'
@@ -893,7 +899,7 @@ export default function EventDetailScreen() {
     }
   }
 
-  async function beginLiveLocationSharing() {
+  async function beginLiveLocationSharing(options?: { persistPreference?: boolean }) {
     if (!event) return
     setStartingLiveTracking(true)
     try {
@@ -905,6 +911,9 @@ export default function EventDetailScreen() {
       }
       setEvent((prev) => (prev ? { ...prev, live_sharing_enabled: true } : prev))
       setShowLocationConsentModal(false)
+      if (options?.persistPreference && !me?.auto_share_live_location) {
+        api.patch('/me', { auto_share_live_location: true }).then(refreshMe).catch(() => {})
+      }
       // Reconcile is_in_progress etc. right away instead of waiting for the
       // background poll, in case this was stale from an early check-in.
       api.get(`/events/${event.id}`).then(({ data }) => setEvent(data.data)).catch(() => {})
@@ -1861,13 +1870,23 @@ export default function EventDetailScreen() {
                 <Ionicons name="close" size={20} color={palette.textMuted} />
               </Pressable>
             </View>
+            <Pressable
+              style={styles.rememberRow}
+              onPress={() => setRememberLiveSharing((v) => !v)}
+              hitSlop={6}
+            >
+              <View style={[styles.rememberCheckbox, rememberLiveSharing && styles.rememberCheckboxOn]}>
+                {rememberLiveSharing && <Ionicons name="checkmark" size={13} color="#041109" />}
+              </View>
+              <Text style={styles.rememberText}>Remember my choice and auto-share next time</Text>
+            </Pressable>
             <View style={styles.modalActions}>
               <Pressable style={styles.modalSecondary} onPress={() => setShowLocationConsentModal(false)}>
                 <Text style={styles.modalSecondaryText}>Not now</Text>
               </Pressable>
               <Pressable
                 style={[styles.modalPrimary, startingLiveTracking && styles.disabledBtn]}
-                onPress={beginLiveLocationSharing}
+                onPress={() => beginLiveLocationSharing({ persistPreference: rememberLiveSharing })}
                 disabled={startingLiveTracking}
               >
                 {startingLiveTracking ? (
@@ -2392,6 +2411,14 @@ const styles = StyleSheet.create({
   },
   reminderOptionText: { color: palette.textMuted, fontSize: 13, fontWeight: '700' },
   reminderOptionTextActive: { color: palette.accent },
+  rememberRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 },
+  rememberCheckbox: {
+    width: 18, height: 18, borderRadius: 5,
+    borderWidth: 1.5, borderColor: palette.line,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  rememberCheckboxOn: { backgroundColor: palette.accent, borderColor: palette.accent },
+  rememberText: { color: palette.textMuted, fontSize: 12.5, flex: 1 },
   modalActions: { flexDirection: 'row', gap: 10 },
   modalSecondary: {
     flex: 1,
