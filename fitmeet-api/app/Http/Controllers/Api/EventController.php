@@ -11,6 +11,7 @@ use App\Http\Resources\EventResource;
 use App\Jobs\SendNewEventNotifications;
 use App\Models\ActivityRoute;
 use App\Models\Event;
+use App\Models\EventLocationPoint;
 use App\Models\EventReminder;
 use App\Models\FriendRequest;
 use App\Services\BadgeService;
@@ -726,6 +727,15 @@ HTML;
             ->where('event_id', $event->id)
             ->where('user_id', $user->id)
             ->update($update);
+
+        EventLocationPoint::create([
+            'event_id' => $event->id,
+            'user_id' => $user->id,
+            'lat' => $data['lat'],
+            'lng' => $data['lng'],
+            'speed_kmh' => $data['speed_kmh'] ?? null,
+            'recorded_at' => now(),
+        ]);
 
         return response()->json(['updated_at' => now()->toIso8601String()]);
     }

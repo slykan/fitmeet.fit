@@ -78,6 +78,11 @@ class Event extends Model
         return $this->hasMany(EventComment::class);
     }
 
+    public function locationPoints(): HasMany
+    {
+        return $this->hasMany(EventLocationPoint::class);
+    }
+
     public function route(): BelongsTo
     {
         return $this->belongsTo(ActivityRoute::class, 'route_id');
