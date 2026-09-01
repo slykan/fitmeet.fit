@@ -108,8 +108,8 @@ Schedule::command('reminders:send')->everyFifteenMinutes();
 Artisan::command('events:send-started', function () {
     $events = Event::query()
         ->where('status', 'active')
-        ->where('start_at', '<=', now()->addMinutes(10))
-        ->where('start_at', '>=', now()->addMinutes(5))
+        ->where('start_at', '<=', now()->addMinutes(25))
+        ->where('start_at', '>=', now()->addMinutes(20))
         ->whereNotExists(function ($query) {
             $query->selectRaw('1')
                 ->from('event_notifications')
