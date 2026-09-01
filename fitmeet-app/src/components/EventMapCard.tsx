@@ -51,6 +51,10 @@ type Props = {
   onSpeedToggle?: () => void
   onMapEnabledChange?: (enabled: boolean) => void
   loading?: boolean
+  /** Opens the map straight into fullscreen on mount — used by the "share live map" deep link. */
+  autoFullscreen?: boolean
+  /** When provided, shows a share button while in fullscreen. */
+  onSharePress?: () => void
 }
 
 type MapLayer = 'standard' | 'satellite' | 'terrain'
@@ -719,7 +723,7 @@ function LiveBadge() {
   )
 }
 
-export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegments, elevationSegments, surfaceSegments, participants, onClusterTap, viewersCount = 0, onApplausePress, hasApplauded = false, playProgress = null, playMilestone = null, playState, onPlayToggle, playSpeed, onSpeedToggle, onMapEnabledChange, loading }: Props) {
+export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegments, elevationSegments, surfaceSegments, participants, onClusterTap, viewersCount = 0, onApplausePress, hasApplauded = false, playProgress = null, playMilestone = null, playState, onPlayToggle, playSpeed, onSpeedToggle, onMapEnabledChange, loading, autoFullscreen = false, onSharePress }: Props) {
   const webViewRef = useRef<WebViewType>(null)
   const [weather, setWeather] = useState<CurrentWeather | null>(null)
   const [center, setCenter] = useState({ lat, lng })
@@ -735,7 +739,7 @@ export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegment
   const [showElevationLayer, setShowElevationLayer] = useState(true)
   const [showSurfaceLayer, setShowSurfaceLayer] = useState(false)
   const [showKmMarkers, setShowKmMarkers] = useState(false)
-  const [isFullscreen, setIsFullscreen] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(autoFullscreen)
   const hasSurfaceOrElevation = Boolean(surfaceSegments?.length || elevationSegments?.length)
   const isAnimating = playState === 'playing' || playState === 'paused'
   const html = useMemo(
@@ -994,6 +998,13 @@ export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegment
           <Ionicons name="flag-outline" size={15} color={showWind ? '#031109' : palette.text} />
         </Pressable>
       </View>
+      {isFullscreen && onSharePress && (
+        <View pointerEvents="box-none" style={styles.shareButtonWrap}>
+          <Pressable style={styles.weatherToggleBtn} onPress={onSharePress} hitSlop={8}>
+            <Ionicons name="share-outline" size={15} color={palette.text} />
+          </Pressable>
+        </View>
+      )}
       <View pointerEvents="box-none" style={styles.fullscreenToggleWrap}>
         <Pressable
           style={styles.weatherToggleBtn}
@@ -1040,6 +1051,11 @@ const styles = StyleSheet.create({
   fullscreenToggleWrap: {
     position: 'absolute',
     bottom: 78,
+    right: 12,
+  },
+  shareButtonWrap: {
+    position: 'absolute',
+    bottom: 122,
     right: 12,
   },
   webview: { flex: 1, backgroundColor: 'transparent' },

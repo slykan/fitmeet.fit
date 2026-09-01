@@ -325,6 +325,7 @@ function EventContent() {
   const [settingReminders, setSettingReminders] = useState(false)
   const [activeOffsets,    setActiveOffsets]    = useState<string[]>([])
   const [copied, setCopied] = useState(false)
+  const [copiedLiveMap, setCopiedLiveMap] = useState(false)
   const [cancelling, setCancelling] = useState(false)
   const [weather, setWeather] = useState<EventWeather | null>(null)
   const [radarFrame, setRadarFrame] = useState<RadarFrame | null>(null)
@@ -332,7 +333,7 @@ function EventContent() {
   const [showWindOverlay, setShowWindOverlay] = useState(false)
   const [showCloudOverlay, setShowCloudOverlay] = useState(false)
   const [isMapInteracting, setIsMapInteracting] = useState(false)
-  const [isMapFullscreen, setIsMapFullscreen] = useState(false)
+  const [isMapFullscreen, setIsMapFullscreen] = useState(() => searchParams.get('live') === '1')
   const [weatherCenter, setWeatherCenter] = useState<{ lat: number; lng: number } | null>(null)
   const [weatherRefreshTick, setWeatherRefreshTick] = useState(0)
   const [momentUploading, setMomentUploading] = useState(false)
@@ -565,6 +566,24 @@ function EventContent() {
       await navigator.clipboard.writeText(url)
       setCopied(true)
       window.setTimeout(() => setCopied(false), 1800)
+    } catch {}
+  }
+
+  async function handleShareLiveMap() {
+    if (!event || typeof window === 'undefined') return
+    const url = `${window.location.origin}/events/view?id=${event.id}&live=1`
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: event.title,
+          text: `Follow ${event.title} live on FitMeet`,
+          url,
+        })
+        return
+      }
+      await navigator.clipboard.writeText(url)
+      setCopiedLiveMap(true)
+      window.setTimeout(() => setCopiedLiveMap(false), 1800)
     } catch {}
   }
 
@@ -972,6 +991,21 @@ function EventContent() {
                 onApplausePress={sendApplause}
                 hasApplauded={hasApplauded}
               />
+              {isMapFullscreen && (
+                <button
+                  type="button"
+                  onClick={handleShareLiveMap}
+                  title="Share live map"
+                  className="absolute top-3 right-[52px] z-[750] inline-flex items-center justify-center rounded-[10px] border transition-colors"
+                  style={{
+                    width: 32, height: 32,
+                    borderColor: copiedLiveMap ? 'var(--primary)' : 'rgba(255,255,255,0.12)',
+                    background: 'rgba(7,11,24,0.78)',
+                  }}
+                >
+                  <Share2 size={15} color={copiedLiveMap ? 'var(--primary)' : 'var(--text-muted)'} />
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => setIsMapFullscreen(v => !v)}

@@ -68,7 +68,9 @@ function appPathFromUrl(url: string | null, hasToken: boolean) {
       const id = parsed.searchParams.get('id')
       if (!id) return null
       const checkIn = parsed.pathname === '/events/check-in' || parsed.searchParams.get('checkin') === '1'
-      return `/event/${encodeURIComponent(id)}${checkIn ? '?checkin=1' : ''}`
+      const live = parsed.searchParams.get('live') === '1'
+      const query = [checkIn && 'checkin=1', live && 'live=1'].filter(Boolean).join('&')
+      return `/event/${encodeURIComponent(id)}${query ? `?${query}` : ''}`
     }
 
     if (parsed.protocol === 'fitmeet:' && parsed.hostname === 'event') {

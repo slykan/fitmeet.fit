@@ -315,7 +315,7 @@ function Avatar({ user, size = 32 }: { user: Participant; size?: number }) {
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function EventDetailScreen() {
-  const { id, wall, checkin } = useLocalSearchParams<{ id: string; wall?: string; checkin?: string }>()
+  const { id, wall, checkin, live } = useLocalSearchParams<{ id: string; wall?: string; checkin?: string; live?: string }>()
   const me = useAuthStore(s => s.user)
   const refreshMe = useAuthStore(s => s.refreshMe)
   const scrollRef = useRef<ScrollView | null>(null)
@@ -1039,6 +1039,17 @@ export default function EventDetailScreen() {
     })
   }
 
+  function shareLiveMap() {
+    Share.share({
+      title: event!.title,
+      message: [
+        `📍 Follow ${event!.title} live`,
+        '',
+        `https://fitmeet.fit/events/view?id=${event!.id}&live=1`,
+      ].join('\n'),
+    })
+  }
+
   async function openGpxRoute() {
     if (!event?.activity.gpx_url) return
     try {
@@ -1395,6 +1406,8 @@ export default function EventDetailScreen() {
             onSpeedToggle={toggleSpeed}
             onMapEnabledChange={setMapEnabled}
             loading={gpxLoading || surfaceLoading}
+            autoFullscreen={live === '1'}
+            onSharePress={shareLiveMap}
           />
         )}
 
