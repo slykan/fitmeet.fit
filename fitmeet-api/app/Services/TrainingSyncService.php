@@ -86,10 +86,9 @@ class TrainingSyncService
      * here, every sync goes through backfill/resync which shouldn't spam a push per
      * historical activity.
      *
-     * NOTE: the field names read below are a best-effort mapping from Huawei's published
-     * Health Kit v2 ActivityRecord data model — NOT yet verified against a real API
-     * response (HuaweiController::backfillHuawei logs a raw response sample so this can
-     * be corrected once we see what a real account actually returns).
+     * Field mapping confirmed 2026-09-01 against a real activityRecord response: metrics
+     * live in activitySummary.dataSummary, a flat array of {dataTypeName, value: [...]}
+     * entries rather than a single summary object (Strava's shape doesn't apply here).
      */
     public function storeHuaweiActivity(User $user, array $activity, bool $notify = false): ?Training
     {
@@ -99,8 +98,7 @@ class TrainingSyncService
             return null;
         }
 
-        $summary = $activity['summary'] ?? $activity;
-        $rawType = $activity['activityType'] ?? $activity['sportType'] ?? null;
+        $rawType = $activity['activityType'] ?? null;
 
         $training = Training::updateOrCreate(
             ['provider' => 'huawei', 'external_id' => $externalId],
@@ -110,14 +108,21 @@ class TrainingSyncService
                 'raw_type'       => $rawType !== null ? (string) $rawType : null,
                 'name'           => $activity['name'] ?? null,
                 'started_at'     => Carbon::createFromTimestampMs((int) $startTimeMs),
-                'duration_s'     => isset($summary['totalTime']) ? (int) round($summary['totalTime']) : null,
-                'distance_m'     => $summary['totalDistance'] ?? null,
-                'elevation_gain' => $summary['totalElevationGain'] ?? $summary['totalUpHillDistance'] ?? null,
-                'avg_heartrate'  => $summary['avgHeartRate'] ?? null,
-                'max_heartrate'  => $summary['maxHeartRate'] ?? null,
-                'calories'       => $summary['totalCalories'] ?? $summary['calorie'] ?? null,
-                'avg_speed_mps'  => $summary['avgSpeed'] ?? null,
-                'max_speed_mps'  => $summary['maxSpeed'] ?? null,
+                // activeTime excludes paused time, mirroring Strava's moving_time.
+                'duration_s'     => isset($activity['activeTime']) ? (int) round($activity['activeTime'] / 1000) : null,
+                'distance_m'     => $this->huaweiDataValue($activity, 'com.huawei.continuous.distance.total', 'distance'),
+                // Not present on any sample seen yet — Huawei's altitude/elevation
+                // dataTypeName is unconfirmed, left null until a hilly activity surfaces one.
+                'elevation_gain' => null,
+                'avg_heartrate'  => $this->huaweiDataValue($activity, 'com.huawei.continuous.exercise_heart_rate.statistics', 'avg')
+                    ?? $this->huaweiDataValue($activity, 'com.huawei.continuous.heart_rate.statistics', 'avg'),
+                'max_heartrate'  => $this->huaweiDataValue($activity, 'com.huawei.continuous.exercise_heart_rate.statistics', 'max')
+                    ?? $this->huaweiDataValue($activity, 'com.huawei.continuous.heart_rate.statistics', 'max'),
+                // "burnt.total" is the activity's own calorie burn; deliberately not adding
+                // resting_calories.statistics on top (that's baseline BMR, not the workout).
+                'calories'       => $this->huaweiDataValue($activity, 'com.huawei.continuous.calories.burnt.total', 'calories_total'),
+                'avg_speed_mps'  => $this->huaweiDataValue($activity, 'com.huawei.continuous.speed.statistics', 'avg'),
+                'max_speed_mps'  => $this->huaweiDataValue($activity, 'com.huawei.continuous.speed.statistics', 'max'),
             ],
         );
 
@@ -131,10 +136,32 @@ class TrainingSyncService
     }
 
     /**
+     * Reads a single field out of an activityRecord's activitySummary.dataSummary array,
+     * e.g. huaweiDataValue($activity, 'com.huawei.continuous.distance.total', 'distance').
+     */
+    private function huaweiDataValue(array $activity, string $dataTypeName, string $fieldName): ?float
+    {
+        foreach ($activity['activitySummary']['dataSummary'] ?? [] as $entry) {
+            if (($entry['dataTypeName'] ?? null) !== $dataTypeName) {
+                continue;
+            }
+
+            foreach ($entry['value'] ?? [] as $field) {
+                if (($field['fieldName'] ?? null) === $fieldName) {
+                    return $field['floatValue'] ?? $field['integerValue'] ?? null;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Huawei's ActivityRecord `activityType` code table hasn't been confirmed against a
      * real synced account yet — defaulting everything to Other rather than guessing a
      * mapping that could silently miscategorize workouts (e.g. a run showing as cycling).
-     * Fill this in once storeHuaweiActivity's logged raw_type values are visible.
+     * Fill this in once more raw_type values are visible in synced trainings (one real
+     * value seen so far: 57, exact activity unconfirmed).
      */
     public function mapHuaweiCategory(mixed $rawType): Category
     {

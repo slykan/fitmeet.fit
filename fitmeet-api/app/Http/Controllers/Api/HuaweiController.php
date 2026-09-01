@@ -167,14 +167,10 @@ class HuaweiController
             return 0;
         }
 
-        // TEMP (remove once field mapping is confirmed against a real response): the exact
-        // JSON shape of an activity record hasn't been verified against live data yet — this
-        // logs a sample so the mapping in TrainingSyncService::storeHuaweiActivity() can be
-        // corrected against what Huawei actually returns.
-        Log::info('Huawei activity fetch response sample', ['body' => Str::limit($res->body(), 2000)]);
-
         $count = 0;
-        foreach ($res->json('activityRecords') ?? [] as $activity) {
+        // Confirmed key is "activityRecord" (singular) — not the "activityRecords" the
+        // endpoint's own doc title ("Querying Created Activity Records") would suggest.
+        foreach ($res->json('activityRecord') ?? [] as $activity) {
             if ($sync->storeHuaweiActivity($connection->user, $activity)) {
                 $count++;
             }
