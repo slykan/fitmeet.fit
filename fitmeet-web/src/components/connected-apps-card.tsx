@@ -16,11 +16,14 @@ interface Connection {
 const PROVIDERS = [
   { key: 'strava', label: 'Strava', color: '#FC4C02', available: true },
   { key: 'garmin', label: 'Garmin', color: '#00799B', available: false },
-  { key: 'huawei', label: 'Huawei Health (test)', color: '#C7000B', available: true },
+  { key: 'huawei', label: 'Huawei Health', color: '#C7000B', available: true },
 ] as const
 
 const HUAWEI_CLIENT_ID = '118410313'
 const HUAWEI_REDIRECT_URI = 'https://fitmeet.fit/huawei-callback'
+// TODO: 'openid' only gets us the user's identity — add the actual Health Kit data
+// scopes (Activity record / Activity / Historical Data / Basic activity management,
+// the ones approved in AGC) once their exact OAuth scope strings are confirmed.
 const HUAWEI_SCOPES = [
   'openid',
 ].join(' ')
@@ -69,6 +72,13 @@ function ConnectedAppsCardInner() {
     } else if (searchParams.get('strava_error')) {
       setNotice('Could not connect Strava. Please try again.')
       router.replace('/profile')
+    } else if (searchParams.get('huawei_connected')) {
+      setNotice('Huawei Health connected — syncing your recent training history.')
+      router.replace('/profile')
+      load()
+    } else if (searchParams.get('huawei_error')) {
+      setNotice('Could not connect Huawei Health. Please try again.')
+      router.replace('/profile')
     }
   }, [searchParams, router])
 
@@ -81,20 +91,6 @@ function ConnectedAppsCardInner() {
       `&scope=read,activity:read_all&state=web-connect`
   }
 
-  async function resyncStrava() {
-    setBusyProvider('strava-resync')
-    setNotice(null)
-    try {
-      const { data } = await api.post('/strava/resync')
-      setNotice(`Resynced — refreshed ${data.synced} training(s) with full detail.`)
-      load()
-    } catch {
-      setNotice('Could not resync Strava. Please try again.')
-    } finally {
-      setBusyProvider(null)
-    }
-  }
-
   function connectHuawei() {
     setBusyProvider('huawei')
     const redirectUri = encodeURIComponent(HUAWEI_REDIRECT_URI)
@@ -102,16 +98,30 @@ function ConnectedAppsCardInner() {
     window.location.href =
       `https://oauth-login.cloud.huawei.com/oauth2/v3/authorize?` +
       `response_type=code&client_id=${HUAWEI_CLIENT_ID}` +
-      `&redirect_uri=${redirectUri}&scope=${scope}&state=web-connect-test&access_type=offline`
+      `&redirect_uri=${redirectUri}&scope=${scope}&state=web-connect&access_type=offline`
   }
 
-  async function disconnectStrava() {
-    setBusyProvider('strava')
+  async function resyncProvider(providerKey: string, label: string) {
+    setBusyProvider(`${providerKey}-resync`)
+    setNotice(null)
     try {
-      await api.delete('/strava/connect')
-      setConnections(prev => prev.filter(c => c.provider !== 'strava'))
+      const { data } = await api.post(`/${providerKey}/resync`)
+      setNotice(`Resynced — refreshed ${data.synced} training(s) with full detail.`)
+      load()
     } catch {
-      setNotice('Could not disconnect Strava. Please try again.')
+      setNotice(`Could not resync ${label}. Please try again.`)
+    } finally {
+      setBusyProvider(null)
+    }
+  }
+
+  async function disconnectProvider(providerKey: string, label: string) {
+    setBusyProvider(providerKey)
+    try {
+      await api.delete(`/${providerKey}/connect`)
+      setConnections(prev => prev.filter(c => c.provider !== providerKey))
+    } catch {
+      setNotice(`Could not disconnect ${label}. Please try again.`)
     } finally {
       setBusyProvider(null)
     }
@@ -165,7 +175,7 @@ function ConnectedAppsCardInner() {
                 connection ? (
                   <div className="shrink-0 flex items-center gap-2">
                     <button
-                      onClick={resyncStrava}
+                      onClick={() => resyncProvider(p.key, p.label)}
                       disabled={anyBusy}
                       title="Re-fetch full detail (heart rate, power, calories...) for recent activities"
                       className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg border font-semibold transition-opacity hover:opacity-80 disabled:opacity-50"
@@ -175,7 +185,7 @@ function ConnectedAppsCardInner() {
                       Resync
                     </button>
                     <button
-                      onClick={disconnectStrava}
+                      onClick={() => disconnectProvider(p.key, p.label)}
                       disabled={anyBusy}
                       className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg border font-semibold transition-opacity hover:opacity-80 disabled:opacity-50"
                       style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}

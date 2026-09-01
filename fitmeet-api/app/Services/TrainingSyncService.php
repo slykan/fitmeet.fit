@@ -81,6 +81,66 @@ class TrainingSyncService
         Training::where('provider', 'strava')->where('external_id', $externalId)->delete();
     }
 
+    /**
+     * $notify defaults false like storeStravaActivity — Huawei has no real-time webhook
+     * here, every sync goes through backfill/resync which shouldn't spam a push per
+     * historical activity.
+     *
+     * NOTE: the field names read below are a best-effort mapping from Huawei's published
+     * Health Kit v2 ActivityRecord data model — NOT yet verified against a real API
+     * response (HuaweiController::backfillHuawei logs a raw response sample so this can
+     * be corrected once we see what a real account actually returns).
+     */
+    public function storeHuaweiActivity(User $user, array $activity, bool $notify = false): ?Training
+    {
+        $externalId = isset($activity['id']) ? (string) $activity['id'] : null;
+        $startTimeMs = $activity['startTime'] ?? null;
+        if (!$externalId || !$startTimeMs) {
+            return null;
+        }
+
+        $summary = $activity['summary'] ?? $activity;
+        $rawType = $activity['activityType'] ?? $activity['sportType'] ?? null;
+
+        $training = Training::updateOrCreate(
+            ['provider' => 'huawei', 'external_id' => $externalId],
+            [
+                'user_id'        => $user->id,
+                'category'       => $this->mapHuaweiCategory($rawType)->value,
+                'raw_type'       => $rawType !== null ? (string) $rawType : null,
+                'name'           => $activity['name'] ?? null,
+                'started_at'     => Carbon::createFromTimestampMs((int) $startTimeMs),
+                'duration_s'     => isset($summary['totalTime']) ? (int) round($summary['totalTime']) : null,
+                'distance_m'     => $summary['totalDistance'] ?? null,
+                'elevation_gain' => $summary['totalElevationGain'] ?? $summary['totalUpHillDistance'] ?? null,
+                'avg_heartrate'  => $summary['avgHeartRate'] ?? null,
+                'max_heartrate'  => $summary['maxHeartRate'] ?? null,
+                'calories'       => $summary['totalCalories'] ?? $summary['calorie'] ?? null,
+                'avg_speed_mps'  => $summary['avgSpeed'] ?? null,
+                'max_speed_mps'  => $summary['maxSpeed'] ?? null,
+            ],
+        );
+
+        if ($notify && $training->wasRecentlyCreated) {
+            $this->notifyNewTraining($training);
+        }
+
+        $this->dedupe($training);
+
+        return $training;
+    }
+
+    /**
+     * Huawei's ActivityRecord `activityType` code table hasn't been confirmed against a
+     * real synced account yet — defaulting everything to Other rather than guessing a
+     * mapping that could silently miscategorize workouts (e.g. a run showing as cycling).
+     * Fill this in once storeHuaweiActivity's logged raw_type values are visible.
+     */
+    public function mapHuaweiCategory(mixed $rawType): Category
+    {
+        return Category::Other;
+    }
+
     public function mapStravaCategory(?string $rawType): Category
     {
         return match ($rawType) {

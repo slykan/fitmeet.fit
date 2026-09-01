@@ -131,6 +131,10 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\EnsureNotBanned::class])
     Route::delete('strava/connect',                [\App\Http\Controllers\Api\StravaController::class, 'disconnect']);
     Route::post('strava/resync',                   [\App\Http\Controllers\Api\StravaController::class, 'resync']);
 
+    Route::post('huawei/connect',                  [\App\Http\Controllers\Api\HuaweiController::class, 'connect']);
+    Route::delete('huawei/connect',                [\App\Http\Controllers\Api\HuaweiController::class, 'disconnect']);
+    Route::post('huawei/resync',                   [\App\Http\Controllers\Api\HuaweiController::class, 'resync']);
+
     // Trainings (Strava/Garmin/Huawei sync)
     Route::get('connections', [ProviderConnectionController::class, 'index']);
     Route::post('connections/reorder', [ProviderConnectionController::class, 'reorder']);

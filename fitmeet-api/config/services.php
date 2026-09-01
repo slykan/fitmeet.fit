@@ -51,4 +51,10 @@ return [
         'webhook_verify_token' => env('STRAVA_WEBHOOK_VERIFY_TOKEN'),
     ],
 
+    'huawei' => [
+        'client_id'     => env('HUAWEI_CLIENT_ID'),
+        'client_secret' => env('HUAWEI_CLIENT_SECRET'),
+        'redirect_uri'  => env('HUAWEI_REDIRECT_URI', 'https://fitmeet.fit/huawei-callback'),
+    ],
+
 ];
