@@ -45,7 +45,6 @@
       "bundleIdentifier": "fit.fitmeet.app",
       "buildNumber": "18",
       "associatedDomains": [
-        "applinks:fitmeet.fit",
         "applinks:fitmeet.fit"
       ],
       "infoPlist": {
