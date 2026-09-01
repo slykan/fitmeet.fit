@@ -1,14 +1,14 @@
 import {
   ArrowRight,
-  Beer,
   Bell,
   CheckCircle2,
   Compass,
+  HeartPulse,
   MessageSquareText,
-  Mountain,
   Play,
   Route,
   Share2,
+  Trash2,
   Zap,
 } from 'lucide-react'
 import Link from 'next/link'
@@ -103,19 +103,19 @@ const latestFeatures: Array<{
   href?: string
 }> = [
   {
-    icon: Play,
-    title: 'Route play animation',
-    description: 'Hit play on any route or event to watch it draw itself in real elevation colors, with a speed control to fast-forward.',
+    icon: HeartPulse,
+    title: 'Sync with Huawei Health',
+    description: 'Connect Huawei Health to automatically import your completed workouts alongside Strava, with duplicates merged automatically.',
   },
   {
-    icon: Mountain,
-    title: 'Tap for climb details',
-    description: 'Tap any colored stretch of a route to see that segment\'s distance and average grade.',
+    icon: Share2,
+    title: 'Share your live location',
+    description: 'Open the live map fullscreen during an event and share a link so friends can follow your run or ride in real time.',
   },
   {
-    icon: Beer,
-    title: 'Beer wall shoutouts',
-    description: 'Buy someone a beer and the whole community gets a cheers notification, with a link straight to the wall of fame.',
+    icon: Trash2,
+    title: 'Clean up your training log',
+    description: 'Delete any synced training you don\'t want, from either Strava or Huawei, right from your training list.',
   },
 ]
 
@@ -357,7 +357,7 @@ export default async function HomePage() {
                       New in FitMeet
                     </p>
                     <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                      Play animation, climb detail, beer wall
+                      Huawei Health sync, live sharing, training cleanup
                     </span>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-3">
