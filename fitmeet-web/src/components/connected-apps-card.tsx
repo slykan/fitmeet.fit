@@ -21,11 +21,16 @@ const PROVIDERS = [
 
 const HUAWEI_CLIENT_ID = '118410313'
 const HUAWEI_REDIRECT_URI = 'https://fitmeet.fit/huawei-callback'
-// TODO: 'openid' only gets us the user's identity — add the actual Health Kit data
-// scopes (Activity record / Activity / Historical Data / Basic activity management,
-// the ones approved in AGC) once their exact OAuth scope strings are confirmed.
+// Scope strings confirmed via the AGC-approved "Activity record"/"Activity" scopes'
+// Android SDK constant names (HEALTHKIT_ACTIVITY_RECORD_READ / HEALTHKIT_ACTIVITY_READ)
+// following the https://www.huawei.com/healthkit/{name}.{read|write} pattern. Two AGC
+// scopes remain unconfirmed as separate OAuth strings — "Historical Data (One year)"
+// (likely a range modifier on activityrecord.read rather than its own scope) and
+// "Basic activity management" — add them here if sync turns out to be missing data.
 const HUAWEI_SCOPES = [
   'openid',
+  'https://www.huawei.com/healthkit/activityrecord.read',
+  'https://www.huawei.com/healthkit/activity.read',
 ].join(' ')
 
 function timeAgo(iso: string | null): string {
