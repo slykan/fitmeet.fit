@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\User;
 use App\Models\UserPushToken;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 use Kreait\Firebase\Contract\Messaging;
 use Kreait\Firebase\Messaging\AndroidConfig;
 use Kreait\Firebase\Messaging\ApnsConfig;
@@ -89,8 +90,36 @@ class PushNotificationService
             }
 
             try {
-                $this->messaging->sendMulticast($message, $chunk->all());
-            } catch (\Throwable) {}
+                $report = $this->messaging->sendMulticast($message, $chunk->all());
+            } catch (\Throwable $e) {
+                Log::warning('Push notification multicast send failed', [
+                    'title' => $title,
+                    'token_count' => $chunk->count(),
+                    'exception' => $e->getMessage(),
+                ]);
+                continue;
+            }
+
+            $deadTokens = array_merge($report->unknownTokens(), $report->invalidTokens());
+            if (! empty($deadTokens)) {
+                UserPushToken::query()->whereIn('token', $deadTokens)->delete();
+            }
+
+            if ($report->hasFailures()) {
+                $otherFailures = $report->failures()->filter(
+                    fn ($item) => ! in_array($item->target()->value(), $deadTokens, true)
+                );
+
+                if ($otherFailures->count() > 0) {
+                    Log::warning('Push notification delivery failures', [
+                        'title' => $title,
+                        'dead_tokens_pruned' => count($deadTokens),
+                        'other_failures' => $otherFailures->map(
+                            fn ($item) => $item->error()?->getMessage()
+                        ),
+                    ]);
+                }
+            }
         }
     }
 }
