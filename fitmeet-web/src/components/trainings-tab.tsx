@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Activity, ChevronDown, Clock, Flame, Gauge, HeartPulse, Layers, Link2, Mountain, Tag, Wind, Zap } from 'lucide-react'
+import { Activity, ChevronDown, Clock, Flame, Gauge, HeartPulse, Layers, Link2, Mountain, Tag, Trash2, Wind, Zap } from 'lucide-react'
 
 import api from '@/lib/api'
 import { CATEGORIES, CATEGORY_EMOJI } from '@/lib/categories'
@@ -239,15 +239,31 @@ export function TrainingsTab() {
       )}
 
       {!loading && trainings.map(training => (
-        <TrainingCard key={training.id} training={training} />
+        <TrainingCard
+          key={training.id}
+          training={training}
+          onDeleted={() => setTrainings(current => current.filter(t => t.id !== training.id))}
+        />
       ))}
     </div>
   )
 }
 
-function TrainingCard({ training }: { training: TrainingItem }) {
+function TrainingCard({ training, onDeleted }: { training: TrainingItem; onDeleted: () => void }) {
   const [expanded, setExpanded] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const details = useMemo(() => buildDetails(training), [training])
+
+  async function handleDelete() {
+    if (!window.confirm('Delete this training? This only removes it from FitMeet, not from Strava/Huawei.')) return
+    setDeleting(true)
+    try {
+      await api.delete(`/trainings/${training.id}`)
+      onDeleted()
+    } catch {
+      setDeleting(false)
+    }
+  }
 
   return (
     <div
@@ -288,6 +304,15 @@ function TrainingCard({ training }: { training: TrainingItem }) {
             )}
           </div>
         </div>
+        <button
+          onClick={handleDelete}
+          disabled={deleting}
+          title="Delete training"
+          className="flex-shrink-0 p-2 rounded-lg transition-colors hover:bg-red-500/10 disabled:opacity-40"
+          style={{ color: 'var(--text-muted)' }}
+        >
+          <Trash2 size={15} />
+        </button>
       </div>
 
       {details.length > 0 && (

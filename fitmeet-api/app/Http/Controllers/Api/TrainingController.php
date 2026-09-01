@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\Training;
+use App\Services\TrainingSyncService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -76,5 +77,26 @@ class TrainingController
                 'calories'       => (float) $totals->calories,
             ],
         ]);
+    }
+
+    // DELETE /api/trainings/{training}
+    public function destroy(Request $request, Training $training, TrainingSyncService $sync): JsonResponse
+    {
+        if ($training->user_id !== $request->user()->id) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
+        $groupId = $training->dedup_group_id;
+        $userId = $training->user_id;
+
+        $training->delete();
+
+        // If it was part of a merged group, re-elect the primary (or ungroup the
+        // remaining single member) among whoever's left.
+        if ($groupId) {
+            $sync->recomputeAllGroups($userId);
+        }
+
+        return response()->json(['message' => 'Training deleted.']);
     }
 }

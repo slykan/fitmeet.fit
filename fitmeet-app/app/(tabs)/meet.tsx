@@ -994,6 +994,7 @@ const TrainingsTab = forwardRef<LoadMoreHandle>(function TrainingsTab(_props, re
   const [year, setYear] = useState(0)
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set())
   const [showFilter, setShowFilter] = useState(false)
+  const [deletingId, setDeletingId] = useState<number | null>(null)
 
   const activeFilterCount = (category ? 1 : 0) + (month ? 1 : 0) + (year ? 1 : 0)
 
@@ -1036,6 +1037,30 @@ const TrainingsTab = forwardRef<LoadMoreHandle>(function TrainingsTab(_props, re
       next.has(id) ? next.delete(id) : next.add(id)
       return next
     })
+  }
+
+  function confirmDeleteTraining(training: TrainingItem) {
+    Alert.alert(
+      'Delete training',
+      'Delete this training? This only removes it from FitMeet, not from Strava/Huawei.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete', style: 'destructive',
+          onPress: async () => {
+            setDeletingId(training.id)
+            try {
+              await api.delete(`/trainings/${training.id}`)
+              setTrainings(prev => prev.filter(t => t.id !== training.id))
+            } catch {
+              Alert.alert('Error', 'Could not delete training.')
+            } finally {
+              setDeletingId(null)
+            }
+          },
+        },
+      ],
+    )
   }
 
   return (
@@ -1170,6 +1195,14 @@ const TrainingsTab = forwardRef<LoadMoreHandle>(function TrainingsTab(_props, re
                   )}
                 </View>
               </View>
+              <Pressable
+                style={styles.trainingDeleteBtn}
+                onPress={() => confirmDeleteTraining(training)}
+                disabled={deletingId === training.id}
+                hitSlop={8}
+              >
+                <Ionicons name="trash-outline" size={16} color={palette.textDim} />
+              </Pressable>
             </View>
             <View style={styles.details}>
               <View style={styles.detailRow}>
@@ -2113,6 +2146,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   eventImage: { width: '100%', height: 160, borderRadius: 14, marginBottom: 4 },
+  trainingDeleteBtn: { padding: 6 },
   eventCardCancelled: { borderColor: 'rgba(248,113,113,0.35)' },
   eventCardMuted:     { opacity: 0.65 },
   eventTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },

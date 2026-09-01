@@ -239,6 +239,14 @@ class TrainingSyncService
             return;
         }
 
+        // A group can shrink to a single member (the other one was deleted) — ungroup it
+        // entirely rather than leaving a lone training tagged dedup_group_id/is_merged.
+        if ($members->count() === 1) {
+            Training::where('id', $members->first()->id)->update(['dedup_group_id' => null, 'is_primary' => true]);
+
+            return;
+        }
+
         $primary = $members->sortBy(fn (Training $t) => $priorities[$t->provider] ?? PHP_INT_MAX)->first();
 
         Training::where('dedup_group_id', $groupId)->update(['is_primary' => false]);
