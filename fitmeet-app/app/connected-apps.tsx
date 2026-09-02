@@ -8,12 +8,21 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { api } from '@/src/lib/api'
 import { clearStravaCodeCallback, setStravaCodeCallback } from '@/src/lib/strava-bridge'
+import { clearHuaweiCodeCallback, setHuaweiCodeCallback } from '@/src/lib/huawei-bridge'
 import { palette, spacing } from '@/src/theme'
 
 WebBrowser.maybeCompleteAuthSession()
 
 const CLIENT_ID = Constants.expoConfig?.extra?.stravaClientId ?? '234864'
 const REDIRECT_URI = 'https://fitmeet.fit/strava-callback'
+
+const HUAWEI_CLIENT_ID = '118410313'
+const HUAWEI_REDIRECT_URI = 'https://fitmeet.fit/huawei-callback'
+const HUAWEI_SCOPES = [
+  'openid',
+  'https://www.huawei.com/healthkit/activityrecord.read',
+  'https://www.huawei.com/healthkit/activity.read',
+].join(' ')
 
 interface Connection {
   provider: string
@@ -25,7 +34,7 @@ interface Connection {
 const PROVIDERS = [
   { key: 'strava', label: 'Strava', color: '#FC4C02', available: true },
   { key: 'garmin', label: 'Garmin', color: '#00799B', available: false },
-  { key: 'huawei', label: 'Huawei Health', color: '#C7000B', available: false },
+  { key: 'huawei', label: 'Huawei Health', color: '#C7000B', available: true },
 ] as const
 
 function timeAgo(iso: string | null): string {
@@ -44,6 +53,7 @@ export default function ConnectedAppsScreen() {
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState<string | null>(null)
   const handledCodeRef = useRef<string | null>(null)
+  const handledHuaweiCodeRef = useRef<string | null>(null)
 
   function load() {
     api.get('/connections')
@@ -61,6 +71,15 @@ export default function ConnectedAppsScreen() {
       finishConnect(code)
     })
     return clearStravaCodeCallback
+  }, [])
+
+  useEffect(() => {
+    setHuaweiCodeCallback((code) => {
+      if (handledHuaweiCodeRef.current === code) return
+      handledHuaweiCodeRef.current = code
+      finishConnectHuawei(code)
+    })
+    return clearHuaweiCodeCallback
   }, [])
 
   async function finishConnect(code: string) {
@@ -140,6 +159,87 @@ export default function ConnectedAppsScreen() {
     ])
   }
 
+  async function finishConnectHuawei(code: string) {
+    setBusy('huawei')
+    try {
+      const { data } = await api.post('/huawei/connect', { code })
+      Alert.alert('Connected', `Huawei Health connected — synced ${data.synced} training(s).`)
+      load()
+    } catch {
+      Alert.alert('Error', 'Could not connect Huawei Health. Please try again.')
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  async function connectHuawei() {
+    setBusy('huawei')
+    try {
+      const authUrl =
+        `https://oauth-login.cloud.huawei.com/oauth2/v3/authorize` +
+        `?response_type=code&client_id=${HUAWEI_CLIENT_ID}` +
+        `&redirect_uri=${encodeURIComponent(HUAWEI_REDIRECT_URI)}` +
+        `&scope=${encodeURIComponent(HUAWEI_SCOPES)}` +
+        `&access_type=offline`
+
+      const result = await WebBrowser.openAuthSessionAsync(authUrl, 'fitmeet://')
+
+      if (result.type !== 'success' || !result.url) {
+        setBusy(null)
+        return
+      }
+
+      const codeMatch = result.url.match(/[?&]code=([^&]+)/)
+      const code = codeMatch ? codeMatch[1] : null
+      if (!code || handledHuaweiCodeRef.current === code) { setBusy(null); return }
+
+      handledHuaweiCodeRef.current = code
+      await finishConnectHuawei(code)
+    } catch {
+      setBusy(null)
+      Alert.alert('Error', 'Could not connect to Huawei Health. Please try again.')
+    }
+  }
+
+  async function resyncHuawei() {
+    setBusy('huawei-resync')
+    try {
+      const { data } = await api.post('/huawei/resync')
+      Alert.alert('Resynced', `Refreshed ${data.synced} training(s) with full detail.`)
+      load()
+    } catch {
+      Alert.alert('Error', 'Could not resync Huawei Health. Please try again.')
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  function disconnectHuawei() {
+    Alert.alert('Disconnect Huawei Health?', 'Your already-synced trainings stay in your history.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Disconnect',
+        style: 'destructive',
+        onPress: async () => {
+          setBusy('huawei')
+          try {
+            await api.delete('/huawei/connect')
+            setConnections(prev => prev.filter(c => c.provider !== 'huawei'))
+          } catch {
+            Alert.alert('Error', 'Could not disconnect Huawei Health. Please try again.')
+          } finally {
+            setBusy(null)
+          }
+        },
+      },
+    ])
+  }
+
+  const PROVIDER_HANDLERS: Record<string, { connect: () => void; resync: () => void; disconnect: () => void }> = {
+    strava: { connect: connectStrava, resync: resyncStrava, disconnect: disconnectStrava },
+    huawei: { connect: connectHuawei, resync: resyncHuawei, disconnect: disconnectHuawei },
+  }
+
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.topBar}>
@@ -185,17 +285,17 @@ export default function ConnectedAppsScreen() {
                 {p.available && (
                   connection ? (
                     <View style={styles.actions}>
-                      <Pressable style={[styles.secondaryBtn, { flex: 1 }]} onPress={resyncStrava} disabled={anyBusy}>
+                      <Pressable style={[styles.secondaryBtn, { flex: 1 }]} onPress={PROVIDER_HANDLERS[p.key].resync} disabled={anyBusy}>
                         {isResyncing ? <ActivityIndicator size="small" color={palette.textMuted} /> : <Ionicons name="refresh-outline" size={14} color={palette.textMuted} />}
                         <Text style={styles.secondaryBtnText}>Resync</Text>
                       </Pressable>
-                      <Pressable style={[styles.secondaryBtn, { flex: 1 }]} onPress={disconnectStrava} disabled={anyBusy}>
+                      <Pressable style={[styles.secondaryBtn, { flex: 1 }]} onPress={PROVIDER_HANDLERS[p.key].disconnect} disabled={anyBusy}>
                         {isBusy ? <ActivityIndicator size="small" color={palette.textMuted} /> : <Ionicons name="checkmark" size={14} color={p.color} />}
                         <Text style={styles.secondaryBtnText}>Disconnect</Text>
                       </Pressable>
                     </View>
                   ) : (
-                    <Pressable style={[styles.connectBtn, { backgroundColor: p.color }]} onPress={connectStrava} disabled={isBusy}>
+                    <Pressable style={[styles.connectBtn, { backgroundColor: p.color }]} onPress={PROVIDER_HANDLERS[p.key].connect} disabled={isBusy}>
                       {isBusy && <ActivityIndicator size="small" color="#fff" />}
                       <Text style={styles.connectBtnText}>Connect</Text>
                     </Pressable>

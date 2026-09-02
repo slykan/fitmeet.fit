@@ -742,6 +742,10 @@ export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegment
   const [isFullscreen, setIsFullscreen] = useState(autoFullscreen)
   const hasSurfaceOrElevation = Boolean(surfaceSegments?.length || elevationSegments?.length)
   const isAnimating = playState === 'playing' || playState === 'paused'
+  // viewersCount/participants can be non-zero as soon as anyone opens the event
+  // page (check-in and viewer polling both start well before start_at) -- gate
+  // the LIVE badge itself on the event having actually started.
+  const eventStarted = startAt ? Date.now() >= new Date(startAt).getTime() : true
   const html = useMemo(
     () => buildHtml(lat, lng, { lat, lng }, emoji, null, showWind, effectiveShowClouds, radarPath, coloredSegments ?? [], elevationSegments ?? [], surfaceSegments ?? [], 'standard', true, false, false),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -769,10 +773,31 @@ export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegment
   }, [])
 
   useEffect(() => {
-    const request = startAt
-      ? fetchRelevantEventWeather(center.lat, center.lng, startAt)
-      : fetchCurrentWeather(center.lat, center.lng)
-    request.then(setWeather).catch(() => {})
+    let cancelled = false
+    let retryTimer: ReturnType<typeof setTimeout> | null = null
+    // A failed/empty fetch (network blip, rate limit) used to leave `weather`
+    // null until the next pan or the 15min refresh tick -- with weather null,
+    // renderWeather() in the WebView no-ops, so the wind/rain toggle buttons
+    // appeared to do nothing until the screen was remounted. Retry sooner.
+    const load = () => {
+      const request = startAt
+        ? fetchRelevantEventWeather(center.lat, center.lng, startAt)
+        : fetchCurrentWeather(center.lat, center.lng)
+      request
+        .then((result) => {
+          if (cancelled) return
+          setWeather(result)
+          if (!result) retryTimer = setTimeout(load, 20000)
+        })
+        .catch(() => {
+          if (!cancelled) retryTimer = setTimeout(load, 20000)
+        })
+    }
+    load()
+    return () => {
+      cancelled = true
+      if (retryTimer) clearTimeout(retryTimer)
+    }
   }, [center.lat, center.lng, startAt, weatherRefreshTick])
 
   useEffect(() => {
@@ -881,7 +906,7 @@ export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegment
               {mapEnabled ? 'Done' : 'Move map'}
             </Text>
           </Pressable>
-          {((participants?.length ?? 0) > 0 || viewersCount > 0) && (
+          {eventStarted && ((participants?.length ?? 0) > 0 || viewersCount > 0) && (
             <>
               <LiveBadge />
               {viewersCount > 0 && (

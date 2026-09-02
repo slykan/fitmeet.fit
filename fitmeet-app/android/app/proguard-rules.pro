@@ -12,3 +12,14 @@
 -keep class com.facebook.react.turbomodule.** { *; }
 
 # Add any project specific keep options here:
+
+# Firebase Cloud Messaging (push notifications via expo-notifications/google-services)
+-keep class com.google.firebase.** { *; }
+-dontwarn com.google.firebase.**
+
+# Google Sign-In
+-keep class com.google.android.gms.** { *; }
+-dontwarn com.google.android.gms.**
+
+# RevenueCat (react-native-purchases)
+-keep class com.revenuecat.purchases.** { *; }

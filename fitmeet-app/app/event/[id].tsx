@@ -142,6 +142,15 @@ function canCheckInNow(event: EventDetail) {
   return event.status === 'active' && event.is_joined && !event.checked_in_at && now >= opensAt && now <= closesAt
 }
 
+// Mirrors the backend's updateLocation() accept-window (EventController::updateLocation):
+// no lower bound (a checked-in user should appear immediately, not wait for start_at),
+// cut off 10 minutes after the event's scheduled end.
+function liveTrackingOpen(event: EventDetail) {
+  const start = new Date(event.schedule.start_at).getTime()
+  const durationMs = (event.schedule.duration_minutes ?? 60) * 60 * 1000
+  return event.status === 'active' && Date.now() <= start + durationMs + 10 * 60 * 1000
+}
+
 function statsFromElevationProfile(profile: ElevationPoint[]) {
   let elevGain = 0
   let maxGrade = 0
@@ -499,9 +508,9 @@ export default function EventDetailScreen() {
 
   useFocusEffect(loadEvent)
 
-  // Silent background refresh (no loading spinner) so `is_in_progress` — which
-  // gates both live-position posting and the live-positions map poll — doesn't
-  // stay stale for a user who opened the screen before the event started and
+  // Silent background refresh (no loading spinner) so `status`/`checked_in_at` —
+  // which gate both live-position posting and the live-positions map poll —
+  // don't stay stale for a user who opened the screen before checking in and
   // just sits on it waiting, never triggering a focus refetch.
   useEffect(() => {
     if (!id || event?.status !== 'active') return
@@ -688,7 +697,7 @@ export default function EventDetailScreen() {
   // for stationary activities (yoga, gym meetups, etc.), so live tracking only
   // activates for events that have an imported route.
   useEffect(() => {
-    if (!event?.id || !event.is_in_progress || !event.activity.gpx_url) {
+    if (!event?.id || !liveTrackingOpen(event) || !event.activity.gpx_url) {
       setLivePositions([])
       lastApplauseRef.current = null
       return
@@ -721,7 +730,7 @@ export default function EventDetailScreen() {
       clearInterval(intervalId)
       subscription.remove()
     }
-  }, [event?.id, event?.is_in_progress, event?.activity.gpx_url])
+  }, [event?.id, event?.status, event?.schedule.start_at, event?.schedule.duration_minutes, event?.activity.gpx_url])
 
   // Always run a foreground watcher while this screen is open and sharing is
   // on, even when background permission is granted and the TaskManager task
@@ -733,7 +742,7 @@ export default function EventDetailScreen() {
   // whenever the screen is open; the background task is just a best-effort
   // supplement for when the user navigates away or backgrounds the app.
   useEffect(() => {
-    if (!event?.id || !event.live_sharing_enabled || !event.is_in_progress) return
+    if (!event?.id || !event.live_sharing_enabled || !event.checked_in_at || !liveTrackingOpen(event)) return
     let subscription: Location.LocationSubscription | null = null
     let cancelled = false
     const eventId = event.id
@@ -748,7 +757,7 @@ export default function EventDetailScreen() {
       cancelled = true
       subscription?.remove()
     }
-  }, [event?.id, event?.live_sharing_enabled, event?.is_in_progress])
+  }, [event?.id, event?.live_sharing_enabled, event?.checked_in_at, event?.status, event?.schedule.start_at, event?.schedule.duration_minutes])
 
   useEffect(() => {
     if (checkin !== '1' || checkInPromptShown.current || !event) return
@@ -914,7 +923,7 @@ export default function EventDetailScreen() {
       if (options?.persistPreference && !me?.auto_share_live_location) {
         api.patch('/me', { auto_share_live_location: true }).then(refreshMe).catch(() => {})
       }
-      // Reconcile is_in_progress etc. right away instead of waiting for the
+      // Reconcile checked_in_at etc. right away instead of waiting for the
       // background poll, in case this was stale from an early check-in.
       api.get(`/events/${event.id}`).then(({ data }) => setEvent(data.data)).catch(() => {})
       if (Platform.OS === 'android' && result.background) {

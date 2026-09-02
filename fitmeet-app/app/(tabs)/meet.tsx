@@ -141,7 +141,7 @@ const CATEGORY_EMOJI: Record<string, string> = Object.fromEntries(
 const PROVIDER_LABEL: Record<string, string> = {
   strava: 'Strava',
   garmin: 'Garmin',
-  huawei: 'Huawei Health',
+  huawei: 'Health',
 }
 
 const PROVIDER_COLOR: Record<string, string> = {
