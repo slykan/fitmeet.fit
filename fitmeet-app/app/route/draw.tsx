@@ -89,6 +89,30 @@ function downsampleTrack(pts: [number, number][], max: number): [number, number]
   return result
 }
 
+interface RoutePoi {
+  id: string
+  type: string
+  lat: number
+  lng: number
+}
+
+function normalizePois(input: unknown): RoutePoi[] {
+  if (!Array.isArray(input)) return []
+  const allowed = new Set(['beer', 'cigarette', 'coffee', 'pause'])
+
+  return input.flatMap((poi, index) => {
+    if (!poi || typeof poi !== 'object') return []
+    const data = poi as Record<string, unknown>
+    const type = data.type
+    if (typeof type !== 'string' || !allowed.has(type)) return []
+    const lat = Number(data.lat)
+    const lng = Number(data.lng)
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return []
+    const id = typeof data.id === 'string' ? data.id : `existing-${index}`
+    return [{ id, type, lat, lng }]
+  })
+}
+
 function normalizeWaypoints(input: unknown): [number, number][] {
   if (!Array.isArray(input)) return []
 
@@ -133,11 +157,13 @@ function buildDrawRouteHtml(
   initCategory: string,
   initWaypoints: [number, number][],
   initTrack: [number, number][],
+  initPois: RoutePoi[],
   topInset: number,
   bottomInset: number,
 ): string {
   const waypointsJson = JSON.stringify(initWaypoints)
   const trackJson = JSON.stringify(initTrack)
+  const poisJson = JSON.stringify(initPois)
 
   return `<!DOCTYPE html>
 <html>
@@ -185,6 +211,38 @@ function buildDrawRouteHtml(
     display:flex;align-items:center;justify-content:center;
     font-size:18px;cursor:pointer;
   }
+  #poi-wrap{
+    position:fixed;top:${topInset + 104}px;right:10px;z-index:1000;
+    display:flex;flex-direction:column;align-items:flex-end;gap:8px;
+    pointer-events:none;
+  }
+  #poi-btn{
+    pointer-events:all;
+    background:rgba(5,8,22,0.88);border:1.5px solid rgba(255,255,255,0.14);
+    border-radius:12px;width:38px;height:38px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:20px;font-weight:900;color:#f5f7ff;cursor:pointer;
+  }
+  #poi-btn.active{background:#6cff2f;color:#031109;}
+  #poi-palette{
+    display:none;flex-direction:column;gap:6px;
+    padding:6px;border-radius:14px;
+    background:rgba(5,8,22,0.94);border:1px solid rgba(255,255,255,0.14);
+  }
+  #poi-palette.show{display:flex;pointer-events:all;}
+  .poi-chip{
+    width:38px;height:38px;border-radius:10px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:18px;background:rgba(255,255,255,0.05);
+    border:1.5px solid rgba(255,255,255,0.12);cursor:pointer;
+  }
+  .poi-chip.active{background:#6cff2f;border-color:#6cff2f;}
+  #poi-hint{
+    display:none;padding:6px 10px;border-radius:10px;
+    background:rgba(5,8,22,0.94);color:#f5f7ff;font-size:11px;font-weight:800;
+    max-width:150px;text-align:right;
+  }
+  #poi-hint.show{display:block;}
   #layer-wrap{
     pointer-events:all;position:relative;flex-shrink:0;
   }
@@ -286,6 +344,12 @@ function buildDrawRouteHtml(
   <div id="gps-btn" onclick="useGPS()">&#128205;</div>
 </div>
 
+<div id="poi-wrap">
+  <div id="poi-btn" onclick="togglePoiPalette()">+</div>
+  <div id="poi-palette"></div>
+  <div id="poi-hint"></div>
+</div>
+
 <div id="search-row">
   <input id="search-input" placeholder="Search city or place" onkeydown="if(event.key==='Enter'){searchPlace();}"/>
   <button id="search-btn" onclick="searchPlace()">Go</button>
@@ -318,6 +382,15 @@ var elevDebounce = null;
 var selectedIdx = null;
 var activeLayerKey = 'standard';
 var activeBaseLayer = null;
+var pois = [];          // [{id, type, latlng, marker}] — FitMeet-only, never exported to GPX
+var placingPoiType = null;
+var poiPaletteOpen = false;
+var POI_META = {
+  beer: { emoji: '🍺' },
+  cigarette: { emoji: '🚬' },
+  coffee: { emoji: '☕' },
+  pause: { emoji: '🕐' }
+};
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 function send(obj) {
@@ -462,6 +535,75 @@ function refreshMarkerIcons() {
   waypoints.forEach(function(wp, i) {
     wp.marker.setIcon(makeIcon(i+1, i===selectedIdx, i===waypoints.length-1 && waypoints.length>1));
   });
+}
+
+// ── POI markers (beer/cigarette/coffee/pause) — FitMeet-only, never exported ──
+function makePoiIcon(type) {
+  return L.divIcon({
+    className:'',
+    html:'<div style="width:30px;height:30px;border-radius:50%;background:#0b1120;display:flex;align-items:center;justify-content:center;font-size:16px;border:2px solid #fbbf24;box-shadow:0 2px 8px rgba(0,0,0,0.5);">'+POI_META[type].emoji+'</div>',
+    iconSize:[30,30], iconAnchor:[15,15]
+  });
+}
+
+function removePoi(id) {
+  var idx = -1;
+  for (var i=0;i<pois.length;i++) if (pois[i].id === id) { idx = i; break; }
+  if (idx === -1) return;
+  map.removeLayer(pois[idx].marker);
+  pois.splice(idx, 1);
+}
+
+function addPoi(type, latlng, existingId) {
+  var id = existingId || (Date.now()+'-'+Math.random().toString(36).slice(2,8));
+  var marker = L.marker(latlng, { icon: makePoiIcon(type), draggable: true, zIndexOffset: 500 });
+  marker.on('click', function(e) {
+    if (e.originalEvent) L.DomEvent.stopPropagation(e.originalEvent);
+    removePoi(id);
+  });
+  marker.on('drag', function(e) {
+    var pos = e.target.getLatLng();
+    for (var i=0;i<pois.length;i++) if (pois[i].id === id) { pois[i].latlng = [pos.lat, pos.lng]; break; }
+  });
+  marker.addTo(map);
+  pois.push({ id: id, type: type, latlng: latlng, marker: marker });
+}
+
+function updatePoiHint() {
+  var hint = document.getElementById('poi-hint');
+  if (placingPoiType) {
+    hint.textContent = 'Tap the map to place ' + POI_META[placingPoiType].emoji;
+    hint.className = 'show';
+  } else {
+    hint.className = '';
+  }
+}
+
+function renderPoiPalette() {
+  var palette = document.getElementById('poi-palette');
+  var btn = document.getElementById('poi-btn');
+  palette.innerHTML = '';
+  if (poiPaletteOpen) {
+    Object.keys(POI_META).forEach(function(type) {
+      var chip = document.createElement('div');
+      chip.className = 'poi-chip' + (placingPoiType === type ? ' active' : '');
+      chip.textContent = POI_META[type].emoji;
+      chip.onclick = function(e) {
+        e.stopPropagation();
+        placingPoiType = (placingPoiType === type) ? null : type;
+        renderPoiPalette();
+        updatePoiHint();
+      };
+      palette.appendChild(chip);
+    });
+  }
+  palette.className = poiPaletteOpen ? 'show' : '';
+  btn.className = poiPaletteOpen ? 'active' : '';
+}
+
+function togglePoiPalette() {
+  poiPaletteOpen = !poiPaletteOpen;
+  renderPoiPalette();
 }
 
 function updateStats() {
@@ -859,6 +1001,7 @@ async function done() {
     startLng: waypoints[0].latlng[1],
     endLat: waypoints[waypoints.length-1].latlng[0],
     endLng: waypoints[waypoints.length-1].latlng[1],
+    pois: pois.map(function(p){ return {id:p.id, type:p.type, lat:p.latlng[0], lng:p.latlng[1]}; }),
   });
 }
 
@@ -1010,6 +1153,14 @@ L.control.zoom({position:'bottomright'}).addTo(map);
 setBaseLayer('standard');
 
 map.on('click', function(e) {
+  if (placingPoiType) {
+    var placedType = placingPoiType;
+    placingPoiType = null;
+    renderPoiPalette();
+    updatePoiHint();
+    addPoi(placedType, [e.latlng.lat, e.latlng.lng]);
+    return;
+  }
   if (pendingRouting > 0) return;
   addWaypoint([e.latlng.lat, e.latlng.lng]);
 });
@@ -1017,6 +1168,10 @@ map.on('click', function(e) {
 renderCats();
 renderPrefs();
 window._elevGain = 0;
+
+// ── Load initial POIs (edit mode) ────────────────────────────────────────
+var initPois = ${poisJson};
+initPois.forEach(function(p) { addPoi(p.type, [p.lat, p.lng], p.id); });
 
 // ── Load initial waypoints ────────────────────────────────────────────────
 var initWaypoints = ${waypointsJson};
@@ -1070,6 +1225,7 @@ interface DrawPayload {
   startLng: number
   endLat: number
   endLng: number
+  pois: RoutePoi[]
 }
 
 export default function DrawRouteScreen() {
@@ -1082,6 +1238,7 @@ export default function DrawRouteScreen() {
   const [initCategory, setInitCategory] = useState('running')
   const [initWaypoints, setInitWaypoints] = useState<[number, number][]>([])
   const [initTrack, setInitTrack] = useState<[number, number][]>([])
+  const [initPois, setInitPois] = useState<RoutePoi[]>([])
   const [loadingEdit, setLoadingEdit] = useState(!!editId)
 
   // Save modal
@@ -1100,6 +1257,7 @@ export default function DrawRouteScreen() {
         setTitle(route.title ?? '')
         setInitCategory(route.category?.value ?? 'running')
         setIsPublic(route.is_public ?? true)
+        setInitPois(normalizePois(route.pois))
         let loadedWaypoints = normalizeWaypoints(route.waypoints)
         if (loadedWaypoints.length >= 2) setInitWaypoints(downsampleTrack(loadedWaypoints, 25))
         if (route.gpx_url) {
@@ -1149,6 +1307,7 @@ export default function DrawRouteScreen() {
       form.append('category', payload.category)
       form.append('is_public', isPublic ? '1' : '0')
       form.append('waypoints', JSON.stringify(payload.waypoints))
+      form.append('pois', JSON.stringify(payload.pois))
       form.append('gpx', { uri: tempUri, type: 'application/gpx+xml', name: 'route.gpx' } as unknown as Blob)
       form.append('distance_km', String(payload.distanceKm))
       form.append('elevation_gain', String(payload.elevGain))
@@ -1188,8 +1347,8 @@ export default function DrawRouteScreen() {
     )
   }
 
-  const html = buildDrawRouteHtml(initCategory, initWaypoints, initTrack, insets.top, insets.bottom)
-  const webViewKey = `${editId ?? 'new'}-${initCategory}-${initWaypoints.length}-${initTrack.length}`
+  const html = buildDrawRouteHtml(initCategory, initWaypoints, initTrack, initPois, insets.top, insets.bottom)
+  const webViewKey = `${editId ?? 'new'}-${initCategory}-${initWaypoints.length}-${initTrack.length}-${initPois.length}`
 
   return (
     <View style={styles.root}>
