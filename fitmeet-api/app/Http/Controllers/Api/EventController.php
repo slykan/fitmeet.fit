@@ -689,10 +689,12 @@ HTML;
             return response()->json(['message' => 'Location sharing is not enabled.'], 422);
         }
 
-        $windowStart = $event->start_at;
-        $windowEnd = $windowStart->copy()->addMinutes($event->duration_minutes ?? 60)->addMinutes(10);
+        // No lower bound here: check-in itself already only opens 30 minutes before
+        // start_at (see checkIn()), so a checked-in user should start appearing on
+        // live tracking immediately rather than waiting for the official start time.
+        $windowEnd = $event->start_at->copy()->addMinutes($event->duration_minutes ?? 60)->addMinutes(10);
 
-        if ($event->status !== 'active' || now()->lt($windowStart) || now()->gt($windowEnd)) {
+        if ($event->status !== 'active' || now()->gt($windowEnd)) {
             return response()->json(['message' => 'This event is not currently live.'], 422);
         }
 

@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Jobs\RetryHuaweiBackfill;
 use App\Models\ProviderConnection;
+use App\Services\HuaweiSyncService;
 use App\Services\TrainingSyncService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 
 class HuaweiController
 {
@@ -45,7 +46,7 @@ class HuaweiController
     }
 
     // POST /api/huawei/connect  { code }  - Connected Apps linking
-    public function connect(Request $request, TrainingSyncService $sync): JsonResponse
+    public function connect(Request $request, HuaweiSyncService $huawei, TrainingSyncService $sync): JsonResponse
     {
         $request->validate(['code' => 'required|string']);
         $data = $this->exchangeCode($request->code);
@@ -76,7 +77,15 @@ class HuaweiController
             ],
         );
 
-        $synced = $this->backfillHuawei($connection, $sync);
+        $synced = $huawei->backfillHuawei($connection, $sync);
+
+        // Huawei's cloud activity data can lag briefly right after a fresh OAuth grant
+        // (device -> Huawei cloud sync isn't instant) -- if nothing came back on the
+        // very first pull, retry once a couple minutes later instead of leaving the
+        // user to notice and hit "Resync" manually.
+        if ($synced === 0) {
+            RetryHuaweiBackfill::dispatch($connection->id)->delay(now()->addMinutes(2));
+        }
 
         return response()->json(['connected' => true, 'synced' => $synced]);
     }
@@ -104,7 +113,7 @@ class HuaweiController
     }
 
     // POST /api/huawei/resync
-    public function resync(Request $request, TrainingSyncService $sync): JsonResponse
+    public function resync(Request $request, HuaweiSyncService $huawei, TrainingSyncService $sync): JsonResponse
     {
         $connection = ProviderConnection::where('user_id', $request->user()->id)
             ->where('provider', 'huawei')
@@ -114,70 +123,12 @@ class HuaweiController
             return response()->json(['message' => 'Huawei not connected.'], 422);
         }
 
-        if (!$this->ensureFreshToken($connection)) {
+        if (!$huawei->ensureFreshToken($connection)) {
             return response()->json(['message' => 'Huawei token refresh failed.'], 422);
         }
 
-        $synced = $this->backfillHuawei($connection, $sync);
+        $synced = $huawei->backfillHuawei($connection, $sync);
 
         return response()->json(['connected' => true, 'synced' => $synced]);
-    }
-
-    private function ensureFreshToken(ProviderConnection $connection): ?string
-    {
-        if ($connection->token_expires_at && $connection->token_expires_at->isFuture()) {
-            return $connection->access_token;
-        }
-
-        $res = Http::asForm()->post('https://oauth-login.cloud.huawei.com/oauth2/v3/token', [
-            'grant_type'    => 'refresh_token',
-            'refresh_token' => $connection->refresh_token,
-            'client_id'     => config('services.huawei.client_id'),
-            'client_secret' => config('services.huawei.client_secret'),
-        ]);
-
-        if (!$res->successful()) return null;
-
-        $data = $res->json();
-        $connection->update([
-            'access_token'     => $data['access_token'],
-            'refresh_token'    => $data['refresh_token'] ?? $connection->refresh_token,
-            'token_expires_at' => isset($data['expires_in']) ? now()->addSeconds((int) $data['expires_in']) : now()->addHour(),
-        ]);
-
-        return $data['access_token'];
-    }
-
-    private function backfillHuawei(ProviderConnection $connection, TrainingSyncService $sync): int
-    {
-        $accessToken = $this->ensureFreshToken($connection) ?? $connection->access_token;
-
-        $res = Http::withToken($accessToken)
-            ->withHeaders(['x-client-id' => config('services.huawei.client_id')])
-            ->get('https://health-api.cloud.huawei.com/healthkit/v2/activityRecords', [
-                'startTime' => now()->subDays(90)->getTimestampMs(),
-                'endTime'   => now()->getTimestampMs(),
-            ]);
-
-        if (!$res->successful()) {
-            Log::warning('Huawei activity fetch failed', [
-                'status' => $res->status(),
-                'body'   => Str::limit($res->body(), 1000),
-            ]);
-            return 0;
-        }
-
-        $count = 0;
-        // Confirmed key is "activityRecord" (singular) — not the "activityRecords" the
-        // endpoint's own doc title ("Querying Created Activity Records") would suggest.
-        foreach ($res->json('activityRecord') ?? [] as $activity) {
-            if ($sync->storeHuaweiActivity($connection->user, $activity)) {
-                $count++;
-            }
-        }
-
-        $connection->update(['last_synced_at' => now()]);
-
-        return $count;
     }
 }

@@ -100,13 +100,20 @@ class TrainingSyncService
 
         $rawType = $activity['activityType'] ?? null;
 
+        // Huawei's cloud API never sends a real user-chosen title: `name`/`desc` are
+        // both always the same auto-generated "sportHealth<startTimeMs>" placeholder,
+        // identical to `id` (confirmed 2026-09-02 against real synced accounts) — fall
+        // through to the app's own `name ?? category.label()` display instead of
+        // storing that placeholder as if it meant something.
+        $rawName = $activity['name'] ?? null;
+
         $training = Training::updateOrCreate(
             ['provider' => 'huawei', 'external_id' => $externalId],
             [
                 'user_id'        => $user->id,
                 'category'       => $this->mapHuaweiCategory($rawType)->value,
                 'raw_type'       => $rawType !== null ? (string) $rawType : null,
-                'name'           => $activity['name'] ?? null,
+                'name'           => ($rawName !== null && $rawName !== $externalId) ? $rawName : null,
                 'started_at'     => Carbon::createFromTimestampMs((int) $startTimeMs),
                 // activeTime excludes paused time, mirroring Strava's moving_time.
                 'duration_s'     => isset($activity['activeTime']) ? (int) round($activity['activeTime'] / 1000) : null,
@@ -157,15 +164,20 @@ class TrainingSyncService
     }
 
     /**
-     * Huawei's ActivityRecord `activityType` code table hasn't been confirmed against a
-     * real synced account yet — defaulting everything to Other rather than guessing a
-     * mapping that could silently miscategorize workouts (e.g. a run showing as cycling).
-     * Fill this in once more raw_type values are visible in synced trainings (one real
-     * value seen so far: 57, exact activity unconfirmed).
+     * Huawei's ActivityRecord `activityType` isn't documented anywhere publicly (their
+     * own doc site doesn't list numeric values, and no third-party reverse-engineering
+     * of the cloud REST API's code table was found) — codes below were confirmed one at
+     * a time against a real account's own activity history on 2026-09-02. Extend this
+     * match as more codes get confirmed; don't guess ahead of confirmation (a run
+     * silently showing as cycling is worse than everything showing as Other).
      */
     public function mapHuaweiCategory(mixed $rawType): Category
     {
-        return Category::Other;
+        return match ((string) $rawType) {
+            '57' => Category::Running, // confirmed: indoor running (treadmill, no altitude data)
+            '90' => Category::Walking, // confirmed: outdoor walking (has GPS altitude data)
+            default => Category::Other,
+        };
     }
 
     public function mapStravaCategory(?string $rawType): Category

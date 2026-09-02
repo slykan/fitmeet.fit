@@ -13,6 +13,7 @@ export default function HuaweiCallbackPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const code  = params.get('code')
+    const state = params.get('state')
     const error = params.get('error')
 
     if (error || !code) {
@@ -20,13 +21,19 @@ export default function HuaweiCallbackPage() {
       return
     }
 
-    const storedToken = token ?? JSON.parse(localStorage.getItem('fitmeet-auth') ?? '{}')?.state?.token
-    if (!storedToken) { router.replace('/login'); return }
+    if (state === 'web-connect') {
+      const storedToken = token ?? JSON.parse(localStorage.getItem('fitmeet-auth') ?? '{}')?.state?.token
+      if (!storedToken) { router.replace('/login'); return }
 
-    api.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`
-    api.post('/huawei/connect', { code })
-      .then(() => router.replace('/profile?huawei_connected=1'))
-      .catch(() => router.replace('/profile?huawei_error=1'))
+      api.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`
+      api.post('/huawei/connect', { code })
+        .then(() => router.replace('/profile?huawei_connected=1'))
+        .catch(() => router.replace('/profile?huawei_error=1'))
+      return
+    }
+
+    // Mobile deep link fallback
+    window.location.href = `fitmeet://huawei-callback?code=${encodeURIComponent(code)}`
   }, [])
 
   return (
