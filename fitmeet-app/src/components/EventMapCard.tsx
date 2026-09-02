@@ -22,7 +22,7 @@ export type LiveParticipant = {
 }
 
 /** FitMeet-only markers dropped on the map while drawing a route (never exported to GPX). */
-export type PoiType = 'beer' | 'cigarette' | 'coffee' | 'pause'
+export type PoiType = 'beer' | 'cigarette' | 'coffee' | 'pause' | 'viewpoint'
 
 export type RoutePoi = {
   id: string
@@ -36,6 +36,7 @@ const POI_EMOJI: Record<PoiType, string> = {
   cigarette: '🚬',
   coffee: '☕',
   pause: '🕐',
+  viewpoint: '🔭',
 }
 
 type Props = {

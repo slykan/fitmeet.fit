@@ -10,7 +10,7 @@ import { weatherCloudStrength, weatherRainStrength, windDirectionLabel, type Eve
 
 // Mirrors PoiType/POI_META in route-draw-map.tsx — kept as a separate, read-only
 // copy since this component (unlike route-draw-map) never places/edits markers.
-export type PoiType = 'beer' | 'cigarette' | 'coffee' | 'pause'
+export type PoiType = 'beer' | 'cigarette' | 'coffee' | 'pause' | 'viewpoint'
 
 export interface RoutePoi {
   id: string
@@ -24,6 +24,7 @@ const POI_META: Record<PoiType, { emoji: string; label: string }> = {
   cigarette: { emoji: '🚬', label: 'Smoke break' },
   coffee: { emoji: '☕', label: 'Coffee stop' },
   pause: { emoji: '🕐', label: 'Pause' },
+  viewpoint: { emoji: '🔭', label: 'Viewpoint' },
 }
 
 // Fix Leaflet default marker icons (broken in bundlers)

@@ -9,7 +9,7 @@ import { slopeColor } from '@/lib/parse-gpx'
 export type LatLng = [number, number]
 
 /** FitMeet-only markers dropped on the map while drawing a route (never written into the exported GPX). */
-export type PoiType = 'beer' | 'cigarette' | 'coffee' | 'pause'
+export type PoiType = 'beer' | 'cigarette' | 'coffee' | 'pause' | 'viewpoint'
 
 export interface RoutePoi {
   id: string
@@ -410,6 +410,7 @@ export const POI_META: Record<PoiType, { emoji: string; label: string }> = {
   cigarette: { emoji: '🚬', label: 'Smoke break' },
   coffee: { emoji: '☕', label: 'Coffee stop' },
   pause: { emoji: '🕐', label: 'Pause' },
+  viewpoint: { emoji: '🔭', label: 'Viewpoint' },
 }
 
 function makePoiIcon(type: PoiType): L.DivIcon {

@@ -165,7 +165,7 @@ function normalizeWaypoints(input: unknown): LatLng[] {
 function normalizePois(input: unknown): RoutePoi[] {
   if (!Array.isArray(input)) return []
 
-  const allowed = new Set(['beer', 'cigarette', 'coffee', 'pause'])
+  const allowed = new Set(['beer', 'cigarette', 'coffee', 'pause', 'viewpoint'])
 
   return input.flatMap((poi, index) => {
     if (!poi || typeof poi !== 'object') return []

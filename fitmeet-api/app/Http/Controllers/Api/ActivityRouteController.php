@@ -254,7 +254,7 @@ class ActivityRouteController extends Controller
             return null;
         }
 
-        $allowedTypes = ['beer', 'cigarette', 'coffee', 'pause'];
+        $allowedTypes = ['beer', 'cigarette', 'coffee', 'pause', 'viewpoint'];
 
         $pois = collect($decoded)
             ->filter(fn ($poi) => is_array($poi)
