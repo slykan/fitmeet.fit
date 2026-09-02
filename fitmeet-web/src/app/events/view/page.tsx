@@ -26,7 +26,7 @@ import { analyzeRouteSurface, type SurfaceAnalysis } from '@/lib/route-surface'
 import { reportContent } from '@/lib/moderation'
 import { useAuthStore } from '@/store/auth'
 import { Button } from '@/components/ui/button'
-import type { LiveParticipant } from '@/components/location-picker-map'
+import type { LiveParticipant, RoutePoi } from '@/components/location-picker-map'
 import { LiveProgressBar } from '@/components/live-progress-bar'
 
 function initialsFor(name: string) {
@@ -69,7 +69,7 @@ interface Event {
   category: { value: string; label: string }
   location: { lat: number; lng: number; address: string | null }
   schedule: { start_at: string; timezone: string; duration_minutes: number | null }
-  activity: { distance_km: number | null; elevation_gain: number | null; pace: string | null; max_grade: number | null; max_downgrade: number | null; gpx_url: string | null }
+  activity: { distance_km: number | null; elevation_gain: number | null; pace: string | null; max_grade: number | null; max_downgrade: number | null; gpx_url: string | null; route_id: number | null }
   skill_level: string | null
   max_participants: number | null
   participants_count: number
@@ -195,6 +195,7 @@ function EventContent() {
   const lastApplauseRef = useRef<string | null>(null)
   const [error,    setError]    = useState<string | null>(null)
   const [gpxResult, setGpxResult] = useState<GpxResult | null>(null)
+  const [routePois, setRoutePois] = useState<RoutePoi[] | undefined>(undefined)
   const [surfaceAnalysis, setSurfaceAnalysis] = useState<SurfaceAnalysis | null>(null)
   const [gpxLoading, setGpxLoading] = useState(false)
   const [surfaceLoading, setSurfaceLoading] = useState(false)
@@ -364,6 +365,13 @@ function EventContent() {
         setEvent(loadedEvent)
         if (loadedEvent.location?.lat != null && loadedEvent.location?.lng != null) {
           setWeatherCenter({ lat: loadedEvent.location.lat, lng: loadedEvent.location.lng })
+        }
+        if (loadedEvent.activity?.route_id) {
+          api.get(`/routes/${loadedEvent.activity.route_id}`)
+            .then(({ data }) => setRoutePois(data.data?.pois ?? undefined))
+            .catch(() => setRoutePois(undefined))
+        } else {
+          setRoutePois(undefined)
         }
         if (loadedEvent.activity?.gpx_url) {
           setGpxLoading(true)
@@ -972,6 +980,7 @@ function EventContent() {
                 track={gpxResult?.track}
                 elevationSegments={gpxResult?.coloredSegments}
                 surfaceSegments={surfaceAnalysis?.segments}
+                pois={routePois}
                 playProgress={isAnimating ? playProgress : null}
                 playMilestone={isAnimating ? playMilestone : null}
                 showElevationLayer={showElevationLayer}

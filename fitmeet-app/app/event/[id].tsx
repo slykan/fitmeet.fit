@@ -15,7 +15,7 @@ import * as FileSystem from 'expo-file-system/legacy'
 import * as MediaLibrary from 'expo-media-library'
 import { WeatherBadge } from '@/src/components/WeatherBadge'
 import { ZoomableImage } from '@/src/components/ZoomableImage'
-import { EventMapCard, type LiveParticipant } from '@/src/components/EventMapCard'
+import { EventMapCard, type LiveParticipant, type RoutePoi } from '@/src/components/EventMapCard'
 import { LiveProgressBar } from '@/src/components/LiveProgressBar'
 import { ElevationChart } from '@/src/components/ElevationChart'
 import { WikiPhotosStrip } from '@/src/components/WikiPhotosStrip'
@@ -87,6 +87,7 @@ interface EventDetail {
     max_grade: number | null
     max_downgrade: number | null
     gpx_url: string | null
+    route_id: number | null
   }
   participants_count: number
   max_participants: number | null
@@ -356,6 +357,7 @@ export default function EventDetailScreen() {
   const [participantSectionY, setParticipantSectionY] = useState<number | null>(null)
   const [youtubeOpen, setYoutubeOpen] = useState(false)
   const [coloredSegments, setColoredSegments] = useState<TrackSegment[]>([])
+  const [routePois, setRoutePois] = useState<RoutePoi[] | undefined>(undefined)
   const [surfaceAnalysis, setSurfaceAnalysis] = useState<SurfaceAnalysis | null>(null)
   const [surfaceLoading, setSurfaceLoading] = useState(false)
   const [surfaceChecked, setSurfaceChecked] = useState(false)
@@ -607,6 +609,16 @@ export default function EventDetailScreen() {
       hideSub.remove()
     }
   }, [])
+
+  useEffect(() => {
+    if (!event?.activity.route_id) {
+      setRoutePois(undefined)
+      return
+    }
+    api.get(`/routes/${event.activity.route_id}`)
+      .then(({ data }) => setRoutePois(data.data?.pois ?? undefined))
+      .catch(() => setRoutePois(undefined))
+  }, [event?.activity.route_id])
 
   useEffect(() => {
     setColoredSegments([])
@@ -1402,6 +1414,7 @@ export default function EventDetailScreen() {
             emoji={CATEGORY_EMOJI[event.category.value] ?? '📍'}
             elevationSegments={coloredSegments}
             surfaceSegments={surfaceAnalysis?.segments}
+            pois={routePois}
             participants={livePositions}
             onClusterTap={setClusterListParticipants}
             viewersCount={viewersCount}

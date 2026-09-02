@@ -133,6 +133,7 @@ class ActivityRouteController extends Controller
             'category'       => 'required|string|in:' . implode(',', Category::values()),
             'is_public'      => 'boolean',
             'waypoints'      => 'nullable|string',
+            'pois'           => 'nullable|string',
             'gpx'            => 'required|file|max:20480',
             'distance_km'    => 'nullable|numeric|min:0',
             'elevation_gain' => 'nullable|integer|min:0',
@@ -154,6 +155,7 @@ class ActivityRouteController extends Controller
             'category'       => $data['category'],
             'is_public'      => $data['is_public'] ?? true,
             'waypoints'      => isset($data['waypoints']) ? json_decode($data['waypoints'], true) : null,
+            'pois'           => $this->sanitizePois($data['pois'] ?? null),
             'gpx_path'       => $path,
             'distance_km'    => $data['distance_km'] ?? null,
             'elevation_gain' => $data['elevation_gain'] ?? null,
@@ -180,6 +182,7 @@ class ActivityRouteController extends Controller
             'category'       => 'required|string|in:' . implode(',', Category::values()),
             'is_public'      => 'boolean',
             'waypoints'      => 'nullable|string',
+            'pois'           => 'nullable|string',
             'gpx'            => 'nullable|file|max:20480',
             'distance_km'    => 'nullable|numeric|min:0',
             'elevation_gain' => 'nullable|integer|min:0',
@@ -197,6 +200,7 @@ class ActivityRouteController extends Controller
             'category'       => $data['category'],
             'is_public'      => $data['is_public'] ?? $activityRoute->is_public,
             'waypoints'      => isset($data['waypoints']) ? json_decode($data['waypoints'], true) : $activityRoute->waypoints,
+            'pois'           => isset($data['pois']) ? $this->sanitizePois($data['pois']) : $activityRoute->pois,
             'distance_km'    => $data['distance_km'] ?? $activityRoute->distance_km,
             'elevation_gain' => $data['elevation_gain'] ?? $activityRoute->elevation_gain,
             'max_grade'      => $data['max_grade'] ?? $activityRoute->max_grade,
@@ -233,5 +237,38 @@ class ActivityRouteController extends Controller
         $activityRoute->delete();
 
         return response()->json(['message' => 'Route deleted.']);
+    }
+
+    /**
+     * FitMeet-only markers a creator drops on the map while drawing a route
+     * (e.g. a beer stop). Never written into the exported GPX file.
+     */
+    private function sanitizePois(?string $json): ?array
+    {
+        if (! $json) {
+            return null;
+        }
+
+        $decoded = json_decode($json, true);
+        if (! is_array($decoded)) {
+            return null;
+        }
+
+        $allowedTypes = ['beer', 'cigarette', 'coffee', 'pause'];
+
+        $pois = collect($decoded)
+            ->filter(fn ($poi) => is_array($poi)
+                && in_array($poi['type'] ?? null, $allowedTypes, true)
+                && is_numeric($poi['lat'] ?? null)
+                && is_numeric($poi['lng'] ?? null))
+            ->map(fn ($poi) => [
+                'type' => $poi['type'],
+                'lat' => (float) $poi['lat'],
+                'lng' => (float) $poi['lng'],
+            ])
+            ->values()
+            ->all();
+
+        return $pois ?: null;
     }
 }

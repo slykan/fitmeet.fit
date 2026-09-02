@@ -8,6 +8,16 @@ import { slopeColor } from '@/lib/parse-gpx'
 
 export type LatLng = [number, number]
 
+/** FitMeet-only markers dropped on the map while drawing a route (never written into the exported GPX). */
+export type PoiType = 'beer' | 'cigarette' | 'coffee' | 'pause'
+
+export interface RoutePoi {
+  id: string
+  type: PoiType
+  lat: number
+  lng: number
+}
+
 export interface DrawResult {
   waypoints: LatLng[]
   track: LatLng[]
@@ -18,9 +28,17 @@ export interface DrawResult {
   startLng: number | null
   endLat: number | null
   endLng: number | null
+  pois: RoutePoi[]
 }
 
 interface WaypointEntry {
+  latlng: LatLng
+  marker: L.Marker
+}
+
+interface PoiEntry {
+  id: string
+  type: PoiType
   latlng: LatLng
   marker: L.Marker
 }
@@ -47,6 +65,7 @@ interface Props {
   height?: number
   initialWaypoints?: LatLng[]
   initialTrack?: LatLng[]
+  initialPois?: RoutePoi[]
   undoRequestId?: number
   fullscreen?: boolean
   onToggleFullscreen?: () => void
@@ -384,6 +403,30 @@ function makeIcon(num: number, selected: boolean, isLast: boolean): L.DivIcon {
   })
 }
 
+// ─── POI (beer/cigarette/coffee/pause) marker icons ────────────────────────────
+
+export const POI_META: Record<PoiType, { emoji: string; label: string }> = {
+  beer: { emoji: '🍺', label: 'Beer stop' },
+  cigarette: { emoji: '🚬', label: 'Smoke break' },
+  coffee: { emoji: '☕', label: 'Coffee stop' },
+  pause: { emoji: '🕐', label: 'Pause' },
+}
+
+function makePoiIcon(type: PoiType): L.DivIcon {
+  return L.divIcon({
+    className: '',
+    html: `<div style="
+      width:30px;height:30px;border-radius:50%;
+      background:#0b1120;display:flex;align-items:center;justify-content:center;
+      font-size:16px;border:2px solid #fbbf24;
+      box-shadow:0 2px 8px rgba(0,0,0,0.5);
+      cursor:pointer;user-select:none;
+    ">${POI_META[type].emoji}</div>`,
+    iconSize: [30, 30],
+    iconAnchor: [15, 15],
+  })
+}
+
 function straightLine(from: LatLng, to: LatLng): { coords: LatLng[]; distanceM: number } {
   const R = 6371000
   const dLat = (to[0] - from[0]) * Math.PI / 180
@@ -400,11 +443,14 @@ function straightLine(from: LatLng, to: LatLng): { coords: LatLng[]; distanceM: 
 
 const DEFAULT_ROUTE_PREFERENCES: RoutePreferences = { avoidUnpaved: false, preferSecondaryRoads: false }
 
-export default function RouteDrawMap({ category, routePreferences = DEFAULT_ROUTE_PREFERENCES, height = 500, initialWaypoints, initialTrack, undoRequestId = 0, fullscreen = false, onToggleFullscreen, onUpdate, title, onTitleChange, onSave, saving, onUndo, canUndo }: Props) {
+export default function RouteDrawMap({ category, routePreferences = DEFAULT_ROUTE_PREFERENCES, height = 500, initialWaypoints, initialTrack, initialPois, undoRequestId = 0, fullscreen = false, onToggleFullscreen, onUpdate, title, onTitleChange, onSave, saving, onUndo, canUndo }: Props) {
   const mapDivRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
   const waypointsRef = useRef<WaypointEntry[]>([])
   const segmentsRef = useRef<SegmentEntry[]>([])
+  const poisRef = useRef<PoiEntry[]>([])
+  const placingPoiTypeRef = useRef<PoiType | null>(null)
+  const initialPoisLoadedRef = useRef(false)
   const coloredRouteLayersRef = useRef<L.Polyline[]>([])
   const selectedIdxRef = useRef<number | null>(null)
   const categoryRef = useRef(category)
@@ -429,6 +475,9 @@ export default function RouteDrawMap({ category, routePreferences = DEFAULT_ROUT
   const [searching, setSearching] = useState(false)
   const [searchError, setSearchError] = useState<string | null>(null)
   const lastUndoRequestRef = useRef(undoRequestId)
+  const [poiPaletteOpen, setPoiPaletteOpen] = useState(false)
+  const [placingPoiType, setPlacingPoiType] = useState<PoiType | null>(null)
+  const [poiCount, setPoiCount] = useState(0)
 
   // ─── Helper: build full track from all segments ──────────────────────────
 
@@ -506,6 +555,7 @@ export default function RouteDrawMap({ category, routePreferences = DEFAULT_ROUT
       startLng: wps[0]?.latlng[1] ?? null,
       endLat: wps[wps.length - 1]?.latlng[0] ?? null,
       endLng: wps[wps.length - 1]?.latlng[1] ?? null,
+      pois: poisRef.current.map(p => ({ id: p.id, type: p.type, lat: p.latlng[0], lng: p.latlng[1] })),
     })
   }
 
@@ -746,6 +796,44 @@ export default function RouteDrawMap({ category, routePreferences = DEFAULT_ROUT
     undoLast()
   }, [undoRequestId, undoLast])
 
+  // ─── POI markers (beer/cigarette/coffee/pause) — FitMeet-only, never exported ─
+
+  const removePoi = useCallback((id: string) => {
+    const map = mapRef.current
+    if (!map) return
+    const idx = poisRef.current.findIndex(p => p.id === id)
+    if (idx === -1) return
+    map.removeLayer(poisRef.current[idx].marker)
+    poisRef.current.splice(idx, 1)
+    setPoiCount(poisRef.current.length)
+    publishResult()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const addPoi = useCallback((type: PoiType, latlng: LatLng, existingId?: string) => {
+    const map = mapRef.current
+    if (!map) return
+    const id = existingId ?? `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    const marker = L.marker(latlng, { icon: makePoiIcon(type), draggable: true, zIndexOffset: 500 })
+
+    marker.on('click', (e: L.LeafletMouseEvent) => {
+      L.DomEvent.stopPropagation(e.originalEvent)
+      removePoi(id)
+    })
+    marker.on('drag', (e) => {
+      const pos = (e.target as L.Marker).getLatLng()
+      const entry = poisRef.current.find(p => p.id === id)
+      if (entry) entry.latlng = [pos.lat, pos.lng]
+    })
+    marker.on('dragend', () => publishResult())
+
+    marker.addTo(map)
+    poisRef.current.push({ id, type, latlng, marker })
+    setPoiCount(poisRef.current.length)
+    publishResult()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [removePoi])
+
   // ─── Re-route all segments when category changes ──────────────────────────
 
   const rerouteAll = useCallback(async () => {
@@ -782,6 +870,13 @@ export default function RouteDrawMap({ category, routePreferences = DEFAULT_ROUT
     setBaseLayer('Standard')
 
     map.on('click', (e: L.LeafletMouseEvent) => {
+      if (placingPoiTypeRef.current) {
+        const type = placingPoiTypeRef.current
+        placingPoiTypeRef.current = null
+        setPlacingPoiType(null)
+        addPoi(type, [e.latlng.lat, e.latlng.lng])
+        return
+      }
       if (pendingRoutingRef.current > 0) return
       addWaypoint([e.latlng.lat, e.latlng.lng])
     })
@@ -859,8 +954,9 @@ export default function RouteDrawMap({ category, routePreferences = DEFAULT_ROUT
       mapRef.current = null
       waypointsRef.current = []
       segmentsRef.current = []
+      poisRef.current = []
     }
-  // addWaypoint is stable (useCallback with no deps changing after mount)
+  // addWaypoint/addPoi are stable (useCallback with no deps changing after mount)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -930,6 +1026,16 @@ export default function RouteDrawMap({ category, routePreferences = DEFAULT_ROUT
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapRef.current ? 'ready' : 'not-ready'])
 
+  // ─── Load initial POIs (edit mode) ────────────────────────────────────────
+
+  useEffect(() => {
+    if (!initialPois?.length || !mapRef.current) return
+    if (initialPoisLoadedRef.current) return
+    initialPoisLoadedRef.current = true
+    initialPois.forEach(p => addPoi(p.type, [p.lat, p.lng], p.id))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapRef.current ? 'ready' : 'not-ready'])
+
   // ─── Reflect fullscreen state on the map's own toggle button ─────────────
 
   useEffect(() => {
@@ -973,6 +1079,15 @@ export default function RouteDrawMap({ category, routePreferences = DEFAULT_ROUT
       {/* Map */}
       <div
         ref={mapDivRef}
+        onDragOver={event => event.preventDefault()}
+        onDrop={event => {
+          event.preventDefault()
+          const type = event.dataTransfer.getData('text/plain') as PoiType
+          if (!POI_META[type] || !mapRef.current || !mapDivRef.current) return
+          const rect = mapDivRef.current.getBoundingClientRect()
+          const latlng = mapRef.current.containerPointToLatLng([event.clientX - rect.left, event.clientY - rect.top])
+          addPoi(type, [latlng.lat, latlng.lng])
+        }}
         style={{
           height: fullscreen ? '100%' : `${height}px`,
           width: '100%',
@@ -983,6 +1098,63 @@ export default function RouteDrawMap({ category, routePreferences = DEFAULT_ROUT
           position: 'relative',
         }}
       />
+
+      {/* POI palette — beer/cigarette/coffee/pause markers, FitMeet-only */}
+      <div className="absolute right-3 z-[900] flex flex-col items-end gap-2" style={{ top: 150 }}>
+        <button
+          type="button"
+          onClick={() => setPoiPaletteOpen(open => !open)}
+          aria-label="Add point of interest"
+          title="Add a beer / cigarette / coffee / pause marker"
+          className="flex h-9 w-9 items-center justify-center rounded-xl border text-lg font-black transition-colors"
+          style={{
+            background: poiPaletteOpen ? 'var(--primary)' : 'rgba(5,8,22,0.88)',
+            borderColor: 'rgba(255,255,255,0.16)',
+            color: poiPaletteOpen ? '#031109' : '#f5f7ff',
+            boxShadow: '0 10px 28px rgba(0,0,0,0.3)',
+          }}
+        >
+          +
+        </button>
+        {poiPaletteOpen && (
+          <div
+            className="flex flex-col gap-1.5 rounded-xl border p-1.5"
+            style={{ background: 'rgba(5,8,22,0.94)', borderColor: 'rgba(255,255,255,0.14)', boxShadow: '0 14px 32px rgba(0,0,0,0.35)' }}
+          >
+            {(Object.keys(POI_META) as PoiType[]).map(type => (
+              <div
+                key={type}
+                draggable
+                onDragStart={event => {
+                  event.dataTransfer.setData('text/plain', type)
+                  event.dataTransfer.effectAllowed = 'copy'
+                }}
+                onClick={() => {
+                  const next = placingPoiTypeRef.current === type ? null : type
+                  placingPoiTypeRef.current = next
+                  setPlacingPoiType(next)
+                }}
+                title={`Drag onto the map, or tap then tap the map — ${POI_META[type].label}`}
+                className="flex h-9 w-9 cursor-grab items-center justify-center rounded-lg border text-base active:cursor-grabbing"
+                style={{
+                  background: placingPoiType === type ? 'var(--primary)' : 'rgba(255,255,255,0.04)',
+                  borderColor: placingPoiType === type ? 'var(--primary)' : 'rgba(255,255,255,0.12)',
+                }}
+              >
+                {POI_META[type].emoji}
+              </div>
+            ))}
+          </div>
+        )}
+        {placingPoiType && (
+          <div
+            className="rounded-lg px-2.5 py-1.5 text-right text-xs font-bold"
+            style={{ background: 'rgba(5,8,22,0.94)', color: '#f5f7ff', maxWidth: 170 }}
+          >
+            Tap the map to place {POI_META[placingPoiType].emoji}
+          </div>
+        )}
+      </div>
 
       <div className="absolute left-3 top-3 z-[850] flex max-w-[calc(100%-150px)] flex-col gap-2">
         <form onSubmit={handleSearch} className="flex gap-2">
@@ -1101,6 +1273,12 @@ export default function RouteDrawMap({ category, routePreferences = DEFAULT_ROUT
               <div className="text-base font-black" style={{ color: 'var(--text)' }}>{waypointsRef.current.length}</div>
             </div>
           </div>
+
+          {poiCount > 0 && (
+            <div className="mt-2 text-xs" style={{ color: 'var(--text-muted)' }}>
+              {poiCount} marker{poiCount !== 1 ? 's' : ''} on route
+            </div>
+          )}
 
           {elevProfile.length >= 2 ? (
             <div className="mt-2 overflow-hidden rounded-xl" style={{ background: 'rgba(0,0,0,0.18)' }}>

@@ -9,7 +9,7 @@ import { Navbar } from '@/components/navbar'
 import api from '@/lib/api'
 import { CATEGORIES, CATEGORY_EMOJI } from '@/lib/categories'
 import { useAuthStore } from '@/store/auth'
-import type { DrawResult, LatLng, RoutePreferences } from '@/components/route-draw-map'
+import type { DrawResult, LatLng, RoutePoi, RoutePreferences } from '@/components/route-draw-map'
 import { parseGpx } from '@/lib/parse-gpx'
 
 const RouteDrawMap = dynamic(() => import('@/components/route-draw-map'), { ssr: false })
@@ -162,6 +162,22 @@ function normalizeWaypoints(input: unknown): LatLng[] {
   })
 }
 
+function normalizePois(input: unknown): RoutePoi[] {
+  if (!Array.isArray(input)) return []
+
+  const allowed = new Set(['beer', 'cigarette', 'coffee', 'pause'])
+
+  return input.flatMap((poi, index) => {
+    if (!poi || typeof poi !== 'object') return []
+    const data = poi as Record<string, unknown>
+    const type = data.type
+    if (typeof type !== 'string' || !allowed.has(type)) return []
+    if (!Number.isFinite(data.lat) || !Number.isFinite(data.lng)) return []
+    const id = typeof data.id === 'string' ? data.id : `existing-${index}`
+    return [{ id, type: type as RoutePoi['type'], lat: Number(data.lat), lng: Number(data.lng) }]
+  })
+}
+
 // ─── Route preference toggle ──────────────────────────────────────────────────
 
 function PreferenceToggle({
@@ -212,6 +228,7 @@ function DrawContent() {
   const [loadingEdit, setLoadingEdit] = useState(!!editId)
   const [initialWaypoints, setInitialWaypoints] = useState<LatLng[] | undefined>(undefined)
   const [initialTrack, setInitialTrack] = useState<LatLng[] | undefined>(undefined)
+  const [initialPois, setInitialPois] = useState<RoutePoi[] | undefined>(undefined)
   const [categoryLocked, setCategoryLocked] = useState(false)
   const [drawPointCount, setDrawPointCount] = useState(0)
   const [undoRequestId, setUndoRequestId] = useState(0)
@@ -233,6 +250,7 @@ function DrawContent() {
         setTitle(route.title ?? '')
         setCategory(route.category?.value ?? 'running')
         setIsPublic(route.is_public ?? true)
+        setInitialPois(normalizePois(route.pois))
         let loadedWaypoints = normalizeWaypoints(route.waypoints)
         if (loadedWaypoints.length >= 2) {
           setInitialWaypoints(downsampleWaypoints(loadedWaypoints, 25))
@@ -288,6 +306,7 @@ function DrawContent() {
       form.append('category', category)
       form.append('is_public', isPublic ? '1' : '0')
       form.append('waypoints', JSON.stringify(result.waypoints))
+      form.append('pois', JSON.stringify(result.pois))
       form.append('gpx', gpxBlob, `${title.trim().replace(/\s+/g, '-')}.gpx`)
       form.append('distance_km', String(result.distanceKm))
       form.append('elevation_gain', String(elevGain || result.elevGain))
@@ -410,7 +429,7 @@ function DrawContent() {
           <div className={fullscreen ? 'flex-1 relative min-h-0' : ''}>
             <Suspense fallback={<div style={{ height: fullscreen ? '100%' : 500, borderRadius: fullscreen ? 0 : 16, background: 'var(--surface)', border: fullscreen ? 'none' : '1px solid var(--border)' }} />}>
               <RouteDrawMap
-                key={`${editId ?? 'new'}-${initialWaypoints?.length ?? 0}-${initialTrack?.length ?? 0}`}
+                key={`${editId ?? 'new'}-${initialWaypoints?.length ?? 0}-${initialTrack?.length ?? 0}-${initialPois?.length ?? 0}`}
                 category={category}
                 routePreferences={routePreferences}
                 height={500}
@@ -418,6 +437,7 @@ function DrawContent() {
                 onToggleFullscreen={() => setFullscreen(f => !f)}
                 initialWaypoints={initialWaypoints}
                 initialTrack={initialTrack}
+                initialPois={initialPois}
                 undoRequestId={undoRequestId}
                 onUpdate={result => {
                   drawResultRef.current = result

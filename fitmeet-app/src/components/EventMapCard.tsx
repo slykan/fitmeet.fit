@@ -21,6 +21,23 @@ export type LiveParticipant = {
   stopped?: boolean
 }
 
+/** FitMeet-only markers dropped on the map while drawing a route (never exported to GPX). */
+export type PoiType = 'beer' | 'cigarette' | 'coffee' | 'pause'
+
+export type RoutePoi = {
+  id: string
+  type: PoiType
+  lat: number
+  lng: number
+}
+
+const POI_EMOJI: Record<PoiType, string> = {
+  beer: '🍺',
+  cigarette: '🚬',
+  coffee: '☕',
+  pause: '🕐',
+}
+
 type Props = {
   lat: number
   lng: number
@@ -29,6 +46,8 @@ type Props = {
   coloredSegments?: TrackSegment[]
   elevationSegments?: TrackSegment[]
   surfaceSegments?: TrackSegment[]
+  /** FitMeet-only beer/cigarette/coffee/pause markers dropped while drawing the route. */
+  pois?: RoutePoi[]
   /** Live positions of checked-in, sharing participants, polled by the caller. */
   participants?: LiveParticipant[]
   /** Fired when a clustered "N people" badge is tapped. */
@@ -118,6 +137,7 @@ function buildHtml(
   coloredSegments: TrackSegment[],
   elevationSegments: TrackSegment[],
   surfaceSegments: TrackSegment[],
+  pois: RoutePoi[],
   initialLayer: MapLayer,
   initialShowElevation: boolean,
   initialShowSurface: boolean,
@@ -128,6 +148,7 @@ function buildHtml(
   const segsJson = JSON.stringify(coloredSegments)
   const elevSegsJson = JSON.stringify(elevationSegments)
   const surfaceSegsJson = JSON.stringify(surfaceSegments)
+  const poisJson = JSON.stringify(pois.map(p => ({ id: p.id, lat: p.lat, lng: p.lng, emoji: POI_EMOJI[p.type] ?? '' })))
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -163,6 +184,7 @@ function buildHtml(
     const coloredSegments = ${segsJson};
     const elevationSegments = ${elevSegsJson};
     const surfaceSegments = ${surfaceSegsJson};
+    const pois = ${poisJson};
     const map = L.map('map',{zoomControl:false,attributionControl:false,preferCanvas:true})
       .setView([${center.lat},${center.lng}],13);
     L.control.zoom({position:'bottomright'}).addTo(map);
@@ -323,6 +345,15 @@ function buildHtml(
       });
       finishMarker = L.marker(allTrackCoords[allTrackCoords.length - 1], { icon: finishIcon });
     }
+    (pois || []).forEach(function(p) {
+      const poiIcon = L.divIcon({
+        className: '',
+        html: '<div style="width:30px;height:30px;border-radius:50%;background:#0b1120;display:flex;align-items:center;justify-content:center;font-size:16px;border:2px solid #fbbf24;box-shadow:0 2px 8px rgba(0,0,0,0.5);">' + p.emoji + '</div>',
+        iconSize: [30, 30],
+        iconAnchor: [15, 15],
+      });
+      L.marker([p.lat, p.lng], { icon: poiIcon }).addTo(map);
+    });
     function haversineKm(lat1, lng1, lat2, lng2) {
       const R = 6371;
       const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -723,7 +754,7 @@ function LiveBadge() {
   )
 }
 
-export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegments, elevationSegments, surfaceSegments, participants, onClusterTap, viewersCount = 0, onApplausePress, hasApplauded = false, playProgress = null, playMilestone = null, playState, onPlayToggle, playSpeed, onSpeedToggle, onMapEnabledChange, loading, autoFullscreen = false, onSharePress }: Props) {
+export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegments, elevationSegments, surfaceSegments, pois, participants, onClusterTap, viewersCount = 0, onApplausePress, hasApplauded = false, playProgress = null, playMilestone = null, playState, onPlayToggle, playSpeed, onSpeedToggle, onMapEnabledChange, loading, autoFullscreen = false, onSharePress }: Props) {
   const webViewRef = useRef<WebViewType>(null)
   const [weather, setWeather] = useState<CurrentWeather | null>(null)
   const [center, setCenter] = useState({ lat, lng })
@@ -747,9 +778,9 @@ export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegment
   // the LIVE badge itself on the event having actually started.
   const eventStarted = startAt ? Date.now() >= new Date(startAt).getTime() : true
   const html = useMemo(
-    () => buildHtml(lat, lng, { lat, lng }, emoji, null, showWind, effectiveShowClouds, radarPath, coloredSegments ?? [], elevationSegments ?? [], surfaceSegments ?? [], 'standard', true, false, false),
+    () => buildHtml(lat, lng, { lat, lng }, emoji, null, showWind, effectiveShowClouds, radarPath, coloredSegments ?? [], elevationSegments ?? [], surfaceSegments ?? [], pois ?? [], 'standard', true, false, false),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [lat, lng, emoji, coloredSegments, elevationSegments, surfaceSegments],
+    [lat, lng, emoji, coloredSegments, elevationSegments, surfaceSegments, pois],
   )
   // `source` must keep referential identity across renders that don't change `html` --
   // WebView reloads the whole page whenever it receives a new `source` object, and

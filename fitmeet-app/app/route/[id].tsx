@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 
 import * as FileSystem from 'expo-file-system/legacy'
 import { ElevationChart } from '@/src/components/ElevationChart'
-import { EventMapCard } from '@/src/components/EventMapCard'
+import { EventMapCard, type RoutePoi } from '@/src/components/EventMapCard'
 import { WikiPhotosStrip } from '@/src/components/WikiPhotosStrip'
 import { CATEGORIES } from '@/src/lib/categories'
 import { api } from '@/src/lib/api'
@@ -34,6 +34,7 @@ interface RouteDetail {
   views_count: number
   creator?: { id: number; name: string } | null
   waypoints?: [number, number][] | null
+  pois?: RoutePoi[] | null
 }
 
 const CATEGORY_EMOJI: Record<string, string> = Object.fromEntries(
@@ -436,6 +437,7 @@ export default function RouteViewScreen() {
             emoji={emoji}
             elevationSegments={gpx?.coloredSegments}
             surfaceSegments={surfaceAnalysis?.segments}
+            pois={route.pois ?? undefined}
             playProgress={isAnimating ? playProgress : null}
             playMilestone={isAnimating ? playMilestone : null}
             playState={gpx && gpx.track.length >= 2 ? playState : undefined}

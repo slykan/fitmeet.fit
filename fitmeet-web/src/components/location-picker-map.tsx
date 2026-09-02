@@ -8,6 +8,24 @@ import { Eye } from 'lucide-react'
 import type { TrackSegment } from '@/lib/parse-gpx'
 import { weatherCloudStrength, weatherRainStrength, windDirectionLabel, type EventWeather } from '@/lib/weather'
 
+// Mirrors PoiType/POI_META in route-draw-map.tsx — kept as a separate, read-only
+// copy since this component (unlike route-draw-map) never places/edits markers.
+export type PoiType = 'beer' | 'cigarette' | 'coffee' | 'pause'
+
+export interface RoutePoi {
+  id: string
+  type: PoiType
+  lat: number
+  lng: number
+}
+
+const POI_META: Record<PoiType, { emoji: string; label: string }> = {
+  beer: { emoji: '🍺', label: 'Beer stop' },
+  cigarette: { emoji: '🚬', label: 'Smoke break' },
+  coffee: { emoji: '☕', label: 'Coffee stop' },
+  pause: { emoji: '🕐', label: 'Pause' },
+}
+
 // Fix Leaflet default marker icons (broken in bundlers)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 delete (L.Icon.Default.prototype as any)._getIconUrl
@@ -70,6 +88,26 @@ function staticKmIcon(km: number) {
     iconSize: [70, 22],
     iconAnchor: [35, 32],
   })
+}
+
+const poiIconCache = new Map<PoiType, L.DivIcon>()
+
+function poiIcon(type: PoiType) {
+  const cached = poiIconCache.get(type)
+  if (cached) return cached
+  const icon = L.divIcon({
+    className: '',
+    html: `<div style="
+      width:30px;height:30px;border-radius:50%;
+      background:#0b1120;display:flex;align-items:center;justify-content:center;
+      font-size:16px;border:2px solid #fbbf24;
+      box-shadow:0 2px 8px rgba(0,0,0,0.5);
+    ">${POI_META[type].emoji}</div>`,
+    iconSize: [30, 30],
+    iconAnchor: [15, 15],
+  })
+  poiIconCache.set(type, icon)
+  return icon
 }
 
 export interface LiveParticipant {
@@ -292,6 +330,8 @@ interface Props {
   showElevationLayer?: boolean
   showSurfaceLayer?:   boolean
   showKmMarkers?:      boolean
+  /** FitMeet-only beer/cigarette/coffee/pause markers dropped while drawing the route. */
+  pois?:            RoutePoi[]
   readOnly?:        boolean
   /** Pixel height, or 'fill' to stretch to the parent container's own height (e.g. inside a fullscreen wrapper). */
   height?:          number | 'fill'
@@ -750,6 +790,7 @@ export default function LocationPickerMap({
   showElevationLayer = true,
   showSurfaceLayer = false,
   showKmMarkers = false,
+  pois,
   readOnly = false,
   height = 220,
   weather = null,
@@ -929,6 +970,12 @@ export default function LocationPickerMap({
 
         {showKmMarkers && (playProgress == null || playProgress >= 1) && kmMarkerPoints.map(p => (
           <Marker key={p.km} position={p.pos} icon={staticKmIcon(p.km)} />
+        ))}
+
+        {pois?.map(p => (
+          <Marker key={p.id} position={[p.lat, p.lng]} icon={poiIcon(p.type)}>
+            <Tooltip direction="top" offset={[0, -14]}>{POI_META[p.type].label}</Tooltip>
+          </Marker>
         ))}
 
         {readOnly && participants && participants.length > 0 && (

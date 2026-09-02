@@ -14,6 +14,7 @@ import { CATEGORIES, CATEGORY_EMOJI } from '@/lib/categories'
 import { fetchElevationProfile, parseGpxAsync, type GpxResult } from '@/lib/parse-gpx'
 import { analyzeRouteSurface, type SurfaceAnalysis } from '@/lib/route-surface'
 import { useAuthStore } from '@/store/auth'
+import type { RoutePoi } from '@/components/location-picker-map'
 
 const LocationPickerMap = dynamic(() => import('@/components/location-picker-map'), { ssr: false })
 
@@ -36,6 +37,7 @@ interface ActivityRoute {
   source_event_id: number | null
   creator?: { id: number; name: string } | null
   views_count: number
+  pois?: RoutePoi[] | null
 }
 
 function statsFromElevationProfile(profile: GpxResult['elevationProfile']) {
@@ -517,6 +519,7 @@ function RouteContent() {
                 showElevationLayer={showElevationLayer}
                 showSurfaceLayer={showSurfaceLayer}
                 showKmMarkers={showKmMarkers}
+                pois={route.pois ?? undefined}
                 readOnly
                 height={720}
                 showWindOverlay={false}

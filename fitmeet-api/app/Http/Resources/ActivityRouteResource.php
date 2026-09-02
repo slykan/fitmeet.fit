@@ -35,6 +35,7 @@ class ActivityRouteResource extends JsonResource
             'source_event_id' => $this->source_event_id,
             'is_public' => $this->is_public,
             'waypoints' => $this->waypoints,
+            'pois' => $this->pois,
             'creator' => new UserResource($this->whenLoaded('creator')),
             'views_count' => $this->views_count ?? 0,
             'created_at' => $this->created_at?->toDateTimeString(),
