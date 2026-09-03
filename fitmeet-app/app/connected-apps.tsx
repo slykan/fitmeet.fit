@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons'
 import Constants from 'expo-constants'
 import * as WebBrowser from 'expo-web-browser'
-import { router } from 'expo-router'
-import { useEffect, useRef, useState } from 'react'
+import { router, useFocusEffect } from 'expo-router'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
@@ -62,7 +62,13 @@ export default function ConnectedAppsScreen() {
       .finally(() => setLoading(false))
   }
 
-  useEffect(() => { load() }, [])
+  // Deep-link auth returns from Strava/Huawei often land back on this screen
+  // while finishConnect()'s API call is still in flight in the background
+  // (fired from the strava-callback/huawei-callback route, not awaited before
+  // it navigates back here) — refetching on every focus, not just first mount,
+  // means the button updates to "Connected" as soon as the screen is looked at
+  // again instead of only after leaving and re-entering it.
+  useFocusEffect(useCallback(() => { load() }, []))
 
   useEffect(() => {
     setStravaCodeCallback((code) => {

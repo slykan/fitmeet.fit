@@ -93,7 +93,15 @@ function routeFromNotificationData(data: Record<string, unknown> | undefined) {
     return
   }
 
-  if (eventId && ['new_event', 'event_reminder', 'event_cancelled', 'event_started', 'rider_stopped'].includes(type ?? '')) {
+  // A bare tap on the check-in push (no action button, e.g. because the background
+  // task didn't get to attach one) should still land on the same check-in prompt +
+  // live-location toggle the "Check in" button itself triggers, not a plain event page.
+  if (eventId && type === 'event_started') {
+    router.push(`/event/${eventId}?checkin=1` as never)
+    return
+  }
+
+  if (eventId && ['new_event', 'event_reminder', 'event_cancelled', 'rider_stopped'].includes(type ?? '')) {
     router.push(`/event/${eventId}` as never)
     return
   }
