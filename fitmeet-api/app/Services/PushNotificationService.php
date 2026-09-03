@@ -71,12 +71,23 @@ class PushNotificationService
 
         foreach ($tokens->chunk(500) as $chunk) {
             if ($dataOnly) {
-                // Data-only message: Expo background task handles display + categories
+                // Hybrid, not pure data-only: a bare data message only reaches the app
+                // via FCM waking our background task, which a killed or deep-backgrounded
+                // app can simply never receive (confirmed live 2026-09-03: an identical
+                // plain-notification test push arrived instantly on the same device/token
+                // while a data-only one never arrived at all). Including a `notification`
+                // block guarantees the OS shows *something* on its own even when our JS
+                // never runs — trading away the custom Check-in/Open (etc.) action buttons
+                // in that case for actually being seen. The background task in
+                // push-notifications.ts still builds the rich version with buttons
+                // whenever it does get to run (app foregrounded/recently backgrounded).
+                $notification = Notification::create($title, $body);
                 $message = CloudMessage::new()
+                    ->withNotification($notification)
                     ->withData($payload)
                     ->withAndroidConfig(AndroidConfig::fromArray(['priority' => 'high']))
                     ->withApnsConfig(ApnsConfig::fromArray([
-                        'headers' => ['apns-priority' => '10', 'apns-push-type' => 'background'],
+                        'headers' => ['apns-priority' => '10'],
                         'payload' => ['aps' => [
                             'content-available' => 1,
                             'category'          => $categoryId ?? '',
