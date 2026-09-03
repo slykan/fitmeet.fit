@@ -105,6 +105,17 @@ function checkInWindow(event: Event) {
   }
 }
 
+// Mirrors the backend's updateLocation() accept-window (EventController::updateLocation)
+// and the mobile app's liveTrackingOpen(): no lower bound (a checked-in user should appear
+// immediately, not wait for start_at), cut off 10 minutes after the event's scheduled end.
+// event.is_in_progress has no such grace period, so it was hiding live tracking on the web
+// 10 minutes before the app actually stopped posting/showing positions.
+function liveTrackingOpen(event: Event) {
+  const start = new Date(event.schedule.start_at).getTime()
+  const durationMs = (event.schedule.duration_minutes ?? 60) * 60 * 1000
+  return event.status === 'active' && Date.now() <= start + durationMs + 10 * 60 * 1000
+}
+
 function canCheckInNow(event: Event) {
   const now = Date.now()
   const { opensAt, closesAt } = checkInWindow(event)
@@ -327,6 +338,7 @@ function EventContent() {
   const [activeOffsets,    setActiveOffsets]    = useState<string[]>([])
   const [copied, setCopied] = useState(false)
   const [copiedLiveMap, setCopiedLiveMap] = useState(false)
+  const [isMobileViewport, setIsMobileViewport] = useState(false)
   const [cancelling, setCancelling] = useState(false)
   const [weather, setWeather] = useState<EventWeather | null>(null)
   const [radarFrame, setRadarFrame] = useState<RadarFrame | null>(null)
@@ -339,6 +351,14 @@ function EventContent() {
   const [weatherRefreshTick, setWeatherRefreshTick] = useState(0)
   const [momentUploading, setMomentUploading] = useState(false)
   const momentInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 767px)')
+    const apply = () => setIsMobileViewport(media.matches)
+    apply()
+    media.addEventListener('change', apply)
+    return () => media.removeEventListener('change', apply)
+  }, [])
 
   useEffect(() => {
     if (!isMapFullscreen) return
@@ -443,7 +463,7 @@ function EventContent() {
   // stationary activities (yoga, gym meetups, etc.), so live tracking only
   // activates for events that have an imported route.
   useEffect(() => {
-    if (!event?.id || !event.is_in_progress || !event.activity.gpx_url) {
+    if (!event?.id || !liveTrackingOpen(event) || !event.activity.gpx_url) {
       setLivePositions([])
       lastApplauseRef.current = null
       return
@@ -472,7 +492,7 @@ function EventContent() {
       cancelled = true
       window.clearInterval(interval)
     }
-  }, [event?.id, event?.is_in_progress, event?.checked_in_at, event?.activity.gpx_url])
+  }, [event?.id, event?.status, event?.schedule.start_at, event?.schedule.duration_minutes, event?.activity.gpx_url])
 
   async function handleJoin() {
     if (!event) return
@@ -993,28 +1013,26 @@ function EventContent() {
                 radarFrame={rainDataReliable && !isAnimating ? radarFrame : null}
                 showMapLayerControl
                 readOnly
-                height={isMapFullscreen ? 'fill' : 720}
+                height={isMapFullscreen ? 'fill' : isMobileViewport ? 504 : 720}
                 participants={livePositions}
                 onClusterTap={setClusterListParticipants}
                 viewersCount={viewersCount}
                 onApplausePress={sendApplause}
                 hasApplauded={hasApplauded}
               />
-              {isMapFullscreen && (
-                <button
-                  type="button"
-                  onClick={handleShareLiveMap}
-                  title="Share live map"
-                  className="absolute top-3 right-[52px] z-[750] inline-flex items-center justify-center rounded-[10px] border transition-colors"
-                  style={{
-                    width: 32, height: 32,
-                    borderColor: copiedLiveMap ? 'var(--primary)' : 'rgba(255,255,255,0.12)',
-                    background: 'rgba(7,11,24,0.78)',
-                  }}
-                >
-                  <Share2 size={15} color={copiedLiveMap ? 'var(--primary)' : 'var(--text-muted)'} />
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={handleShareLiveMap}
+                title="Share live map"
+                className="absolute top-3 right-[52px] z-[750] inline-flex items-center justify-center rounded-[10px] border transition-colors"
+                style={{
+                  width: 32, height: 32,
+                  borderColor: copiedLiveMap ? 'var(--primary)' : 'rgba(255,255,255,0.12)',
+                  background: 'rgba(7,11,24,0.78)',
+                }}
+              >
+                <Share2 size={15} color={copiedLiveMap ? 'var(--primary)' : 'var(--text-muted)'} />
+              </button>
               <button
                 type="button"
                 onClick={() => setIsMapFullscreen(v => !v)}
