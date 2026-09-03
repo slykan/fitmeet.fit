@@ -15,6 +15,43 @@ export interface Post {
 
 export const posts: Post[] = [
   {
+    slug: 'route-poi-markers-beer-coffee-viewpoint',
+    title: 'Mark the Beer Stop, the Viewpoint, and Every Break on Your Route',
+    description: 'Route drawing now has five FitMeet-only markers — beer, coffee, cigarette, pause and viewpoint — so organisers can flag exactly where the group will stop, on both web and mobile.',
+    publishedAt: '2026-09-02',
+    readTime: 3,
+    category: 'Routes',
+    sections: [
+      {
+        heading: 'A Route Is More Than Just a Line',
+        paragraphs: [
+          'A GPX track tells you where to go, but not what actually happens along the way. Every regular group ride or run has its own unwritten map of stops: the bar at the halfway point, the bench with the view, the spot everyone takes a smoke break. None of that shows up on a route until now.',
+          'Route drawing on FitMeet has five new markers you can drop directly on the line while you build a route: beer, coffee, cigarette, pause and viewpoint. They are FitMeet-only annotations, not part of the underlying track, so they layer useful context on top of a route without touching the GPX itself.',
+        ],
+      },
+      {
+        heading: 'Five Markers, One Tap',
+        paragraphs: [
+          'While drawing a route, a small palette button opens the five icons — 🍺 beer, ☕ coffee, 🚬 cigarette, 🕐 pause and 🔭 viewpoint. Pick one, tap the spot on the map, and it drops right there. Tap a placed marker again to remove it. On the web draw screen you can drag icons straight from the palette onto the map instead.',
+          'Viewpoint is the newest addition, for the lookout or scenic stop that is worth flagging even when nobody is stopping for a drink — the same placement flow as the other four, on both web and the native mobile route builder.',
+        ],
+      },
+      {
+        heading: 'Draw It Once, See It Everywhere',
+        paragraphs: [
+          'Markers are saved with the route and show up read-only wherever that route appears — its own route page, and any event page that has the route attached — on web, Android and iOS. Anyone checking a route before joining can see at a glance where the group is planning to stop, not just how far they are riding.',
+          'They stay out of the GPX file on purpose. Export a route to Garmin, Wahoo or any navigation app and you get a clean track — the beer stops are a FitMeet layer, not baggage on your device.',
+        ],
+      },
+      {
+        heading: 'Available Now',
+        paragraphs: [
+          'Route POI markers are live today on fitmeet.fit and in the Android and iOS apps. Open the route builder, tap the + palette, and mark the stops that make your route worth doing.',
+        ],
+      },
+    ],
+  },
+  {
     slug: 'fitmeet-live-location-sharing',
     title: 'See Everyone Live on the Map During Group Rides and Runs',
     description: 'Opt in after checking in to an event and share your live position with the group — see where everyone is in real time, their speed, a safety signal if someone stops, and never lose the pack, even if your phone is locked.',

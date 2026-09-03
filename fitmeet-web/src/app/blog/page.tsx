@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Apple, ArrowRight, BookOpen, Download, MapPin, MessageCircle, Navigation, PencilLine, Route, Share2, ShieldCheck, ShoppingBag, Sparkles, Tag, Users } from 'lucide-react'
+import { Apple, ArrowRight, Beer, BookOpen, Download, MapPin, MessageCircle, Navigation, PencilLine, Route, Share2, ShieldCheck, ShoppingBag, Sparkles, Tag, Users } from 'lucide-react'
 import { Navbar } from '@/components/navbar'
 import { posts } from '@/lib/posts'
 
@@ -60,7 +60,43 @@ export default function BlogPage() {
               <p className="text-sm font-bold uppercase tracking-widest" style={{ color: 'var(--primary)' }}>News</p>
             </div>
 
-            {/* Live location sharing — top news */}
+            {/* Route POI markers — top news */}
+            <Link
+              href="/blog/route-poi-markers-beer-coffee-viewpoint"
+              className="rounded-2xl border p-6 flex flex-col gap-4 transition-opacity hover:opacity-90 mb-4"
+              style={{
+                background: 'linear-gradient(135deg, rgba(251,191,36,0.09) 0%, rgba(251,191,36,0.02) 100%)',
+                borderColor: 'rgba(251,191,36,0.28)',
+              }}
+            >
+              <div className="flex items-center gap-3">
+                <span
+                  className="text-xs font-bold px-3 py-1 rounded-full"
+                  style={{ background: 'rgba(251,191,36,0.18)', color: '#fbbf24' }}
+                >
+                  New · Routes
+                </span>
+                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>2 September 2026</span>
+              </div>
+              <div className="flex flex-col md:flex-row md:items-center gap-4">
+                <div className="flex-1">
+                  <h2 className="text-xl font-bold leading-snug mb-2">
+                    Mark the beer stop, the viewpoint, and every break on your route
+                  </h2>
+                  <p className="text-sm leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+                    Route drawing now has five FitMeet-only markers — beer, coffee, cigarette, pause and viewpoint — so organisers can flag exactly where the group will stop, on both web and mobile.
+                  </p>
+                </div>
+                <div className="flex items-center justify-center w-16 h-16 rounded-2xl shrink-0" style={{ background: 'rgba(251,191,36,0.12)' }}>
+                  <Beer size={32} style={{ color: '#fbbf24' }} />
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 text-xs font-semibold mt-auto" style={{ color: '#fbbf24' }}>
+                Read more <ArrowRight size={12} />
+              </div>
+            </Link>
+
+            {/* Live location sharing — news */}
             <Link
               href="/blog/fitmeet-live-location-sharing"
               className="rounded-2xl border p-6 flex flex-col gap-4 transition-opacity hover:opacity-90 mb-4"

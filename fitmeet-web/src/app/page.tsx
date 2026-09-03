@@ -273,7 +273,7 @@ export default async function HomePage() {
                     rel="noopener noreferrer"
                     aria-label="Get FitMeet on Google Play"
                     className="inline-flex items-center gap-3 px-5 py-3 rounded-xl transition-opacity hover:opacity-85 active:scale-95 transition-transform"
-                    style={{ background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.10)' }}
+                    style={{ background: '#1a1a1a', border: '1px solid var(--primary)', boxShadow: '0 0 16px rgba(57,255,20,0.45)' }}
                   >
                     <GooglePlayIcon size={24} />
                     <span className="flex flex-col leading-tight">
@@ -287,7 +287,7 @@ export default async function HomePage() {
                     rel="noopener noreferrer"
                     aria-label="Download FitMeet on the App Store"
                     className="inline-flex items-center gap-3 px-5 py-3 rounded-xl transition-opacity hover:opacity-85 active:scale-95 transition-transform"
-                    style={{ background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.10)' }}
+                    style={{ background: '#1a1a1a', border: '1px solid var(--primary)', boxShadow: '0 0 16px rgba(57,255,20,0.45)' }}
                   >
                     <AppleIcon size={24} />
                     <span className="flex flex-col leading-tight">

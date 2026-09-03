@@ -28,7 +28,11 @@ class LeaderboardController extends Controller
         $exclude = implode(',', array_column($recent, 'id') ?: [0]);
         $needed  = $limit - count($recent);
         $fallback = DB::select(str_replace('__EXCLUDE__', $exclude, $fallbackSql) . " LIMIT {$needed}");
-        return array_merge($recent, $fallback);
+
+        $merged = array_merge($recent, $fallback);
+        usort($merged, fn ($a, $b) => $b->count <=> $a->count);
+
+        return $merged;
     }
 
     private function beerSponsors(): array
