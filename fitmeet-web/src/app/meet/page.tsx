@@ -1187,7 +1187,10 @@ function MeetPageInner() {
   }, [token, router])
 
   useEffect(() => {
-    if (searchParams.get('tab') === 'trainings') setTab('trainings')
+    const requested = searchParams.get('tab')
+    if (requested === 'people' || requested === 'events' || requested === 'routes' || requested === 'market' || requested === 'trainings') {
+      setTab(requested)
+    }
   }, [searchParams])
 
   if (!token) return null
