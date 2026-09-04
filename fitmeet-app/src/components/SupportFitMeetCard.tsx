@@ -34,6 +34,7 @@ export function SupportFitMeetCard({
   const [loading, setLoading] = useState(true)
   const [purchasingId, setPurchasingId] = useState<string | null>(null)
   const [thanksMessage, setThanksMessage] = useState<string | null>(null)
+  const [billingUnsupported, setBillingUnsupported] = useState(false)
   const token = useAuthStore((state) => state.token)
   const userId = useAuthStore((state) => state.user?.id)
 
@@ -55,10 +56,26 @@ export function SupportFitMeetCard({
         return
       }
 
+      setBillingUnsupported(false)
       try {
         const identified = await ensureRevenueCatUser(userId)
         if (!identified) {
           if (alive) setProducts([])
+          return
+        }
+
+        // Google Play Billing isn't present on Huawei/AOSP devices without GMS --
+        // Purchases.getProducts() can still resolve there, but purchaseProduct()
+        // then fails every time. Check billing support first so we show a plain
+        // "not available on this device" hint instead of a broken buy button
+        // that always ends in a "Purchase failed" alert (flagged by Huawei
+        // AppGallery review, rule 3.1).
+        const supported = await Purchases.canMakePayments()
+        if (!supported) {
+          if (alive) {
+            setBillingUnsupported(true)
+            setProducts([])
+          }
           return
         }
 
@@ -133,6 +150,10 @@ export function SupportFitMeetCard({
           <ActivityIndicator size="small" color={palette.accent} />
           <Text style={styles.hint}>Loading support options...</Text>
         </View>
+      ) : billingUnsupported ? (
+        <Text style={styles.hint}>
+          In-app purchases aren&apos;t available on this device.
+        </Text>
       ) : orderedProducts.length === 0 ? (
         <Text style={styles.hint}>
           Support products are not available yet. Check that the same product IDs are connected in RevenueCat.
