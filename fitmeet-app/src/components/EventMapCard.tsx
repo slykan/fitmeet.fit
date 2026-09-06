@@ -585,13 +585,16 @@ function buildHtml(
           group.forEach(function(g) { sumLat += g.p.lat; sumLng += g.p.lng; });
           const centroid = [sumLat / group.length, sumLng / group.length];
           const existing = clusterMarkers[key];
+          const onClusterClick = function() {
+            send('clusterTap', { participants: group.map(function(g) { return g.p; }) });
+          };
           if (existing) {
             existing.setLatLng(centroid);
+            existing.off('click');
+            existing.on('click', onClusterClick);
           } else {
             const marker = L.marker(centroid, { icon: clusterDivIcon(group.length) }).addTo(map);
-            marker.on('click', function() {
-              send('clusterTap', { participants: group.map(function(g) { return g.p; }) });
-            });
+            marker.on('click', onClusterClick);
             clusterMarkers[key] = marker;
           }
         }
@@ -795,9 +798,15 @@ export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegment
     setMapEnabled(false)
   }, [lat, lng])
 
+  // Outside fullscreen, the map only accepts touches once "Move map" is
+  // pressed, so it doesn't steal scroll gestures from the page it's embedded
+  // in. In fullscreen there's no outer scroll view to protect, so taps
+  // (including cluster taps) should just work without that extra step.
+  const effectiveMapEnabled = isFullscreen || mapEnabled
+
   useEffect(() => {
-    onMapEnabledChange?.(mapEnabled)
-  }, [mapEnabled, onMapEnabledChange])
+    onMapEnabledChange?.(effectiveMapEnabled)
+  }, [effectiveMapEnabled, onMapEnabledChange])
 
   useEffect(() => {
     const id = setInterval(() => setWeatherRefreshTick((current) => current + 1), 15 * 60 * 1000)
@@ -889,7 +898,7 @@ export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegment
         javaScriptEnabled
         domStorageEnabled
         scrollEnabled={false}
-        pointerEvents={mapEnabled ? 'auto' : 'none'}
+        pointerEvents={effectiveMapEnabled ? 'auto' : 'none'}
         onLoadEnd={() => {
           if (weatherRef.current) {
             webViewRef.current?.postMessage(
@@ -930,14 +939,16 @@ export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegment
       />
       <View pointerEvents="box-none" style={styles.mapOverlay}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <Pressable
-            onPress={() => setMapEnabled((current) => !current)}
-            style={[styles.mapModeBtn, mapEnabled && styles.mapModeBtnActive]}
-          >
-            <Text style={[styles.mapModeBtnText, mapEnabled && styles.mapModeBtnTextActive]}>
-              {mapEnabled ? 'Done' : 'Move map'}
-            </Text>
-          </Pressable>
+          {!isFullscreen && (
+            <Pressable
+              onPress={() => setMapEnabled((current) => !current)}
+              style={[styles.mapModeBtn, mapEnabled && styles.mapModeBtnActive]}
+            >
+              <Text style={[styles.mapModeBtnText, mapEnabled && styles.mapModeBtnTextActive]}>
+                {mapEnabled ? 'Done' : 'Move map'}
+              </Text>
+            </Pressable>
+          )}
           {eventStarted && ((participants?.length ?? 0) > 0 || viewersCount > 0) && (
             <>
               <LiveBadge />

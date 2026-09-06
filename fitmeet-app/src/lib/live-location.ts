@@ -65,7 +65,12 @@ export async function startLiveLocationTracking(eventId: number | string): Promi
       await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
         accuracy: Location.Accuracy.High,
         timeInterval: 5000,
-        distanceInterval: 7,
+        // 0, not a displacement filter -- a rider stopped dead still (e.g. a
+        // beer break) needs beats to keep arriving so the server's stopped-anchor
+        // logic (EventController::updateLocation) and the 3-minute live-positions
+        // freshness window both keep seeing them, instead of the rider silently
+        // vanishing from the map after distance-filtered updates dry up.
+        distanceInterval: 0,
         showsBackgroundLocationIndicator: true,
         foregroundService: {
           notificationTitle: 'FitMeet',

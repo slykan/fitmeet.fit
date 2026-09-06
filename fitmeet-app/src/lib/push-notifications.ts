@@ -18,6 +18,7 @@ const BEER_PURCHASED_CATEGORY_ID = 'beer_purchased'
 const BEER_PURCHASED_CHANNEL_ID = 'beer_purchased'
 const RIDER_STOPPED_CATEGORY_ID = 'rider_stopped'
 const RIDER_STOPPED_CHANNEL_ID = 'rider_stopped'
+const APPLAUSE_SENT_CHANNEL_ID = 'applause_sent'
 
 function notificationDataFromTaskPayload(data: unknown) {
   const payload = data as Record<string, unknown> | undefined
@@ -101,7 +102,7 @@ function routeFromNotificationData(data: Record<string, unknown> | undefined) {
     return
   }
 
-  if (eventId && ['new_event', 'event_reminder', 'event_cancelled', 'rider_stopped'].includes(type ?? '')) {
+  if (eventId && ['new_event', 'event_reminder', 'event_cancelled', 'rider_stopped', 'applause_sent'].includes(type ?? '')) {
     router.push(`/event/${eventId}` as never)
     return
   }
@@ -173,6 +174,12 @@ async function registerNotificationCategories() {
       importance: Notifications.AndroidImportance.HIGH,
       vibrationPattern: [0, 250, 250, 250],
       lightColor: '#ff3b30',
+    }).catch(() => {})
+    await Notifications.setNotificationChannelAsync(APPLAUSE_SENT_CHANNEL_ID, {
+      name: 'Applause',
+      importance: Notifications.AndroidImportance.DEFAULT,
+      vibrationPattern: [0, 150, 150, 150],
+      lightColor: '#39FF14',
     }).catch(() => {})
   }
 

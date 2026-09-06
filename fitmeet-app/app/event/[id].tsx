@@ -759,7 +759,9 @@ export default function EventDetailScreen() {
     let cancelled = false
     const eventId = event.id
     Location.watchPositionAsync(
-      { accuracy: Location.Accuracy.High, timeInterval: 5000, distanceInterval: 7 },
+      // distanceInterval: 0 -- see live-location.ts for why a movement filter
+      // here would starve the stopped-rider detection of the beats it needs.
+      { accuracy: Location.Accuracy.High, timeInterval: 5000, distanceInterval: 0 },
       (loc) => postForegroundLocation(eventId, loc),
     ).then((sub) => {
       if (cancelled) sub.remove()

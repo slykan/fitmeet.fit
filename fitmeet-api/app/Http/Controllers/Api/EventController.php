@@ -834,6 +834,8 @@ HTML;
 
         $event->update(['last_applause_at' => now()]);
 
+        app(\App\Services\ApplauseNotifier::class)->notify($event, $user);
+
         return response()->json(['last_applause_at' => $event->last_applause_at->toIso8601String()]);
     }
 
