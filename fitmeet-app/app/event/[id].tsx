@@ -704,12 +704,12 @@ export default function EventDetailScreen() {
 
   // Poll live positions of checked-in, sharing participants while the event is running.
   // Anyone can watch and applaud, joined or not -- only actually appearing as a
-  // marker requires having joined, checked in, and turned sharing on.
-  // Route-gated: without a GPX route, "stopped" detection would misfire constantly
-  // for stationary activities (yoga, gym meetups, etc.), so live tracking only
-  // activates for events that have an imported route.
+  // marker requires having joined, checked in, and turned sharing on. Live tracking
+  // itself isn't route-gated -- any event can show who's checked in and sharing --
+  // but "stopped" detection (see EventController::livePositions) still only fires
+  // for events with a GPX route, since standing still is expected otherwise.
   useEffect(() => {
-    if (!event?.id || !liveTrackingOpen(event) || !event.activity.gpx_url) {
+    if (!event?.id || !liveTrackingOpen(event)) {
       setLivePositions([])
       lastApplauseRef.current = null
       return
@@ -742,7 +742,7 @@ export default function EventDetailScreen() {
       clearInterval(intervalId)
       subscription.remove()
     }
-  }, [event?.id, event?.status, event?.schedule.start_at, event?.schedule.duration_minutes, event?.activity.gpx_url])
+  }, [event?.id, event?.status, event?.schedule.start_at, event?.schedule.duration_minutes])
 
   // Always run a foreground watcher while this screen is open and sharing is
   // on, even when background permission is granted and the TaskManager task
@@ -907,7 +907,7 @@ export default function EventDetailScreen() {
         nextEvent = fresh.data.data
       }
       setEvent(nextEvent)
-      if (nextEvent.activity.gpx_url != null && !nextEvent.live_sharing_enabled) {
+      if (!nextEvent.live_sharing_enabled) {
         if (me?.auto_share_live_location) {
           beginLiveLocationSharing()
         } else {
@@ -1728,7 +1728,7 @@ export default function EventDetailScreen() {
                 </Pressable>
               )}
             </View>
-            {event.checked_in_at && event.activity.gpx_url != null && (
+            {event.checked_in_at && (
               <Pressable
                 style={styles.notifyJoinRow}
                 onPress={() => (event.live_sharing_enabled ? stopLiveLocationSharing() : setShowLocationConsentModal(true))}

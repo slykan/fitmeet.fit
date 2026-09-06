@@ -719,9 +719,12 @@ HTML;
             $update['stopped_anchor_lng'] = $data['lng'];
             $update['stopped_anchor_at'] = now();
         } elseif (
-            $participant->stopped_anchor_at
+            $event->gpx_path
+            && $participant->stopped_anchor_at
             && now()->diffInSeconds(\Illuminate\Support\Carbon::parse($participant->stopped_anchor_at)) >= 60
         ) {
+            // Route-only: without a GPX route, standing still is expected (yoga,
+            // gym meetups, etc.), so "hasn't moved" isn't something to alert on.
             app(\App\Services\RiderStoppedNotifier::class)->notify($event, $user);
         }
 
@@ -796,7 +799,10 @@ HTML;
                 // from this device's own polling history -- a viewer who was backgrounded/killed
                 // during someone's stop (or who just opened the map) sees the correct state
                 // immediately, instead of needing 60s of live polling to rediscover it.
-                'stopped' => $p->pivot->stopped_anchor_at !== null
+                // Route-only: without a GPX route everyone is expected to be stationary
+                // for stretches (yoga, gym meetups), so the ring would misfire constantly.
+                'stopped' => $event->gpx_path !== null
+                    && $p->pivot->stopped_anchor_at !== null
                     && now()->diffInSeconds(\Illuminate\Support\Carbon::parse($p->pivot->stopped_anchor_at)) >= 60,
             ])
             ->values();

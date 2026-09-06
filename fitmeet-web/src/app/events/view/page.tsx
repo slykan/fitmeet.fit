@@ -459,11 +459,12 @@ function EventContent() {
     return () => window.clearInterval(interval)
   }, [])
 
-  // Route-gated: without a GPX route, "stopped" detection would misfire for
-  // stationary activities (yoga, gym meetups, etc.), so live tracking only
-  // activates for events that have an imported route.
+  // Live tracking itself isn't route-gated -- any event can show who's checked
+  // in and sharing -- but "stopped" detection (see EventController::livePositions)
+  // still only fires for events with a GPX route, since standing still is
+  // expected otherwise (yoga, gym meetups, etc.).
   useEffect(() => {
-    if (!event?.id || !liveTrackingOpen(event) || !event.activity.gpx_url) {
+    if (!event?.id || !liveTrackingOpen(event)) {
       setLivePositions([])
       lastApplauseRef.current = null
       return
@@ -492,7 +493,7 @@ function EventContent() {
       cancelled = true
       window.clearInterval(interval)
     }
-  }, [event?.id, event?.status, event?.schedule.start_at, event?.schedule.duration_minutes, event?.activity.gpx_url])
+  }, [event?.id, event?.status, event?.schedule.start_at, event?.schedule.duration_minutes])
 
   async function handleJoin() {
     if (!event) return
