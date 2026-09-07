@@ -22,6 +22,7 @@ import { PublicStatsSection } from '@/components/public-stats'
 import { PublicCommentsSection } from '@/components/public-comments'
 import { LatestRoutesSection } from '@/components/latest-routes-section'
 import { LatestMarketCarousel } from '@/components/latest-market-carousel'
+import { BannerCarousel } from '@/components/banner-carousel'
 
 const categories = [
   'Running',
@@ -394,19 +395,7 @@ export default async function HomePage() {
 
         <section className="pb-16 md:pb-20">
           <div className="max-w-6xl mx-auto px-4">
-            <div
-              className="relative overflow-hidden rounded-[28px] border"
-              style={{ borderColor: 'rgba(57,255,20,0.18)', boxShadow: '0 20px 70px rgba(0,0,0,0.35)' }}
-            >
-              <Image
-                src="/hero2.jpg"
-                alt="FitMeet app screens showing training log, event chat and community"
-                width={1672}
-                height={941}
-                className="w-full h-auto"
-                sizes="(min-width: 1024px) 1152px, 100vw"
-              />
-            </div>
+            <BannerCarousel />
           </div>
         </section>
 

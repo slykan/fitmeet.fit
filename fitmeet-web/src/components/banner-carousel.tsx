@@ -4,8 +4,8 @@ import Image from 'next/image'
 import { useEffect, useState } from 'react'
 
 const BANNERS = [
-  { src: '/banner-1.png', alt: 'Find. Join. Fit. — FitMeet' },
-  { src: '/banner-2.png', alt: 'Find your crew. Fuel your passion. — FitMeet' },
+  { src: '/hero1.jpg', alt: 'FitMeet app screens showing the live map, routes and chat' },
+  { src: '/hero2.jpg', alt: 'FitMeet app screens showing training log, event chat and community' },
 ]
 
 const INTERVAL = 6000
@@ -33,8 +33,8 @@ export function BannerCarousel() {
         <Image
           src={BANNERS[current].src}
           alt={BANNERS[current].alt}
-          width={1920}
-          height={1080}
+          width={1672}
+          height={941}
           sizes="(max-width: 1280px) 100vw, 1152px"
           style={{ width: '100%', height: 'auto', display: 'block' }}
           priority={current === 0}
