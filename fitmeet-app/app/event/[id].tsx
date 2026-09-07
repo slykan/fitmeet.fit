@@ -9,7 +9,7 @@ import {
   type StyleProp, type ViewStyle,
 } from 'react-native'
 import { WebView } from 'react-native-webview'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import * as FileSystem from 'expo-file-system/legacy'
 import * as MediaLibrary from 'expo-media-library'
@@ -329,6 +329,11 @@ export default function EventDetailScreen() {
   const me = useAuthStore(s => s.user)
   const refreshMe = useAuthStore(s => s.refreshMe)
   const scrollRef = useRef<ScrollView | null>(null)
+  const insets = useSafeAreaInsets()
+  // Bottom-sheet modals (check-in prompts, location consent, battery-opt) sit flush
+  // against the bottom edge -- on Android's 3-button nav bar that overlaps their
+  // buttons, so pad past it instead of just the fixed spacing.md.
+  const bottomSheetBackdropStyle = { paddingBottom: spacing.md + insets.bottom }
 
   const [event,      setEvent]      = useState<EventDetail | null>(null)
   const [loading,    setLoading]    = useState(true)
@@ -1801,7 +1806,7 @@ export default function EventDetailScreen() {
         <View style={{ height: spacing.xl }} />
       </ScrollView>
       <Modal visible={showReminderModal} transparent animationType="slide" onRequestClose={closeReminderModal}>
-        <Pressable style={styles.modalBackdrop} onPress={closeReminderModal}>
+        <Pressable style={[styles.modalBackdrop, bottomSheetBackdropStyle]} onPress={closeReminderModal}>
           <Pressable style={styles.reminderModal} onPress={(e) => e.stopPropagation()}>
             <View style={styles.modalHeader}>
               <View style={styles.modalIcon}>
@@ -1867,7 +1872,7 @@ export default function EventDetailScreen() {
       </Modal>
 
       <Modal visible={showSupportModal} transparent animationType="fade" onRequestClose={() => setShowSupportModal(false)}>
-        <Pressable style={styles.modalBackdrop} onPress={() => setShowSupportModal(false)}>
+        <Pressable style={[styles.modalBackdrop, bottomSheetBackdropStyle]} onPress={() => setShowSupportModal(false)}>
           <Pressable style={styles.reminderModal} onPress={(e) => e.stopPropagation()}>
             <View style={styles.modalHeader}>
               <View style={[styles.modalIcon, { backgroundColor: 'rgba(246,198,91,0.12)', borderColor: 'rgba(246,198,91,0.28)' }]}>
@@ -1891,7 +1896,7 @@ export default function EventDetailScreen() {
       </Modal>
 
       <Modal visible={showLocationConsentModal} transparent animationType="slide" onRequestClose={() => setShowLocationConsentModal(false)}>
-        <Pressable style={styles.modalBackdrop} onPress={() => setShowLocationConsentModal(false)}>
+        <Pressable style={[styles.modalBackdrop, bottomSheetBackdropStyle]} onPress={() => setShowLocationConsentModal(false)}>
           <Pressable style={styles.reminderModal} onPress={(e) => e.stopPropagation()}>
             <View style={styles.modalHeader}>
               <View style={styles.modalIcon}>
@@ -1938,7 +1943,7 @@ export default function EventDetailScreen() {
       </Modal>
 
       <Modal visible={showBatteryOptModal} transparent animationType="fade" onRequestClose={() => setShowBatteryOptModal(false)}>
-        <Pressable style={styles.modalBackdrop} onPress={() => setShowBatteryOptModal(false)}>
+        <Pressable style={[styles.modalBackdrop, bottomSheetBackdropStyle]} onPress={() => setShowBatteryOptModal(false)}>
           <Pressable style={styles.reminderModal} onPress={(e) => e.stopPropagation()}>
             <View style={styles.modalHeader}>
               <View style={styles.modalIcon}>
@@ -1973,7 +1978,7 @@ export default function EventDetailScreen() {
       </Modal>
 
       <Modal visible={!!clusterListParticipants} transparent animationType="fade" onRequestClose={() => setClusterListParticipants(null)}>
-        <Pressable style={styles.modalBackdrop} onPress={() => setClusterListParticipants(null)}>
+        <Pressable style={[styles.modalBackdrop, bottomSheetBackdropStyle]} onPress={() => setClusterListParticipants(null)}>
           <Pressable style={styles.reminderModal} onPress={(e) => e.stopPropagation()}>
             <View style={styles.modalHeader}>
               <View style={styles.modalIcon}>
