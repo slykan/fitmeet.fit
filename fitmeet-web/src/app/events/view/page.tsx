@@ -475,7 +475,12 @@ function EventContent() {
       api.get(`/events/${eventId}/live-positions`)
         .then(({ data }) => {
           if (cancelled) return
-          setLivePositions(data.data ?? [])
+          // km/h only means anything when there's a route to pace against -- hide it
+          // for static events (gym, yoga meetups) the same way "stopped" is gated above.
+          const positions: LiveParticipant[] = data.data ?? []
+          setLivePositions(
+            event.activity.gpx_url ? positions : positions.map(p => ({ ...p, speed_kmh: null }))
+          )
           setViewersCount(data.viewers_count ?? 0)
           setHasApplauded(Boolean(data.applauded))
           const applauseAt: string | null = data.last_applause_at ?? null
