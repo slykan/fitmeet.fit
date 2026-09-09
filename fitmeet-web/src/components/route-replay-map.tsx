@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { MapContainer, TileLayer, Polyline, CircleMarker, useMap } from 'react-leaflet'
+import { MapContainer, TileLayer, Polyline, Marker, Tooltip, useMap, useMapEvents } from 'react-leaflet'
+import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { Play, Pause, FastForward } from 'lucide-react'
 
@@ -10,6 +11,22 @@ export type ReplayPoint = {
   lng: number
   speed_kmh: number | null
   recorded_at: string
+}
+
+export type ReplayTrack = {
+  id: number
+  name: string
+  avatar: string | null
+  points: ReplayPoint[]
+}
+
+type RiderPosition = {
+  id: number
+  name: string
+  avatar: string | null
+  lat: number
+  lng: number
+  speed: number | null
 }
 
 type PlayState = 'idle' | 'playing' | 'paused'
@@ -22,6 +39,136 @@ const ANIM_DURATION_MIN_MS = 8000
 const ANIM_DURATION_MAX_MS = 60000
 const SPEED_STEPS = [1, 2, 4]
 const PROGRESS_UPDATE_INTERVAL_MS = 1000 / 20
+// Same threshold as the live-tracking rider layer (location-picker-map.tsx).
+const CLUSTER_PIXEL_DISTANCE = 40
+
+function initialsFor(name: string) {
+  const parts = (name || '?').trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return '?'
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase()
+  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase()
+}
+
+const riderIconCache = new Map<string, L.DivIcon>()
+const clusterIconCache = new Map<string, L.DivIcon>()
+
+function riderIcon(p: RiderPosition) {
+  const key = `${p.id}|${p.avatar ?? ''}`
+  const cached = riderIconCache.get(key)
+  if (cached) return cached
+  const html = p.avatar
+    ? `<div style="width:32px;height:32px;border-radius:999px;background:#0b1120;background-image:url('${p.avatar}');background-size:cover;background-position:center;border:2px solid #39ff14;box-shadow:0 2px 6px rgba(0,0,0,0.5);"></div>`
+    : `<div style="width:32px;height:32px;border-radius:999px;background:#0b1120;border:2px solid #39ff14;display:flex;align-items:center;justify-content:center;color:#eafff0;font-weight:800;font-size:12px;box-shadow:0 2px 6px rgba(0,0,0,0.5);">${initialsFor(p.name)}</div>`
+  const icon = L.divIcon({ className: 'fm-rider-marker', html, iconSize: [32, 32], iconAnchor: [16, 16] })
+  riderIconCache.set(key, icon)
+  return icon
+}
+
+function clusterDivIcon(count: number) {
+  const key = String(count)
+  const cached = clusterIconCache.get(key)
+  if (cached) return cached
+  const icon = L.divIcon({
+    className: 'fm-cluster-marker',
+    html: `<div style="width:34px;height:34px;border-radius:999px;background:#39ff14;color:#041109;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,0.5);border:2px solid #0b1120;">${count}</div>`,
+    iconSize: [34, 34],
+    iconAnchor: [17, 17],
+  })
+  clusterIconCache.set(key, icon)
+  return icon
+}
+
+// Same hand-rolled greedy pixel-distance clustering as the live rider layer
+// (location-picker-map.tsx) -- merged riders show one combined speed, spread
+// out riders show their own.
+function RiderLayer({ positions }: { positions: RiderPosition[] }) {
+  const map = useMap()
+  const [tick, setTick] = useState(0)
+  useMapEvents({
+    zoomend: () => setTick((t) => t + 1),
+    moveend: () => setTick((t) => t + 1),
+  })
+
+  const groups = useMemo(() => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+    tick
+    const pts = positions.map((p) => ({ p, pt: map.latLngToContainerPoint([p.lat, p.lng]) }))
+    const used = new Array(pts.length).fill(false)
+    const result: RiderPosition[][] = []
+    for (let i = 0; i < pts.length; i++) {
+      if (used[i]) continue
+      const group = [pts[i].p]
+      used[i] = true
+      for (let j = i + 1; j < pts.length; j++) {
+        if (used[j]) continue
+        const dx = pts[i].pt.x - pts[j].pt.x
+        const dy = pts[i].pt.y - pts[j].pt.y
+        if (Math.sqrt(dx * dx + dy * dy) < CLUSTER_PIXEL_DISTANCE) {
+          group.push(pts[j].p)
+          used[j] = true
+        }
+      }
+      result.push(group)
+    }
+    return result
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [positions, map, tick])
+
+  return (
+    <>
+      {groups.map((group) =>
+        group.length === 1 ? (
+          <Marker key={group[0].id} position={[group[0].lat, group[0].lng]} icon={riderIcon(group[0])}>
+            {group[0].speed != null && (
+              <Tooltip permanent direction="bottom" offset={[0, 12]} className="fm-speed-tooltip">
+                {group[0].speed.toFixed(1)} km/h
+              </Tooltip>
+            )}
+          </Marker>
+        ) : (
+          (() => {
+            const speeds = group.map((p) => p.speed).filter((s): s is number => s != null)
+            const avgSpeed = speeds.length > 0 ? speeds.reduce((a, b) => a + b, 0) / speeds.length : null
+            return (
+              <Marker
+                key={group.map((p) => p.id).sort().join('-')}
+                position={[
+                  group.reduce((sum, p) => sum + p.lat, 0) / group.length,
+                  group.reduce((sum, p) => sum + p.lng, 0) / group.length,
+                ]}
+                icon={clusterDivIcon(group.length)}
+              >
+                {avgSpeed != null && (
+                  <Tooltip permanent direction="bottom" offset={[0, 15]} className="fm-speed-tooltip">
+                    {avgSpeed.toFixed(1)} km/h
+                  </Tooltip>
+                )}
+              </Marker>
+            )
+          })()
+        ),
+      )}
+    </>
+  )
+}
+
+function FitTracks({ tracksCoords }: { tracksCoords: [number, number][][] }) {
+  const map = useMap()
+  useEffect(() => {
+    const all = tracksCoords.flat()
+    if (all.length > 1) map.fitBounds(all, { padding: [28, 28] })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [map])
+  return null
+}
+
+function PlayCameraFollow({ position }: { position: [number, number] }) {
+  const map = useMap()
+  useEffect(() => {
+    map.panTo(position, { animate: false })
+  }, [map, position])
+  return null
+}
 
 function indexForElapsed(elapsedMsList: number[], elapsedMs: number): { index: number; frac: number } {
   let lo = 0
@@ -38,39 +185,37 @@ function indexForElapsed(elapsedMsList: number[], elapsedMs: number): { index: n
   return { index: lo, frac }
 }
 
-function FitTrack({ coords }: { coords: [number, number][] }) {
-  const map = useMap()
-  useEffect(() => {
-    if (coords.length > 1) map.fitBounds(coords, { padding: [28, 28] })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [map])
-  return null
-}
-
-function PlayCameraFollow({ position }: { position: [number, number] }) {
-  const map = useMap()
-  useEffect(() => {
-    map.panTo(position, { animate: false })
-  }, [map, position])
-  return null
-}
-
-export default function RouteReplayMap({ points }: { points: ReplayPoint[] }) {
+export default function RouteReplayMap({ tracks, height = 320 }: { tracks: ReplayTrack[]; height?: number }) {
   const [playState, setPlayState] = useState<PlayState>('idle')
   const [speedStepIndex, setSpeedStepIndex] = useState(0)
-  const [headIndex, setHeadIndex] = useState(0)
-  const [headFrac, setHeadFrac] = useState(0)
-  const [currentSpeedKmh, setCurrentSpeedKmh] = useState<number | null>(null)
+  const [positions, setPositions] = useState<RiderPosition[]>([])
+  const [traveled, setTraveled] = useState<Record<number, [number, number][]>>({})
   const elapsedMsRef = useRef(0)
   const speedRef = useRef(SPEED_STEPS[0])
   const frameRef = useRef<number | null>(null)
 
-  const coords = useMemo<[number, number][]>(() => points.map((p) => [p.lat, p.lng]), [points])
-  const elapsedMsList = useMemo(
-    () => points.map((p) => new Date(p.recorded_at).getTime() - new Date(points[0]?.recorded_at ?? 0).getTime()),
-    [points],
-  )
-  const totalRealMs = elapsedMsList[elapsedMsList.length - 1] ?? 0
+  const validTracks = useMemo(() => tracks.filter((t) => t.points.length >= 2), [tracks])
+
+  const prepared = useMemo(() => {
+    if (validTracks.length === 0) return null
+    // All riders animate against one shared real-world clock (earliest start
+    // to latest finish across everyone), not their own individual spans, so
+    // relative pacing between riders stays meaningful when replaying "All".
+    const commonStartMs = Math.min(...validTracks.map((t) => new Date(t.points[0].recorded_at).getTime()))
+    const commonEndMs = Math.max(...validTracks.map((t) => new Date(t.points[t.points.length - 1].recorded_at).getTime()))
+    const totalRealMs = Math.max(0, commonEndMs - commonStartMs)
+    const items = validTracks.map((t) => ({
+      id: t.id,
+      name: t.name,
+      avatar: t.avatar,
+      coords: t.points.map((p) => [p.lat, p.lng] as [number, number]),
+      elapsedMsList: t.points.map((p) => new Date(p.recorded_at).getTime() - commonStartMs),
+      speeds: t.points.map((p) => p.speed_kmh),
+    }))
+    return { items, totalRealMs }
+  }, [validTracks])
+
+  const totalRealMs = prepared?.totalRealMs ?? 0
   const animDurationMs = Math.min(
     ANIM_DURATION_MAX_MS,
     Math.max(ANIM_DURATION_MIN_MS, (totalRealMs / 60000) * ANIM_MS_PER_REAL_MINUTE),
@@ -83,21 +228,33 @@ export default function RouteReplayMap({ points }: { points: ReplayPoint[] }) {
   }, [])
 
   useEffect(() => {
+    // New selection: stop any running animation and reset to the start.
     if (frameRef.current != null) cancelAnimationFrame(frameRef.current)
     setPlayState('idle')
     setSpeedStepIndex(0)
     speedRef.current = SPEED_STEPS[0]
     elapsedMsRef.current = 0
-    setHeadIndex(0)
-    setHeadFrac(0)
-    setCurrentSpeedKmh(null)
-  }, [points])
+    setPositions([])
+    setTraveled({})
+  }, [prepared])
 
   function applyElapsed(elapsedMs: number) {
-    const { index, frac } = indexForElapsed(elapsedMsList, elapsedMs)
-    setHeadIndex(index)
-    setHeadFrac(frac)
-    setCurrentSpeedKmh(points[index]?.speed_kmh ?? null)
+    if (!prepared) return
+    const nextPositions: RiderPosition[] = []
+    const nextTraveled: Record<number, [number, number][]> = {}
+    prepared.items.forEach((t) => {
+      const { index, frac } = indexForElapsed(t.elapsedMsList, elapsedMs)
+      const a = t.coords[index]
+      const b = t.coords[index + 1]
+      const lat = b ? a[0] + (b[0] - a[0]) * frac : a[0]
+      const lng = b ? a[1] + (b[1] - a[1]) * frac : a[1]
+      nextPositions.push({ id: t.id, name: t.name, avatar: t.avatar, lat, lng, speed: t.speeds[index] })
+      const upto = t.coords.slice(0, index + 1)
+      if (frac > 0 && b) upto.push([lat, lng])
+      nextTraveled[t.id] = upto
+    })
+    setPositions(nextPositions)
+    setTraveled(nextTraveled)
   }
 
   function runAnimation(resumeFromMs: number) {
@@ -135,8 +292,8 @@ export default function RouteReplayMap({ points }: { points: ReplayPoint[] }) {
     }
     const resumeFrom = playState === 'paused' ? elapsedMsRef.current : 0
     if (playState === 'idle') {
-      setHeadIndex(0)
-      setHeadFrac(0)
+      setPositions([])
+      setTraveled({})
     }
     runAnimation(resumeFrom)
   }
@@ -147,87 +304,67 @@ export default function RouteReplayMap({ points }: { points: ReplayPoint[] }) {
     speedRef.current = SPEED_STEPS[next]
   }
 
-  const traveled = useMemo(() => {
-    const upto = coords.slice(0, headIndex + 1)
-    const a = coords[headIndex]
-    const b = coords[headIndex + 1]
-    if (headFrac > 0 && a && b) {
-      upto.push([a[0] + (b[0] - a[0]) * headFrac, a[1] + (b[1] - a[1]) * headFrac])
-    }
-    return upto
-  }, [coords, headIndex, headFrac])
+  if (!prepared) return null
 
-  if (points.length < 2) return null
-
-  const headPosition = traveled[traveled.length - 1] ?? coords[0]
+  const followPosition = positions.length === 1 ? [positions[0].lat, positions[0].lng] as [number, number] : null
 
   return (
     <div
       className="relative rounded-2xl overflow-hidden border"
-      style={{ height: 320, borderColor: 'rgba(255,255,255,0.1)', background: '#060c1a' }}
+      style={{ height, borderColor: 'rgba(255,255,255,0.1)', background: '#060c1a' }}
     >
       <MapContainer
-        center={coords[0]}
+        center={prepared.items[0].coords[0]}
         zoom={13}
         zoomControl={false}
         attributionControl={false}
         style={{ height: '100%', width: '100%' }}
       >
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-        <FitTrack coords={coords} />
-        <Polyline positions={coords} pathOptions={{ color: 'rgba(255,255,255,0.35)', weight: 3 }} />
-        <Polyline positions={traveled} pathOptions={{ color: '#ff3b30', weight: 4 }} />
-        {playState === 'playing' && <PlayCameraFollow position={headPosition} />}
-        <CircleMarker
-          center={headPosition}
-          radius={7}
-          pathOptions={{ color: '#fff', weight: 2, fillColor: '#ff3b30', fillOpacity: 1 }}
-        />
+        <FitTracks tracksCoords={prepared.items.map((t) => t.coords)} />
+        {prepared.items.map((t) => (
+          <Polyline key={`full-${t.id}`} positions={t.coords} pathOptions={{ color: 'rgba(255,255,255,0.35)', weight: 3 }} />
+        ))}
+        {prepared.items.map((t) => (
+          <Polyline key={`traveled-${t.id}`} positions={traveled[t.id] ?? []} pathOptions={{ color: '#39ff14', weight: 4 }} />
+        ))}
+        {playState === 'playing' && followPosition && <PlayCameraFollow position={followPosition} />}
+        <RiderLayer positions={positions} />
       </MapContainer>
-      <div className="absolute bottom-3 left-3 right-3 z-[500] flex items-end justify-between" style={{ pointerEvents: 'none' }}>
-        <div className="flex gap-1.5" style={{ pointerEvents: 'auto' }}>
+      <div className="absolute bottom-3 left-3 z-[500] flex gap-1.5" style={{ pointerEvents: 'auto' }}>
+        <button
+          type="button"
+          onClick={handlePlayToggle}
+          className="inline-flex items-center justify-center rounded-[10px] border transition-colors"
+          style={{
+            width: 32, height: 32,
+            borderColor: playState === 'playing' ? 'var(--primary)' : 'rgba(255,255,255,0.12)',
+            background: playState === 'playing' ? 'var(--primary)' : 'rgba(7,11,24,0.78)',
+          }}
+        >
+          {playState === 'playing'
+            ? <Pause size={15} color="#031109" />
+            : <Play size={15} color="var(--text-muted)" />}
+        </button>
+        {playState !== 'idle' && (
           <button
             type="button"
-            onClick={handlePlayToggle}
-            className="inline-flex items-center justify-center rounded-[10px] border transition-colors"
+            onClick={toggleSpeed}
+            className="inline-flex items-center justify-center gap-1 rounded-[10px] border px-2 transition-colors"
             style={{
-              width: 32, height: 32,
-              borderColor: playState === 'playing' ? 'var(--primary)' : 'rgba(255,255,255,0.12)',
-              background: playState === 'playing' ? 'var(--primary)' : 'rgba(7,11,24,0.78)',
+              height: 32,
+              borderColor: speedStepIndex > 0 ? 'var(--primary)' : 'rgba(255,255,255,0.12)',
+              background: speedStepIndex > 0 ? 'var(--primary)' : 'rgba(7,11,24,0.78)',
             }}
           >
-            {playState === 'playing'
-              ? <Pause size={15} color="#031109" />
-              : <Play size={15} color="var(--text-muted)" />}
-          </button>
-          {playState !== 'idle' && (
-            <button
-              type="button"
-              onClick={toggleSpeed}
-              className="inline-flex items-center justify-center gap-1 rounded-[10px] border px-2 transition-colors"
-              style={{
-                height: 32,
-                borderColor: speedStepIndex > 0 ? 'var(--primary)' : 'rgba(255,255,255,0.12)',
-                background: speedStepIndex > 0 ? 'var(--primary)' : 'rgba(7,11,24,0.78)',
-              }}
+            <FastForward size={14} color={speedStepIndex > 0 ? '#031109' : 'var(--text-muted)'} />
+            <span
+              className="text-xs font-bold"
+              style={{ color: speedStepIndex > 0 ? '#031109' : 'var(--text-muted)' }}
             >
-              <FastForward size={14} color={speedStepIndex > 0 ? '#031109' : 'var(--text-muted)'} />
-              <span
-                className="text-xs font-bold"
-                style={{ color: speedStepIndex > 0 ? '#031109' : 'var(--text-muted)' }}
-              >
-                {SPEED_STEPS[speedStepIndex]}x
-              </span>
-            </button>
-          )}
-        </div>
-        {playState !== 'idle' && currentSpeedKmh != null && (
-          <div
-            className="rounded-full border px-2.5 py-1.5 text-xs font-bold"
-            style={{ pointerEvents: 'auto', borderColor: 'rgba(255,255,255,0.12)', background: 'rgba(7,11,24,0.78)', color: 'var(--text)' }}
-          >
-            {currentSpeedKmh.toFixed(1)} km/h
-          </div>
+              {SPEED_STEPS[speedStepIndex]}x
+            </span>
+          </button>
         )}
       </div>
     </div>

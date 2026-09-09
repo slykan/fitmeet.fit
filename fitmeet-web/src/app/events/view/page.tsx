@@ -27,7 +27,7 @@ import { reportContent } from '@/lib/moderation'
 import { useAuthStore } from '@/store/auth'
 import { Button } from '@/components/ui/button'
 import type { LiveParticipant, RoutePoi } from '@/components/location-picker-map'
-import type { ReplayPoint } from '@/components/route-replay-map'
+import type { ReplayPoint, ReplayTrack } from '@/components/route-replay-map'
 import { LiveProgressBar } from '@/components/live-progress-bar'
 
 function initialsFor(name: string) {
@@ -212,8 +212,8 @@ function EventContent() {
   const [viewersCount, setViewersCount] = useState(0)
   const [hasApplauded, setHasApplauded] = useState(false)
   const [trackParticipants, setTrackParticipants] = useState<TrackParticipant[]>([])
-  const [selectedTrackUserId, setSelectedTrackUserId] = useState<number | null>(null)
-  const [trackPoints, setTrackPoints] = useState<ReplayPoint[]>([])
+  const [selectedTrackUserId, setSelectedTrackUserId] = useState<number | 'all' | null>(null)
+  const [replayTracks, setReplayTracks] = useState<ReplayTrack[]>([])
   const lastApplauseRef = useRef<string | null>(null)
   const [error,    setError]    = useState<string | null>(null)
   const [gpxResult, setGpxResult] = useState<GpxResult | null>(null)
@@ -525,9 +525,8 @@ function EventContent() {
         const participants: TrackParticipant[] = data.data ?? []
         setTrackParticipants(participants)
         setSelectedTrackUserId((prev) => {
-          if (prev != null && participants.some((p) => p.id === prev)) return prev
-          const own = user?.id != null ? participants.find((p) => p.id === user.id) : null
-          return (own ?? participants[0])?.id ?? null
+          if (prev === 'all' || (prev != null && participants.some((p) => p.id === prev))) return prev
+          return participants.length > 0 ? 'all' : null
         })
       })
       .catch(() => { if (!cancelled) setTrackParticipants([]) })
@@ -535,13 +534,19 @@ function EventContent() {
   }, [event?.id, event?.schedule.start_at, event?.schedule.duration_minutes, user?.id])
 
   useEffect(() => {
-    if (!event?.id || selectedTrackUserId == null) { setTrackPoints([]); return }
+    if (!event?.id || selectedTrackUserId == null) { setReplayTracks([]); return }
+    const wanted = selectedTrackUserId === 'all' ? trackParticipants : trackParticipants.filter((p) => p.id === selectedTrackUserId)
+    if (wanted.length === 0) { setReplayTracks([]); return }
     let cancelled = false
-    api.get(`/events/${event.id}/track-history/${selectedTrackUserId}`)
-      .then(({ data }) => { if (!cancelled) setTrackPoints(data.data ?? []) })
-      .catch(() => { if (!cancelled) setTrackPoints([]) })
+    Promise.all(wanted.map((p) =>
+      api.get(`/events/${event.id}/track-history/${p.id}`).then(({ data }) => ({
+        id: p.id, name: p.name, avatar: p.avatar, points: (data.data ?? []) as ReplayPoint[],
+      }))
+    ))
+      .then((tracks) => { if (!cancelled) setReplayTracks(tracks) })
+      .catch(() => { if (!cancelled) setReplayTracks([]) })
     return () => { cancelled = true }
-  }, [event?.id, selectedTrackUserId])
+  }, [event?.id, selectedTrackUserId, trackParticipants])
 
   async function handleJoin() {
     if (!event) return
@@ -1230,16 +1235,17 @@ function EventContent() {
                 <p className="text-xs font-medium px-1" style={{ color: 'var(--text-muted)' }}>Route replay</p>
                 <select
                   value={selectedTrackUserId ?? ''}
-                  onChange={(e) => setSelectedTrackUserId(Number(e.target.value))}
+                  onChange={(e) => setSelectedTrackUserId(e.target.value === 'all' ? 'all' : Number(e.target.value))}
                   className="rounded-xl border px-3 py-1.5 text-xs outline-none"
                   style={{ background: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--text)' }}
                 >
+                  <option value="all">All</option>
                   {trackParticipants.map((p) => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
+                    <option key={p.id} value={p.id}>{p.id === user?.id ? `${p.name} (You)` : p.name}</option>
                   ))}
                 </select>
               </div>
-              <RouteReplayMap points={trackPoints} />
+              <RouteReplayMap tracks={replayTracks} height={isMobileViewport ? 504 : 720} />
             </div>
           )}
 

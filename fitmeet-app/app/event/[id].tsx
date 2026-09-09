@@ -18,7 +18,7 @@ import { ZoomableImage } from '@/src/components/ZoomableImage'
 import { EventMapCard, type LiveParticipant, type RoutePoi } from '@/src/components/EventMapCard'
 import { LiveProgressBar } from '@/src/components/LiveProgressBar'
 import { OptionPicker } from '@/src/components/OptionPicker'
-import { RouteReplayMap, type ReplayPoint } from '@/src/components/RouteReplayMap'
+import { RouteReplayMap, type ReplayPoint, type ReplayTrack } from '@/src/components/RouteReplayMap'
 import { ElevationChart } from '@/src/components/ElevationChart'
 import { WikiPhotosStrip } from '@/src/components/WikiPhotosStrip'
 import type { ElevationPoint } from '@/src/components/ElevationChart'
@@ -380,8 +380,8 @@ export default function EventDetailScreen() {
   const [gpxLoading, setGpxLoading] = useState(false)
   const [gpxError, setGpxError] = useState(false)
   const [trackParticipants, setTrackParticipants] = useState<TrackParticipant[]>([])
-  const [selectedTrackUserId, setSelectedTrackUserId] = useState<number | null>(null)
-  const [trackPoints, setTrackPoints] = useState<ReplayPoint[]>([])
+  const [selectedTrackUserId, setSelectedTrackUserId] = useState<number | 'all' | null>(null)
+  const [replayTracks, setReplayTracks] = useState<ReplayTrack[]>([])
   const [trackPickerOpen, setTrackPickerOpen] = useState(false)
   const [playState, setPlayState] = useState<'idle' | 'playing' | 'paused'>('idle')
   const [playProgress, setPlayProgress] = useState(0)
@@ -733,9 +733,8 @@ export default function EventDetailScreen() {
         const participants: TrackParticipant[] = data.data ?? []
         setTrackParticipants(participants)
         setSelectedTrackUserId((prev) => {
-          if (prev != null && participants.some((p) => p.id === prev)) return prev
-          const own = me?.id != null ? participants.find((p) => p.id === me.id) : null
-          return (own ?? participants[0])?.id ?? null
+          if (prev === 'all' || (prev != null && participants.some((p) => p.id === prev))) return prev
+          return participants.length > 0 ? 'all' : null
         })
       })
       .catch(() => { if (!cancelled) setTrackParticipants([]) })
@@ -743,13 +742,19 @@ export default function EventDetailScreen() {
   }, [event?.id, event?.schedule.start_at, event?.schedule.duration_minutes, me?.id])
 
   useEffect(() => {
-    if (!event?.id || selectedTrackUserId == null) { setTrackPoints([]); return }
+    if (!event?.id || selectedTrackUserId == null) { setReplayTracks([]); return }
+    const wanted = selectedTrackUserId === 'all' ? trackParticipants : trackParticipants.filter((p) => p.id === selectedTrackUserId)
+    if (wanted.length === 0) { setReplayTracks([]); return }
     let cancelled = false
-    api.get(`/events/${event.id}/track-history/${selectedTrackUserId}`)
-      .then(({ data }) => { if (!cancelled) setTrackPoints(data.data ?? []) })
-      .catch(() => { if (!cancelled) setTrackPoints([]) })
+    Promise.all(wanted.map((p) =>
+      api.get(`/events/${event.id}/track-history/${p.id}`).then(({ data }) => ({
+        id: p.id, name: p.name, avatar: p.avatar, points: (data.data ?? []) as ReplayPoint[],
+      }))
+    ))
+      .then((tracks) => { if (!cancelled) setReplayTracks(tracks) })
+      .catch(() => { if (!cancelled) setReplayTracks([]) })
     return () => { cancelled = true }
-  }, [event?.id, selectedTrackUserId])
+  }, [event?.id, selectedTrackUserId, trackParticipants])
 
   // Poll live positions of checked-in, sharing participants while the event is running.
   // Anyone can watch and applaud, joined or not -- only actually appearing as a
@@ -1494,13 +1499,18 @@ export default function EventDetailScreen() {
         )}
 
         {ended && trackParticipants.length > 0 && (
-          <View style={styles.card}>
-            <Text style={styles.cardLabel}>Route replay</Text>
-            <RouteReplayMap points={trackPoints} />
-            <Pressable style={styles.trackPickerRow} onPress={() => setTrackPickerOpen(true)}>
+          <View style={styles.replaySection}>
+            <Text style={[styles.cardLabel, styles.replayLabel]}>Route replay</Text>
+            <RouteReplayMap tracks={replayTracks} />
+            <Pressable style={[styles.trackPickerRow, styles.replayTrackPicker]} onPress={() => setTrackPickerOpen(true)}>
               <Ionicons name="people-outline" size={16} color={palette.accent} />
               <Text style={styles.trackPickerText}>
-                {trackParticipants.find((p) => p.id === selectedTrackUserId)?.name ?? 'Participants'}
+                {(() => {
+                  if (selectedTrackUserId === 'all') return 'All'
+                  const p = trackParticipants.find((p) => p.id === selectedTrackUserId)
+                  if (!p) return 'Participants'
+                  return p.id === me?.id ? `${p.name} (You)` : p.name
+                })()}
               </Text>
               <Ionicons name="chevron-down" size={16} color={palette.textDim} />
             </Pressable>
@@ -2043,10 +2053,13 @@ export default function EventDetailScreen() {
       <OptionPicker
         visible={trackPickerOpen}
         title="Participants"
-        options={trackParticipants.map((p) => ({ value: String(p.id), label: p.name }))}
+        options={[
+          { value: 'all', label: 'All' },
+          ...trackParticipants.map((p) => ({ value: String(p.id), label: p.id === me?.id ? `${p.name} (You)` : p.name })),
+        ]}
         value={selectedTrackUserId != null ? String(selectedTrackUserId) : ''}
         onClose={() => setTrackPickerOpen(false)}
-        onSelect={(value) => setSelectedTrackUserId(Number(value))}
+        onSelect={(value) => setSelectedTrackUserId(value === 'all' ? 'all' : Number(value))}
       />
 
       <Modal visible={!!clusterListParticipants} transparent animationType="fade" onRequestClose={() => setClusterListParticipants(null)}>
@@ -2231,6 +2244,9 @@ const styles = StyleSheet.create({
   readMoreText: { color: palette.accent, fontSize: 14, fontWeight: '700' },
   cardLabel: { color: palette.text, fontSize: 13, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 },
   cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  replaySection: { gap: 10 },
+  replayLabel: { marginHorizontal: spacing.md },
+  replayTrackPicker: { marginHorizontal: spacing.md },
   trackPickerRow: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     paddingVertical: 10, paddingHorizontal: 12,
