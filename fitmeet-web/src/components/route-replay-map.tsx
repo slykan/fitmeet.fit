@@ -147,8 +147,6 @@ export default function RouteReplayMap({ points }: { points: ReplayPoint[] }) {
     speedRef.current = SPEED_STEPS[next]
   }
 
-  if (points.length < 2) return null
-
   const traveled = useMemo(() => {
     const upto = coords.slice(0, headIndex + 1)
     const a = coords[headIndex]
@@ -158,6 +156,8 @@ export default function RouteReplayMap({ points }: { points: ReplayPoint[] }) {
     }
     return upto
   }, [coords, headIndex, headFrac])
+
+  if (points.length < 2) return null
 
   const headPosition = traveled[traveled.length - 1] ?? coords[0]
 
