@@ -27,6 +27,7 @@ import { reportContent } from '@/lib/moderation'
 import { useAuthStore } from '@/store/auth'
 import { Button } from '@/components/ui/button'
 import type { LiveParticipant, RoutePoi } from '@/components/location-picker-map'
+import type { ReplayPoint } from '@/components/route-replay-map'
 import { LiveProgressBar } from '@/components/live-progress-bar'
 
 function initialsFor(name: string) {
@@ -37,12 +38,19 @@ function initialsFor(name: string) {
 }
 
 const LocationPickerMap = dynamic(() => import('@/components/location-picker-map'), { ssr: false })
+const RouteReplayMap = dynamic(() => import('@/components/route-replay-map'), { ssr: false })
 
 interface Participant {
   id: number
   name: string
   avatar: string | null
   checked_in_at?: string | null
+}
+
+interface TrackParticipant {
+  id: number
+  name: string
+  avatar: string | null
 }
 
 type SavePickerWindow = Window & {
@@ -203,6 +211,9 @@ function EventContent() {
   const [clusterListParticipants, setClusterListParticipants] = useState<LiveParticipant[] | null>(null)
   const [viewersCount, setViewersCount] = useState(0)
   const [hasApplauded, setHasApplauded] = useState(false)
+  const [trackParticipants, setTrackParticipants] = useState<TrackParticipant[]>([])
+  const [selectedTrackUserId, setSelectedTrackUserId] = useState<number | null>(null)
+  const [trackPoints, setTrackPoints] = useState<ReplayPoint[]>([])
   const lastApplauseRef = useRef<string | null>(null)
   const [error,    setError]    = useState<string | null>(null)
   const [gpxResult, setGpxResult] = useState<GpxResult | null>(null)
@@ -499,6 +510,38 @@ function EventContent() {
       window.clearInterval(interval)
     }
   }, [event?.id, event?.status, event?.schedule.start_at, event?.schedule.duration_minutes])
+
+  // Route replay: once the event has ended, offer to replay a participant's actual recorded track.
+  useEffect(() => {
+    if (!event?.id) { setTrackParticipants([]); return }
+    const hasEnded = new Date(event.schedule.start_at).getTime()
+      + (event.schedule.duration_minutes ?? 60) * 60000 < Date.now()
+    if (!hasEnded) { setTrackParticipants([]); return }
+
+    let cancelled = false
+    api.get(`/events/${event.id}/track-participants`)
+      .then(({ data }) => {
+        if (cancelled) return
+        const participants: TrackParticipant[] = data.data ?? []
+        setTrackParticipants(participants)
+        setSelectedTrackUserId((prev) => {
+          if (prev != null && participants.some((p) => p.id === prev)) return prev
+          const own = user?.id != null ? participants.find((p) => p.id === user.id) : null
+          return (own ?? participants[0])?.id ?? null
+        })
+      })
+      .catch(() => { if (!cancelled) setTrackParticipants([]) })
+    return () => { cancelled = true }
+  }, [event?.id, event?.schedule.start_at, event?.schedule.duration_minutes, user?.id])
+
+  useEffect(() => {
+    if (!event?.id || selectedTrackUserId == null) { setTrackPoints([]); return }
+    let cancelled = false
+    api.get(`/events/${event.id}/track-history/${selectedTrackUserId}`)
+      .then(({ data }) => { if (!cancelled) setTrackPoints(data.data ?? []) })
+      .catch(() => { if (!cancelled) setTrackPoints([]) })
+    return () => { cancelled = true }
+  }, [event?.id, selectedTrackUserId])
 
   async function handleJoin() {
     if (!event) return
@@ -1179,6 +1222,25 @@ function EventContent() {
 
           {livePositions.length > 0 && gpxResult?.track && gpxResult.track.length >= 2 && (
             <LiveProgressBar track={gpxResult.track} participants={livePositions} onGroupTap={setClusterListParticipants} />
+          )}
+
+          {trackParticipants.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-medium px-1" style={{ color: 'var(--text-muted)' }}>Route replay</p>
+                <select
+                  value={selectedTrackUserId ?? ''}
+                  onChange={(e) => setSelectedTrackUserId(Number(e.target.value))}
+                  className="rounded-xl border px-3 py-1.5 text-xs outline-none"
+                  style={{ background: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--text)' }}
+                >
+                  {trackParticipants.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+              <RouteReplayMap points={trackPoints} />
+            </div>
           )}
 
           {surfaceAnalysis?.summary.length ? (

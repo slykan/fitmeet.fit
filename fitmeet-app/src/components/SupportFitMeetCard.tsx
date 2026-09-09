@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useEffect, useMemo, useState } from 'react'
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 import Purchases, {
   PURCHASE_TYPE,
   PURCHASES_ERROR_CODE,
@@ -17,6 +17,20 @@ type Props = {
   title?: string
   subtitle?: string
   onPurchased?: (productId: string) => void
+}
+
+// Huawei/Honor devices ship without Google Play Store on any 2019+ model and are
+// typically distributed via AppGallery even when a review device happens to have
+// GMS installed -- Google Play Billing then still fails on purchase because the
+// app wasn't installed *through* Play. canMakePayments() alone doesn't catch this
+// (it already passed once and the purchase still errored -- Huawei AppGallery
+// review, rule 3.1), so gate on the hardware directly instead of trusting the
+// billing SDK's own self-report.
+function isHuaweiOrHonorDevice(): boolean {
+  if (Platform.OS !== 'android') return false
+  const constants = Platform.constants as { Brand?: string; Manufacturer?: string } | undefined
+  const needle = `${constants?.Brand ?? ''} ${constants?.Manufacturer ?? ''}`.toLowerCase()
+  return needle.includes('huawei') || needle.includes('honor')
 }
 
 const PRODUCT_COPY: Record<string, { title: string; note: string }> = {
@@ -64,7 +78,15 @@ export function SupportFitMeetCard({
           return
         }
 
-        // Google Play Billing isn't present on Huawei/AOSP devices without GMS --
+        if (isHuaweiOrHonorDevice()) {
+          if (alive) {
+            setBillingUnsupported(true)
+            setProducts([])
+          }
+          return
+        }
+
+        // Google Play Billing isn't present on other AOSP devices without GMS --
         // Purchases.getProducts() can still resolve there, but purchaseProduct()
         // then fails every time. Check billing support first so we show a plain
         // "not available on this device" hint instead of a broken buy button
