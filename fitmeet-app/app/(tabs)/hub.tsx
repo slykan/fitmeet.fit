@@ -58,8 +58,8 @@ function formatDate(iso: string) {
   }
 }
 
-function isPast(iso: string) {
-  return new Date(iso).getTime() <= Date.now()
+function isPast(iso: string, durationMinutes: number | null) {
+  return new Date(iso).getTime() + (durationMinutes ?? 60) * 60_000 < Date.now()
 }
 
 function formatFrameTime(unixSeconds?: number) {
@@ -293,7 +293,7 @@ export default function HubScreen() {
   }
 
   const renderEvent = ({ item: ev }: { item: EventItem }) => {
-    const past = isPast(ev.schedule.start_at)
+    const past = isPast(ev.schedule.start_at, ev.schedule.duration_minutes)
     const cancelled = ev.status === 'cancelled'
     const emoji = CATEGORY_EMOJI[ev.category.value] ?? '📍'
     const hasReminder = reminderIds.has(ev.id)
@@ -319,6 +319,11 @@ export default function HubScreen() {
               {cancelled && (
                 <View style={styles.cancelledBadge}>
                   <Text style={styles.cancelledBadgeText}>Cancelled</Text>
+                </View>
+              )}
+              {past && !cancelled && (
+                <View style={styles.pastBadge}>
+                  <Text style={styles.pastBadgeText}>Past</Text>
                 </View>
               )}
             </View>
@@ -845,6 +850,8 @@ const styles = StyleSheet.create({
   eventBadgeCancelled: { borderWidth: 1, borderColor: 'rgba(248,113,113,0.4)' },
   cancelledBadge:      { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2, backgroundColor: 'rgba(248,113,113,0.15)', borderWidth: 1, borderColor: 'rgba(248,113,113,0.4)' },
   cancelledBadgeText:  { color: '#f87171', fontSize: 11, fontWeight: '800' },
+  pastBadge:           { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2, backgroundColor: 'rgba(251,146,60,0.18)', borderWidth: 1, borderColor: '#fb923c' },
+  pastBadgeText:       { color: '#fb923c', fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.4 },
   eventEmoji: { fontSize: 24 },
   eventMeta: { flex: 1, gap: 3 },
   eventTitle: { color: palette.text, fontSize: 16, fontWeight: '800' },

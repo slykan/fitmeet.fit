@@ -258,8 +258,8 @@ function formatDate(iso: string) {
   }
 }
 
-function isPast(iso: string) {
-  return new Date(iso).getTime() <= Date.now()
+function isPast(iso: string, durationMinutes: number | null) {
+  return new Date(iso).getTime() + (durationMinutes ?? 60) * 60_000 < Date.now()
 }
 
 const COUNTRY_CODE_BY_NAME: Record<string, string> = {
@@ -626,7 +626,7 @@ const EventsTab = forwardRef<LoadMoreHandle>(function EventsTab(_props, ref) {
       )}
 
       {!loading && events.map(ev => {
-        const past        = isPast(ev.schedule.start_at)
+        const past        = isPast(ev.schedule.start_at, ev.schedule.duration_minutes)
         const cancelled   = ev.status === 'cancelled'
         const hasReminder = reminderIds.has(ev.id)
         const { date, time } = formatDate(ev.schedule.start_at)
@@ -671,7 +671,11 @@ const EventsTab = forwardRef<LoadMoreHandle>(function EventsTab(_props, ref) {
                     </View>
                   )}
                   {ev.is_full && !cancelled && <Text style={styles.fullText}>Full</Text>}
-                  {past && !cancelled && <Text style={styles.pastText}>Past</Text>}
+                  {past && !cancelled && (
+                    <View style={styles.pastTag}>
+                      <Text style={styles.pastText}>Past</Text>
+                    </View>
+                  )}
                   {hasReminder && <Ionicons name="alarm-outline" size={14} color="#58beff" />}
                 </View>
               </View>
@@ -2170,7 +2174,12 @@ const styles = StyleSheet.create({
   },
   cancelText:  { color: '#f87171', fontSize: 11, fontWeight: '800' },
   fullText:    { color: '#f87171', fontSize: 11, fontWeight: '700' },
-  pastText:    { color: '#58beff', fontSize: 11, fontWeight: '700' },
+  pastTag: {
+    backgroundColor: 'rgba(251,146,60,0.18)', borderRadius: 999,
+    paddingHorizontal: 8, paddingVertical: 2,
+    borderWidth: 1, borderColor: '#fb923c',
+  },
+  pastText:    { color: '#fb923c', fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.4 },
 
   details: { gap: 5 },
   detailRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6 },

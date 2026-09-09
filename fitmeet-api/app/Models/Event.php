@@ -99,7 +99,7 @@ class Event extends Model
         return $this->user_id === $user->id;
     }
 
-    // Scope: future events + in-progress events
+    // Scope: future events + events still on today's calendar day + in-progress events
     public function scopeUpcoming(Builder $query): Builder
     {
         return $query
@@ -107,7 +107,9 @@ class Event extends Model
             ->where(function ($q) {
                 // Not yet started
                 $q->where('events.start_at', '>', now())
-                // OR in-progress: started but end time not reached
+                // OR started today (keep it listed for the rest of the day even after it ends)
+                ->orWhereDate('events.start_at', now()->toDateString())
+                // OR in-progress: started but end time not reached (covers events that started before today and are still running)
                 ->orWhere(function ($q2) {
                     $q2->where('events.start_at', '<=', now())
                        ->whereRaw('DATE_ADD(events.start_at, INTERVAL COALESCE(events.duration_minutes, 60) MINUTE) >= ?', [now()]);

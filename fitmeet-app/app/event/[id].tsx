@@ -17,6 +17,8 @@ import { WeatherBadge } from '@/src/components/WeatherBadge'
 import { ZoomableImage } from '@/src/components/ZoomableImage'
 import { EventMapCard, type LiveParticipant, type RoutePoi } from '@/src/components/EventMapCard'
 import { LiveProgressBar } from '@/src/components/LiveProgressBar'
+import { OptionPicker } from '@/src/components/OptionPicker'
+import { RouteReplayMap, type ReplayPoint } from '@/src/components/RouteReplayMap'
 import { ElevationChart } from '@/src/components/ElevationChart'
 import { WikiPhotosStrip } from '@/src/components/WikiPhotosStrip'
 import type { ElevationPoint } from '@/src/components/ElevationChart'
@@ -110,6 +112,12 @@ interface EventDetail {
   organizer: Participant | null
   participants: Participant[]
   skill_level: string | null
+}
+
+interface TrackParticipant {
+  id: number
+  name: string
+  avatar: string | null
 }
 
 type ReminderOffset = '1h' | '5h' | '1d'
@@ -371,6 +379,10 @@ export default function EventDetailScreen() {
   const [gpxStats, setGpxStats] = useState<GpxActivityStats | null>(null)
   const [gpxLoading, setGpxLoading] = useState(false)
   const [gpxError, setGpxError] = useState(false)
+  const [trackParticipants, setTrackParticipants] = useState<TrackParticipant[]>([])
+  const [selectedTrackUserId, setSelectedTrackUserId] = useState<number | null>(null)
+  const [trackPoints, setTrackPoints] = useState<ReplayPoint[]>([])
+  const [trackPickerOpen, setTrackPickerOpen] = useState(false)
   const [playState, setPlayState] = useState<'idle' | 'playing' | 'paused'>('idle')
   const [playProgress, setPlayProgress] = useState(0)
   const [playMilestone, setPlayMilestone] = useState<{ km: number; exiting: boolean } | null>(null)
@@ -706,6 +718,38 @@ export default function EventDetailScreen() {
   useEffect(() => {
     if (event?.is_joined) setNotifyOnJoin(event.notify_on_join)
   }, [event?.notify_on_join, event?.is_joined])
+
+  // Route replay: once the event has ended, offer to replay a participant's actual recorded track.
+  useEffect(() => {
+    if (!event?.id) { setTrackParticipants([]); return }
+    const hasEnded = new Date(event.schedule.start_at).getTime()
+      + (event.schedule.duration_minutes ?? 60) * 60000 < Date.now()
+    if (!hasEnded) { setTrackParticipants([]); return }
+
+    let cancelled = false
+    api.get(`/events/${event.id}/track-participants`)
+      .then(({ data }) => {
+        if (cancelled) return
+        const participants: TrackParticipant[] = data.data ?? []
+        setTrackParticipants(participants)
+        setSelectedTrackUserId((prev) => {
+          if (prev != null && participants.some((p) => p.id === prev)) return prev
+          const own = me?.id != null ? participants.find((p) => p.id === me.id) : null
+          return (own ?? participants[0])?.id ?? null
+        })
+      })
+      .catch(() => { if (!cancelled) setTrackParticipants([]) })
+    return () => { cancelled = true }
+  }, [event?.id, event?.schedule.start_at, event?.schedule.duration_minutes, me?.id])
+
+  useEffect(() => {
+    if (!event?.id || selectedTrackUserId == null) { setTrackPoints([]); return }
+    let cancelled = false
+    api.get(`/events/${event.id}/track-history/${selectedTrackUserId}`)
+      .then(({ data }) => { if (!cancelled) setTrackPoints(data.data ?? []) })
+      .catch(() => { if (!cancelled) setTrackPoints([]) })
+    return () => { cancelled = true }
+  }, [event?.id, selectedTrackUserId])
 
   // Poll live positions of checked-in, sharing participants while the event is running.
   // Anyone can watch and applaud, joined or not -- only actually appearing as a
@@ -1449,6 +1493,20 @@ export default function EventDetailScreen() {
           <LiveProgressBar track={gpxTrack} participants={livePositions} onGroupTap={setClusterListParticipants} />
         )}
 
+        {ended && trackParticipants.length > 0 && (
+          <View style={styles.card}>
+            <Text style={styles.cardLabel}>Route replay</Text>
+            <RouteReplayMap points={trackPoints} />
+            <Pressable style={styles.trackPickerRow} onPress={() => setTrackPickerOpen(true)}>
+              <Ionicons name="people-outline" size={16} color={palette.accent} />
+              <Text style={styles.trackPickerText}>
+                {trackParticipants.find((p) => p.id === selectedTrackUserId)?.name ?? 'Participants'}
+              </Text>
+              <Ionicons name="chevron-down" size={16} color={palette.textDim} />
+            </Pressable>
+          </View>
+        )}
+
         {showSurfaceSection ? (
           <View style={styles.surfaceSection}>
             <Text style={styles.surfaceMixText}>
@@ -1982,6 +2040,15 @@ export default function EventDetailScreen() {
         </Pressable>
       </Modal>
 
+      <OptionPicker
+        visible={trackPickerOpen}
+        title="Participants"
+        options={trackParticipants.map((p) => ({ value: String(p.id), label: p.name }))}
+        value={selectedTrackUserId != null ? String(selectedTrackUserId) : ''}
+        onClose={() => setTrackPickerOpen(false)}
+        onSelect={(value) => setSelectedTrackUserId(Number(value))}
+      />
+
       <Modal visible={!!clusterListParticipants} transparent animationType="fade" onRequestClose={() => setClusterListParticipants(null)}>
         <Pressable style={[styles.modalBackdrop, bottomSheetBackdropStyle]} onPress={() => setClusterListParticipants(null)}>
           <Pressable style={styles.reminderModal} onPress={(e) => e.stopPropagation()}>
@@ -2142,8 +2209,8 @@ const styles = StyleSheet.create({
   fullBadgeText:  { color: '#fb923c', fontSize: 12, fontWeight: '700' },
   joinedBadge:    { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4, backgroundColor: 'rgba(57,255,20,0.15)', borderWidth: 1, borderColor: palette.accent },
   joinedBadgeText:{ color: palette.accent, fontSize: 12, fontWeight: '700' },
-  pastBadge:      { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4, backgroundColor: palette.panelRaised, borderWidth: 1, borderColor: palette.line },
-  pastBadgeText:  { color: palette.textMuted, fontSize: 12, fontWeight: '700' },
+  pastBadge:      { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4, backgroundColor: 'rgba(251,146,60,0.18)', borderWidth: 1, borderColor: '#fb923c' },
+  pastBadgeText:  { color: '#fb923c', fontSize: 12, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.4 },
 
   title:      { color: palette.text, fontSize: 24, fontWeight: '800', lineHeight: 30 },
   skillLevel: { color: palette.textMuted, fontSize: 13, textTransform: 'capitalize' },
@@ -2164,6 +2231,13 @@ const styles = StyleSheet.create({
   readMoreText: { color: palette.accent, fontSize: 14, fontWeight: '700' },
   cardLabel: { color: palette.text, fontSize: 13, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 },
   cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  trackPickerRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    paddingVertical: 10, paddingHorizontal: 12,
+    backgroundColor: palette.panelRaised, borderRadius: 12,
+    borderWidth: 1, borderColor: palette.line,
+  },
+  trackPickerText: { flex: 1, color: palette.text, fontSize: 14, fontWeight: '700' },
 
   detailRow:      { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   gpxActionRow:   { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 2 },

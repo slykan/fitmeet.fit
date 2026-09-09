@@ -5,6 +5,7 @@ use App\Jobs\SendStartedEventNotifications;
 use App\Mail\EventReminderMail;
 use App\Models\ActivityRoute;
 use App\Models\Event;
+use App\Models\EventLocationPoint;
 use App\Models\EventReminder;
 use App\Models\User;
 use App\Services\BadgeService;
@@ -234,6 +235,13 @@ Artisan::command('strava:subscribe-webhook', function () {
         $this->error('Failed: ' . $res->body());
     }
 })->purpose('Register the Strava webhook subscription (run once per environment)');
+
+Artisan::command('location-points:prune', function () {
+    $deleted = EventLocationPoint::where('recorded_at', '<', now()->subDays(90))->delete();
+    $this->info("Pruned {$deleted} old location point(s).");
+})->purpose('Delete event location points older than 90 days');
+
+Schedule::command('location-points:prune')->daily();
 
 Artisan::command('badges:backfill', function () {
     $badgeService = app(BadgeService::class);

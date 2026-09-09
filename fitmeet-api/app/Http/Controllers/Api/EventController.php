@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\EventLocationPointResource;
 use App\Http\Resources\PublicEventShareResource;
 use App\Jobs\SendCancelledEventNotifications;
 use App\Http\Requests\StoreEventRequest;
@@ -813,6 +814,42 @@ HTML;
             'last_applause_at' => $event->last_applause_at?->toIso8601String(),
             'applauded' => $applauded,
         ]);
+    }
+
+    private function hasEnded(Event $event): bool
+    {
+        return now()->gt($event->start_at->copy()->addMinutes($event->duration_minutes ?? 60));
+    }
+
+    // GET /api/events/{event}/track-participants
+    // Anyone signed in can browse who has a recorded route -- same visibility as live-positions.
+    public function trackParticipants(Event $event): JsonResponse
+    {
+        if (! $this->hasEnded($event)) {
+            return response()->json(['message' => 'This event has not ended yet.'], 422);
+        }
+
+        $participants = \App\Models\User::query()
+            ->whereIn('id', EventLocationPoint::where('event_id', $event->id)->distinct()->pluck('user_id'))
+            ->orderBy('name')
+            ->get(['id', 'name', 'avatar']);
+
+        return response()->json(['data' => $participants]);
+    }
+
+    // GET /api/events/{event}/track-history/{participant}
+    public function trackHistory(Event $event, \App\Models\User $participant): JsonResponse
+    {
+        if (! $this->hasEnded($event)) {
+            return response()->json(['message' => 'This event has not ended yet.'], 422);
+        }
+
+        $points = EventLocationPoint::where('event_id', $event->id)
+            ->where('user_id', $participant->id)
+            ->orderBy('recorded_at')
+            ->get();
+
+        return EventLocationPointResource::collection($points)->response();
     }
 
     // POST /api/events/{event}/applause
