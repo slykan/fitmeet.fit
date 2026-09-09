@@ -1023,7 +1023,7 @@ function EventsTab() {
                     )}
                     {pastEvent && !inProgress && (
                       <span className="text-[10px] font-black px-2 py-0.5 rounded-full"
-                        style={{ background: 'rgba(5,8,22,0.82)', color: 'var(--secondary)' }}>Past</span>
+                        style={{ background: 'rgba(251,146,60,0.18)', color: '#fb923c', border: '1px solid #fb923c' }}>Past</span>
                     )}
                   </div>
                   {ev.is_joined && (

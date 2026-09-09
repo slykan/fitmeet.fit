@@ -1252,7 +1252,7 @@ export default function HubMap() {
                   <span style={{ fontSize: 11, color: 'var(--primary)', fontWeight: 600 }}>In progress</span>
                 )}
                 {eventTiming(selected).past && (
-                  <span style={{ fontSize: 11, color: 'var(--secondary)', fontWeight: 600 }}>Past</span>
+                  <span style={{ fontSize: 11, color: '#fb923c', fontWeight: 800 }}>Past</span>
                 )}
               </div>
               <h3 style={{ fontWeight: 700, fontSize: 17, marginBottom: 6, lineHeight: 1.3 }}>
