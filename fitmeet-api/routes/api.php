@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\EventCommentController;
 use App\Http\Controllers\Api\EventWeatherController;
+use App\Http\Controllers\Api\FeedController;
 use App\Http\Controllers\Api\FriendController;
 use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\UserController;
@@ -144,6 +145,7 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\EnsureNotBanned::class])
     Route::delete('notifications/clear-all',       [FriendController::class, 'notificationsClearAll']);
     Route::post('notifications/read',              [FriendController::class, 'notificationsMarkRead']);
     Route::get('notifications',                   [FriendController::class, 'notifications']);
+    Route::get('feed',                            [FeedController::class, 'index']);
     Route::post('friends/request/{user}',         [FriendController::class, 'request']);
     Route::post('friends/accept/{friendRequest}',   [FriendController::class, 'accept']);
     Route::post('friends/decline/{friendRequest}',  [FriendController::class, 'decline']);

@@ -10,6 +10,7 @@ use App\Http\Requests\StoreEventRequest;
 use App\Http\Requests\UpdateEventRequest;
 use App\Http\Resources\EventResource;
 use App\Jobs\SendNewEventNotifications;
+use App\Models\Activity;
 use App\Models\ActivityRoute;
 use App\Models\Event;
 use App\Models\EventLocationPoint;
@@ -215,6 +216,12 @@ class EventController extends Controller
         unset($data['gpx_file'], $data['gpx_text'], $data['gpx_name'], $data['route_title'], $data['image_file']);
 
         $event = $request->user()->events()->create($data);
+
+        Activity::create([
+            'actor_id' => $request->user()->id,
+            'type'     => 'event_created',
+            'event_id' => $event->id,
+        ]);
 
         if ($event->gpx_path && $gpxTextForRoute) {
             $this->syncRouteFromEvent($event, $gpxTextForRoute, $routeTitle, $gpxNameForRoute);
@@ -516,6 +523,12 @@ HTML;
         }
 
         $event->increment('participants_count');
+
+        Activity::create([
+            'actor_id' => $user->id,
+            'type'     => 'event_joined',
+            'event_id' => $event->id,
+        ]);
 
         // Notify participants who opted in
         $notifyIds = \DB::table('event_participants')
@@ -876,6 +889,20 @@ HTML;
         }
 
         $event->update(['last_applause_at' => now()]);
+
+        $recentApplause = Activity::where('event_id', $event->id)
+            ->where('actor_id', $user->id)
+            ->where('type', 'event_applauded')
+            ->where('created_at', '>=', now()->subMinutes(5))
+            ->exists();
+
+        if (! $recentApplause) {
+            Activity::create([
+                'actor_id' => $user->id,
+                'type'     => 'event_applauded',
+                'event_id' => $event->id,
+            ]);
+        }
 
         app(\App\Services\ApplauseNotifier::class)->notify($event, $user);
 

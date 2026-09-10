@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\EventCommentResource;
 use App\Jobs\SendPushNotification;
+use App\Models\Activity;
 use App\Models\Event;
 use App\Models\EventComment;
 use App\Models\EventNotification;
@@ -106,6 +107,13 @@ class EventCommentController extends Controller
         ]);
 
         $comment->load(['user:id,name,avatar', 'event:id,user_id']);
+
+        Activity::create([
+            'actor_id' => $user->id,
+            'type'     => 'event_commented',
+            'event_id' => $event->id,
+            'meta'     => ['excerpt' => \Illuminate\Support\Str::limit($body, 140)],
+        ]);
 
         $allowedMentionIds = $this->eligibleWallUserIds($event)
             ->filter(fn ($id) => (int) $id !== (int) $user->id);

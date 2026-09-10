@@ -7,6 +7,8 @@ import { Activity, ChevronDown, Clock, Flame, Gauge, HeartPulse, Layers, Link2, 
 import api from '@/lib/api'
 import { CATEGORIES, CATEGORY_EMOJI } from '@/lib/categories'
 
+interface TrainingUser { id: number; name: string; avatar: string | null }
+
 interface TrainingItem {
   id: number
   provider: string
@@ -29,6 +31,8 @@ interface TrainingItem {
   gear_name: string | null
   description: string | null
   is_merged: boolean
+  is_mine: boolean
+  user: TrainingUser | null
 }
 
 interface Totals {
@@ -147,17 +151,18 @@ export function TrainingsTab() {
   const [trainings, setTrainings] = useState<TrainingItem[]>([])
   const [totals, setTotals] = useState<Totals | null>(null)
   const [loading, setLoading] = useState(true)
+  const [scope, setScope] = useState<'friends' | 'mine'>('friends')
   const [category, setCategory] = useState('')
   const [month, setMonth] = useState(0)
   const [year, setYear] = useState(0)
 
   const params = useMemo(() => {
-    const next: Record<string, unknown> = {}
+    const next: Record<string, unknown> = { scope }
     if (category) next.category = category
     if (month) next.month = month
     if (year) next.year = year
     return next
-  }, [category, month, year])
+  }, [scope, category, month, year])
 
   const load = useCallback(() => {
     setLoading(true)
@@ -174,6 +179,23 @@ export function TrainingsTab() {
 
   return (
     <div className="space-y-3">
+      <div className="flex gap-2">
+        <button
+          onClick={() => setScope('friends')}
+          className="text-xs px-3 py-1.5 rounded-full border font-medium transition-colors"
+          style={chipStyle(scope === 'friends')}
+        >
+          Everyone
+        </button>
+        <button
+          onClick={() => setScope('mine')}
+          className="text-xs px-3 py-1.5 rounded-full border font-medium transition-colors"
+          style={chipStyle(scope === 'mine')}
+        >
+          Just me
+        </button>
+      </div>
+
       <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
         {[{ value: '', label: 'All' }, ...CATEGORIES].map(cat => (
           <button
@@ -226,7 +248,7 @@ export function TrainingsTab() {
       {!loading && trainings.length === 0 && (
         <div className="text-center py-12 space-y-3">
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-            No trainings synced yet.
+            {scope === 'mine' ? 'No trainings synced yet.' : 'No trainings yet. Yours and friends’ synced workouts will show up here.'}
           </p>
           <button
             onClick={() => router.push('/profile')}
@@ -271,10 +293,22 @@ function TrainingCard({ training, onDeleted }: { training: TrainingItem; onDelet
       style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
     >
       <div className="flex items-start gap-3">
-        <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0"
-          style={{ background: 'var(--background)', border: '1px solid var(--border)' }}>
-          {CATEGORY_EMOJI[training.category.value] ?? <Activity size={20} />}
-        </div>
+        {training.user && !training.is_mine ? (
+          training.user.avatar ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={training.user.avatar} alt={training.user.name} className="w-12 h-12 rounded-xl object-cover flex-shrink-0" />
+          ) : (
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0"
+              style={{ background: 'var(--background)', border: '1px solid var(--border)', color: 'var(--primary)' }}>
+              {training.user.name.charAt(0).toUpperCase()}
+            </div>
+          )
+        ) : (
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0"
+            style={{ background: 'var(--background)', border: '1px solid var(--border)' }}>
+            {CATEGORY_EMOJI[training.category.value] ?? <Activity size={20} />}
+          </div>
+        )}
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2 mb-1.5">
             <span className="text-xs px-2 py-0.5 rounded-full border font-medium"
@@ -290,7 +324,9 @@ function TrainingCard({ training, onDeleted }: { training: TrainingItem; onDelet
               </span>
             )}
           </div>
-          <p className="font-semibold text-sm truncate">{training.name ?? training.category.label}</p>
+          <p className="font-semibold text-sm truncate">
+            {training.user && !training.is_mine ? `${training.user.name} — ` : ''}{training.name ?? training.category.label}
+          </p>
           <div className="mt-2 flex flex-wrap items-center gap-3 text-xs" style={{ color: 'var(--text-muted)' }}>
             <span>{formatDate(training.started_at)}</span>
             {formatDistance(training.distance_m) && (
@@ -304,15 +340,17 @@ function TrainingCard({ training, onDeleted }: { training: TrainingItem; onDelet
             )}
           </div>
         </div>
-        <button
-          onClick={handleDelete}
-          disabled={deleting}
-          title="Delete training"
-          className="flex-shrink-0 p-2 rounded-lg transition-colors hover:bg-red-500/10 disabled:opacity-40"
-          style={{ color: 'var(--text-muted)' }}
-        >
-          <Trash2 size={15} />
-        </button>
+        {training.is_mine && (
+          <button
+            onClick={handleDelete}
+            disabled={deleting}
+            title="Delete training"
+            className="flex-shrink-0 p-2 rounded-lg transition-colors hover:bg-red-500/10 disabled:opacity-40"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            <Trash2 size={15} />
+          </button>
+        )}
       </div>
 
       {details.length > 0 && (

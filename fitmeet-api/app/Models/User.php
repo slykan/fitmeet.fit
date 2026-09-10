@@ -34,6 +34,7 @@ class User extends Authenticatable
         'email_friend_events',
         'push_notifications',
         'auto_share_live_location',
+        'share_trainings_in_feed',
         'is_admin',
         'country',
         'city',
@@ -75,6 +76,7 @@ class User extends Authenticatable
             'email_friend_events'   => 'boolean',
             'push_notifications'    => 'boolean',
             'auto_share_live_location' => 'boolean',
+            'share_trainings_in_feed'  => 'boolean',
             'is_admin'              => 'boolean',
             'lat'               => 'float',
             'lng'               => 'float',
@@ -165,6 +167,21 @@ class User extends Authenticatable
             ->orWhere('blocked_id', $this->id)
             ->get()
             ->map(fn (UserBlock $b) => $b->blocker_id === $this->id ? $b->blocked_id : $b->blocker_id)
+            ->unique()
+            ->values();
+    }
+
+    /**
+     * Ids of users this user has an accepted friendship with, either direction.
+     */
+    public function acceptedFriendIds(): \Illuminate\Support\Collection
+    {
+        return FriendRequest::where(function ($q) {
+            $q->where('sender_id', $this->id)->orWhere('receiver_id', $this->id);
+        })
+            ->where('status', 'accepted')
+            ->get()
+            ->map(fn (FriendRequest $r) => $r->sender_id === $this->id ? $r->receiver_id : $r->sender_id)
             ->unique()
             ->values();
     }

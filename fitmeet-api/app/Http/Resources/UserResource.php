@@ -24,6 +24,7 @@ class UserResource extends JsonResource
             ],
             'push_notifications' => $this->push_notifications === null ? true : (bool) $this->push_notifications,
             'auto_share_live_location' => (bool) $this->auto_share_live_location,
+            'share_trainings_in_feed' => $this->share_trainings_in_feed === null ? true : (bool) $this->share_trainings_in_feed,
 
             'location' => [
                 'lat' => $this->lat,

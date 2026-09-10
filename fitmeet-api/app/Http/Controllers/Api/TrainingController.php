@@ -9,11 +9,25 @@ use Illuminate\Http\Request;
 
 class TrainingController
 {
-    // GET /api/trainings
+    // GET /api/trainings?scope=mine|friends
     public function index(Request $request): JsonResponse
     {
-        $query = Training::where('user_id', $request->user()->id)
-            ->where('is_primary', true);
+        $me = $request->user();
+        $scope = $request->string('scope', 'mine');
+
+        $query = Training::where('is_primary', true);
+
+        if ($scope === 'friends') {
+            $friendIds = $me->acceptedFriendIds()->diff($me->blockedUserIds())->push($me->id)->values();
+            $query->whereIn('user_id', $friendIds)
+                ->where(function ($q) use ($me) {
+                    $q->where('user_id', $me->id)
+                        ->orWhereHas('user', fn ($u) => $u->where('share_trainings_in_feed', true));
+                })
+                ->with('user:id,name,avatar');
+        } else {
+            $query->where('user_id', $me->id);
+        }
 
         if ($request->filled('category')) {
             $query->where('category', $request->string('category'));
@@ -27,8 +41,19 @@ class TrainingController
             $query->whereMonth('started_at', $request->integer('month'));
         }
 
-        // Aggregate over the full filtered set (not just the current page).
-        $totals = (clone $query)->selectRaw('
+        // Totals always reflect the viewer's own trainings for the active filters,
+        // regardless of scope — "your" stats shouldn't shift when friends are shown.
+        $totalsQuery = Training::where('user_id', $me->id)->where('is_primary', true);
+        if ($request->filled('category')) {
+            $totalsQuery->where('category', $request->string('category'));
+        }
+        if ($request->filled('year')) {
+            $totalsQuery->whereYear('started_at', $request->integer('year'));
+        }
+        if ($request->filled('month')) {
+            $totalsQuery->whereMonth('started_at', $request->integer('month'));
+        }
+        $totals = $totalsQuery->selectRaw('
             COUNT(*) as count,
             COALESCE(SUM(distance_m), 0) as distance_m,
             COALESCE(SUM(duration_s), 0) as duration_s,
@@ -60,6 +85,12 @@ class TrainingController
             'gear_name'      => $t->gear_name,
             'description'    => $t->description,
             'is_merged'      => $t->dedup_group_id !== null,
+            'is_mine'        => $t->user_id === $me->id,
+            'user'           => $t->relationLoaded('user') && $t->user ? [
+                'id'     => $t->user->id,
+                'name'   => $t->user->name,
+                'avatar' => $t->user->avatar,
+            ] : null,
         ]);
 
         return response()->json([

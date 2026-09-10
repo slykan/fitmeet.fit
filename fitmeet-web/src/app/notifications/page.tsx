@@ -5,10 +5,15 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { UserPlus, UserCheck, Check, X, Bell, Calendar, MapPin, Zap, PlayCircle, MessageCircle, Megaphone, Dumbbell } from 'lucide-react'
 
+import { ActivityFeed } from '@/components/activity-feed'
+import { MomentsGrid } from '@/components/moments-grid'
 import { Navbar } from '@/components/navbar'
+import { TrainingsTab } from '@/components/trainings-tab'
 import api from '@/lib/api'
 import { formatEventDateTime } from '@/lib/event-time'
 import { useAuthStore } from '@/store/auth'
+
+type FeedTab = 'activity' | 'trainings' | 'moments' | 'alerts'
 
 const notificationsSeenKey = (userId: number) => `fitmeet-notifications-last-seen:${userId}`
 
@@ -193,6 +198,7 @@ export default function NotificationsPage() {
   const { token, user }  = useAuthStore()
   const router     = useRouter()
   const [mounted,  setMounted]  = useState(false)
+  const [tab,      setTab]      = useState<FeedTab>('activity')
   const [notifs,   setNotifs]   = useState<Notif[]>([])
   const [loading,  setLoading]  = useState(true)
   const [acting,   setActing]   = useState<number | null>(null)
@@ -202,10 +208,12 @@ export default function NotificationsPage() {
   useEffect(() => {
     if (!mounted) return
     if (!token) { router.replace('/login?redirect=/notifications'); return }
+    if (tab !== 'alerts') return
     if (typeof window !== 'undefined' && user?.id) {
       window.localStorage.setItem(notificationsSeenKey(user.id), new Date().toISOString())
       window.dispatchEvent(new Event('fitmeet-notifications-seen'))
     }
+    setLoading(true)
     api.get('/notifications')
       .then(({ data }) => {
         const items = data.data ?? []
@@ -226,7 +234,7 @@ export default function NotificationsPage() {
         }
       })
       .finally(() => setLoading(false))
-  }, [mounted, token, router, user])
+  }, [mounted, token, router, user, tab])
 
   async function handle(id: number, action: 'accept' | 'decline') {
     setActing(id)
@@ -244,8 +252,32 @@ export default function NotificationsPage() {
       <main className="min-h-screen px-4 py-8">
         <div style={{ maxWidth: 680, margin: '0 auto' }}>
 
-          <h1 className="text-2xl font-bold mb-6">Notifications</h1>
+          <h1 className="text-2xl font-bold mb-6">
+            {tab === 'activity' ? 'Friends' : tab === 'trainings' ? 'Trainings' : tab === 'moments' ? 'Moments' : 'Notifications'}
+          </h1>
 
+          <div className="grid grid-cols-4 gap-1 p-1 rounded-xl mb-6 w-full" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+            {(['activity', 'trainings', 'moments', 'alerts'] as const).map(t => (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className="min-w-0 py-2 text-xs sm:text-sm font-medium rounded-lg transition-colors"
+                style={{
+                  background: tab === t ? 'var(--primary)' : 'transparent',
+                  color:      tab === t ? '#000' : 'var(--text-muted)',
+                }}
+              >
+                {t === 'activity' ? 'Activity' : t === 'trainings' ? 'Trainings' : t === 'moments' ? 'Moments' : 'Alerts'}
+              </button>
+            ))}
+          </div>
+
+          {tab === 'activity' && <ActivityFeed />}
+          {tab === 'trainings' && <TrainingsTab />}
+          {tab === 'moments' && <MomentsGrid />}
+
+          {tab === 'alerts' && (
+          <>
           {loading && (
             <div className="text-center py-16 text-sm" style={{ color: 'var(--text-muted)' }}>Loading…</div>
           )}
@@ -557,6 +589,8 @@ export default function NotificationsPage() {
             ) : null
             ))}
           </div>
+          </>
+          )}
 
         </div>
       </main>
