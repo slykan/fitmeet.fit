@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { UserPlus, UserCheck, Check, X, Bell, Calendar, MapPin, Zap, PlayCircle, MessageCircle, Megaphone, Dumbbell } from 'lucide-react'
+import Link from 'next/link'
+import { UserPlus, UserCheck, Check, X, Bell, Calendar, MapPin, Zap, PlayCircle, MessageCircle, Megaphone, Dumbbell, Share2 } from 'lucide-react'
 
 import { ActivityFeed } from '@/components/activity-feed'
 import { MomentsGrid } from '@/components/moments-grid'
@@ -246,6 +247,17 @@ export default function NotificationsPage() {
     }
   }
 
+  function handleShareMoments() {
+    const url = 'https://fitmeet.fit/moments'
+    if (navigator.share) {
+      navigator.share({ title: 'FitMeet Moments', text: 'Real people, real events 📸', url })
+    } else {
+      navigator.clipboard.writeText(url)
+        .then(() => alert('Link copied!'))
+        .catch(() => {})
+    }
+  }
+
   return (
     <>
       <Navbar />
@@ -274,7 +286,27 @@ export default function NotificationsPage() {
 
           {tab === 'activity' && <ActivityFeed />}
           {tab === 'trainings' && <TrainingsTab />}
-          {tab === 'moments' && <MomentsGrid />}
+          {tab === 'moments' && (
+            <>
+              <div className="flex justify-end gap-2 mb-4">
+                <Link
+                  href="/moments/slideshow"
+                  className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-xl font-semibold transition-opacity hover:opacity-80"
+                  style={{ background: 'rgba(57,255,20,0.15)', border: '1px solid rgba(57,255,20,0.4)', color: 'var(--primary)' }}
+                >
+                  <PlayCircle size={15} /> Play
+                </Link>
+                <button
+                  onClick={handleShareMoments}
+                  className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-xl font-semibold transition-opacity hover:opacity-80"
+                  style={{ background: 'rgba(57,255,20,0.08)', border: '1px solid rgba(57,255,20,0.25)', color: 'var(--primary)' }}
+                >
+                  <Share2 size={15} /> Share
+                </button>
+              </div>
+              <MomentsGrid />
+            </>
+          )}
 
           {tab === 'alerts' && (
           <>

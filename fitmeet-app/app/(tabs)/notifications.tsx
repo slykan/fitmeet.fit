@@ -4,14 +4,32 @@ import { useCallback, useState } from 'react'
 import { badgeEvents } from './_layout'
 import {
   ActivityIndicator, Image, Linking, Pressable, RefreshControl,
-  ScrollView, StyleSheet, Text, View,
+  ScrollView, Share, StyleSheet, Text, View,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs'
 
+import { ActivityFeed } from '@/src/components/ActivityFeed'
+import { MomentsGrid } from '@/src/components/MomentsGrid'
+import { TrainingsFeedTab } from '@/src/components/TrainingsFeedTab'
 import { api } from '@/src/lib/api'
 import { useBadgesStore } from '@/src/store/badges'
 import { palette, spacing } from '@/src/theme'
+
+type FeedTab = 'activity' | 'trainings' | 'moments' | 'alerts'
+
+const TAB_ICONS: Record<FeedTab, keyof typeof Ionicons.glyphMap> = {
+  activity:  'pulse-outline',
+  trainings: 'barbell-outline',
+  moments:   'images-outline',
+  alerts:    'notifications-outline',
+}
+const TAB_LABELS: Record<FeedTab, string> = {
+  activity:  'Activity',
+  trainings: 'Trainings',
+  moments:   'Moments',
+  alerts:    'Alerts',
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -136,6 +154,7 @@ function GenericCard({
 
 export default function NotificationsScreen() {
   const tabBarHeight = useBottomTabBarHeight()
+  const [tab,           setTab]           = useState<FeedTab>('activity')
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [loading,       setLoading]       = useState(true)
   const [refreshing,    setRefreshing]    = useState(false)
@@ -156,9 +175,11 @@ export default function NotificationsScreen() {
   }, [])
 
   useFocusEffect(useCallback(() => {
-    load()
-    badgeEvents.clearAlerts()
-  }, [load]))
+    if (tab === 'alerts') {
+      load()
+      badgeEvents.clearAlerts()
+    }
+  }, [load, tab]))
 
   async function clearAll() {
     try {
@@ -189,6 +210,59 @@ export default function NotificationsScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.eyebrow}>Feed</Text>
+          <Text style={styles.title}>
+            {tab === 'activity' ? 'Friends' : tab === 'trainings' ? 'Trainings' : tab === 'moments' ? 'Moments' : 'What changed'}
+          </Text>
+        </View>
+        {tab === 'alerts' && notifications.length > 0 && (
+          <Pressable onPress={clearAll} style={styles.clearBtn}>
+            <Text style={styles.clearBtnText}>Clear all</Text>
+          </Pressable>
+        )}
+      </View>
+
+      <View style={styles.tabBar}>
+        {(['activity', 'trainings', 'moments', 'alerts'] as const).map(t => (
+          <Pressable
+            key={t}
+            style={[styles.tabBtn, tab === t && styles.tabBtnActive]}
+            onPress={() => setTab(t)}
+          >
+            <Ionicons name={TAB_ICONS[t]} size={16} color={tab === t ? '#031109' : palette.textMuted} />
+            <Text style={[styles.tabLabel, tab === t && styles.tabLabelActive]} numberOfLines={1}>
+              {TAB_LABELS[t]}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+
+      {tab === 'activity' && <ActivityFeed />}
+      {tab === 'trainings' && <TrainingsFeedTab />}
+      {tab === 'moments' && (
+        <>
+          <View style={styles.momentsActionsRow}>
+            <Pressable style={styles.momentsActionBtn} onPress={() => router.push('/moments-slideshow' as never)}>
+              <Ionicons name="play-circle-outline" size={16} color={palette.accent} />
+              <Text style={styles.momentsActionLabel}>Play</Text>
+            </Pressable>
+            <Pressable
+              style={styles.momentsActionBtn}
+              onPress={() => Share.share({
+                message: 'Check out FitMeet Moments — real people, real events 📸 https://fitmeet.fit/moments',
+              })}
+            >
+              <Ionicons name="share-social-outline" size={16} color={palette.accent} />
+              <Text style={styles.momentsActionLabel}>Share</Text>
+            </Pressable>
+          </View>
+          <MomentsGrid />
+        </>
+      )}
+
+      {tab === 'alerts' && (
       <ScrollView
         contentContainerStyle={[styles.content, { paddingBottom: tabBarHeight + 8 }]}
         showsVerticalScrollIndicator={false}
@@ -201,18 +275,6 @@ export default function NotificationsScreen() {
           />
         }
       >
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.eyebrow}>Alerts</Text>
-            <Text style={styles.title}>What changed</Text>
-          </View>
-          {notifications.length > 0 && (
-            <Pressable onPress={clearAll} style={styles.clearBtn}>
-              <Text style={styles.clearBtnText}>Clear all</Text>
-            </Pressable>
-          )}
-        </View>
-
         {loading && (
           <ActivityIndicator color={palette.accent} style={{ paddingVertical: spacing.xl }} />
         )}
@@ -377,7 +439,7 @@ export default function NotificationsScreen() {
                 title={<>New training synced: <Text style={styles.accent}>{n.training.name ?? n.training.category.label}</Text></>}
                 subtitle={meta || n.training.category.label}
                 time={timeAgo(n.created_at)}
-                onPress={() => router.push('/(tabs)/meet?tab=trainings' as never)}
+                onPress={() => setTab('trainings')}
                 unread={n.unread}
               />
             )
@@ -433,6 +495,7 @@ export default function NotificationsScreen() {
         })}
 
       </ScrollView>
+      )}
     </SafeAreaView>
   )
 }
@@ -443,11 +506,29 @@ const styles = StyleSheet.create({
   safe:    { flex: 1, backgroundColor: palette.bg },
   content: { padding: spacing.lg, gap: spacing.md },
 
-  header: { marginBottom: 4, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  header: { marginBottom: 4, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingTop: spacing.md },
   eyebrow: { color: palette.accent, fontSize: 13, fontWeight: '700', textTransform: 'uppercase' },
   title:  { color: palette.text, fontSize: 20, fontWeight: '800' },
   clearBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: palette.line },
   clearBtnText: { color: palette.textDim, fontSize: 12, fontWeight: '700' },
+
+  tabBar: {
+    flexDirection: 'row', gap: 4, padding: 4, marginHorizontal: spacing.lg, marginTop: spacing.md, marginBottom: spacing.sm,
+    backgroundColor: palette.panel, borderRadius: 16,
+    borderWidth: 1, borderColor: palette.line,
+  },
+  tabBtn:       { flex: 1, minWidth: 0, paddingVertical: 8, borderRadius: 12, alignItems: 'center', gap: 3 },
+  tabBtnActive: { backgroundColor: palette.accent },
+  tabLabel:     { color: palette.textMuted, fontSize: 10, fontWeight: '700' },
+  tabLabelActive: { color: '#031109' },
+
+  momentsActionsRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, paddingHorizontal: spacing.lg, marginBottom: spacing.sm },
+  momentsActionBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12,
+    backgroundColor: 'rgba(108,255,47,0.1)', borderWidth: 1, borderColor: 'rgba(108,255,47,0.25)',
+  },
+  momentsActionLabel: { color: palette.accent, fontSize: 13, fontWeight: '700' },
 
   emptyWrap: { alignItems: 'center', paddingVertical: 56, gap: 10 },
   emptyText: { color: palette.text, fontSize: 16, fontWeight: '700' },
