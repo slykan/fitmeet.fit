@@ -222,6 +222,21 @@ export default function NotificationsScreen() {
             <Text style={styles.clearBtnText}>Clear all</Text>
           </Pressable>
         )}
+        {tab === 'moments' && (
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <Pressable style={styles.momentsIconBtn} onPress={() => router.push('/moments-slideshow' as never)}>
+              <Ionicons name="play-circle-outline" size={18} color={palette.accent} />
+            </Pressable>
+            <Pressable
+              style={styles.momentsIconBtn}
+              onPress={() => Share.share({
+                message: 'Check out FitMeet Moments — real people, real events 📸 https://fitmeet.fit/moments',
+              })}
+            >
+              <Ionicons name="share-social-outline" size={18} color={palette.accent} />
+            </Pressable>
+          </View>
+        )}
       </View>
 
       <View style={styles.tabBar}>
@@ -241,26 +256,7 @@ export default function NotificationsScreen() {
 
       {tab === 'activity' && <ActivityFeed />}
       {tab === 'trainings' && <TrainingsFeedTab />}
-      {tab === 'moments' && (
-        <>
-          <View style={styles.momentsActionsRow}>
-            <Pressable style={styles.momentsActionBtn} onPress={() => router.push('/moments-slideshow' as never)}>
-              <Ionicons name="play-circle-outline" size={16} color={palette.accent} />
-              <Text style={styles.momentsActionLabel}>Play</Text>
-            </Pressable>
-            <Pressable
-              style={styles.momentsActionBtn}
-              onPress={() => Share.share({
-                message: 'Check out FitMeet Moments — real people, real events 📸 https://fitmeet.fit/moments',
-              })}
-            >
-              <Ionicons name="share-social-outline" size={16} color={palette.accent} />
-              <Text style={styles.momentsActionLabel}>Share</Text>
-            </Pressable>
-          </View>
-          <MomentsGrid />
-        </>
-      )}
+      {tab === 'moments' && <MomentsGrid />}
 
       {tab === 'alerts' && (
       <ScrollView
@@ -522,13 +518,11 @@ const styles = StyleSheet.create({
   tabLabel:     { color: palette.textMuted, fontSize: 10, fontWeight: '700' },
   tabLabelActive: { color: '#031109' },
 
-  momentsActionsRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, paddingHorizontal: spacing.lg, marginBottom: spacing.sm },
-  momentsActionBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12,
+  momentsIconBtn: {
+    width: 42, height: 42, borderRadius: 14,
     backgroundColor: 'rgba(108,255,47,0.1)', borderWidth: 1, borderColor: 'rgba(108,255,47,0.25)',
+    alignItems: 'center', justifyContent: 'center',
   },
-  momentsActionLabel: { color: palette.accent, fontSize: 13, fontWeight: '700' },
 
   emptyWrap: { alignItems: 'center', paddingVertical: 56, gap: 10 },
   emptyText: { color: palette.text, fontSize: 16, fontWeight: '700' },
