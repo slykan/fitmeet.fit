@@ -265,7 +265,7 @@ export default function NotificationsPage() {
         <div style={{ maxWidth: 680, margin: '0 auto' }}>
 
           <h1 className="text-2xl font-bold mb-6">
-            {tab === 'activity' ? 'Friends' : tab === 'trainings' ? 'Trainings' : tab === 'moments' ? 'Moments' : 'Notifications'}
+            {tab === 'activity' ? 'Activity' : tab === 'trainings' ? 'Trainings' : tab === 'moments' ? 'Moments' : 'Alerts'}
           </h1>
 
           <div className="grid grid-cols-4 gap-1 p-1 rounded-xl mb-6 w-full" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>

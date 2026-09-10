@@ -214,7 +214,7 @@ export default function NotificationsScreen() {
         <View>
           <Text style={styles.eyebrow}>Feed</Text>
           <Text style={styles.title}>
-            {tab === 'activity' ? 'Friends' : tab === 'trainings' ? 'Trainings' : tab === 'moments' ? 'Moments' : 'What changed'}
+            {tab === 'activity' ? 'Activity' : tab === 'trainings' ? 'Trainings' : tab === 'moments' ? 'Moments' : 'Alerts'}
           </Text>
         </View>
         {tab === 'alerts' && notifications.length > 0 && (
