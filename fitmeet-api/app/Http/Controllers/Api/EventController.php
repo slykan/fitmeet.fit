@@ -9,6 +9,7 @@ use App\Jobs\SendCancelledEventNotifications;
 use App\Http\Requests\StoreEventRequest;
 use App\Http\Requests\UpdateEventRequest;
 use App\Http\Resources\EventResource;
+use App\Jobs\SendEventRescheduledNotifications;
 use App\Jobs\SendNewEventNotifications;
 use App\Models\Activity;
 use App\Models\ActivityRoute;
@@ -368,6 +369,7 @@ HTML;
         }
 
         $data = $request->validated();
+        $originalStartAt = $event->start_at?->copy();
         $routeTitle = $data['route_title'] ?? null;
         $gpxTextForRoute = null;
         $gpxNameForRoute = $data['gpx_name'] ?? null;
@@ -415,6 +417,16 @@ HTML;
         $event->update($data);
 
         $freshEvent = $event->fresh();
+
+        if (
+            array_key_exists('start_at', $data)
+            && $originalStartAt
+            && $freshEvent->start_at
+            && ! $freshEvent->start_at->equalTo($originalStartAt)
+        ) {
+            SendEventRescheduledNotifications::dispatch($freshEvent, $originalStartAt);
+        }
+
         if ($freshEvent->gpx_path && $gpxTextForRoute) {
             $this->syncRouteFromEvent($freshEvent, $gpxTextForRoute, $routeTitle, $gpxNameForRoute);
         } else {

@@ -194,6 +194,9 @@ class FriendController extends Controller
         $cancelled = EventNotification::where('user_id', $me->id)->where('type', 'event_cancelled')->where('created_at', '>=', now()->subDays(30))
             ->whereNull('read_at')
             ->whereHas('event', fn ($q) => $q->where('events.status', 'cancelled'))->count();
+        $rescheduled = EventNotification::where('user_id', $me->id)->where('type', 'event_rescheduled')->where('created_at', '>=', now()->subDays(14))
+            ->whereNull('read_at')
+            ->whereHas('event', fn ($q) => $q->where('events.status', 'active'))->count();
         $started = EventNotification::where('user_id', $me->id)->where('type', 'event_started')->where('created_at', '>=', now()->subHours(24))
             ->whereNull('read_at')
             ->whereHas('event', fn ($q) => $q->where('events.status', 'active'))->count();
@@ -224,7 +227,7 @@ class FriendController extends Controller
             ->where(fn ($q) => $q->whereNull('target_country')->orWhere('target_country', $me->home_country))
             ->count();
 
-        return response()->json(['count' => $pending + $accepted + $reminders + $newEvents + $cancelled + $started + $eventComments + $eventMentions + $momentReminders + $trainingsSynced + $ridersStopped + $announcements]);
+        return response()->json(['count' => $pending + $accepted + $reminders + $newEvents + $cancelled + $rescheduled + $started + $eventComments + $eventMentions + $momentReminders + $trainingsSynced + $ridersStopped + $announcements]);
     }
 
     // GET /notifications
@@ -323,6 +326,28 @@ class FriendController extends Controller
             ->map(fn ($n) => [
                 'id'         => $n->id,
                 'type'       => 'event_cancelled',
+                'unread'     => $n->read_at === null,
+                'event'      => [
+                    'id'       => $n->event->id,
+                    'title'    => $n->event->title,
+                    'start_at' => $n->event->start_at->toIso8601String(),
+                    'timezone' => $n->event->timezone ?? config('app.event_timezone'),
+                    'address'  => $n->event->address,
+                    'category' => $n->event->category?->label() ?? 'Event',
+                ],
+                'created_at' => $n->created_at->toIso8601String(),
+            ]);
+
+        $rescheduledEvents = EventNotification::with('event')
+            ->where('user_id', $me->id)
+            ->where('type', 'event_rescheduled')
+            ->where('created_at', '>=', now()->subDays(14))
+            ->whereHas('event', fn ($q) => $q->where('events.status', 'active'))
+            ->latest()
+            ->get()
+            ->map(fn ($n) => [
+                'id'         => $n->id,
+                'type'       => 'event_rescheduled',
                 'unread'     => $n->read_at === null,
                 'event'      => [
                     'id'       => $n->event->id,
@@ -496,6 +521,7 @@ class FriendController extends Controller
                 ->concat($eventReminders)
                 ->concat($newEvents)
                 ->concat($cancelledEvents)
+                ->concat($rescheduledEvents)
                 ->concat($startedEvents)
                 ->concat($eventComments)
                 ->concat($eventMentions)

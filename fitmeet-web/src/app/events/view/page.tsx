@@ -16,7 +16,7 @@ import { MapLoadingOverlay } from '@/components/map-loading-overlay'
 import { shortAddress } from '@/lib/format-address'
 import { formatEventDateTime } from '@/lib/event-time'
 import { getYouTubeVideoId } from '@/lib/youtube'
-import { fetchRelevantEventWeather, isLiveEventWeatherWindow, windDirectionLabelDetailed, type EventWeather } from '@/lib/weather'
+import { fetchRelevantEventWeather, windDirectionLabelDetailed, type EventWeather } from '@/lib/weather'
 import { fetchRadarFrames, type RadarFrame } from '@/lib/radar'
 import api from '@/lib/api'
 import { playApplauseSound, playRandomActionSound } from '@/lib/action-sounds'
@@ -127,6 +127,14 @@ function liveTrackingOpen(event: Event) {
   const start = new Date(event.schedule.start_at).getTime()
   const durationMs = (event.schedule.duration_minutes ?? 60) * 60 * 1000
   return event.status === 'active' && Date.now() <= start + durationMs + 10 * 60 * 1000
+}
+
+// viewersCount/participants can be non-zero as soon as anyone opens the event page
+// (check-in and viewer polling both start well before start_at) -- gate the
+// viewers/applause bar itself on the event having actually started. Mirrors the
+// mobile app's own `eventStarted` gate in EventMapCard.
+function eventHasStarted(event: Event) {
+  return Date.now() >= new Date(event.schedule.start_at).getTime()
 }
 
 function canCheckInNow(event: Event) {
@@ -462,7 +470,6 @@ function EventContent() {
 
   useEffect(() => {
     if (!event) return
-    if (!isLiveEventWeatherWindow(event.schedule.start_at, event.schedule.timezone)) return
     fetchRadarFrames()
       .then(result => setRadarFrame(result ? result.frames[result.nowIndex] ?? null : null))
       .catch(() => setRadarFrame(null))
@@ -772,7 +779,6 @@ function EventContent() {
   const playStats = isAnimating && gpxResult
     ? statsUpToProgress(gpxResult.elevationProfile, playProgress)
     : null
-  const rainDataReliable = event ? isLiveEventWeatherWindow(event.schedule.start_at, event.schedule.timezone) : false
   const surfaceMixText = surfaceAnalysis?.summary.length
     ? surfaceAnalysis.summary.map(item => `${item.percent}% ${item.label.toLowerCase()}`).join(' - ')
     : null
@@ -1068,22 +1074,28 @@ function EventContent() {
                 weather={weather}
                 weatherVariant="hub"
                 showWindOverlay={showWindOverlay && !isMapInteracting && !isAnimating}
-                showCloudOverlay={showCloudOverlay && rainDataReliable && !isMapInteracting && !isAnimating}
-                radarFrame={rainDataReliable && !isAnimating ? radarFrame : null}
+                showCloudOverlay={showCloudOverlay && !isMapInteracting && !isAnimating}
+                radarFrame={!isAnimating ? radarFrame : null}
                 showMapLayerControl
                 readOnly
                 height={isMapFullscreen ? 'fill' : isMobileViewport ? 504 : 720}
                 participants={livePositions}
                 onClusterTap={setClusterListParticipants}
-                viewersCount={viewersCount}
-                onApplausePress={sendApplause}
+                viewersCount={event && eventHasStarted(event) ? viewersCount : 0}
+                onApplausePress={event && eventHasStarted(event) ? sendApplause : undefined}
                 hasApplauded={hasApplauded}
               />
+              {/* Bottom-right, stacked above both the map control bar and Leaflet's own
+                  bottomright zoom control (~63px tall incl. its 10px margin) -- top-right
+                  is already claimed by the weather badge and the layer-control pill, and
+                  both are variable-width, so anchoring here next to those was colliding
+                  with them, and the first attempt at this bottom-right spot collided with
+                  the zoom control instead. */}
               <button
                 type="button"
                 onClick={handleShareLiveMap}
                 title="Share live map"
-                className="absolute top-3 right-[52px] z-[750] inline-flex items-center justify-center rounded-[10px] border transition-colors"
+                className="absolute bottom-[124px] right-3 z-[750] inline-flex items-center justify-center rounded-[10px] border transition-colors"
                 style={{
                   width: 32, height: 32,
                   borderColor: copiedLiveMap ? 'var(--primary)' : 'rgba(255,255,255,0.12)',
@@ -1096,7 +1108,7 @@ function EventContent() {
                 type="button"
                 onClick={() => setIsMapFullscreen(v => !v)}
                 title={isMapFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
-                className="absolute top-3 right-3 z-[750] inline-flex items-center justify-center rounded-[10px] border transition-colors"
+                className="absolute bottom-[80px] right-3 z-[750] inline-flex items-center justify-center rounded-[10px] border transition-colors"
                 style={{
                   width: 32, height: 32,
                   borderColor: 'rgba(255,255,255,0.12)',
@@ -1129,20 +1141,18 @@ function EventContent() {
                   >
                     <Wind size={15} color={showWindOverlay ? '#031109' : 'var(--text-muted)'} />
                   </button>
-                  {rainDataReliable && (
-                    <button
-                      type="button"
-                      onClick={() => setShowCloudOverlay(v => !v)}
-                      className="inline-flex items-center justify-center rounded-[10px] border transition-colors"
-                      style={{
-                        width: 32, height: 32,
-                        borderColor: showCloudOverlay ? 'var(--primary)' : 'rgba(255,255,255,0.12)',
-                        background: showCloudOverlay ? 'var(--primary)' : 'rgba(255,255,255,0.03)',
-                      }}
-                    >
-                      <Cloud size={15} color={showCloudOverlay ? '#031109' : 'var(--text-muted)'} />
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => setShowCloudOverlay(v => !v)}
+                    className="inline-flex items-center justify-center rounded-[10px] border transition-colors"
+                    style={{
+                      width: 32, height: 32,
+                      borderColor: showCloudOverlay ? 'var(--primary)' : 'rgba(255,255,255,0.12)',
+                      background: showCloudOverlay ? 'var(--primary)' : 'rgba(255,255,255,0.03)',
+                    }}
+                  >
+                    <Cloud size={15} color={showCloudOverlay ? '#031109' : 'var(--text-muted)'} />
+                  </button>
                   {gpxResult && gpxResult.track.length >= 2 && (
                     <button
                       type="button"

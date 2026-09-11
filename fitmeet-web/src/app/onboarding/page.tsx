@@ -350,7 +350,7 @@ export default function OnboardingPage() {
           <Section title="Your location" icon={<MapPin size={15} />}>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-              <Field label="Country *" error={errors.home_country?.message}>
+              <Field label="Country/Region *" error={errors.home_country?.message}>
                 <div className="relative">
                   <Globe
                     size={14}
@@ -358,8 +358,8 @@ export default function OnboardingPage() {
                     style={{ color: 'var(--text-muted)' }}
                   />
                   <input
-                    {...register('home_country', { required: 'Country is required' })}
-                    placeholder="Search countries..."
+                    {...register('home_country', { required: 'Country/region is required' })}
+                    placeholder="Search countries/regions..."
                     list="country-options"
                     autoComplete="off"
                     className={cn(inputCls(!!errors.home_country), 'pl-9')}
