@@ -66,7 +66,12 @@ type SavePickerWindow = Window & {
 }
 
 function gpxEndpoint(event: Event) {
-  return event.is_private ? `/events/${event.id}/gpx` : `/events/public/${event.id}/gpx`
+  const base = event.is_private ? `/events/${event.id}/gpx` : `/events/public/${event.id}/gpx`
+  // Cache-bust on the current GPX file's own filename (it changes whenever the
+  // route/GPX is swapped) so the browser's long-lived Cache-Control on this
+  // endpoint doesn't keep serving a previous route after an edit.
+  const version = event.activity.gpx_url?.split('/').pop()
+  return version ? `${base}?v=${encodeURIComponent(version)}` : base
 }
 
 interface Event {

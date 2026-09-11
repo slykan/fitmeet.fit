@@ -350,7 +350,11 @@ function EditContent() {
       fd.append('link_url',    data.link_url?.trim() || '')
       fd.append('youtube_url', data.youtube_url?.trim() || '')
 
-      await api.patch(`/events/${id}`, fd)
+      // PHP never parses a multipart body for PATCH/PUT (only POST), so a real
+      // PATCH with FormData silently arrives empty — spoof the method instead,
+      // matching the mobile app's event edit.
+      fd.append('_method', 'PATCH')
+      await api.post(`/events/${id}`, fd)
       router.replace(`/events/view?id=${id}`)
     } catch (err: unknown) {
       const e   = err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } }
@@ -370,7 +374,8 @@ function EditContent() {
       try {
         const fd = new globalThis.FormData()
         fd.append('gpx_remove', '1')
-        await api.patch(`/events/${id}`, fd)
+        fd.append('_method', 'PATCH')
+        await api.post(`/events/${id}`, fd)
       } catch {
         alert('Could not delete this route.')
         return
