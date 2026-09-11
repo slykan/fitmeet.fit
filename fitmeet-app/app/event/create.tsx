@@ -231,6 +231,7 @@ export default function CreateEventScreen() {
   const [title,       setTitle]       = useState('')
   const [category,    setCategory]    = useState('')
   const [description, setDescription] = useState('')
+  const [showErrors,  setShowErrors]  = useState(false)
 
   // When
   const [pickedDate,   setPickedDate]   = useState<Date | null>(null)
@@ -666,6 +667,9 @@ export default function CreateEventScreen() {
   }
 
   async function handleSubmit() {
+    if (!title.trim() || !category || !pickedDate || lat === null) {
+      setShowErrors(true)
+    }
     if (!title.trim())    { Alert.alert('Missing', 'Add a title.'); return }
     if (!category)        { Alert.alert('Missing', 'Select a category.'); return }
     if (!pickedDate)      { Alert.alert('Missing', 'Set date and time.'); return }
@@ -834,28 +838,31 @@ export default function CreateEventScreen() {
         {/* ── Basic info ── */}
         <SectionHeader title="Basic info" icon="information-circle-outline" />
 
-        <Field label="Event title *">
+        <Field label="Event title *" error={showErrors && !title.trim()}>
           <TextInput
-            style={styles.input} value={title} onChangeText={setTitle}
+            style={[styles.input, showErrors && !title.trim() && styles.inputError]}
+            value={title} onChangeText={setTitle}
             placeholder="e.g. Morning run around Jarun"
             placeholderTextColor={palette.textDim} maxLength={100}
           />
         </Field>
 
-        <Field label="Category *">
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
-            {CATEGORIES.map(cat => (
-              <Pressable
-                key={cat.value}
-                onPress={() => setCategory(cat.value)}
-                style={[styles.chip, category === cat.value && styles.chipActive]}
-              >
-                <Text style={[styles.chipText, category === cat.value && styles.chipTextActive]}>
-                  {cat.emoji} {cat.label}
-                </Text>
-              </Pressable>
-            ))}
-          </ScrollView>
+        <Field label="Category *" error={showErrors && !category}>
+          <View style={[styles.chipRowWrap, showErrors && !category && styles.chipRowWrapError]}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+              {CATEGORIES.map(cat => (
+                <Pressable
+                  key={cat.value}
+                  onPress={() => setCategory(cat.value)}
+                  style={[styles.chip, category === cat.value && styles.chipActive]}
+                >
+                  <Text style={[styles.chipText, category === cat.value && styles.chipTextActive]}>
+                    {cat.emoji} {cat.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
         </Field>
 
         <Field label="Description">
@@ -918,8 +925,11 @@ export default function CreateEventScreen() {
         <SectionHeader title="When" icon="calendar-outline" />
 
         <View style={styles.row}>
-          <Field label="Date *" style={{ flex: 1 }}>
-            <Pressable style={styles.pickerBtn} onPress={() => setShowDatePicker(true)}>
+          <Field label="Date *" style={{ flex: 1 }} error={showErrors && !pickedDate}>
+            <Pressable
+              style={[styles.pickerBtn, showErrors && !pickedDate && styles.inputError]}
+              onPress={() => setShowDatePicker(true)}
+            >
               <Ionicons name="calendar-outline" size={16} color={pickedDate ? palette.accent : palette.textMuted} />
               <Text style={[styles.pickerLabel, pickedDate && styles.pickerLabelActive]}>
                 {pickedDate
@@ -928,8 +938,11 @@ export default function CreateEventScreen() {
               </Text>
             </Pressable>
           </Field>
-          <Field label="Time *" style={{ flex: 1 }}>
-            <Pressable style={styles.pickerBtn} onPress={() => setShowTimePicker(true)}>
+          <Field label="Time *" style={{ flex: 1 }} error={showErrors && !pickedDate}>
+            <Pressable
+              style={[styles.pickerBtn, showErrors && !pickedDate && styles.inputError]}
+              onPress={() => setShowTimePicker(true)}
+            >
               <Ionicons name="time-outline" size={16} color={pickedDate ? palette.accent : palette.textMuted} />
               <Text style={[styles.pickerLabel, pickedDate && styles.pickerLabelActive]}>
                 {pickedDate
@@ -1003,8 +1016,8 @@ export default function CreateEventScreen() {
         {/* ── Where ── */}
         <SectionHeader title="Where" icon="location-outline" />
 
-        <Field label="Tap on map to pin location *">
-          <View style={styles.mapWrap}>
+        <Field label="Tap on map to pin location *" error={showErrors && lat === null}>
+          <View style={[styles.mapWrap, showErrors && lat === null && styles.inputError]}>
             <WebView
               key={mapKey}
               ref={webViewRef}
@@ -1365,10 +1378,10 @@ const sh = StyleSheet.create({
   badgeText: { color: palette.textMuted, fontSize: 11, fontWeight: '600' },
 })
 
-function Field({ label, children, style }: { label: string; children: React.ReactNode; style?: object }) {
+function Field({ label, children, style, error }: { label: string; children: React.ReactNode; style?: object; error?: boolean }) {
   return (
     <View style={[{ gap: 6 }, style]}>
-      <Text style={styles.fieldLabel}>{label}</Text>
+      <Text style={[styles.fieldLabel, error && styles.fieldLabelError]}>{label}</Text>
       {children}
     </View>
   )
@@ -1535,6 +1548,7 @@ const styles = StyleSheet.create({
   successLaterText: { color: palette.textMuted, fontSize: 13, fontWeight: '700' },
 
   fieldLabel: { color: palette.textMuted, fontSize: 13, fontWeight: '700' },
+  fieldLabelError: { color: '#f87171' },
   row:        { flexDirection: 'row', gap: spacing.sm },
 
   input: {
@@ -1542,8 +1556,11 @@ const styles = StyleSheet.create({
     backgroundColor: palette.panel, borderWidth: 1, borderColor: palette.line,
     paddingHorizontal: spacing.md, color: palette.text, fontSize: 15,
   },
+  inputError: { borderWidth: 2, borderColor: '#f87171', backgroundColor: 'rgba(248,113,113,0.08)' },
   textarea: { height: 90, paddingTop: 14, textAlignVertical: 'top' },
 
+  chipRowWrap: { borderRadius: 16, borderWidth: 2, borderColor: 'transparent' },
+  chipRowWrapError: { borderColor: '#f87171', backgroundColor: 'rgba(248,113,113,0.08)', padding: 6 },
   chipRow:      { flexDirection: 'row', gap: 8 },
   chip:         { borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7, backgroundColor: palette.panelRaised, borderWidth: 1, borderColor: palette.line },
   chipActive:   { backgroundColor: palette.accent, borderColor: palette.accent },
