@@ -368,6 +368,13 @@ function EditContent() {
     }
   }
 
+  function onInvalid(formErrors: Record<string, unknown>) {
+    const firstKey = Object.keys(formErrors)[0]
+    if (!firstKey) return
+    const el = document.getElementById(firstKey)
+    el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }
+
   async function clearRoute() {
     const shouldPersistRemoval = Boolean(id) && !gpxFile && !gpxText && !fitMeetRouteId && (hasExistingRoute || Boolean(gpxResult)) && !routeRemoved
     if (shouldPersistRemoval) {
@@ -419,11 +426,11 @@ function EditContent() {
         <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Update your event details</p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+      <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-5">
 
         {/* Basic info */}
         <Section title="Basic info" icon={<Info size={15} />}>
-          <Field label="Event title *" error={errors.title?.message}>
+          <Field id="title" label="Event title *" error={errors.title?.message}>
             <input
               {...register('title', { required: 'Title is required' })}
               placeholder="e.g. Morning run around Jarun"
@@ -431,7 +438,7 @@ function EditContent() {
             />
           </Field>
 
-          <Field label="Category *" error={errors.category?.message} className="mt-4">
+          <Field id="category" label="Category *" error={errors.category?.message} className="mt-4">
             <Controller
               name="category"
               control={control}
@@ -529,7 +536,7 @@ function EditContent() {
         {/* When */}
         <Section title="When" icon={<Calendar size={15} />}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label="Date & time *" error={errors.start_at?.message}>
+            <Field id="start_at" label="Date & time *" error={errors.start_at?.message}>
               <input
                 {...register('start_at', { required: 'Start time is required' })}
                 type="datetime-local"
@@ -911,11 +918,11 @@ function Section({ title, icon, badge, children }: {
   )
 }
 
-function Field({ label, error, className, children }: {
-  label?: string; error?: string; className?: string; children: React.ReactNode
+function Field({ label, error, className, children, id }: {
+  label?: string; error?: string; className?: string; children: React.ReactNode; id?: string
 }) {
   return (
-    <div className={className}>
+    <div className={className} id={id}>
       {label && <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-muted)' }}>{label}</label>}
       {children}
       {error && <p className="text-red-400 text-xs mt-1">{error}</p>}
@@ -925,11 +932,11 @@ function Field({ label, error, className, children }: {
 
 function inputCls(hasError: boolean) {
   return cn(
-    'w-full px-3 py-2.5 rounded-xl border text-sm outline-none transition-all',
-    'bg-[--background] text-[--text-primary]',
+    'w-full px-3 py-2.5 rounded-xl border-2 text-sm outline-none transition-all',
+    'text-[--text-primary]',
     'focus:ring-1',
     hasError
-      ? 'border-red-500/50 focus:border-red-500/50 focus:ring-red-500/20'
-      : 'border-[--border] focus:border-[--primary] focus:ring-[--primary]/20',
+      ? 'border-red-500 bg-red-500/10 focus:border-red-500 focus:ring-red-500/30'
+      : 'border-[--border] bg-[--background] focus:border-[--primary] focus:ring-[--primary]/20',
   )
 }

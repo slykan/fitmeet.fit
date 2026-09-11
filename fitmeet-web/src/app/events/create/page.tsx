@@ -432,6 +432,13 @@ export default function CreateEventPage() {
     }
   }
 
+  function onInvalid(formErrors: Record<string, unknown>) {
+    const firstKey = Object.keys(formErrors)[0]
+    if (!firstKey) return
+    const el = document.getElementById(firstKey)
+    el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }
+
   if (!token) return null
 
   return (
@@ -447,12 +454,12 @@ export default function CreateEventPage() {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+          <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-5">
 
             {/* ── Basic info ── */}
             <Section title="Basic info" icon={<Info size={15} />}>
 
-              <Field label="Event title *" error={errors.title?.message}>
+              <Field id="title" label="Event title *" error={errors.title?.message}>
                 <input
                   {...register('title', { required: 'Title is required', maxLength: { value: 100, message: 'Max 100 characters' } })}
                   placeholder="e.g. Morning run around Jarun"
@@ -460,7 +467,7 @@ export default function CreateEventPage() {
                 />
               </Field>
 
-              <Field label="Category *" error={errors.category?.message} className="mt-4">
+              <Field id="category" label="Category *" error={errors.category?.message} className="mt-4">
                 <Controller
                   name="category"
                   control={control}
@@ -556,7 +563,7 @@ export default function CreateEventPage() {
             {/* ── When ── */}
             <Section title="When" icon={<Calendar size={15} />}>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Field label="Date & time *" error={errors.start_at?.message}>
+                <Field id="start_at" label="Date & time *" error={errors.start_at?.message}>
                   <input
                     {...register('start_at', { required: 'Start time is required' })}
                     type="datetime-local"
@@ -598,7 +605,7 @@ export default function CreateEventPage() {
 
             {/* ── Where ── */}
             <Section title="Where" icon={<MapPin size={15} />}>
-              <Field label="Pin location on map *" error={errors.lat?.message}>
+              <Field id="lat" label="Pin location on map *" error={errors.lat?.message}>
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
                     Click on the map to set the meeting point
@@ -948,15 +955,16 @@ function Section({
 }
 
 function Field({
-  label, error, className, children,
+  label, error, className, children, id,
 }: {
   label?: string
   error?: string
   className?: string
   children: React.ReactNode
+  id?: string
 }) {
   return (
-    <div className={className}>
+    <div className={className} id={id}>
       {label && (
         <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-muted)' }}>
           {label}
@@ -970,11 +978,11 @@ function Field({
 
 function inputCls(hasError: boolean) {
   return cn(
-    'w-full px-3 py-2.5 rounded-xl border text-sm outline-none transition-all',
-    'bg-[--background] text-[--text-primary]',
+    'w-full px-3 py-2.5 rounded-xl border-2 text-sm outline-none transition-all',
+    'text-[--text-primary]',
     'focus:ring-1',
     hasError
-      ? 'border-red-500/50 focus:border-red-500/50 focus:ring-red-500/20'
-      : 'border-[--border] focus:border-[--primary] focus:ring-[--primary]/20',
+      ? 'border-red-500 bg-red-500/10 focus:border-red-500 focus:ring-red-500/30'
+      : 'border-[--border] bg-[--background] focus:border-[--primary] focus:ring-[--primary]/20',
   )
 }
