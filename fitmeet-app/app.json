@@ -72,7 +72,7 @@
       "edgeToEdgeEnabled": true,
       "googleServicesFile": "./google-services.json",
       "package": "app.fitmeet.fit",
-      "versionCode": 306,
+      "versionCode": 307,
       "intentFilters": [
         {
           "action": "VIEW",
