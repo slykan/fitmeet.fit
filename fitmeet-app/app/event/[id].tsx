@@ -513,6 +513,7 @@ export default function EventDetailScreen() {
   const [selectedMentions, setSelectedMentions] = useState<MentionDraft[]>([])
   const [zoomAvatar, setZoomAvatar] = useState<string | null>(null)
   const [mapEnabled, setMapEnabled] = useState(false)
+  const [replayMapEnabled, setReplayMapEnabled] = useState(false)
   const [momentUploading, setMomentUploading] = useState(false)
 
   const loadEvent = useCallback(() => {
@@ -1303,7 +1304,7 @@ export default function EventDetailScreen() {
       </Modal>
       <ScrollView
         ref={scrollRef}
-        scrollEnabled={!mapEnabled}
+        scrollEnabled={!mapEnabled && !replayMapEnabled}
         contentContainerStyle={[styles.content, { paddingBottom: spacing.xl + keyboardHeight }]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -1501,7 +1502,7 @@ export default function EventDetailScreen() {
         {ended && trackParticipants.length > 0 && (
           <View style={styles.replaySection}>
             <Text style={[styles.cardLabel, styles.replayLabel]}>Route replay</Text>
-            <RouteReplayMap tracks={replayTracks} />
+            <RouteReplayMap tracks={replayTracks} onMapEnabledChange={setReplayMapEnabled} />
             <Pressable style={[styles.trackPickerRow, styles.replayTrackPicker]} onPress={() => setTrackPickerOpen(true)}>
               <Ionicons name="people-outline" size={16} color={palette.accent} />
               <Text style={styles.trackPickerText}>

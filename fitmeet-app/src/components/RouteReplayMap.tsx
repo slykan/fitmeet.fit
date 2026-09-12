@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { Modal, Pressable, StyleSheet, Text, View } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import { WebView } from 'react-native-webview'
 import type { WebView as WebViewType } from 'react-native-webview'
 
@@ -22,6 +23,7 @@ export type ReplayTrack = {
 
 type Props = {
   tracks: ReplayTrack[]
+  onMapEnabledChange?: (enabled: boolean) => void
 }
 
 type PlayState = 'idle' | 'playing' | 'paused'
@@ -299,15 +301,25 @@ function buildHtml(tracksJson: string) {
 </html>`
 }
 
-export function RouteReplayMap({ tracks }: Props) {
+export function RouteReplayMap({ tracks, onMapEnabledChange }: Props) {
   const webViewRef = useRef<WebViewType>(null)
   const [playState, setPlayState] = useState<PlayState>('idle')
   const [speedStepIndex, setSpeedStepIndex] = useState(0)
   const [mapEnabled, setMapEnabled] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(false)
   const [followTarget, setFollowTarget] = useState<FollowTarget>(null)
   const elapsedMsRef = useRef(0)
   const speedRef = useRef(SPEED_STEPS[0])
   const frameRef = useRef<number | null>(null)
+
+  // Outside fullscreen, the map only accepts touches once "Move map" is pressed,
+  // so it doesn't steal scroll gestures from the page it's embedded in (mirrors
+  // EventMapCard). In fullscreen there's no outer scroll view to protect.
+  const effectiveMapEnabled = isFullscreen || mapEnabled
+
+  useEffect(() => {
+    onMapEnabledChange?.(effectiveMapEnabled)
+  }, [effectiveMapEnabled, onMapEnabledChange])
 
   const validTracks = useMemo(() => tracks.filter((t) => t.points.length >= 2), [tracks])
 
@@ -431,8 +443,8 @@ export function RouteReplayMap({ tracks }: Props) {
     } catch {}
   }
 
-  return (
-    <View style={styles.card}>
+  const content = (
+    <View style={[styles.card, isFullscreen && styles.cardFullscreen]}>
       <WebView
         ref={webViewRef}
         source={source}
@@ -440,7 +452,7 @@ export function RouteReplayMap({ tracks }: Props) {
         javaScriptEnabled
         domStorageEnabled
         scrollEnabled={false}
-        pointerEvents={mapEnabled ? 'auto' : 'none'}
+        pointerEvents={effectiveMapEnabled ? 'auto' : 'none'}
         onMessage={handleMessage}
         style={styles.webview}
       />
@@ -458,13 +470,22 @@ export function RouteReplayMap({ tracks }: Props) {
             <Text style={[styles.speedText, speedStepIndex > 0 && styles.speedTextActive]}>{SPEED_STEPS[speedStepIndex]}x</Text>
           </Pressable>
         )}
-        <Pressable
-          style={[styles.moveMapBtn, mapEnabled && styles.toggleBtnActive]}
-          onPress={() => setMapEnabled((v) => !v)}
-        >
-          <Text style={[styles.moveMapText, mapEnabled && styles.speedTextActive]}>{mapEnabled ? 'Done' : 'Move map'}</Text>
-        </Pressable>
+        {!isFullscreen && (
+          <Pressable
+            style={[styles.moveMapBtn, mapEnabled && styles.toggleBtnActive]}
+            onPress={() => setMapEnabled((v) => !v)}
+          >
+            <Text style={[styles.moveMapText, mapEnabled && styles.speedTextActive]}>{mapEnabled ? 'Done' : 'Move map'}</Text>
+          </Pressable>
+        )}
       </View>
+      <Pressable
+        style={styles.fullscreenBtn}
+        onPress={() => setIsFullscreen((v) => !v)}
+        hitSlop={8}
+      >
+        <Ionicons name={isFullscreen ? 'contract-outline' : 'expand-outline'} size={15} color={palette.text} />
+      </Pressable>
       {followLabel && (
         <View style={styles.followPillWrap} pointerEvents="box-none">
           <Pressable style={styles.followPill} onPress={clearFollow}>
@@ -476,6 +497,15 @@ export function RouteReplayMap({ tracks }: Props) {
       )}
     </View>
   )
+
+  if (isFullscreen) {
+    return (
+      <Modal visible transparent={false} animationType="fade" onRequestClose={() => setIsFullscreen(false)}>
+        <SafeAreaView style={styles.fullscreenSafeArea}>{content}</SafeAreaView>
+      </Modal>
+    )
+  }
+  return content
 }
 
 const styles = StyleSheet.create({
@@ -486,6 +516,22 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: palette.line,
     backgroundColor: '#060c1a',
+  },
+  cardFullscreen: {
+    flex: 1,
+    height: undefined,
+    borderRadius: 0,
+    borderWidth: 0,
+  },
+  fullscreenSafeArea: { flex: 1, backgroundColor: '#060c1a' },
+  fullscreenBtn: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    width: 30, height: 30, borderRadius: 10,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(7,13,28,0.78)',
+    borderWidth: 1, borderColor: palette.line,
   },
   webview: { flex: 1, backgroundColor: 'transparent' },
   overlay: {
