@@ -193,8 +193,12 @@ class User extends Authenticatable
 
     public function isOnboardingComplete(): bool
     {
-        return filled($this->phone)
-            && filled($this->home_city)
+        // Phone is optional throughout the app (there's even a "hide phone" toggle) and
+        // the onboarding screen itself never requires it -- only name/city/country do.
+        // Requiring it here too meant anyone who skipped phone during onboarding got
+        // silently stuck: the save "succeeded", but this stayed false forever, so the
+        // app bounced them back to onboarding on every launch.
+        return filled($this->home_city)
             && filled($this->home_country);
     }
 }
