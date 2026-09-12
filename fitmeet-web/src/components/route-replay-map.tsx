@@ -248,7 +248,13 @@ export default function RouteReplayMap({ tracks, height = 320 }: { tracks: Repla
       const b = t.coords[index + 1]
       const lat = b ? a[0] + (b[0] - a[0]) * frac : a[0]
       const lng = b ? a[1] + (b[1] - a[1]) * frac : a[1]
-      nextPositions.push({ id: t.id, name: t.name, avatar: t.avatar, lat, lng, speed: t.speeds[index] })
+      // Interpolate speed the same way as position -- otherwise a large gap between two
+      // recorded points (patchy signal, sparse pings) shows the same stale km/h for the
+      // entire gap instead of smoothly transitioning to the next reading.
+      const speedA = t.speeds[index]
+      const speedB = t.speeds[index + 1]
+      const speed = b && speedA != null && speedB != null ? speedA + (speedB - speedA) * frac : speedA ?? speedB ?? null
+      nextPositions.push({ id: t.id, name: t.name, avatar: t.avatar, lat, lng, speed })
       const upto = t.coords.slice(0, index + 1)
       if (frac > 0 && b) upto.push([lat, lng])
       nextTraveled[t.id] = upto
