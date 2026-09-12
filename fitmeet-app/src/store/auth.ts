@@ -17,6 +17,7 @@ export interface MobileUser {
   }
   push_notifications: boolean | null
   auto_share_live_location: boolean
+  share_trainings_in_feed: boolean
   location: { lat: number | null; lng: number | null }
   home: { lat: number | null; lng: number | null; city: string | null; country: string | null }
   radius: 'nearby' | 'city' | 'region' | 'unlimited'
@@ -100,6 +101,7 @@ function normalizeUser(user: MobileUser): MobileUser {
     },
     push_notifications: user.push_notifications ?? true,
     auto_share_live_location: user.auto_share_live_location ?? false,
+    share_trainings_in_feed: user.share_trainings_in_feed ?? true,
     location: user.location ?? { lat: null, lng: null },
     home: user.home ?? { lat: null, lng: null, city: null, country: null },
     radius: user.radius ?? 'nearby',

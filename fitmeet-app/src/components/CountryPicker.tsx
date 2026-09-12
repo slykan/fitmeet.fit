@@ -34,7 +34,7 @@ export function CountryPicker({ visible, value, onClose, onSelect }: Props) {
         <Pressable style={styles.card} onPress={(e) => e.stopPropagation()}>
 
           <View style={styles.header}>
-            <Text style={styles.title}>Select country</Text>
+            <Text style={styles.title}>Select country/region</Text>
             <Pressable onPress={handleClose} hitSlop={8}>
               <Ionicons name="close" size={20} color={palette.textMuted} />
             </Pressable>
@@ -46,7 +46,7 @@ export function CountryPicker({ visible, value, onClose, onSelect }: Props) {
               style={styles.searchInput}
               value={query}
               onChangeText={setQuery}
-              placeholder="Search countries..."
+              placeholder="Search countries/regions..."
               placeholderTextColor={palette.textDim}
               autoFocus
               autoCorrect={false}

@@ -62,6 +62,7 @@ export default function SettingsScreen() {
   const [phone,      setPhone]      = useState(user?.phone ?? '')
   const [hidePhone,  setHidePhone]  = useState(user?.hide_phone ?? false)
   const [autoShareLiveLocation, setAutoShareLiveLocation] = useState(user?.auto_share_live_location ?? false)
+  const [shareTrainingsInFeed, setShareTrainingsInFeed] = useState(user?.share_trainings_in_feed ?? true)
   const [birthDay,   setBirthDay]   = useState(birth0.d)
   const [birthMonth, setBirthMonth] = useState(birth0.m)
   const [birthYear,  setBirthYear]  = useState(birth0.y)
@@ -135,7 +136,7 @@ export default function SettingsScreen() {
 
   async function handleSave() {
     if (!name.trim()) { Alert.alert('Missing', 'Name is required.'); return }
-    if (!city.trim() || !country.trim()) { Alert.alert('Missing', 'City and country/address are required.'); return }
+    if (!city.trim() || !country.trim()) { Alert.alert('Missing', 'City and country/region are required.'); return }
     setSaving(true); setError(null); setSaved(false)
     try {
       const coords = await geocodeHome()
@@ -149,6 +150,7 @@ export default function SettingsScreen() {
         phone: phone.trim() || null,
         hide_phone: hidePhone,
         auto_share_live_location: autoShareLiveLocation,
+        share_trainings_in_feed: shareTrainingsInFeed,
         home_city: city.trim(),
         home_country: country.trim(),
         radius,
@@ -317,14 +319,24 @@ export default function SettingsScreen() {
           </View>
         </Pressable>
 
+        <Pressable style={styles.toggleRow} onPress={() => setShareTrainingsInFeed(v => !v)}>
+          <View style={styles.toggleInfo}>
+            <Text style={styles.toggleLabel}>Show my trainings to friends</Text>
+            <Text style={styles.toggleDesc}>Let friends see your synced Strava/Huawei trainings in the Feed's Trainings tab</Text>
+          </View>
+          <View style={[styles.toggle, shareTrainingsInFeed && styles.toggleOn]}>
+            <View style={[styles.knob, shareTrainingsInFeed && styles.knobOn]} />
+          </View>
+        </Pressable>
+
         {/* ── Location ── */}
         <SectionHeader title="Location" icon="location-outline" />
 
         <View style={styles.row}>
-          <Field label="Country *" style={{ flex: 1 }}>
+          <Field label="Country/Region *" style={{ flex: 1 }}>
             <Pressable style={[styles.input, styles.pickerInput]} onPress={() => setShowCountryPicker(true)}>
               <Text style={country ? styles.pickerValue : styles.pickerPlaceholder}>
-                {country || 'Select country'}
+                {country || 'Select country/region'}
               </Text>
             </Pressable>
           </Field>
@@ -334,7 +346,7 @@ export default function SettingsScreen() {
               onPress={() => { if (countryCode) setShowCityPicker(true) }}
             >
               <Text style={city ? styles.pickerValue : styles.pickerPlaceholder}>
-                {city || (countryCode ? 'Select city' : 'Pick a country first')}
+                {city || (countryCode ? 'Select city' : 'Pick a country/region first')}
               </Text>
             </Pressable>
           </Field>

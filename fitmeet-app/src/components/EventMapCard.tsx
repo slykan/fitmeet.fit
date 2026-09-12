@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { WebView } from 'react-native-webview'
 import type { WebView as WebViewType } from 'react-native-webview'
 
-import { CurrentWeather, fetchCurrentWeather, fetchRelevantEventWeather, isLiveEventWeatherWindow } from '@/src/lib/weather'
+import { CurrentWeather, fetchCurrentWeather, fetchRelevantEventWeather } from '@/src/lib/weather'
 import { fetchRadarFrames, type RadarFrame } from '@/src/lib/radar'
 import type { TrackSegment } from '@/src/lib/gpx'
 import { palette } from '@/src/theme'
@@ -766,8 +766,6 @@ export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegment
   const [mapLayer, setMapLayer] = useState<MapLayer>('standard')
   const [showWind, setShowWind] = useState(false)
   const [showClouds, setShowClouds] = useState(false)
-  const rainReliable = startAt ? isLiveEventWeatherWindow(startAt) : true
-  const effectiveShowClouds = showClouds && rainReliable
   const [layerPickerOpen, setLayerPickerOpen] = useState(false)
   const [weatherRefreshTick, setWeatherRefreshTick] = useState(0)
   const [radarPath, setRadarPath] = useState<string | null>(null)
@@ -782,7 +780,7 @@ export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegment
   // the LIVE badge itself on the event having actually started.
   const eventStarted = startAt ? Date.now() >= new Date(startAt).getTime() : true
   const html = useMemo(
-    () => buildHtml(lat, lng, { lat, lng }, emoji, null, showWind, effectiveShowClouds, radarPath, coloredSegments ?? [], elevationSegments ?? [], surfaceSegments ?? [], pois ?? [], 'standard', true, false, false),
+    () => buildHtml(lat, lng, { lat, lng }, emoji, null, showWind, showClouds, radarPath, coloredSegments ?? [], elevationSegments ?? [], surfaceSegments ?? [], pois ?? [], 'standard', true, false, false),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [lat, lng, emoji, coloredSegments, elevationSegments, surfaceSegments, pois],
   )
@@ -842,14 +840,10 @@ export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegment
   }, [center.lat, center.lng, startAt, weatherRefreshTick])
 
   useEffect(() => {
-    if (!rainReliable) {
-      setRadarPath(null)
-      return
-    }
     fetchRadarFrames()
       .then((result) => setRadarPath(result ? result.frames[result.nowIndex]?.path ?? null : null))
       .catch(() => setRadarPath(null))
-  }, [rainReliable, weatherRefreshTick])
+  }, [weatherRefreshTick])
 
   const weatherRef = useRef<CurrentWeather | null>(null)
   weatherRef.current = weather
@@ -858,9 +852,9 @@ export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegment
     webViewRef.current?.postMessage(JSON.stringify({
       type: 'weatherUpdate', weather,
       showWind: showWind && !isAnimating,
-      showClouds: effectiveShowClouds && !isAnimating,
+      showClouds: showClouds && !isAnimating,
     }))
-  }, [weather, showWind, effectiveShowClouds, isAnimating])
+  }, [weather, showWind, showClouds, isAnimating])
 
   useEffect(() => {
     if (radarPath) webViewRef.current?.postMessage(JSON.stringify({ type: 'radarUpdate', path: radarPath }))
@@ -905,7 +899,7 @@ export function EventMapCard({ lat, lng, startAt, emoji = '📍', coloredSegment
               JSON.stringify({
                 type: 'weatherUpdate', weather: weatherRef.current,
                 showWind: showWind && !isAnimating,
-                showClouds: effectiveShowClouds && !isAnimating,
+                showClouds: showClouds && !isAnimating,
               }),
             )
           }

@@ -82,7 +82,7 @@ export default function OnboardingScreen() {
       return
     }
     if (!city.trim() || !country.trim()) {
-      setError('City and country are required.')
+      setError('City and country/region are required.')
       return
     }
     setSaving(true)
@@ -109,7 +109,7 @@ export default function OnboardingScreen() {
       payload.email_event_reminders = emailReminders
       payload.email_friend_events   = emailFriendEvt
 
-      await fetch(`${API_URL}/me`, {
+      const res = await fetch(`${API_URL}/me`, {
         method: 'PATCH',
         headers: {
           Accept: 'application/json',
@@ -118,6 +118,10 @@ export default function OnboardingScreen() {
         },
         body: JSON.stringify(payload),
       })
+      if (!res.ok) {
+        const body = await res.json().catch(() => null)
+        throw new Error(body?.message ?? 'Could not save. Try again.')
+      }
       await refreshMe()
       router.replace('/(tabs)/hub')
     } catch (err) {
@@ -178,7 +182,7 @@ export default function OnboardingScreen() {
             onPress={() => setShowCountryPicker(true)}
           >
             <Text style={country ? styles.pickerValue : styles.pickerPlaceholder}>
-              {country || 'Country *'}
+              {country || 'Country/Region *'}
             </Text>
           </Pressable>
           <Pressable
@@ -186,7 +190,7 @@ export default function OnboardingScreen() {
             onPress={() => { if (countryCode) setShowCityPicker(true) }}
           >
             <Text style={city ? styles.pickerValue : styles.pickerPlaceholder}>
-              {city || (countryCode ? 'City *' : 'Pick a country first')}
+              {city || (countryCode ? 'City *' : 'Pick a country/region first')}
             </Text>
           </Pressable>
         </Section>

@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import Constants from 'expo-constants'
 import * as Notifications from 'expo-notifications'
 import * as TaskManager from 'expo-task-manager'
 import { router } from 'expo-router'
@@ -102,7 +103,7 @@ function routeFromNotificationData(data: Record<string, unknown> | undefined) {
     return
   }
 
-  if (eventId && ['new_event', 'event_reminder', 'event_cancelled', 'rider_stopped', 'applause_sent'].includes(type ?? '')) {
+  if (eventId && ['new_event', 'event_reminder', 'event_cancelled', 'event_rescheduled', 'rider_stopped', 'applause_sent'].includes(type ?? '')) {
     router.push(`/event/${eventId}` as never)
     return
   }
@@ -290,8 +291,27 @@ export async function syncPushToken(pushEnabled: boolean) {
     return
   }
 
-  const tokenResult = await Notifications.getDevicePushTokenAsync()
-  const token = typeof tokenResult.data === 'string' ? tokenResult.data : null
+  // On Android, expo-notifications' native device token IS the FCM registration
+  // token, so it works directly with the backend's Firebase Admin SDK delivery.
+  // On iOS it's the raw APNs device token instead -- Firebase's sendMulticast()
+  // doesn't accept that, so pushes silently failed even with permission granted,
+  // and there's no native Firebase SDK running here to exchange it for one (that
+  // route needs @react-native-firebase/messaging, which broke this project's iOS
+  // native build via its Swift Package Manager-based Firebase resolution colliding
+  // with other native modules at link time). Using Expo's own push token/service
+  // for iOS instead sidesteps native linking entirely -- the backend sends to
+  // Expo's push API for `platform: 'ios'` tokens instead of Firebase.
+  let token: string | null = null
+  let tokenType: 'fcm' | 'expo' = 'fcm'
+  if (Platform.OS === 'ios') {
+    const projectId = Constants.expoConfig?.extra?.eas?.projectId
+    const tokenResult = await Notifications.getExpoPushTokenAsync({ projectId })
+    token = tokenResult.data
+    tokenType = 'expo'
+  } else {
+    const tokenResult = await Notifications.getDevicePushTokenAsync()
+    token = typeof tokenResult.data === 'string' ? tokenResult.data : null
+  }
 
   if (!token) {
     return
@@ -300,6 +320,7 @@ export async function syncPushToken(pushEnabled: boolean) {
   await api.post('/me/push-token', {
     token,
     platform: Platform.OS,
+    token_type: tokenType,
     device_name: Platform.OS === 'android' ? 'Android device' : 'iOS device',
   })
 

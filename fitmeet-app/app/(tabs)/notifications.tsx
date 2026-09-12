@@ -43,6 +43,7 @@ type Notification =
   | { id: number; type: 'event_reminder';  event:   EventInfo; remind_offset: string; created_at: string; unread?: boolean }
   | { id: number; type: 'new_event';       event:   EventInfo; created_at: string; unread?: boolean }
   | { id: number; type: 'event_cancelled'; event:   EventInfo; created_at: string; unread?: boolean }
+  | { id: number; type: 'event_rescheduled'; event: EventInfo; created_at: string; unread?: boolean }
   | { id: number; type: 'event_started';   event:   EventInfo; created_at: string; unread?: boolean }
   | { id: number; type: 'event_comment';   event:   EventInfo; created_at: string; unread?: boolean }
   | { id: number; type: 'event_comment_mention'; event: EventInfo; created_at: string; unread?: boolean }
@@ -352,6 +353,22 @@ export default function NotificationsScreen() {
                 title={<>Event cancelled: <Text style={{ color: '#f87171' }}>{n.event.title}</Text></>}
                 subtitle={n.event.address ?? undefined}
                 time={timeAgo(n.created_at)}
+                unread={n.unread}
+              />
+            )
+          }
+
+          if (n.type === 'event_rescheduled') {
+            return (
+              <GenericCard
+                key={`erx-${n.id}`}
+                icon="time-outline"
+                iconColor="#f5a524"
+                iconBg="rgba(245,165,36,0.1)"
+                title={<>Time changed: <Text style={styles.accent}>{n.event.title}</Text></>}
+                subtitle={`Now ${formatEventDate(n.event.start_at)}${n.event.address ? ' · ' + n.event.address : ''}`}
+                time={timeAgo(n.created_at)}
+                onPress={() => router.push(`/event/${n.event.id}` as never)}
                 unread={n.unread}
               />
             )
