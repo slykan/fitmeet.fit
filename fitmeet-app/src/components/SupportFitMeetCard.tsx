@@ -19,18 +19,19 @@ type Props = {
   onPurchased?: (productId: string) => void
 }
 
-// Huawei/Honor devices ship without Google Play Store on any 2019+ model and are
-// typically distributed via AppGallery even when a review device happens to have
-// GMS installed -- Google Play Billing then still fails on purchase because the
-// app wasn't installed *through* Play. canMakePayments() alone doesn't catch this
-// (it already passed once and the purchase still errored -- Huawei AppGallery
-// review, rule 3.1), so gate on the hardware directly instead of trusting the
-// billing SDK's own self-report.
-function isHuaweiOrHonorDevice(): boolean {
-  if (Platform.OS !== 'android') return false
-  const constants = Platform.constants as { Brand?: string; Manufacturer?: string } | undefined
-  const needle = `${constants?.Brand ?? ''} ${constants?.Manufacturer ?? ''}`.toLowerCase()
-  return needle.includes('huawei') || needle.includes('honor')
+// Brand/manufacturer detection (isHuaweiOrHonorDevice) used to gate this on the
+// hardware, but that also blocked genuine Play Store installs on Honor/Huawei
+// phones that do have working Play Billing -- "has GMS" and "was installed
+// through Play" are different things, but brand alone can't tell them apart.
+// Now split at build time instead: the Play Store AAB is built with this unset
+// (billing works normally, gated only by canMakePayments()), and a separate
+// Huawei AppGallery build sets EXPO_PUBLIC_DISTRIBUTION_CHANNEL=huawei so it
+// always shows as unsupported there -- avoids the AppGallery rule 3.1 rejection
+// (a review device had GMS and canMakePayments() still passed, but the actual
+// purchase errored because the app wasn't installed *through* Play).
+const DISTRIBUTION_CHANNEL = process.env.EXPO_PUBLIC_DISTRIBUTION_CHANNEL ?? 'play'
+function isHuaweiAppGalleryBuild(): boolean {
+  return Platform.OS === 'android' && DISTRIBUTION_CHANNEL === 'huawei'
 }
 
 const PRODUCT_COPY: Record<string, { title: string; note: string }> = {
@@ -78,7 +79,7 @@ export function SupportFitMeetCard({
           return
         }
 
-        if (isHuaweiOrHonorDevice()) {
+        if (isHuaweiAppGalleryBuild()) {
           if (alive) {
             setBillingUnsupported(true)
             setProducts([])
