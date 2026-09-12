@@ -11,6 +11,7 @@ class UserPushToken extends Model
         'user_id',
         'token',
         'platform',
+        'token_type',
         'device_name',
         'last_seen_at',
     ];

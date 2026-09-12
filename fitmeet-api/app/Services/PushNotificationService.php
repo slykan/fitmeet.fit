@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\User;
 use App\Models\UserPushToken;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Kreait\Firebase\Contract\Messaging;
 use Kreait\Firebase\Messaging\AndroidConfig;
@@ -35,15 +36,17 @@ class PushNotificationService
             return;
         }
 
-        $tokens = UserPushToken::query()
+        $recipients = UserPushToken::query()
             ->whereIn('user_id', $ids)
             ->whereHas('user', fn ($query) => $query->where('push_notifications', true))
-            ->pluck('token')
-            ->filter()
-            ->unique()
-            ->values();
+            ->get(['token', 'token_type'])
+            ->unique('token');
 
-        $this->sendToTokens($tokens, $title, $body, $data);
+        $fcmTokens = $recipients->where('token_type', '!=', 'expo')->pluck('token')->filter()->values();
+        $expoTokens = $recipients->where('token_type', 'expo')->pluck('token')->filter()->values();
+
+        $this->sendToTokens($fcmTokens, $title, $body, $data);
+        $this->sendToExpoTokens($expoTokens, $title, $body, $data);
     }
 
     public function sendToUser(User $user, string $title, string $body, array $data = []): void
@@ -130,6 +133,82 @@ class PushNotificationService
                         ),
                     ]);
                 }
+            }
+        }
+    }
+
+    /**
+     * iOS tokens are Expo push tokens (see push-notifications.ts syncPushToken) rather
+     * than FCM tokens -- there's no native Firebase SDK in this app to exchange an APNs
+     * device token for an FCM one, so these go to Expo's push service instead, which
+     * handles APNs delivery on Expo's side.
+     *
+     * @param  Collection<int, string>  $tokens
+     * @param  array<string, scalar|null>  $data
+     */
+    private function sendToExpoTokens(Collection $tokens, string $title, string $body, array $data = []): void
+    {
+        if ($tokens->isEmpty()) {
+            return;
+        }
+
+        $payload = collect($data)
+            ->filter(fn ($value) => $value !== null)
+            ->map(fn ($value) => (string) $value)
+            ->all();
+
+        $dataOnly = ($payload['_data_only'] ?? '') === 'true';
+        $categoryId = $payload['categoryId'] ?? null;
+
+        foreach ($tokens->chunk(100) as $chunk) {
+            $messages = $chunk->map(fn ($token) => array_filter([
+                'to' => $token,
+                'title' => $title,
+                'body' => $body,
+                'data' => $payload,
+                'categoryId' => $categoryId,
+                // Mirrors the FCM hybrid path: keep a visible notification so the OS
+                // shows something even if our JS never runs, while still marking the
+                // push as background-capable for when it does.
+                '_contentAvailable' => $dataOnly,
+            ], fn ($value) => $value !== null))->values()->all();
+
+            try {
+                $response = Http::acceptJson()
+                    ->withHeaders(['Accept-Encoding' => 'gzip, deflate'])
+                    ->post('https://exp.host/--/api/v2/push/send', $messages);
+            } catch (\Throwable $e) {
+                Log::warning('Expo push send failed', [
+                    'title' => $title,
+                    'token_count' => $chunk->count(),
+                    'exception' => $e->getMessage(),
+                ]);
+                continue;
+            }
+
+            $tickets = collect($response->json('data') ?? []);
+            $deadTokens = $tickets
+                ->zip($chunk)
+                ->filter(fn ($pair) => ($pair[0]['details']['error'] ?? null) === 'DeviceNotRegistered')
+                ->map(fn ($pair) => $pair[1])
+                ->filter()
+                ->all();
+
+            if (! empty($deadTokens)) {
+                UserPushToken::query()->whereIn('token', $deadTokens)->delete();
+            }
+
+            $otherErrors = $tickets->filter(
+                fn ($ticket) => ($ticket['status'] ?? null) === 'error'
+                    && ($ticket['details']['error'] ?? null) !== 'DeviceNotRegistered'
+            );
+
+            if ($otherErrors->isNotEmpty()) {
+                Log::warning('Expo push delivery failures', [
+                    'title' => $title,
+                    'dead_tokens_pruned' => count($deadTokens),
+                    'other_failures' => $otherErrors->pluck('message'),
+                ]);
             }
         }
     }

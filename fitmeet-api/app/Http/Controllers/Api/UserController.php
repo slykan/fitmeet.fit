@@ -196,6 +196,7 @@ class UserController extends Controller
         $data = $request->validate([
             'token' => ['required', 'string', 'max:4096'],
             'platform' => ['sometimes', 'nullable', 'string', 'max:24'],
+            'token_type' => ['sometimes', 'nullable', 'string', 'in:fcm,expo'],
             'device_name' => ['sometimes', 'nullable', 'string', 'max:120'],
         ]);
 
@@ -204,6 +205,7 @@ class UserController extends Controller
             [
                 'user_id' => $request->user()->id,
                 'platform' => $data['platform'] ?? null,
+                'token_type' => $data['token_type'] ?? 'fcm',
                 'device_name' => $data['device_name'] ?? null,
                 'last_seen_at' => now(),
             ],
