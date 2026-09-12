@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { MapContainer, TileLayer, Polyline, Marker, Tooltip, ZoomControl, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { Play, Pause, FastForward } from 'lucide-react'
+import { Play, Pause, FastForward, Maximize2, Minimize2 } from 'lucide-react'
 
 export type ReplayPoint = {
   lat: number
@@ -188,6 +188,7 @@ function indexForElapsed(elapsedMsList: number[], elapsedMs: number): { index: n
 export default function RouteReplayMap({ tracks, height = 320 }: { tracks: ReplayTrack[]; height?: number }) {
   const [playState, setPlayState] = useState<PlayState>('idle')
   const [speedStepIndex, setSpeedStepIndex] = useState(0)
+  const [isFullscreen, setIsFullscreen] = useState(false)
   const [positions, setPositions] = useState<RiderPosition[]>([])
   const [traveled, setTraveled] = useState<Record<number, [number, number][]>>({})
   const elapsedMsRef = useRef(0)
@@ -316,8 +317,8 @@ export default function RouteReplayMap({ tracks, height = 320 }: { tracks: Repla
 
   return (
     <div
-      className="relative rounded-2xl overflow-hidden border"
-      style={{ height, borderColor: 'rgba(255,255,255,0.1)', background: '#060c1a' }}
+      className={isFullscreen ? 'fixed inset-0 z-[9999]' : 'relative rounded-2xl overflow-hidden border'}
+      style={isFullscreen ? { background: '#060c1a' } : { height, borderColor: 'rgba(255,255,255,0.1)', background: '#060c1a' }}
     >
       <MapContainer
         center={prepared.items[0].coords[0]}
@@ -374,6 +375,21 @@ export default function RouteReplayMap({ tracks, height = 320 }: { tracks: Repla
           </button>
         )}
       </div>
+      <button
+        type="button"
+        onClick={() => setIsFullscreen((v) => !v)}
+        title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+        className="absolute top-3 right-3 z-[500] inline-flex items-center justify-center rounded-[10px] border transition-colors"
+        style={{
+          width: 32, height: 32,
+          borderColor: 'rgba(255,255,255,0.12)',
+          background: 'rgba(7,11,24,0.78)',
+        }}
+      >
+        {isFullscreen
+          ? <Minimize2 size={15} color="var(--text-muted)" />
+          : <Maximize2 size={15} color="var(--text-muted)" />}
+      </button>
     </div>
   )
 }
