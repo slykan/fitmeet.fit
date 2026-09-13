@@ -19,7 +19,6 @@ import { useAuthStore } from '@/src/store/auth'
 import { palette, spacing } from '@/src/theme'
 import { fetchEventWeatherSnapshots, type EventWeatherSnapshot } from '@/src/lib/event-weather-snapshots'
 import { sortEventsBySchedule } from '@/src/lib/event-order'
-import { fetchGpxActivityStats, type GpxActivityStats } from '@/src/lib/gpx-activity-stats'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -228,7 +227,6 @@ const EventsTab = forwardRef<LoadMoreHandle>(function EventsTab(_props, ref) {
   const [sortKey, setSortKey] = useState<SortKey>('soonest')
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
   const [weatherSnapshots, setWeatherSnapshots] = useState<Record<number, EventWeatherSnapshot | null>>({})
-  const [gpxStats, setGpxStats] = useState<Record<number, GpxActivityStats>>({})
   const discoveryLat = user?.home?.lat ?? user?.location?.lat ?? null
   const discoveryLng = user?.home?.lng ?? user?.location?.lng ?? null
 
@@ -307,38 +305,6 @@ const EventsTab = forwardRef<LoadMoreHandle>(function EventsTab(_props, ref) {
       setReminderIds(ids)
     }).catch(() => {})
   }, [])
-
-  useEffect(() => {
-    const targets = events.filter((event) => event.activity.gpx_url)
-
-    if (targets.length === 0) {
-      setGpxStats({})
-      return
-    }
-
-    let cancelled = false
-    const token = useAuthStore.getState().token
-
-    Promise.all(
-      targets.map(async (event) => ({
-        id: event.id,
-        stats: await fetchGpxActivityStats(event.activity.gpx_url!, token).catch(() => null),
-      })),
-    ).then((entries) => {
-      if (cancelled) return
-      const next: Record<number, GpxActivityStats> = {}
-      for (const entry of entries) {
-        if (entry.stats) next[entry.id] = entry.stats
-      }
-      setGpxStats(next)
-    }).catch(() => {
-      if (!cancelled) setGpxStats({})
-    })
-
-    return () => {
-      cancelled = true
-    }
-  }, [events])
 
   useEffect(() => {
     const weatherEligibleIds = events
@@ -523,8 +489,8 @@ const EventsTab = forwardRef<LoadMoreHandle>(function EventsTab(_props, ref) {
         const { date, time } = formatDate(ev.schedule.start_at)
         const emoji = CATEGORY_EMOJI[ev.category.value] ?? '📍'
 
-        const activityDistanceKm = gpxStats[ev.id]?.distanceKm ?? ev.activity.distance_km
-        const activityElevGain = gpxStats[ev.id]?.elevGain ?? ev.activity.elevation_gain
+        const activityDistanceKm = ev.activity.distance_km
+        const activityElevGain = ev.activity.elevation_gain
 
         return (
           <Pressable

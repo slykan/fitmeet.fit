@@ -15,7 +15,6 @@ import { CATEGORIES } from '@/src/lib/categories'
 import { api } from '@/src/lib/api'
 import { fetchEventWeatherSnapshots, type EventWeatherSnapshot } from '@/src/lib/event-weather-snapshots'
 import { sortEventsBySchedule } from '@/src/lib/event-order'
-import { fetchGpxActivityStats, type GpxActivityStats } from '@/src/lib/gpx-activity-stats'
 import { fetchRadarFrames, type RadarFrame } from '@/src/lib/radar'
 import { cloudLabel, CurrentWeather, DailyForecastDay, fetchCurrentWeather, fetchDailyForecast, fetchRainForecast, RainForecast, weatherIconName } from '@/src/lib/weather'
 import { useAuthStore } from '@/src/store/auth'
@@ -94,7 +93,6 @@ export default function HubScreen() {
   const [mapWasMoved, setMapWasMoved] = useState(false)
   const [weatherSnapshots, setWeatherSnapshots] = useState<Record<number, EventWeatherSnapshot | null>>({})
   const [weatherRefreshTick, setWeatherRefreshTick] = useState(0)
-  const [gpxStats, setGpxStats] = useState<Record<number, GpxActivityStats>>({})
   const [radarFrames, setRadarFrames] = useState<RadarFrame[]>([])
   const [radarNowIndex, setRadarNowIndex] = useState(0)
   const [radarIndex, setRadarIndex] = useState(0)
@@ -204,38 +202,6 @@ export default function HubScreen() {
   }, [effectiveWeatherCenter.lat, effectiveWeatherCenter.lng, weatherRefreshTick])
 
   useEffect(() => {
-    const targets = events.filter((event) => event.activity.gpx_url)
-
-    if (targets.length === 0) {
-      setGpxStats({})
-      return
-    }
-
-    let cancelled = false
-    const token = useAuthStore.getState().token
-
-    Promise.all(
-      targets.map(async (event) => ({
-        id: event.id,
-        stats: await fetchGpxActivityStats(event.activity.gpx_url!, token).catch(() => null),
-      })),
-    ).then((entries) => {
-      if (cancelled) return
-      const next: Record<number, GpxActivityStats> = {}
-      for (const entry of entries) {
-        if (entry.stats) next[entry.id] = entry.stats
-      }
-      setGpxStats(next)
-    }).catch(() => {
-      if (!cancelled) setGpxStats({})
-    })
-
-    return () => {
-      cancelled = true
-    }
-  }, [events])
-
-  useEffect(() => {
     const weatherEligibleIds = events
       .filter((event) => event.location.lat != null && event.location.lng != null)
       .map((event) => event.id)
@@ -298,8 +264,8 @@ export default function HubScreen() {
     const emoji = CATEGORY_EMOJI[ev.category.value] ?? '📍'
     const hasReminder = reminderIds.has(ev.id)
 
-    const activityDistanceKm = gpxStats[ev.id]?.distanceKm ?? ev.activity.distance_km
-    const activityElevGain = gpxStats[ev.id]?.elevGain ?? ev.activity.elevation_gain
+    const activityDistanceKm = ev.activity.distance_km
+    const activityElevGain = ev.activity.elevation_gain
     const { date, time } = formatDate(ev.schedule.start_at)
 
     return (
