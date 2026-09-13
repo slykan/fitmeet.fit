@@ -203,13 +203,35 @@ export default function NotificationsPage() {
   const [notifs,   setNotifs]   = useState<Notif[]>([])
   const [loading,  setLoading]  = useState(true)
   const [acting,   setActing]   = useState<number | null>(null)
+  const [alertsUnread, setAlertsUnread] = useState(0)
 
   useEffect(() => setMounted(true), [])
+
+  // The nav badge lights up for anything in this same list (see navbar.tsx),
+  // but once inside Feed there's no way to tell which sub-tab it's for --
+  // everything it counts (friend requests, event changes, training syncs,
+  // announcements) only ever surfaces in Alerts, so mirror the same
+  // last-seen-timestamp comparison here just to drive a dot on that tab.
+  useEffect(() => {
+    if (!mounted || !token || !user?.id || tab === 'alerts') return
+    const userId = user.id
+    api.get('/notifications').then(({ data }) => {
+      const items = data.data ?? []
+      const lastSeenRaw = window.localStorage.getItem(notificationsSeenKey(userId))
+      const lastSeenAt = lastSeenRaw ? new Date(lastSeenRaw).getTime() : 0
+      const unseenCount = items.filter((item: { created_at?: string }) => {
+        if (!item.created_at) return true
+        return new Date(item.created_at).getTime() > lastSeenAt
+      }).length
+      setAlertsUnread(unseenCount)
+    }).catch(() => {})
+  }, [mounted, token, user, tab])
 
   useEffect(() => {
     if (!mounted) return
     if (!token) { router.replace('/login?redirect=/notifications'); return }
     if (tab !== 'alerts') return
+    setAlertsUnread(0)
     if (typeof window !== 'undefined' && user?.id) {
       window.localStorage.setItem(notificationsSeenKey(user.id), new Date().toISOString())
       window.dispatchEvent(new Event('fitmeet-notifications-seen'))
@@ -293,13 +315,19 @@ export default function NotificationsPage() {
               <button
                 key={t}
                 onClick={() => setTab(t)}
-                className="min-w-0 py-2 text-xs sm:text-sm font-medium rounded-lg transition-colors"
+                className="relative min-w-0 py-2 text-xs sm:text-sm font-medium rounded-lg transition-colors"
                 style={{
                   background: tab === t ? 'var(--primary)' : 'transparent',
                   color:      tab === t ? '#000' : 'var(--text-muted)',
                 }}
               >
                 {t === 'activity' ? 'Activity' : t === 'trainings' ? 'Trainings' : t === 'moments' ? 'Moments' : 'Alerts'}
+                {t === 'alerts' && alertsUnread > 0 && (
+                  <span
+                    className="absolute top-1 right-2 w-[7px] h-[7px] rounded-full"
+                    style={{ background: '#f87171' }}
+                  />
+                )}
               </button>
             ))}
           </div>
