@@ -160,6 +160,7 @@ export default function NotificationsScreen() {
   const [loading,       setLoading]       = useState(true)
   const [refreshing,    setRefreshing]    = useState(false)
   const [acting,        setActing]        = useState<number | null>(null)
+  const [alertsUnread,  setAlertsUnread]  = useState(0)
 
   const load = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true)
@@ -179,6 +180,12 @@ export default function NotificationsScreen() {
     if (tab === 'alerts') {
       load()
       badgeEvents.clearAlerts()
+      setAlertsUnread(0)
+    } else {
+      // Not on the Alerts sub-tab right now -- still need to know whether it
+      // has anything waiting, so the tab pill itself can show a dot (the
+      // bottom nav badge alone doesn't say *which* Feed sub-tab it's for).
+      api.get('/notifications/count').then(({ data }) => setAlertsUnread(data.count ?? 0)).catch(() => {})
     }
   }, [load, tab]))
 
@@ -247,7 +254,10 @@ export default function NotificationsScreen() {
             style={[styles.tabBtn, tab === t && styles.tabBtnActive]}
             onPress={() => setTab(t)}
           >
-            <Ionicons name={TAB_ICONS[t]} size={16} color={tab === t ? '#031109' : palette.textMuted} />
+            <View>
+              <Ionicons name={TAB_ICONS[t]} size={16} color={tab === t ? '#031109' : palette.textMuted} />
+              {t === 'alerts' && alertsUnread > 0 && <View style={styles.tabDot} />}
+            </View>
             <Text style={[styles.tabLabel, tab === t && styles.tabLabelActive]} numberOfLines={1}>
               {TAB_LABELS[t]}
             </Text>
@@ -534,6 +544,11 @@ const styles = StyleSheet.create({
   tabBtnActive: { backgroundColor: palette.accent },
   tabLabel:     { color: palette.textMuted, fontSize: 10, fontWeight: '700' },
   tabLabelActive: { color: '#031109' },
+  tabDot: {
+    position: 'absolute', top: -2, right: -6,
+    width: 7, height: 7, borderRadius: 4,
+    backgroundColor: '#f87171',
+  },
 
   momentsIconBtn: {
     width: 42, height: 42, borderRadius: 14,
