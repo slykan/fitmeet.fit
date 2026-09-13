@@ -103,14 +103,24 @@ class GpxElevationEnricher
             return null;
         }
 
-        $eleByIndex = array_combine($sampleIndexes, $elevations);
+        // open-meteo's DEM has a few meters of per-point noise, and this only samples
+        // up to MAX_SAMPLE_POINTS across the whole route (adjacent samples can be
+        // hundreds of meters apart on a long route). On genuinely flat terrain that
+        // noise is the entire signal, and bike computers that auto-detect climbs from
+        // the embedded profile (e.g. iGPSPORT's iClimb) fire on every few-meter blip.
+        // A light moving average knocks that down while still tracking real hills,
+        // which show a sustained trend across several samples rather than one blip.
+        $elevations = $this->smoothElevations($elevations);
+
+        // Only the sampled indexes had an elevation lookup, but every trkpt/rtept
+        // needs an <ele> -- a GPX with it on some points and not others is unusual
+        // enough that downstream readers (bike computer transfer apps, climb
+        // detection) don't all handle the gaps the same way. Interpolate the rest.
+        $eleByIndex = $this->interpolateAllIndexes($sampleIndexes, $elevations, $total);
 
         // Splice from the end so earlier byte offsets stay valid as we go.
         $result = $xml;
         for ($i = $total - 1; $i >= 0; $i--) {
-            if (! isset($eleByIndex[$i])) {
-                continue;
-            }
             $fullMatch = $matches[0][$i][0];
             $offset = $matches[0][$i][1];
             $tagName = $matches[1][$i][0];
@@ -126,5 +136,63 @@ class GpxElevationEnricher
         }
 
         return $result;
+    }
+
+    /**
+     * Fills in elevation for every point index 0..$total-1 by linearly interpolating
+     * between the nearest sampled indexes on either side. Sampled indexes keep their
+     * own (already-smoothed) value exactly.
+     *
+     * @param  array<int, int>  $sampleIndexes  Sorted ascending, as built in embed().
+     * @param  array<int, float>  $elevations  Parallel to $sampleIndexes.
+     * @return array<int, float>  Keyed by point index.
+     */
+    private function interpolateAllIndexes(array $sampleIndexes, array $elevations, int $total): array
+    {
+        $known = array_combine($sampleIndexes, $elevations);
+        $all = [];
+        $lowerIdx = null;
+
+        foreach ($sampleIndexes as $idx) {
+            $upperIdx = $idx;
+            for ($i = $lowerIdx === null ? 0 : $lowerIdx; $i < $idx; $i++) {
+                if ($lowerIdx === null) {
+                    $all[$i] = $known[$upperIdx];
+                    continue;
+                }
+                $frac = ($i - $lowerIdx) / ($upperIdx - $lowerIdx);
+                $all[$i] = round($known[$lowerIdx] + ($known[$upperIdx] - $known[$lowerIdx]) * $frac, 1);
+            }
+            $all[$idx] = $known[$idx];
+            $lowerIdx = $idx;
+        }
+
+        for ($i = $lowerIdx + 1; $i < $total; $i++) {
+            $all[$i] = $known[$lowerIdx];
+        }
+
+        return $all;
+    }
+
+    /**
+     * Centered 3-point moving average. Endpoints are left as-is so the route's
+     * start/end elevation still matches what was actually looked up there.
+     *
+     * @param  array<int, float>  $elevations
+     * @return array<int, float>
+     */
+    private function smoothElevations(array $elevations): array
+    {
+        $n = count($elevations);
+        if ($n < 3) {
+            return $elevations;
+        }
+
+        $smoothed = $elevations;
+        for ($i = 1; $i < $n - 1; $i++) {
+            $smoothed[$i] = round(($elevations[$i - 1] + $elevations[$i] + $elevations[$i + 1]) / 3, 1);
+        }
+
+        return $smoothed;
     }
 }
