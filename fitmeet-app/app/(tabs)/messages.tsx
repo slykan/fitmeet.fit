@@ -168,7 +168,7 @@ function MemberPickerModal({
             </ScrollView>
           )}
 
-          <ScrollView style={{ maxHeight: 240 }} showsVerticalScrollIndicator={false}>
+          <ScrollView style={{ maxHeight: 240 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
             {filtered.length === 0 ? (
               <Text style={modal.emptyText}>No friends available.</Text>
             ) : (
@@ -767,7 +767,7 @@ function NewChatModal({
                 </ScrollView>
               )}
 
-              <ScrollView style={{ maxHeight: 260 }} showsVerticalScrollIndicator={false}>
+              <ScrollView style={{ maxHeight: 260 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                 {friends.length === 0 && <Text style={modal.emptyText}>No friends yet.</Text>}
                 {filtered.map((friend) => {
                   const active = selected.some((p) => p.id === friend.id)
