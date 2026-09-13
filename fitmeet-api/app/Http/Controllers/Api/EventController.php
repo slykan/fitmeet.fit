@@ -695,6 +695,13 @@ HTML;
             'lat' => 'required|numeric|between:-90,90',
             'lng' => 'required|numeric|between:-180,180',
             'speed_kmh' => 'nullable|numeric|min:0|max:150',
+            // The device's own GPS fix time, not when this request happened to reach
+            // the server. Without it, a batch of background-buffered points that get
+            // posted in a catch-up burst after connectivity returns all land within
+            // the same second or two of *server* time despite covering several real
+            // minutes on the ground -- corrupting the recorded chronology and making
+            // route replay draw an instant "teleport" between them.
+            'recorded_at' => 'nullable|date|after:2020-01-01|before:' . now()->addMinutes(5)->toIso8601String(),
         ]);
 
         $participant = \DB::table('event_participants')
@@ -765,7 +772,7 @@ HTML;
             'lat' => $data['lat'],
             'lng' => $data['lng'],
             'speed_kmh' => $data['speed_kmh'] ?? null,
-            'recorded_at' => now(),
+            'recorded_at' => isset($data['recorded_at']) ? \Illuminate\Support\Carbon::parse($data['recorded_at']) : now(),
         ]);
 
         return response()->json(['updated_at' => now()->toIso8601String()]);
