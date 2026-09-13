@@ -27,17 +27,28 @@ TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }: TaskManager.T
   if (!eventId) return
 
   const locations = (data as { locations?: Location.LocationObject[] } | undefined)?.locations
-  const latest = locations?.[locations.length - 1]
-  if (!latest) return
+  if (!locations?.length) return
 
-  try {
-    await api.post(`/events/${eventId}/location`, {
-      lat: latest.coords.latitude,
-      lng: latest.coords.longitude,
-      speed_kmh: speedKmh(latest.coords.speed),
-    })
-  } catch {
-    // Event ended / sharing disabled elsewhere — just skip this beat.
+  // The OS can deliver several buffered fixes in one callback after a signal
+  // gap or background suspension -- posting only the last one silently threw
+  // the rest away, and even that lone point got stamped with the *server's*
+  // receive time (see EventController::updateLocation), not when it was
+  // actually recorded. A catch-up burst of posts a few seconds apart in real
+  // time then all landed within the same second or two server-side despite
+  // covering several real minutes on the ground, corrupting the recorded
+  // chronology enough that route replay draws an instant "teleport" between
+  // them. Post every fix, each with its own device timestamp, in order.
+  for (const location of locations) {
+    try {
+      await api.post(`/events/${eventId}/location`, {
+        lat: location.coords.latitude,
+        lng: location.coords.longitude,
+        speed_kmh: speedKmh(location.coords.speed),
+        recorded_at: new Date(location.timestamp).toISOString(),
+      })
+    } catch {
+      // Event ended / sharing disabled elsewhere — just skip this beat.
+    }
   }
 })
 
@@ -109,6 +120,7 @@ export async function postForegroundLocation(eventId: number | string, location:
       lat: location.coords.latitude,
       lng: location.coords.longitude,
       speed_kmh: speedKmh(location.coords.speed),
+      recorded_at: new Date(location.timestamp).toISOString(),
     })
   } catch {
     // ignore — next tick will retry
