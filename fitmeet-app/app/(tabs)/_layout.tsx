@@ -1,5 +1,6 @@
 import { Tabs, usePathname } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import * as Notifications from 'expo-notifications'
 import { useEffect, useRef, useState } from 'react'
 import { AppState, BackHandler } from 'react-native'
 
@@ -31,6 +32,15 @@ export default function TabsLayout() {
 
   badgeEvents.clearAlerts = () => setNotifCount(0)
   badgeEvents.clearChat   = () => setMsgCount(0)
+
+  // Nothing was ever telling iOS/Android what number to show on the app icon
+  // itself -- setBadgeCountAsync() only takes effect while the app has been
+  // opened/foregrounded recently (it doesn't update while fully killed;
+  // that needs a `badge` field in the push payload instead), but that still
+  // beats showing no badge at all, which is what happened before.
+  useEffect(() => {
+    Notifications.setBadgeCountAsync(notifCount + msgCount).catch(() => {})
+  }, [notifCount, msgCount])
 
   useEffect(() => {
     const tabPaths = new Set([
