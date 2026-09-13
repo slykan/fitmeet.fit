@@ -1,4 +1,4 @@
-import { fetchElevationProfile, parseGpxText } from '@/src/lib/gpx'
+import { fetchElevationProfile, parseGpxTextAsync } from '@/src/lib/gpx'
 import type { GpxParsed } from '@/src/lib/gpx'
 
 export type GpxActivityStats = {
@@ -52,7 +52,7 @@ export async function fetchGpxActivityStats(gpxUrl: string, token?: string | nul
 
   if (!response.ok) return null
 
-  const parsed = parseGpxText(await response.text())
+  const parsed = await parseGpxTextAsync(await response.text())
   if (parsed.track.length < 2) return null
 
   return statsFromParsedGpx(parsed)
