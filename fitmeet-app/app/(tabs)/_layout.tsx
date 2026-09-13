@@ -1,4 +1,4 @@
-import { Tabs, usePathname } from 'expo-router'
+import { router, Tabs, usePathname } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import * as Notifications from 'expo-notifications'
 import { useEffect, useRef, useState } from 'react'
@@ -43,6 +43,7 @@ export default function TabsLayout() {
   }, [notifCount, msgCount])
 
   useEffect(() => {
+    const homePaths = new Set(['/hub', '/(tabs)/hub'])
     const tabPaths = new Set([
       '/hub',
       '/meet',
@@ -60,7 +61,17 @@ export default function TabsLayout() {
     if (!tabPaths.has(pathname)) return
 
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      BackHandler.exitApp()
+      // On any other tab's root, back should land on the Hub tab first (the
+      // "home" tab) rather than exiting straight away -- exiting is only
+      // expected once you're already there. Nested screens within a tab
+      // (an event, a conversation, etc.) aren't in tabPaths at all, so this
+      // handler isn't registered for them and the normal stack-pop back
+      // behavior already applies.
+      if (homePaths.has(pathname)) {
+        BackHandler.exitApp()
+      } else {
+        router.replace('/(tabs)/hub')
+      }
       return true
     })
 
