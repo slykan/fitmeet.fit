@@ -243,21 +243,59 @@ function readPoints(xml: string, tagNames: string): { coords: [number, number]; 
   return points
 }
 
+// Async twin of readPoints — same regex-driven extraction, but yields back to
+// the event loop periodically. readPoints' while(tagRe.exec(xml)) loop runs
+// before parseGpxTextAsync's own chunked loop even starts, so on a long route
+// (thousands of points, each now carrying an <ele> tag since elevation got
+// interpolated across every point instead of ~100 samples) it was still the
+// dominant blocking cost despite parseGpxTextAsync otherwise chunking its work.
+async function readPointsAsync(xml: string, tagNames: string): Promise<{ coords: [number, number]; ele: number | null }[]> {
+  const tagRe = new RegExp(
+    `<(?:(?:[^:>\\s]+):)?(?:${tagNames})\\b([^>]*)\\/>|<(?:(?:[^:>\\s]+):)?(?:${tagNames})\\b([^>]*)>([\\s\\S]*?)<\\/(?:(?:[^:>\\s]+):)?(?:${tagNames})>`,
+    'gi',
+  )
+  const latRe = /\blat=["']([^"']+)["']/i
+  const lonRe = /\blon=["']([^"']+)["']/i
+  const eleRe = /<(?:[^:>\s]+:)?ele[^>]*>([\d.+-]+)<\/(?:[^:>\s]+:)?ele>/i
+  const points: { coords: [number, number]; ele: number | null }[] = []
+  let match: RegExpExecArray | null
+  let n = 0
+
+  while ((match = tagRe.exec(xml)) !== null) {
+    const attrs = match[1] ?? match[2] ?? ''
+    const lat = parseFloat(latRe.exec(attrs)?.[1] ?? '')
+    const lon = parseFloat(lonRe.exec(attrs)?.[1] ?? '')
+    if (!isNaN(lat) && !isNaN(lon)) {
+      const ele = parseFloat(eleRe.exec(match[3] ?? '')?.[1] ?? '')
+      points.push({ coords: [lat, lon], ele: isNaN(ele) ? null : ele })
+    }
+    if (++n % 500 === 0) await yieldToMain()
+  }
+
+  return points
+}
+
 // Chunked-async twin of parseGpxText — used only on event/route view screens
 // where large imported GPX files were freezing the JS thread for a few
 // seconds. Same logic, but yields back to the event loop periodically so the
 // UI (and a loading spinner) stays responsive. parseGpxText itself stays
 // synchronous for create/edit/draw flows, which weren't reported as frozen.
 export async function parseGpxTextAsync(xml: string): Promise<GpxParsed> {
-  let points = readPoints(xml, 'trkpt|rtept')
-  if (points.length === 0) points = readPoints(xml, 'wpt')
+  let points = await readPointsAsync(xml, 'trkpt|rtept')
+  if (points.length === 0) points = await readPointsAsync(xml, 'wpt')
 
   const track: [number, number][] = points.map(point => point.coords)
   const pointElevs = points.map(point => point.ele)
-  const allElevs = [...xml.matchAll(/<(?:[^:>\s]+:)?ele[^>]*>([\d.+-]+)<\/(?:[^:>\s]+:)?ele>/gi)].map(m => parseFloat(m[1]))
+  // Fallback for GPX where <ele> isn't a direct child readPoints' own regex
+  // catches (e.g. a <time> sibling in between, as some bike computer exports
+  // do) -- skipped whenever every point already has its own elevation, which
+  // is now the common case since elevation gets interpolated across every
+  // point server-side rather than left blank between ~100 samples. Otherwise
+  // this full-text regex scan ran unconditionally and was pure waste on
+  // exactly the large files most likely to freeze the JS thread doing it.
   const elevs = pointElevs.some(ele => ele != null)
     ? pointElevs.map(ele => ele ?? NaN)
-    : allElevs
+    : [...xml.matchAll(/<(?:[^:>\s]+:)?ele[^>]*>([\d.+-]+)<\/(?:[^:>\s]+:)?ele>/gi)].map(m => parseFloat(m[1]))
 
   let distM = 0
   let elevGain = 0
@@ -333,10 +371,16 @@ export function parseGpxText(xml: string): GpxParsed {
 
   const track: [number, number][] = points.map(point => point.coords)
   const pointElevs = points.map(point => point.ele)
-  const allElevs = [...xml.matchAll(/<(?:[^:>\s]+:)?ele[^>]*>([\d.+-]+)<\/(?:[^:>\s]+:)?ele>/gi)].map(m => parseFloat(m[1]))
+  // Fallback for GPX where <ele> isn't a direct child readPoints' own regex
+  // catches (e.g. a <time> sibling in between, as some bike computer exports
+  // do) -- skipped whenever every point already has its own elevation, which
+  // is now the common case since elevation gets interpolated across every
+  // point server-side rather than left blank between ~100 samples. Otherwise
+  // this full-text regex scan ran unconditionally and was pure waste on
+  // exactly the large files most likely to freeze the JS thread doing it.
   const elevs = pointElevs.some(ele => ele != null)
     ? pointElevs.map(ele => ele ?? NaN)
-    : allElevs
+    : [...xml.matchAll(/<(?:[^:>\s]+:)?ele[^>]*>([\d.+-]+)<\/(?:[^:>\s]+:)?ele>/gi)].map(m => parseFloat(m[1]))
 
   let distM = 0
   let elevGain = 0
