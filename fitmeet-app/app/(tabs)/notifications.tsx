@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
 import { router, useFocusEffect } from 'expo-router'
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { badgeEvents } from './_layout'
 import {
   ActivityIndicator, Image, Linking, Pressable, RefreshControl,
@@ -10,9 +10,10 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs'
 
 import { ActivityFeed } from '@/src/components/ActivityFeed'
-import { MomentsGrid } from '@/src/components/MomentsGrid'
+import { MomentsGrid, type MomentsGridHandle } from '@/src/components/MomentsGrid'
 import { TrainingsFeedTab } from '@/src/components/TrainingsFeedTab'
 import { api } from '@/src/lib/api'
+import { setBackScrollHandler } from '@/src/lib/back-scroll'
 import { useBadgesStore } from '@/src/store/badges'
 import { palette, spacing } from '@/src/theme'
 
@@ -161,6 +162,13 @@ export default function NotificationsScreen() {
   const [refreshing,    setRefreshing]    = useState(false)
   const [acting,        setActing]        = useState<number | null>(null)
   const [alertsUnread,  setAlertsUnread]  = useState(0)
+  const momentsGridRef = useRef<MomentsGridHandle>(null)
+
+  useFocusEffect(useCallback(() => {
+    if (tab !== 'moments') return
+    setBackScrollHandler(() => momentsGridRef.current?.scrollToTopOrFalse() ?? false)
+    return () => setBackScrollHandler(null)
+  }, [tab]))
 
   const load = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true)
@@ -267,7 +275,7 @@ export default function NotificationsScreen() {
 
       {tab === 'activity' && <ActivityFeed />}
       {tab === 'trainings' && <TrainingsFeedTab />}
-      {tab === 'moments' && <MomentsGrid />}
+      {tab === 'moments' && <MomentsGrid ref={momentsGridRef} />}
 
       {tab === 'alerts' && (
       <ScrollView

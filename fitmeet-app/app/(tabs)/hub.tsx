@@ -11,6 +11,7 @@ import { HubMapCard } from '@/src/components/HubMapCard'
 import { InProgressBadge } from '@/src/components/InProgressBadge'
 import { StepSlider } from '@/src/components/StepSlider'
 import { WeatherBadge } from '@/src/components/WeatherBadge'
+import { setBackScrollHandler } from '@/src/lib/back-scroll'
 import { CATEGORIES } from '@/src/lib/categories'
 import { api } from '@/src/lib/api'
 import { fetchEventWeatherSnapshots, type EventWeatherSnapshot } from '@/src/lib/event-weather-snapshots'
@@ -166,6 +167,20 @@ export default function HubScreen() {
       setReminderIds(ids)
     }).catch(() => {})
   }, [fetchEvents]))
+
+  const listRef = useRef<FlatList<EventItem>>(null)
+  const scrollYRef = useRef(0)
+
+  useFocusEffect(useCallback(() => {
+    setBackScrollHandler(() => {
+      if (scrollYRef.current > 200) {
+        listRef.current?.scrollToOffset({ offset: 0, animated: true })
+        return true
+      }
+      return false
+    })
+    return () => setBackScrollHandler(null)
+  }, []))
 
   useEffect(() => {
     if (mapWasMoved) return
@@ -584,10 +599,13 @@ export default function HubScreen() {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <FlatList
+        ref={listRef}
         data={loading ? [] : events}
         keyExtractor={(ev) => String(ev.id)}
         renderItem={renderEvent}
         scrollEnabled={!mapTouching}
+        onScroll={(e) => { scrollYRef.current = e.nativeEvent.contentOffset.y }}
+        scrollEventThrottle={200}
         contentContainerStyle={[styles.listContent, { paddingBottom: tabBarHeight + 8 }]}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={header}

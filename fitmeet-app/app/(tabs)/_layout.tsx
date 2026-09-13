@@ -7,7 +7,16 @@ import { AppState, BackHandler } from 'react-native'
 import { palette } from '@/src/theme'
 import { useAuthStore } from '@/src/store/auth'
 import { api } from '@/src/lib/api'
+import { consumeBackScrollToTop } from '@/src/lib/back-scroll'
 import { emitChatRefresh } from '@/src/lib/chat-refresh'
+
+const TAB_KEYS = ['hub', 'meet', 'ranks', 'notifications', 'messages', 'profile'] as const
+type TabKey = typeof TAB_KEYS[number]
+
+function normalizeTabPath(pathname: string): TabKey | null {
+  const key = pathname.replace(/^\/\(tabs\)/, '').replace(/^\//, '')
+  return (TAB_KEYS as readonly string[]).includes(key) ? (key as TabKey) : null
+}
 
 export const badgeEvents = {
   clearAlerts: () => {},
@@ -42,35 +51,49 @@ export default function TabsLayout() {
     Notifications.setBadgeCountAsync(notifCount + msgCount).catch(() => {})
   }, [notifCount, msgCount])
 
+  // True tab-visit history: back returns to whichever tab was actually
+  // visited before this one (like a browser back stack), exiting only once
+  // that stack is exhausted. Nested screens within a tab (an event, a
+  // conversation, etc.) aren't tab roots, so normalizeTabPath returns null
+  // for them and the normal native stack-pop back behavior applies instead.
+  const tabHistoryRef = useRef<TabKey[]>([])
+  const isPoppingRef = useRef(false)
+
   useEffect(() => {
-    const homePaths = new Set(['/hub', '/(tabs)/hub'])
-    const tabPaths = new Set([
-      '/hub',
-      '/meet',
-      '/ranks',
-      '/notifications',
-      '/messages',
-      '/profile',
-      '/(tabs)/hub',
-      '/(tabs)/meet',
-      '/(tabs)/ranks',
-      '/(tabs)/notifications',
-      '/(tabs)/messages',
-      '/(tabs)/profile',
-    ])
-    if (!tabPaths.has(pathname)) return
+    const key = normalizeTabPath(pathname)
+    if (!key) return
+
+    if (isPoppingRef.current) {
+      isPoppingRef.current = false
+      return
+    }
+    const hist = tabHistoryRef.current
+    if (hist[hist.length - 1] !== key) {
+      hist.push(key)
+    }
+  }, [pathname])
+
+  useEffect(() => {
+    const key = normalizeTabPath(pathname)
+    if (!key) return
 
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      // On any other tab's root, back should land on the Hub tab first (the
-      // "home" tab) rather than exiting straight away -- exiting is only
-      // expected once you're already there. Nested screens within a tab
-      // (an event, a conversation, etc.) aren't in tabPaths at all, so this
-      // handler isn't registered for them and the normal stack-pop back
-      // behavior already applies.
-      if (homePaths.has(pathname)) {
+      // Hub, Meet's People/Events and Feed's Moments get first dibs on the
+      // back press when scrolled down: it scrolls them to the top instead of
+      // navigating away, and only a second press (now at the top) falls
+      // through to popping the tab history below.
+      if (consumeBackScrollToTop()) return true
+
+      const hist = tabHistoryRef.current
+      if (hist.length > 0 && hist[hist.length - 1] === key) {
+        hist.pop()
+      }
+      const prev = hist[hist.length - 1]
+      if (!prev) {
         BackHandler.exitApp()
       } else {
-        router.replace('/(tabs)/hub')
+        isPoppingRef.current = true
+        router.replace(`/(tabs)/${prev}` as never)
       }
       return true
     })

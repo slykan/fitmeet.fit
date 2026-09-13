@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs'
 
 import { api } from '@/src/lib/api'
+import { setBackScrollHandler } from '@/src/lib/back-scroll'
 import { CalendarModal } from '@/src/components/CalendarModal'
 import { CATEGORIES } from '@/src/lib/categories'
 import { WeatherBadge } from '@/src/components/WeatherBadge'
@@ -1525,15 +1526,30 @@ export default function MeetScreen() {
   const eventsTabRef = useRef<LoadMoreHandle>(null)
   const routesTabRef = useRef<LoadMoreHandle>(null)
   const marketTabRef = useRef<LoadMoreHandle>(null)
+  const scrollViewRef = useRef<ScrollView>(null)
+  const scrollYRef = useRef(0)
 
   function handleScroll({ nativeEvent }: { nativeEvent: { contentOffset: { y: number }; layoutMeasurement: { height: number }; contentSize: { height: number } } }) {
     const { contentOffset, layoutMeasurement, contentSize } = nativeEvent
+    scrollYRef.current = contentOffset.y
     if (contentOffset.y + layoutMeasurement.height < contentSize.height - 300) return
     if (tab === 'people') peopleTabRef.current?.loadMore()
     else if (tab === 'events') eventsTabRef.current?.loadMore()
     else if (tab === 'routes') routesTabRef.current?.loadMore()
     else if (tab === 'market') marketTabRef.current?.loadMore()
   }
+
+  useFocusEffect(useCallback(() => {
+    if (tab !== 'people' && tab !== 'events') return
+    setBackScrollHandler(() => {
+      if (scrollYRef.current > 200) {
+        scrollViewRef.current?.scrollTo({ y: 0, animated: true })
+        return true
+      }
+      return false
+    })
+    return () => setBackScrollHandler(null)
+  }, [tab]))
 
   function handleHeaderPlus() {
     if (tab === 'events')    return router.push('/event/create' as never)
@@ -1556,6 +1572,7 @@ export default function MeetScreen() {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <ScrollView
+        ref={scrollViewRef}
         contentContainerStyle={[styles.content, { paddingBottom: tabBarHeight + 8 }]}
         showsVerticalScrollIndicator={false}
         onScroll={handleScroll}

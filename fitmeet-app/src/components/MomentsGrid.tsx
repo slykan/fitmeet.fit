@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
-import { useEffect, useState } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import {
   ActivityIndicator, Dimensions, FlatList, Image, Modal,
   Pressable, StyleSheet, Text, View,
@@ -31,13 +31,29 @@ const CAT_EMOJI: Record<string, string> = {
   golf:'⛳', social:'🎉', other:'📅',
 }
 
-export function MomentsGrid() {
+export interface MomentsGridHandle {
+  scrollToTopOrFalse: () => boolean
+}
+
+export const MomentsGrid = forwardRef<MomentsGridHandle>(function MomentsGrid(_props, ref) {
   const [moments,  setMoments]  = useState<Moment[]>([])
   const [loading,  setLoading]  = useState(true)
   const [loadMore, setLoadMore] = useState(false)
   const [hasMore,  setHasMore]  = useState(false)
   const [page,     setPage]     = useState(1)
   const [lightbox, setLightbox] = useState<Moment | null>(null)
+  const listRef = useRef<FlatList<Moment>>(null)
+  const scrollYRef = useRef(0)
+
+  useImperativeHandle(ref, () => ({
+    scrollToTopOrFalse: () => {
+      if (scrollYRef.current > 200) {
+        listRef.current?.scrollToOffset({ offset: 0, animated: true })
+        return true
+      }
+      return false
+    },
+  }))
 
   async function load(p: number) {
     if (p === 1) setLoading(true); else setLoadMore(true)
@@ -59,10 +75,13 @@ export function MomentsGrid() {
   return (
     <>
       <FlatList
+        ref={listRef}
         style={{ flex: 1 }}
         data={moments}
         numColumns={COLS}
         keyExtractor={m => String(m.id)}
+        onScroll={(e) => { scrollYRef.current = e.nativeEvent.contentOffset.y }}
+        scrollEventThrottle={200}
         contentContainerStyle={styles.grid}
         columnWrapperStyle={{ gap: 4 }}
         ItemSeparatorComponent={() => <View style={{ height: 4 }} />}
@@ -119,7 +138,7 @@ export function MomentsGrid() {
       </Modal>
     </>
   )
-}
+})
 
 const styles = StyleSheet.create({
   grid: { padding: spacing.md, paddingTop: 12 },
