@@ -84,7 +84,11 @@ class UserController extends Controller
             $query->orderBy('created_at', $dir)->orderBy('id', $dir);
         }
 
-        $users = $query->withCount('events')->paginate(30);
+        // friends_only is a user's own (small, bounded) friend list, not the
+        // full directory — it must never be truncated to a single page or
+        // older friends silently vanish from "New Chat" / group pickers.
+        $perPage = $request->boolean('friends_only') ? 1000 : 30;
+        $users   = $query->withCount('events')->paginate($perPage);
 
         // Build a map of userId → friendship status for the current user
         $statusMap = [];
