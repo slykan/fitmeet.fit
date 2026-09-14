@@ -267,7 +267,10 @@ Artisan::command('huawei:sync', function () {
     $this->info("Synced {$synced} Huawei training(s) across {$connections->count()} connection(s).");
 })->purpose('Poll Huawei Health for new activities on all connected accounts');
 
-Schedule::command('huawei:sync')->hourly();
+// Single lightweight request per connection (see HuaweiSyncService::backfillHuawei) —
+// safe to run as often as the app's other polling schedules (reminders:send,
+// moments:send-reminders), unlike Strava's per-activity-detail backfill.
+Schedule::command('huawei:sync')->everyFifteenMinutes();
 
 Artisan::command('badges:backfill', function () {
     $badgeService = app(BadgeService::class);
