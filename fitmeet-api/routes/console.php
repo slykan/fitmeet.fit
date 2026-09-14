@@ -8,8 +8,11 @@ use App\Models\Event;
 use App\Models\EventLocationPoint;
 use App\Models\EventReminder;
 use App\Models\User;
+use App\Models\ProviderConnection;
 use App\Services\BadgeService;
 use App\Services\GpxElevationEnricher;
+use App\Services\HuaweiSyncService;
+use App\Services\TrainingSyncService;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Mail;
@@ -242,6 +245,29 @@ Artisan::command('location-points:prune', function () {
 })->purpose('Delete event location points older than 90 days');
 
 Schedule::command('location-points:prune')->daily();
+
+// Huawei Health has no webhook (unlike Strava, which pushes activity events in
+// real time) — new trainings only ever showed up after a manual "Resync" tap
+// or a fresh connect. Poll every connected account periodically instead.
+Artisan::command('huawei:sync', function () {
+    $huawei = app(HuaweiSyncService::class);
+    $sync   = app(TrainingSyncService::class);
+
+    $connections = ProviderConnection::where('provider', 'huawei')->get();
+    $synced = 0;
+
+    foreach ($connections as $connection) {
+        try {
+            $synced += $huawei->backfillHuawei($connection, $sync);
+        } catch (\Throwable $e) {
+            $this->error("Huawei sync failed for connection #{$connection->id}: {$e->getMessage()}");
+        }
+    }
+
+    $this->info("Synced {$synced} Huawei training(s) across {$connections->count()} connection(s).");
+})->purpose('Poll Huawei Health for new activities on all connected accounts');
+
+Schedule::command('huawei:sync')->hourly();
 
 Artisan::command('badges:backfill', function () {
     $badgeService = app(BadgeService::class);

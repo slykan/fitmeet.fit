@@ -25,6 +25,13 @@ class StravaController
             'grant_type'    => 'authorization_code',
         ]);
 
+        if (!$res->successful()) {
+            Log::warning('Strava code exchange failed', [
+                'status' => $res->status(),
+                'body'   => Str::limit($res->body(), 1000),
+            ]);
+        }
+
         return $res->successful() ? $res->json() : null;
     }
 
