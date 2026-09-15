@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
-import { router, useFocusEffect } from 'expo-router'
-import { useCallback, useRef, useState } from 'react'
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { badgeEvents } from './_layout'
 import {
   ActivityIndicator, Image, Linking, Pressable, RefreshControl,
@@ -156,6 +156,7 @@ function GenericCard({
 
 export default function NotificationsScreen() {
   const tabBarHeight = useBottomTabBarHeight()
+  const { tab: tabParam } = useLocalSearchParams<{ tab?: string }>()
   const [tab,           setTab]           = useState<FeedTab>('activity')
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [loading,       setLoading]       = useState(true)
@@ -163,6 +164,18 @@ export default function NotificationsScreen() {
   const [acting,        setActing]        = useState<number | null>(null)
   const [alertsUnread,  setAlertsUnread]  = useState(0)
   const momentsGridRef = useRef<MomentsGridHandle>(null)
+  const appliedTabParamRef = useRef<string | null>(null)
+
+  // A push (e.g. "new training synced") carries ?tab=trainings so tapping it
+  // jumps straight to that sub-tab. Only apply a given param value once —
+  // otherwise switching sub-tabs by hand would keep getting overridden back,
+  // since the query param itself doesn't change while the screen stays mounted.
+  useEffect(() => {
+    if (!tabParam || tabParam === appliedTabParamRef.current) return
+    if (!(['activity', 'trainings', 'moments', 'alerts'] as const).includes(tabParam as FeedTab)) return
+    appliedTabParamRef.current = tabParam
+    setTab(tabParam as FeedTab)
+  }, [tabParam])
 
   useFocusEffect(useCallback(() => {
     if (tab !== 'moments') return

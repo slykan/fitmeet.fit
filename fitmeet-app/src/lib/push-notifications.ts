@@ -103,7 +103,7 @@ function routeFromNotificationData(data: Record<string, unknown> | undefined) {
     return
   }
 
-  if (eventId && ['new_event', 'event_reminder', 'event_cancelled', 'event_rescheduled', 'rider_stopped', 'applause_sent'].includes(type ?? '')) {
+  if (eventId && ['new_event', 'event_reminder', 'event_cancelled', 'event_rescheduled', 'rider_stopped', 'applause_sent', 'join_notification', 'moment_reminder'].includes(type ?? '')) {
     router.push(`/event/${eventId}` as never)
     return
   }
@@ -115,7 +115,13 @@ function routeFromNotificationData(data: Record<string, unknown> | undefined) {
 
   if (type === 'new_message') {
     emitChatRefresh()
-    router.push('/(tabs)/messages' as never)
+    const conversationId = data.conversation_id != null ? String(data.conversation_id) : null
+    router.push((conversationId ? `/(tabs)/messages?conversation=${conversationId}` : '/(tabs)/messages') as never)
+    return
+  }
+
+  if (type === 'training_synced') {
+    router.push('/(tabs)/notifications?tab=trainings' as never)
     return
   }
 
@@ -130,7 +136,7 @@ function routeFromNotificationData(data: Record<string, unknown> | undefined) {
   }
 
   if (type === 'friend_request' || type === 'friend_accepted' || type === 'announcement' || type === 'birthday') {
-    router.push('/(tabs)/notifications' as never)
+    router.push('/(tabs)/notifications?tab=alerts' as never)
   }
 }
 

@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useFocusEffect } from 'expo-router'
+import { useFocusEffect, useLocalSearchParams } from 'expo-router'
 import * as ImagePicker from 'expo-image-picker'
 import * as MediaLibrary from 'expo-media-library'
 import { File, Paths } from 'expo-file-system/next'
@@ -23,6 +23,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs'
 
 import { api } from '@/src/lib/api'
+import { setBackOverride } from '@/src/lib/back-scroll'
 import { subscribeChatRefresh } from '@/src/lib/chat-refresh'
 import { presentUserModerationMenu } from '@/src/lib/moderation'
 import { useAuthStore } from '@/src/store/auth'
@@ -877,11 +878,13 @@ const modal = StyleSheet.create({
 export default function MessagesScreen() {
   const tabBarHeight = useBottomTabBarHeight()
   const user = useAuthStore((s) => s.user)
+  const { conversation: conversationParam } = useLocalSearchParams<{ conversation?: string }>()
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [showCompose, setShowCompose] = useState(false)
   const [activeConv, setActiveConv] = useState<Conversation | null>(null)
+  const openedConversationParamRef = useRef<string | null>(null)
 
   const load = useCallback(() => {
     setLoading(true)
@@ -896,6 +899,31 @@ export default function MessagesScreen() {
     const unsubscribe = subscribeChatRefresh(load)
     return unsubscribe
   }, [load]))
+
+  // Opening a conversation swaps this screen's own content in place rather
+  // than pushing a route, so the hardware back button needs to be told to
+  // return to the conversation list instead of falling through to tab
+  // history (see back-scroll.ts).
+  useEffect(() => {
+    if (!activeConv) return
+    setBackOverride(() => {
+      setActiveConv(null)
+      load()
+    })
+    return () => setBackOverride(null)
+  }, [activeConv, load])
+
+  // A "new message" push carries ?conversation=<id> (see push-notifications.ts)
+  // so tapping it jumps straight into that thread instead of the list. Only
+  // auto-open once per param value — otherwise closing back to the list would
+  // immediately reopen it, since the query param itself doesn't change.
+  useEffect(() => {
+    if (!conversationParam || conversationParam === openedConversationParamRef.current) return
+    const conv = conversations.find((c) => String(c.id) === conversationParam)
+    if (!conv) return
+    openedConversationParamRef.current = conversationParam
+    setActiveConv(conv)
+  }, [conversationParam, conversations])
 
   const filtered = conversations.filter((conv) => {
     const q = search.toLowerCase()
