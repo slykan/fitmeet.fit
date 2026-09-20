@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic'
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ChevronLeft, Download, Eye, FastForward, MapPin, Mountain, Milestone, Pause, PenLine, Play, Route as RouteIcon, Share2, Trash2, Zap } from 'lucide-react'
+import { ChevronLeft, Download, Eye, FastForward, MapPin, Mountain, Milestone, Pause, PenLine, Play, Repeat, Route as RouteIcon, Share2, Trash2, X, Zap } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
 import ElevationChart from '@/components/elevation-chart'
@@ -11,7 +11,7 @@ import { WikiPhotosStrip } from '@/components/wiki-photos-strip'
 import { MapLoadingOverlay } from '@/components/map-loading-overlay'
 import api from '@/lib/api'
 import { CATEGORIES, CATEGORY_EMOJI } from '@/lib/categories'
-import { fetchElevationProfile, parseGpxAsync, type GpxResult } from '@/lib/parse-gpx'
+import { fetchElevationProfile, parseGpxAsync, reverseGpxTrack, type GpxResult } from '@/lib/parse-gpx'
 import { analyzeRouteSurface, type SurfaceAnalysis } from '@/lib/route-surface'
 import { useAuthStore } from '@/store/auth'
 import type { RoutePoi } from '@/components/location-picker-map'
@@ -37,6 +37,8 @@ interface ActivityRoute {
   source_event_id: number | null
   creator?: { id: number; name: string } | null
   views_count: number
+  is_public: boolean
+  waypoints?: [number, number][] | null
   pois?: RoutePoi[] | null
 }
 
@@ -123,6 +125,11 @@ function RouteContent() {
   const [showElevationLayer, setShowElevationLayer] = useState(true)
   const [showSurfaceLayer, setShowSurfaceLayer] = useState(false)
   const [showKmMarkers, setShowKmMarkers] = useState(false)
+  const [showReverseModal, setShowReverseModal] = useState(false)
+  const [reverseTitle, setReverseTitle] = useState('')
+  const [reverseIsPublic, setReverseIsPublic] = useState(true)
+  const [reversing, setReversing] = useState(false)
+  const [reverseError, setReverseError] = useState<string | null>(null)
   const [playSpeed, setPlaySpeed] = useState(1)
   const playSpeedRef = useRef(1)
   const playFrameRef = useRef<number | null>(null)
@@ -351,6 +358,55 @@ function RouteContent() {
     window.setTimeout(() => setCopied(false), 1600)
   }
 
+  function openReverseModal() {
+    setReverseTitle(`${currentRoute.title} (Reversed)`)
+    setReverseIsPublic(currentRoute.is_public)
+    setReverseError(null)
+    setShowReverseModal(true)
+  }
+
+  async function submitReverse() {
+    if (!reverseTitle.trim()) {
+      setReverseError('Please enter a route name.')
+      return
+    }
+    setReversing(true)
+    setReverseError(null)
+    try {
+      const gpxRes = await api.get(`/routes/${currentRoute.id}/gpx`, { responseType: 'text' })
+      const reversed = reverseGpxTrack(gpxRes.data as string, reverseTitle.trim())
+      if (!reversed) {
+        setReverseError('This route has no track to reverse.')
+        return
+      }
+      const gpxBlob = new Blob([reversed.gpx], { type: 'application/gpx+xml' })
+
+      const form = new FormData()
+      form.append('title', reverseTitle.trim())
+      form.append('category', currentRoute.category.value)
+      form.append('is_public', reverseIsPublic ? '1' : '0')
+      if (currentRoute.waypoints?.length) form.append('waypoints', JSON.stringify([...currentRoute.waypoints].reverse()))
+      if (currentRoute.pois?.length) form.append('pois', JSON.stringify(currentRoute.pois))
+      form.append('gpx', gpxBlob, `${reverseTitle.trim().replace(/\s+/g, '-')}.gpx`)
+      form.append('distance_km', String(reversed.distanceKm))
+      form.append('elevation_gain', String(reversed.elevationGain))
+      form.append('start_lat', String(reversed.startLat))
+      form.append('start_lng', String(reversed.startLng))
+      form.append('end_lat', String(reversed.endLat))
+      form.append('end_lng', String(reversed.endLng))
+
+      const { data } = await api.post('/routes', form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      setShowReverseModal(false)
+      router.push(`/routes/view?id=${data.data.id}`)
+    } catch {
+      setReverseError('Could not save the reversed route.')
+    } finally {
+      setReversing(false)
+    }
+  }
+
   return (
     <>
       <Navbar />
@@ -379,6 +435,16 @@ function RouteContent() {
               )}
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
+              {user && (
+                <button
+                  onClick={openReverseModal}
+                  className="rounded-xl border px-3 py-2 flex items-center gap-1.5 text-sm font-semibold transition-opacity hover:opacity-80"
+                  style={{ background: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--text)' }}
+                  title="Save a reversed copy"
+                >
+                  <Repeat size={15} /> Reverse
+                </button>
+              )}
               {user && route.creator?.id === user.id && (
                 <button
                   onClick={() => router.push(`/routes/draw?id=${currentRoute.id}`)}
@@ -578,6 +644,78 @@ function RouteContent() {
           {gpxResult?.track.length ? <WikiPhotosStrip track={gpxResult.track} /> : null}
         </div>
       </main>
+
+      {showReverseModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.7)' }}
+          onClick={() => !reversing && setShowReverseModal(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl border p-6 space-y-4"
+            style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <p className="font-bold text-lg">Reverse Route</p>
+              <button onClick={() => setShowReverseModal(false)} style={{ color: 'var(--text-muted)' }}><X size={18} /></button>
+            </div>
+            <p className="text-xs -mt-2" style={{ color: 'var(--text-muted)' }}>
+              Saves a new route with the point order flipped.
+            </p>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>
+                Route name *
+              </label>
+              <input
+                value={reverseTitle}
+                onChange={e => setReverseTitle(e.target.value)}
+                placeholder="e.g. Morning trail Šibenik (Reversed)"
+                maxLength={140}
+                autoFocus
+                className="w-full rounded-xl border px-4 py-2.5 text-sm outline-none focus:border-[--primary] transition-colors"
+                style={{ background: 'var(--background)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold">Visibility</p>
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                  {reverseIsPublic ? 'Visible to all FitMeet users' : 'Only visible to you'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setReverseIsPublic(v => !v)}
+                className="relative w-12 h-6 rounded-full transition-colors"
+                style={{ background: reverseIsPublic ? 'var(--primary)' : 'var(--border)' }}
+              >
+                <span
+                  className="absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all"
+                  style={{ left: reverseIsPublic ? '26px' : '2px', boxShadow: '0 1px 4px rgba(0,0,0,0.3)' }}
+                />
+              </button>
+            </div>
+
+            {reverseError && (
+              <p className="text-sm px-3 py-2 rounded-xl border" style={{ color: '#f87171', borderColor: '#f87171', background: 'rgba(248,113,113,0.08)' }}>
+                {reverseError}
+              </p>
+            )}
+
+            <button
+              onClick={submitReverse}
+              disabled={reversing}
+              className="w-full py-3 rounded-xl font-bold text-sm transition-opacity hover:opacity-80 disabled:opacity-40"
+              style={{ background: 'var(--primary)', color: '#000' }}
+            >
+              {reversing ? 'Saving...' : 'Save Reversed Route'}
+            </button>
+          </div>
+        </div>
+      )}
     </>
   )
 }

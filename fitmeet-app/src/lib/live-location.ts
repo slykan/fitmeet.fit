@@ -45,6 +45,7 @@ TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }: TaskManager.T
         lng: location.coords.longitude,
         speed_kmh: speedKmh(location.coords.speed),
         recorded_at: new Date(location.timestamp).toISOString(),
+        fix_at_ms: location.timestamp,
       })
     } catch {
       // Event ended / sharing disabled elsewhere — just skip this beat.
@@ -121,6 +122,7 @@ export async function postForegroundLocation(eventId: number | string, location:
       lng: location.coords.longitude,
       speed_kmh: speedKmh(location.coords.speed),
       recorded_at: new Date(location.timestamp).toISOString(),
+      fix_at_ms: location.timestamp,
     })
   } catch {
     // ignore — next tick will retry

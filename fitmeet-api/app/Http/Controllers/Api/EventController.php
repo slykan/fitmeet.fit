@@ -702,6 +702,9 @@ HTML;
             // minutes on the ground -- corrupting the recorded chronology and making
             // route replay draw an instant "teleport" between them.
             'recorded_at' => 'nullable|date|after:2020-01-01|before:' . now()->addMinutes(5)->toIso8601String(),
+            // Epoch ms the device captured this GPS fix at. Nullable so older app
+            // builds that don't send it yet keep working.
+            'fix_at_ms' => 'nullable|integer|min:0',
         ]);
 
         $participant = \DB::table('event_participants')
@@ -731,6 +734,20 @@ HTML;
             return response()->json(['message' => 'This event is not currently live.'], 422);
         }
 
+        $fixAtMs = $data['fix_at_ms'] ?? null;
+
+        // The background TaskManager task and the foreground watcher (see
+        // live-location.ts / event/[id].tsx) both post independently every ~5s.
+        // Network latency can let a fix captured earlier arrive after one captured
+        // later, which would otherwise overwrite the newer position and make the
+        // marker visibly jump backward. Drop anything older than what's stored.
+        if ($fixAtMs !== null && $participant->live_fix_at_ms !== null && $fixAtMs < (int) $participant->live_fix_at_ms) {
+            return response()->json([
+                'updated_at' => optional($participant->live_updated_at ? \Illuminate\Support\Carbon::parse($participant->live_updated_at) : null)->toIso8601String() ?? now()->toIso8601String(),
+                'stale' => true,
+            ]);
+        }
+
         $distanceFromAnchor = ($participant->stopped_anchor_lat !== null && $participant->stopped_anchor_lng !== null)
             ? $this->haversineMeters(
                 (float) $participant->stopped_anchor_lat,
@@ -746,6 +763,10 @@ HTML;
             'live_speed_kmh' => $data['speed_kmh'] ?? null,
             'live_updated_at' => now(),
         ];
+
+        if ($fixAtMs !== null) {
+            $update['live_fix_at_ms'] = $fixAtMs;
+        }
 
         if ($distanceFromAnchor === null || $distanceFromAnchor > 25) {
             $update['stopped_anchor_lat'] = $data['lat'];

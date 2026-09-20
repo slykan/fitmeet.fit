@@ -1,7 +1,22 @@
 import { Ionicons } from '@expo/vector-icons'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
-import { ActivityIndicator, Alert, Linking, Platform, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native'
+import {
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Linking,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  Share,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  View,
+} from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import * as FileSystem from 'expo-file-system/legacy'
@@ -10,7 +25,7 @@ import { EventMapCard, type RoutePoi } from '@/src/components/EventMapCard'
 import { WikiPhotosStrip } from '@/src/components/WikiPhotosStrip'
 import { CATEGORIES } from '@/src/lib/categories'
 import { api } from '@/src/lib/api'
-import { enrichGpxWithElevation, fetchElevationProfile, parseGpxTextAsync } from '@/src/lib/gpx'
+import { enrichGpxWithElevation, fetchElevationProfile, parseGpxTextAsync, reverseGpxTrack } from '@/src/lib/gpx'
 import type { GpxParsed } from '@/src/lib/gpx'
 import { analyzeRouteSurface, type SurfaceAnalysis } from '@/src/lib/route-surface'
 import { useAuthStore } from '@/src/store/auth'
@@ -32,6 +47,7 @@ interface RouteDetail {
     area_label: string | null
   }
   views_count: number
+  is_public: boolean
   creator?: { id: number; name: string } | null
   waypoints?: [number, number][] | null
   pois?: RoutePoi[] | null
@@ -220,6 +236,62 @@ export default function RouteViewScreen() {
     playFrameRef.current = requestAnimationFrame(step)
   }
 
+  const [showReverseModal, setShowReverseModal] = useState(false)
+  const [reverseTitle, setReverseTitle] = useState('')
+  const [reverseIsPublic, setReverseIsPublic] = useState(true)
+  const [reversing, setReversing] = useState(false)
+
+  function openReverseModal() {
+    if (!route) return
+    setReverseTitle(`${route.title} (Reversed)`)
+    setReverseIsPublic(route.is_public)
+    setShowReverseModal(true)
+  }
+
+  async function submitReverse() {
+    if (!route || !reverseTitle.trim()) {
+      Alert.alert('Name required', 'Please enter a route name.')
+      return
+    }
+    setReversing(true)
+    try {
+      const gpxRes = await api.get(`/routes/${route.id}/gpx`, { responseType: 'text' })
+      const reversed = reverseGpxTrack(gpxRes.data as string, reverseTitle.trim())
+      if (!reversed) {
+        Alert.alert('Reverse error', 'This route has no track to reverse.')
+        return
+      }
+      const tempUri = FileSystem.cacheDirectory + `route-reversed-${Date.now()}.gpx`
+      await FileSystem.writeAsStringAsync(tempUri, reversed.gpx, { encoding: 'utf8' })
+
+      const form = new FormData()
+      form.append('title', reverseTitle.trim())
+      form.append('category', route.category.value)
+      form.append('is_public', reverseIsPublic ? '1' : '0')
+      if (route.waypoints?.length) form.append('waypoints', JSON.stringify([...route.waypoints].reverse()))
+      if (route.pois?.length) form.append('pois', JSON.stringify(route.pois))
+      form.append('gpx', { uri: tempUri, type: 'application/gpx+xml', name: 'route.gpx' } as unknown as Blob)
+      form.append('distance_km', String(reversed.distanceKm))
+      form.append('elevation_gain', String(reversed.elevGain))
+      form.append('start_lat', String(reversed.startLat))
+      form.append('start_lng', String(reversed.startLng))
+      form.append('end_lat', String(reversed.endLat))
+      form.append('end_lng', String(reversed.endLng))
+
+      const { data } = await api.post('/routes', form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      setShowReverseModal(false)
+      router.replace(`/route/${data.data.id}` as never)
+    } catch (e: unknown) {
+      const err = e as { response?: { status?: number; data?: unknown } }
+      const detail = err?.response?.data ? JSON.stringify(err.response.data) : String(e)
+      Alert.alert('Reverse error', `${err?.response?.status ?? '?'}: ${detail}`)
+    } finally {
+      setReversing(false)
+    }
+  }
+
   async function deleteRoute() {
     if (!route) return
     Alert.alert('Delete route', 'Delete this route permanently?', [
@@ -386,6 +458,12 @@ export default function RouteViewScreen() {
             <Ionicons name="share-social-outline" size={17} color={palette.text} />
             <Text style={styles.shareBtnText}>Share</Text>
           </Pressable>
+          {user && (
+            <Pressable style={styles.reverseBtn} onPress={openReverseModal}>
+              <Ionicons name="swap-horizontal-outline" size={17} color={palette.text} />
+              <Text style={styles.shareBtnText}>Reverse</Text>
+            </Pressable>
+          )}
           {user && route.creator?.id === user.id && (
             <Pressable
               style={styles.editBtn}
@@ -493,6 +571,56 @@ export default function RouteViewScreen() {
 
         {gpx?.track.length ? <WikiPhotosStrip track={gpx.track} /> : null}
       </ScrollView>
+
+      <Modal visible={showReverseModal} animationType="slide" transparent onRequestClose={() => setShowReverseModal(false)}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <View style={styles.modalBackdrop}>
+            <View style={styles.modalSheet}>
+              <View style={styles.modalHandle} />
+
+              <Text style={styles.modalTitle}>Reverse Route</Text>
+              <Text style={styles.modalSubtitle}>Saves a new route with the point order flipped.</Text>
+
+              <Text style={styles.modalLabel}>Route name</Text>
+              <TextInput
+                value={reverseTitle}
+                onChangeText={setReverseTitle}
+                placeholder="e.g. Morning trail Šibenik (Reversed)"
+                placeholderTextColor={palette.textDim}
+                style={styles.modalInput}
+                maxLength={140}
+                autoFocus
+              />
+
+              <View style={styles.toggleRow}>
+                <View>
+                  <Text style={styles.toggleLabel}>Public</Text>
+                  <Text style={styles.toggleSub}>
+                    {reverseIsPublic ? 'Visible to all users' : 'Only you can see it'}
+                  </Text>
+                </View>
+                <Switch
+                  value={reverseIsPublic}
+                  onValueChange={setReverseIsPublic}
+                  trackColor={{ false: palette.line, true: palette.accent }}
+                  thumbColor="#fff"
+                />
+              </View>
+
+              <Pressable style={[styles.modalSaveBtn, reversing && styles.modalSaveBtnDim]} onPress={submitReverse} disabled={reversing}>
+                {reversing
+                  ? <ActivityIndicator color="#031109" />
+                  : <Text style={styles.modalSaveBtnText}>Save Reversed Route</Text>
+                }
+              </Pressable>
+
+              <Pressable style={styles.modalCancelBtn} onPress={() => setShowReverseModal(false)} disabled={reversing}>
+                <Text style={styles.modalCancelBtnText}>Cancel</Text>
+              </Pressable>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   )
 }
@@ -546,6 +674,18 @@ const styles = StyleSheet.create({
     gap: 7,
   },
   shareBtnText: { color: palette.text, fontSize: 13, fontWeight: '900' },
+  reverseBtn: {
+    flex: 1,
+    minHeight: 42,
+    borderRadius: 14,
+    backgroundColor: palette.panel,
+    borderWidth: 1,
+    borderColor: palette.line,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 7,
+  },
   downloadBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -591,4 +731,55 @@ const styles = StyleSheet.create({
   surfaceLabel: { color: palette.text, fontSize: 10, fontWeight: '800', flex: 1 },
   surfaceMeta: { color: palette.textMuted, fontSize: 9.5, marginTop: 4 },
   emptyText: { color: palette.textMuted, fontSize: 14, textAlign: 'center', paddingVertical: spacing.xl },
+
+  // Reverse modal
+  modalBackdrop: {
+    flex: 1, justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.6)',
+  },
+  modalSheet: {
+    backgroundColor: palette.panel,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: spacing.lg,
+    paddingBottom: spacing.xl + 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  modalHandle: {
+    width: 40, height: 4, borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignSelf: 'center', marginBottom: spacing.lg,
+  },
+  modalTitle: { color: palette.text, fontSize: 20, fontWeight: '900' },
+  modalSubtitle: { color: palette.textMuted, fontSize: 13, marginTop: 4, marginBottom: spacing.md },
+  modalLabel: {
+    color: palette.textMuted, fontSize: 12, fontWeight: '700',
+    textTransform: 'uppercase', marginBottom: 6,
+  },
+  modalInput: {
+    backgroundColor: palette.bg,
+    borderWidth: 1, borderColor: palette.line,
+    borderRadius: 14, paddingHorizontal: 16, paddingVertical: 12,
+    color: palette.text, fontSize: 15,
+    marginBottom: spacing.md,
+  },
+  toggleRow: {
+    flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'space-between', marginBottom: spacing.lg,
+  },
+  toggleLabel: { color: palette.text, fontSize: 15, fontWeight: '700' },
+  toggleSub: { color: palette.textDim, fontSize: 12, marginTop: 2 },
+  modalSaveBtn: {
+    backgroundColor: palette.accent,
+    borderRadius: 16, paddingVertical: 14,
+    alignItems: 'center', marginBottom: 10,
+  },
+  modalSaveBtnDim: { opacity: 0.6 },
+  modalSaveBtnText: { color: '#031109', fontSize: 15, fontWeight: '900' },
+  modalCancelBtn: {
+    borderRadius: 16, paddingVertical: 12,
+    alignItems: 'center', borderWidth: 1, borderColor: palette.line,
+  },
+  modalCancelBtnText: { color: palette.textMuted, fontSize: 14, fontWeight: '600' },
 })

@@ -354,6 +354,59 @@ export async function parseGpxAsync(xml: string): Promise<GpxResult> {
   }
 }
 
+export interface ReversedGpx {
+  gpx: string
+  distanceKm: number
+  elevationGain: number
+  startLat: number
+  startLng: number
+  endLat: number
+  endLng: number
+}
+
+// Flips point order end-to-start, preserving whatever elevation the original
+// file already had per point (no elevation API round-trip needed) and
+// recomputing distance/gain/start-end from that reversed order.
+export function reverseGpxTrack(xml: string, title: string): ReversedGpx | null {
+  let points = readPoints(xml, 'trkpt|rtept')
+  if (points.length === 0) points = readPoints(xml, 'wpt')
+  if (points.length < 2) return null
+
+  const reversed = [...points].reverse()
+
+  let distKm = 0
+  let elevationGain = 0
+  let lastElev = reversed[0].ele
+  for (let i = 1; i < reversed.length; i++) {
+    distKm += haversineKm(reversed[i - 1].coords[0], reversed[i - 1].coords[1], reversed[i].coords[0], reversed[i].coords[1])
+    const currentElev = reversed[i].ele
+    if (lastElev != null && currentElev != null && currentElev > lastElev) {
+      elevationGain += currentElev - lastElev
+    }
+    if (currentElev != null) lastElev = currentElev
+  }
+
+  const esc = (s: string) =>
+    s.replace(/[<>&"']/g, c => (({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&apos;' } as Record<string, string>)[c]))
+  const name = esc(title || 'Route')
+  const pts = reversed
+    .map(({ coords: [lat, lon], ele }) => (ele != null
+      ? `    <trkpt lat="${lat.toFixed(7)}" lon="${lon.toFixed(7)}">\n      <ele>${ele.toFixed(1)}</ele>\n    </trkpt>`
+      : `    <trkpt lat="${lat.toFixed(7)}" lon="${lon.toFixed(7)}"/>`))
+    .join('\n')
+  const gpx = `<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="FitMeet" xmlns="http://www.topografix.com/GPX/1/1">\n  <metadata><name>${name}</name></metadata>\n  <trk><name>${name}</name><trkseg>\n${pts}\n  </trkseg></trk>\n</gpx>`
+
+  const [startLat, startLng] = reversed[0].coords
+  const [endLat, endLng] = reversed[reversed.length - 1].coords
+
+  return {
+    gpx,
+    distanceKm: Math.round(distKm * 10) / 10,
+    elevationGain: Math.round(elevationGain),
+    startLat, startLng, endLat, endLng,
+  }
+}
+
 export function parseGpx(xml: string): GpxResult {
 
   const track:   [number, number][]        = []
