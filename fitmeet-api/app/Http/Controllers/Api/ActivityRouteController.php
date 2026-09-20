@@ -144,6 +144,7 @@ class ActivityRouteController extends Controller
             'end_lat'        => 'nullable|numeric|between:-90,90',
             'end_lng'        => 'nullable|numeric|between:-180,180',
             'area_label'     => 'nullable|string|max:255',
+            'reversed_from_route_id' => 'nullable|integer|exists:routes,id',
         ]);
 
         $path = $request->file('gpx')->store('gpx/routes', 'public');
@@ -166,6 +167,7 @@ class ActivityRouteController extends Controller
             'end_lat'        => $data['end_lat'] ?? null,
             'end_lng'        => $data['end_lng'] ?? null,
             'area_label'     => $data['area_label'] ?? null,
+            'reversed_from_route_id' => $data['reversed_from_route_id'] ?? null,
         ]);
 
         $route->load('creator');

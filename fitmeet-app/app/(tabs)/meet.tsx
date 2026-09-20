@@ -77,6 +77,7 @@ interface RouteItem {
     area_label: string | null
   }
   views_count: number
+  reversed_from_route_id?: number | null
 }
 
 const PEOPLE_SORT_OPTIONS: { key: PeopleSort; label: string }[] = [
@@ -804,7 +805,12 @@ const RoutesTab = forwardRef<LoadMoreHandle>(function RoutesTab(_props, ref) {
             <View style={styles.eventTop}>
               <View style={styles.eventBadge}><Text style={{ fontSize: 22 }}>{emoji}</Text></View>
               <View style={{ flex: 1, gap: 2 }}>
-                <Text style={styles.eventTitle} numberOfLines={1}>{route.title}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                  <Text style={styles.eventTitle} numberOfLines={1}>{route.title}</Text>
+                  {route.reversed_from_route_id != null && (
+                    <Ionicons name="swap-horizontal-outline" size={13} color={palette.textDim} />
+                  )}
+                </View>
                 <View style={styles.tagRow}>
                   <View style={styles.catTag}><Text style={styles.catTagText}>{route.category.label}</Text></View>
                   {route.views_count > 0 && <Text style={styles.skillText}>{route.views_count} views</Text>}

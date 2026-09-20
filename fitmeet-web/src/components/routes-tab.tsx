@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ChevronRight, MapPin, PenLine, Route as RouteIcon, Search, Zap } from 'lucide-react'
+import { ChevronRight, MapPin, PenLine, Repeat, Route as RouteIcon, Search, Zap } from 'lucide-react'
 
 import api from '@/lib/api'
 import { CATEGORIES, CATEGORY_EMOJI } from '@/lib/categories'
@@ -25,6 +25,7 @@ interface ActivityRoute {
   }
   views_count: number
   creator?: { id: number; name: string } | null
+  reversed_from_route_id?: number | null
 }
 
 const RADIUS_OPTIONS = [
@@ -211,7 +212,12 @@ export function RoutesTab() {
                 <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{route.views_count} views</span>
               )}
             </div>
-            <p className="font-semibold text-sm truncate">{route.title}</p>
+            <p className="font-semibold text-sm truncate flex items-center gap-1.5">
+              <span className="truncate">{route.title}</span>
+              {route.reversed_from_route_id != null && (
+                <Repeat size={11} className="shrink-0" style={{ color: 'var(--text-muted)' }} />
+              )}
+            </p>
             <div className="mt-2 space-y-1">
               {route.location.area_label && (
                 <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>

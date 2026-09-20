@@ -40,6 +40,7 @@ interface ActivityRoute {
   is_public: boolean
   waypoints?: [number, number][] | null
   pois?: RoutePoi[] | null
+  reversed_from_route_id?: number | null
 }
 
 function statsFromElevationProfile(profile: GpxResult['elevationProfile']) {
@@ -359,7 +360,7 @@ function RouteContent() {
   }
 
   function openReverseModal() {
-    setReverseTitle(`${currentRoute.title} (Reversed)`)
+    setReverseTitle(currentRoute.title)
     setReverseIsPublic(currentRoute.is_public)
     setReverseError(null)
     setShowReverseModal(true)
@@ -394,6 +395,7 @@ function RouteContent() {
       form.append('start_lng', String(reversed.startLng))
       form.append('end_lat', String(reversed.endLat))
       form.append('end_lng', String(reversed.endLng))
+      form.append('reversed_from_route_id', String(currentRoute.id))
 
       const { data } = await api.post('/routes', form, {
         headers: { 'Content-Type': 'multipart/form-data' },
@@ -427,7 +429,16 @@ function RouteContent() {
                   <Eye size={12} /> {route.views_count ?? 0} views
                 </span>
               </div>
-              <h1 className="text-3xl font-black">{route.title}</h1>
+              <h1 className="text-3xl font-black flex items-center gap-2">
+                {route.title}
+                {route.reversed_from_route_id != null && (
+                  <span className="inline-flex items-center justify-center rounded-full flex-shrink-0"
+                    style={{ width: 26, height: 26, background: 'var(--surface)' }}
+                    title="Reversed route">
+                    <Repeat size={13} style={{ color: 'var(--text-muted)' }} />
+                  </span>
+                )}
+              </h1>
               {route.location.area_label && (
                 <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-muted)' }}>
                   <MapPin size={15} /> {route.location.area_label}
@@ -671,7 +682,7 @@ function RouteContent() {
               <input
                 value={reverseTitle}
                 onChange={e => setReverseTitle(e.target.value)}
-                placeholder="e.g. Morning trail Šibenik (Reversed)"
+                placeholder="e.g. Morning trail Šibenik"
                 maxLength={140}
                 autoFocus
                 className="w-full rounded-xl border px-4 py-2.5 text-sm outline-none focus:border-[--primary] transition-colors"

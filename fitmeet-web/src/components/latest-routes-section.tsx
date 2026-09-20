@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { ArrowRight, Download, Lock, MapPin } from 'lucide-react'
+import { ArrowRight, Download, Lock, MapPin, Repeat } from 'lucide-react'
 import { CATEGORY_EMOJI } from '@/lib/categories'
 import { useAuthStore } from '@/store/auth'
 import api from '@/lib/api'
@@ -13,6 +13,7 @@ interface LatestRoute {
   category: { value: string; label: string }
   stats: { distance_km: number | null; elevation_gain: number | null }
   location: { area_label: string | null }
+  reversed_from_route_id?: number | null
 }
 
 export function LatestRoutesSection() {
@@ -83,7 +84,12 @@ export function LatestRoutesSection() {
                           {route.category.label}
                         </span>
                       </div>
-                      <p className="min-w-0 break-words font-bold text-sm leading-snug">{route.title}</p>
+                      <p className="min-w-0 break-words font-bold text-sm leading-snug flex items-center gap-1.5">
+                        <span className="truncate">{route.title}</span>
+                        {route.reversed_from_route_id != null && (
+                          <Repeat size={11} className="shrink-0" style={{ color: 'var(--text-muted)' }} />
+                        )}
+                      </p>
                       <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs" style={{ color: 'var(--text-muted)' }}>
                         {route.stats.distance_km != null && <span>{route.stats.distance_km} km</span>}
                         {route.stats.elevation_gain != null && <span>↑ {route.stats.elevation_gain} m</span>}

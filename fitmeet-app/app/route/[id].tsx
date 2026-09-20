@@ -51,6 +51,7 @@ interface RouteDetail {
   creator?: { id: number; name: string } | null
   waypoints?: [number, number][] | null
   pois?: RoutePoi[] | null
+  reversed_from_route_id?: number | null
 }
 
 const CATEGORY_EMOJI: Record<string, string> = Object.fromEntries(
@@ -243,7 +244,7 @@ export default function RouteViewScreen() {
 
   function openReverseModal() {
     if (!route) return
-    setReverseTitle(`${route.title} (Reversed)`)
+    setReverseTitle(route.title)
     setReverseIsPublic(route.is_public)
     setShowReverseModal(true)
   }
@@ -277,6 +278,7 @@ export default function RouteViewScreen() {
       form.append('start_lng', String(reversed.startLng))
       form.append('end_lat', String(reversed.endLat))
       form.append('end_lng', String(reversed.endLng))
+      form.append('reversed_from_route_id', String(route.id))
 
       const { data } = await api.post('/routes', form, {
         headers: { 'Content-Type': 'multipart/form-data' },
@@ -448,7 +450,14 @@ export default function RouteViewScreen() {
         <View style={styles.header}>
           <Text style={styles.emoji}>{emoji}</Text>
           <View style={styles.headerText}>
-            <Text style={styles.title}>{route.title}</Text>
+            <View style={styles.titleRow}>
+              <Text style={styles.title}>{route.title}</Text>
+              {route.reversed_from_route_id != null && (
+                <View style={styles.reversedBadge}>
+                  <Ionicons name="swap-horizontal-outline" size={12} color={palette.accent} />
+                </View>
+              )}
+            </View>
             <Text style={styles.meta}>{route.category.label}{route.views_count ? ` · ${route.views_count} views` : ''}</Text>
           </View>
         </View>
@@ -585,7 +594,7 @@ export default function RouteViewScreen() {
               <TextInput
                 value={reverseTitle}
                 onChangeText={setReverseTitle}
-                placeholder="e.g. Morning trail Šibenik (Reversed)"
+                placeholder="e.g. Morning trail Šibenik"
                 placeholderTextColor={palette.textDim}
                 style={styles.modalInput}
                 maxLength={140}
@@ -638,7 +647,13 @@ const styles = StyleSheet.create({
     textAlign: 'center', textAlignVertical: 'center',
     fontSize: 24,
   },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   title: { color: palette.text, fontSize: 24, lineHeight: 30, fontWeight: '900' },
+  reversedBadge: {
+    width: 20, height: 20, borderRadius: 10,
+    backgroundColor: palette.panelRaised,
+    alignItems: 'center', justifyContent: 'center',
+  },
   meta: { color: palette.textMuted, fontSize: 13, marginTop: 3 },
   actionRow: { flexDirection: 'row', gap: 8 },
   editBtn: {

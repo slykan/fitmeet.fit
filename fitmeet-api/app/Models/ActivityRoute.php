@@ -14,6 +14,7 @@ class ActivityRoute extends Model
     protected $fillable = [
         'user_id',
         'source_event_id',
+        'reversed_from_route_id',
         'title',
         'category',
         'distance_km',
@@ -59,6 +60,11 @@ class ActivityRoute extends Model
     public function sourceEvent(): BelongsTo
     {
         return $this->belongsTo(Event::class, 'source_event_id');
+    }
+
+    public function reversedFrom(): BelongsTo
+    {
+        return $this->belongsTo(ActivityRoute::class, 'reversed_from_route_id');
     }
 
     public function scopePublic(Builder $query): Builder

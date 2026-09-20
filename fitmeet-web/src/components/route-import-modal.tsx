@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Route as RouteIcon, Search, X } from 'lucide-react'
+import { Repeat, Route as RouteIcon, Search, X } from 'lucide-react'
 
 import api from '@/lib/api'
 import { CATEGORIES, CATEGORY_EMOJI } from '@/lib/categories'
@@ -15,6 +15,7 @@ export interface ImportableRoute {
     elevation_gain: number | null
   }
   location: { area_label: string | null }
+  reversed_from_route_id?: number | null
 }
 
 interface Props {
@@ -120,7 +121,12 @@ export function RouteImportModal({ visible, importingId, onClose, onImport }: Pr
               >
                 <span className="text-xl">{CATEGORY_EMOJI[route.category.value] ?? <RouteIcon size={18} />}</span>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm truncate">{route.title}</p>
+                  <p className="font-semibold text-sm truncate flex items-center gap-1.5">
+                    <span className="truncate">{route.title}</span>
+                    {route.reversed_from_route_id != null && (
+                      <Repeat size={11} className="shrink-0" style={{ color: 'var(--text-muted)' }} />
+                    )}
+                  </p>
                   <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
                     {[
                       route.stats.distance_km != null && `${route.stats.distance_km} km`,

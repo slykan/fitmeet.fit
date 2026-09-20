@@ -18,6 +18,7 @@ export const CATEGORIES = [
   { value: 'ice_skating',    emoji: '⛸️',  label: 'Ice Skating' },
   { value: 'inline_skating', emoji: '🛼',  label: 'Inline Skating' },
   { value: 'walking',        emoji: '🚶',  label: 'Walking' },
+  { value: 'rowing',      emoji: '🚣',  label: 'Rowing' },
   { value: 'party',       emoji: '🎉',  label: 'Party' },
   { value: 'chill',       emoji: '😎',  label: 'Chill' },
   { value: 'food_drinks', emoji: '🍕',  label: 'Food & Drinks' },

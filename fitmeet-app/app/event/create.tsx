@@ -53,6 +53,7 @@ interface FitMeetRoute {
   category: { value: string; label: string }
   stats: { distance_km: number | null; elevation_gain: number | null }
   location: { area_label: string | null }
+  reversed_from_route_id?: number | null
 }
 
 function statsFromElevationProfile(profile: { km: number; ele: number }[]) {
@@ -1180,7 +1181,12 @@ export default function CreateEventScreen() {
                     >
                       <Text style={styles.routeImportEmoji}>{CATEGORY_EMOJI[route.category.value] ?? '📍'}</Text>
                       <View style={{ flex: 1 }}>
-                        <Text style={styles.routeImportTitle} numberOfLines={1}>{route.title}</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                          <Text style={styles.routeImportTitle} numberOfLines={1}>{route.title}</Text>
+                          {route.reversed_from_route_id != null && (
+                            <Ionicons name="swap-horizontal-outline" size={12} color={palette.textDim} />
+                          )}
+                        </View>
                         <Text style={styles.routeImportMeta} numberOfLines={1}>
                           {[
                             route.stats.distance_km != null && `${route.stats.distance_km} km`,
