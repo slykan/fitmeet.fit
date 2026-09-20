@@ -7,7 +7,7 @@ import { AppState, BackHandler } from 'react-native'
 import { palette } from '@/src/theme'
 import { useAuthStore } from '@/src/store/auth'
 import { api } from '@/src/lib/api'
-import { consumeBackScrollToTop } from '@/src/lib/back-scroll'
+import { consumeBackOverride, consumeBackScrollToTop } from '@/src/lib/back-scroll'
 import { emitChatRefresh } from '@/src/lib/chat-refresh'
 
 const TAB_KEYS = ['hub', 'meet', 'ranks', 'notifications', 'messages', 'profile'] as const
@@ -78,7 +78,13 @@ export default function TabsLayout() {
     if (!key) return
 
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      // Hub, Meet's People/Events and Feed's Moments get first dibs on the
+      // A screen that swapped its own content in place (e.g. Messages
+      // showing a conversation thread) gets first dibs: it fully owns the
+      // back press so it can return to its own list instead of falling
+      // through to tab history below.
+      if (consumeBackOverride()) return true
+
+      // Hub, Meet's People/Events and Feed's Moments get next dibs on the
       // back press when scrolled down: it scrolls them to the top instead of
       // navigating away, and only a second press (now at the top) falls
       // through to popping the tab history below.

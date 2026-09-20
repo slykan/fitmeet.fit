@@ -15,3 +15,23 @@ export function setBackScrollHandler(fn: BackScrollHandler | null) {
 export function consumeBackScrollToTop(): boolean {
   return handler ? handler() : false
 }
+
+// Lets a screen that swaps its own content in place (e.g. Messages showing a
+// conversation thread instead of the list, without changing route/pathname)
+// fully claim the hardware back button so the tab-history logic in
+// (tabs)/_layout.tsx never sees the press. Unlike the scroll handler above
+// this always consumes the press -- there's no "already handled, fall
+// through" case.
+type BackOverrideHandler = () => void
+
+let overrideHandler: BackOverrideHandler | null = null
+
+export function setBackOverride(fn: BackOverrideHandler | null) {
+  overrideHandler = fn
+}
+
+export function consumeBackOverride(): boolean {
+  if (!overrideHandler) return false
+  overrideHandler()
+  return true
+}

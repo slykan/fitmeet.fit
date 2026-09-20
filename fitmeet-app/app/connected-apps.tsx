@@ -62,13 +62,15 @@ export default function ConnectedAppsScreen() {
       .finally(() => setLoading(false))
   }
 
-  // Deep-link auth returns from Strava/Huawei often land back on this screen
-  // while finishConnect()'s API call is still in flight in the background
-  // (fired from the strava-callback/huawei-callback route, not awaited before
-  // it navigates back here) — refetching on every focus, not just first mount,
-  // means the button updates to "Connected" as soon as the screen is looked at
-  // again instead of only after leaving and re-entering it.
-  useFocusEffect(useCallback(() => { load() }, []))
+  // Deep-link auth returns from Strava/Huawei land back on this screen while
+  // finishConnect()'s POST is still in flight in the background (fired from
+  // the strava-callback/huawei-callback route, not awaited before it
+  // navigates back here). Refetching on focus is right in general, but firing
+  // it while that POST is still pending raced it — whichever response arrived
+  // last won, so the button sometimes got stuck showing "Connect" until a
+  // second tap. Skipping the focus refetch while busy leaves finishConnect's
+  // own post-completion load() as the single source of truth.
+  useFocusEffect(useCallback(() => { if (!busy) load() }, [busy]))
 
   useEffect(() => {
     setStravaCodeCallback((code) => {
