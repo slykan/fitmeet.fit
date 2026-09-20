@@ -788,14 +788,29 @@ HTML;
                 ->update($update);
         }
 
-        EventLocationPoint::create([
-            'event_id' => $event->id,
-            'user_id' => $user->id,
-            'lat' => $data['lat'],
-            'lng' => $data['lng'],
-            'speed_kmh' => $data['speed_kmh'] ?? null,
-            'recorded_at' => isset($data['recorded_at']) ? \Illuminate\Support\Carbon::parse($data['recorded_at']) : now(),
-        ]);
+        $recordedAt = isset($data['recorded_at']) ? \Illuminate\Support\Carbon::parse($data['recorded_at']) : now();
+
+        // Defense in depth: some Android GPS chips ignore the app's requested
+        // timeInterval when distanceInterval is 0, delivering fixes far faster
+        // than intended (observed: 15/sec for two hours straight, 100k+ rows
+        // for one event). The client now throttles its own posting, but an
+        // already-installed older build won't have that fix yet -- skip
+        // writing a history row if the last one for this rider is still fresh.
+        $lastPointAt = EventLocationPoint::where('event_id', $event->id)
+            ->where('user_id', $user->id)
+            ->orderByDesc('recorded_at')
+            ->value('recorded_at');
+
+        if (! $lastPointAt || abs($recordedAt->diffInSeconds(\Illuminate\Support\Carbon::parse($lastPointAt))) >= 4) {
+            EventLocationPoint::create([
+                'event_id' => $event->id,
+                'user_id' => $user->id,
+                'lat' => $data['lat'],
+                'lng' => $data['lng'],
+                'speed_kmh' => $data['speed_kmh'] ?? null,
+                'recorded_at' => $recordedAt,
+            ]);
+        }
 
         return response()->json(['updated_at' => now()->toIso8601String(), 'stale' => $isStaleFix]);
     }

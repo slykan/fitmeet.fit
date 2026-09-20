@@ -19,6 +19,25 @@ function speedKmh(speedMs: number | null | undefined): number | null {
   return speedMs != null && speedMs >= 0 ? Math.round(speedMs * 3.6 * 10) / 10 : null
 }
 
+// `timeInterval: 5000` passed to both watchPositionAsync and
+// startLocationUpdatesAsync below is only a hint -- with distanceInterval: 0,
+// some Android GPS chips/OEMs ignore it entirely and deliver fixes far faster
+// than requested (observed: one device posting ~15 fixes/sec for two hours
+// straight, ballooning a single event to 100k+ location rows). Gate on the
+// fix's own timestamp rather than trusting native throttling, so a burst of
+// rapid-fire duplicates gets filtered regardless of what the OS actually
+// delivers. This also correctly keeps every fix in a legitimate background
+// catch-up burst, since those are already spaced apart in real time.
+const MIN_FIX_INTERVAL_MS = 4000
+
+let lastKeptFixAtMs = 0
+
+function shouldKeepFix(timestampMs: number): boolean {
+  if (timestampMs - lastKeptFixAtMs < MIN_FIX_INTERVAL_MS) return false
+  lastKeptFixAtMs = timestampMs
+  return true
+}
+
 // Must be defined at module top level (before any component mounts)
 TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }: TaskManager.TaskManagerTaskBody) => {
   if (error) return
@@ -39,6 +58,8 @@ TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }: TaskManager.T
   // chronology enough that route replay draws an instant "teleport" between
   // them. Post every fix, each with its own device timestamp, in order.
   for (const location of locations) {
+    if (!shouldKeepFix(location.timestamp)) continue
+
     try {
       await api.post(`/events/${eventId}/location`, {
         lat: location.coords.latitude,
@@ -63,6 +84,7 @@ export async function startLiveLocationTracking(eventId: number | string): Promi
   const hasBackground = background.status === 'granted'
 
   await AsyncStorage.setItem(TRACKED_EVENT_STORAGE_KEY, String(eventId))
+  lastKeptFixAtMs = 0
 
   try {
     await api.post(`/events/${eventId}/location-sharing`, { enabled: true })
@@ -116,6 +138,8 @@ export async function getTrackedLiveLocationEventId(): Promise<string | null> {
 }
 
 export async function postForegroundLocation(eventId: number | string, location: Location.LocationObject) {
+  if (!shouldKeepFix(location.timestamp)) return
+
   try {
     await api.post(`/events/${eventId}/location`, {
       lat: location.coords.latitude,
