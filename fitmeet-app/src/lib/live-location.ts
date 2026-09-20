@@ -35,6 +35,7 @@ TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }: TaskManager.T
       lat: latest.coords.latitude,
       lng: latest.coords.longitude,
       speed_kmh: speedKmh(latest.coords.speed),
+      fix_at_ms: latest.timestamp,
     })
   } catch {
     // Event ended / sharing disabled elsewhere — just skip this beat.
@@ -109,6 +110,7 @@ export async function postForegroundLocation(eventId: number | string, location:
       lat: location.coords.latitude,
       lng: location.coords.longitude,
       speed_kmh: speedKmh(location.coords.speed),
+      fix_at_ms: location.timestamp,
     })
   } catch {
     // ignore — next tick will retry
