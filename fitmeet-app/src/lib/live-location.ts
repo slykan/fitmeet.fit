@@ -153,12 +153,23 @@ export async function postForegroundLocation(eventId: number | string, location:
   }
 }
 
-export function openAndroidBatteryOptimizationSettings() {
+export async function openAndroidBatteryOptimizationSettings() {
   if (Platform.OS !== 'android') return
   const packageName = Constants.expoConfig?.android?.package
   if (!packageName) return
 
-  IntentLauncher.startActivityAsync('android.settings.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS', {
-    data: `package:${packageName}`,
-  }).catch(() => {})
+  try {
+    await IntentLauncher.startActivityAsync('android.settings.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS', {
+      data: `package:${packageName}`,
+    })
+  } catch {
+    // Some OEMs (Honor/Huawei's Magic UI/EMUI, and others) don't ship this specific
+    // battery-optimization screen at all -- the intent above resolves to no activity
+    // and silently fails, so "Open settings" appeared to do nothing. Fall back to the
+    // app's own details page, which every Android build has, so the user can still
+    // reach battery/background settings manually from there.
+    await IntentLauncher.startActivityAsync('android.settings.APPLICATION_DETAILS_SETTINGS', {
+      data: `package:${packageName}`,
+    }).catch(() => {})
+  }
 }
