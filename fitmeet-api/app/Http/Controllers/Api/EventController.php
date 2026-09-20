@@ -739,53 +739,54 @@ HTML;
         // The background TaskManager task and the foreground watcher (see
         // live-location.ts / event/[id].tsx) both post independently every ~5s.
         // Network latency can let a fix captured earlier arrive after one captured
-        // later, which would otherwise overwrite the newer position and make the
-        // marker visibly jump backward. Drop anything older than what's stored.
-        if ($fixAtMs !== null && $participant->live_fix_at_ms !== null && $fixAtMs < (int) $participant->live_fix_at_ms) {
-            return response()->json([
-                'updated_at' => optional($participant->live_updated_at ? \Illuminate\Support\Carbon::parse($participant->live_updated_at) : null)->toIso8601String() ?? now()->toIso8601String(),
-                'stale' => true,
-            ]);
+        // later, which would otherwise overwrite the *live* marker position and
+        // make it visibly jump backward. Only the live position/anchor update is
+        // skipped for a stale fix -- the point is still recorded below for route
+        // replay, which orders by recorded_at rather than arrival order. Dropping
+        // the whole request here previously meant a burst of "stale" fixes never
+        // made it into event_location_points at all, leaving route replay empty.
+        $isStaleFix = $fixAtMs !== null && $participant->live_fix_at_ms !== null && $fixAtMs < (int) $participant->live_fix_at_ms;
+
+        if (! $isStaleFix) {
+            $distanceFromAnchor = ($participant->stopped_anchor_lat !== null && $participant->stopped_anchor_lng !== null)
+                ? $this->haversineMeters(
+                    (float) $participant->stopped_anchor_lat,
+                    (float) $participant->stopped_anchor_lng,
+                    (float) $data['lat'],
+                    (float) $data['lng'],
+                )
+                : null;
+
+            $update = [
+                'live_lat' => $data['lat'],
+                'live_lng' => $data['lng'],
+                'live_speed_kmh' => $data['speed_kmh'] ?? null,
+                'live_updated_at' => now(),
+            ];
+
+            if ($fixAtMs !== null) {
+                $update['live_fix_at_ms'] = $fixAtMs;
+            }
+
+            if ($distanceFromAnchor === null || $distanceFromAnchor > 25) {
+                $update['stopped_anchor_lat'] = $data['lat'];
+                $update['stopped_anchor_lng'] = $data['lng'];
+                $update['stopped_anchor_at'] = now();
+            } elseif (
+                $event->gpx_path
+                && $participant->stopped_anchor_at
+                && now()->diffInSeconds(\Illuminate\Support\Carbon::parse($participant->stopped_anchor_at)) >= 60
+            ) {
+                // Route-only: without a GPX route, standing still is expected (yoga,
+                // gym meetups, etc.), so "hasn't moved" isn't something to alert on.
+                app(\App\Services\RiderStoppedNotifier::class)->notify($event, $user);
+            }
+
+            \DB::table('event_participants')
+                ->where('event_id', $event->id)
+                ->where('user_id', $user->id)
+                ->update($update);
         }
-
-        $distanceFromAnchor = ($participant->stopped_anchor_lat !== null && $participant->stopped_anchor_lng !== null)
-            ? $this->haversineMeters(
-                (float) $participant->stopped_anchor_lat,
-                (float) $participant->stopped_anchor_lng,
-                (float) $data['lat'],
-                (float) $data['lng'],
-            )
-            : null;
-
-        $update = [
-            'live_lat' => $data['lat'],
-            'live_lng' => $data['lng'],
-            'live_speed_kmh' => $data['speed_kmh'] ?? null,
-            'live_updated_at' => now(),
-        ];
-
-        if ($fixAtMs !== null) {
-            $update['live_fix_at_ms'] = $fixAtMs;
-        }
-
-        if ($distanceFromAnchor === null || $distanceFromAnchor > 25) {
-            $update['stopped_anchor_lat'] = $data['lat'];
-            $update['stopped_anchor_lng'] = $data['lng'];
-            $update['stopped_anchor_at'] = now();
-        } elseif (
-            $event->gpx_path
-            && $participant->stopped_anchor_at
-            && now()->diffInSeconds(\Illuminate\Support\Carbon::parse($participant->stopped_anchor_at)) >= 60
-        ) {
-            // Route-only: without a GPX route, standing still is expected (yoga,
-            // gym meetups, etc.), so "hasn't moved" isn't something to alert on.
-            app(\App\Services\RiderStoppedNotifier::class)->notify($event, $user);
-        }
-
-        \DB::table('event_participants')
-            ->where('event_id', $event->id)
-            ->where('user_id', $user->id)
-            ->update($update);
 
         EventLocationPoint::create([
             'event_id' => $event->id,
@@ -796,7 +797,7 @@ HTML;
             'recorded_at' => isset($data['recorded_at']) ? \Illuminate\Support\Carbon::parse($data['recorded_at']) : now(),
         ]);
 
-        return response()->json(['updated_at' => now()->toIso8601String()]);
+        return response()->json(['updated_at' => now()->toIso8601String(), 'stale' => $isStaleFix]);
     }
 
     // GET /api/events/{event}/live-positions
