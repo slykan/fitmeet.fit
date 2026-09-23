@@ -414,6 +414,19 @@ function ReadOnlyViewSync({
   return null
 }
 
+// Leaflet caches the container size, so toggling fullscreen (or any other
+// layout change) leaves grey untiled areas until invalidateSize() is called.
+function InvalidateOnResize() {
+  const map = useMap()
+  useEffect(() => {
+    const el = map.getContainer()
+    const ro = new ResizeObserver(() => map.invalidateSize())
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [map])
+  return null
+}
+
 function FitTrack({ coords }: { coords: [number, number][] }) {
   const map = useMap()
   useEffect(() => {
@@ -878,15 +891,18 @@ export default function LocationPickerMap({
       position: 'relative', overflow: 'hidden',
       borderRadius: height === 'fill' ? 0 : '12px',
       border: height === 'fill' ? 'none' : '1px solid var(--border)',
-      height: height === 'fill' ? '100%' : undefined,
+      // Height lives on this wrapper: MapContainer only reads its style prop on
+      // mount, so a height change (e.g. entering fullscreen) there is ignored.
+      height: height === 'fill' ? '100%' : `${height}px`,
     }}>
       <MapContainer
         center={center}
         zoom={zoom}
-        style={{ height: height === 'fill' ? '100%' : `${height}px`, width: '100%' }}
+        style={{ height: '100%', width: '100%' }}
         scrollWheelZoom={false}
         zoomControl={false}
       >
+        <InvalidateOnResize />
         <ZoomControl position="bottomright" />
         <TileLayer
           key={showMapLayerControl ? selectedLayer.name : MAP_BASE_LAYERS[0].name}

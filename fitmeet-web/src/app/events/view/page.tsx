@@ -1085,40 +1085,6 @@ function EventContent() {
                 onApplausePress={event && eventHasStarted(event) ? sendApplause : undefined}
                 hasApplauded={hasApplauded}
               />
-              {/* Bottom-right, stacked above both the map control bar and Leaflet's own
-                  bottomright zoom control (~63px tall incl. its 10px margin) -- top-right
-                  is already claimed by the weather badge and the layer-control pill, and
-                  both are variable-width, so anchoring here next to those was colliding
-                  with them, and the first attempt at this bottom-right spot collided with
-                  the zoom control instead. */}
-              <button
-                type="button"
-                onClick={handleShareLiveMap}
-                title="Share live map"
-                className="absolute bottom-[124px] right-3 z-[750] inline-flex items-center justify-center rounded-[10px] border transition-colors"
-                style={{
-                  width: 32, height: 32,
-                  borderColor: copiedLiveMap ? 'var(--primary)' : 'rgba(255,255,255,0.12)',
-                  background: 'rgba(7,11,24,0.78)',
-                }}
-              >
-                <Share2 size={15} color={copiedLiveMap ? 'var(--primary)' : 'var(--text-muted)'} />
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsMapFullscreen(v => !v)}
-                title={isMapFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
-                className="absolute bottom-[80px] right-3 z-[750] inline-flex items-center justify-center rounded-[10px] border transition-colors"
-                style={{
-                  width: 32, height: 32,
-                  borderColor: 'rgba(255,255,255,0.12)',
-                  background: 'rgba(7,11,24,0.78)',
-                }}
-              >
-                {isMapFullscreen
-                  ? <Minimize2 size={15} color="var(--text-muted)" />
-                  : <Maximize2 size={15} color="var(--text-muted)" />}
-              </button>
               {(gpxLoading || surfaceLoading) && <MapLoadingOverlay />}
               <div
                 className="absolute inset-x-0 bottom-0 z-[700] flex items-center justify-between gap-3 border-t px-3 py-2 sm:px-4"
@@ -1224,18 +1190,46 @@ function EventContent() {
                       </button>
                     </>
                   ) : null}
-                </div>
-                {weather && (
-                  <div
-                    className="hidden items-center gap-2 text-xs font-semibold sm:inline-flex"
-                    style={{ color: '#d7dfef' }}
+                  <button
+                    type="button"
+                    onClick={handleShareLiveMap}
+                    title="Share live map"
+                    className="inline-flex items-center justify-center rounded-[10px] border transition-colors"
+                    style={{
+                      width: 32, height: 32,
+                      borderColor: copiedLiveMap ? 'var(--primary)' : 'rgba(255,255,255,0.12)',
+                      background: 'rgba(255,255,255,0.03)',
+                    }}
                   >
-                    <span>{weather.tempCurrent ?? weather.tempMax}°</span>
-                    <span style={{ width: 1, height: 12, background: 'rgba(255,255,255,0.16)', display: 'inline-block' }} />
-                    <span>{weather.windSpeed} km/h</span>
-                    <span style={{ color: '#58beff', fontWeight: 700 }}>{windDirectionLabelDetailed(weather.windDir)}</span>
-                  </div>
-                )}
+                    <Share2 size={15} color={copiedLiveMap ? 'var(--primary)' : 'var(--text-muted)'} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsMapFullscreen(v => !v)}
+                    title={isMapFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+                    className="inline-flex items-center justify-center rounded-[10px] border transition-colors"
+                    style={{
+                      width: 32, height: 32,
+                      borderColor: 'rgba(255,255,255,0.12)',
+                      background: 'rgba(255,255,255,0.03)',
+                    }}
+                  >
+                    {isMapFullscreen
+                      ? <Minimize2 size={15} color="var(--text-muted)" />
+                      : <Maximize2 size={15} color="var(--text-muted)" />}
+                  </button>
+                  {weather && (
+                    <div
+                      className="ml-1 hidden items-center gap-2 text-xs font-semibold sm:inline-flex"
+                      style={{ color: '#d7dfef' }}
+                    >
+                      <span>{weather.tempCurrent ?? weather.tempMax}°</span>
+                      <span style={{ width: 1, height: 12, background: 'rgba(255,255,255,0.16)', display: 'inline-block' }} />
+                      <span>{weather.windSpeed} km/h</span>
+                      <span style={{ color: '#58beff', fontWeight: 700 }}>{windDirectionLabelDetailed(weather.windDir)}</span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}
