@@ -9,6 +9,7 @@ import { useAuthStore } from '@/src/store/auth'
 import { api } from '@/src/lib/api'
 import { consumeBackOverride, consumeBackScrollToTop } from '@/src/lib/back-scroll'
 import { emitChatRefresh } from '@/src/lib/chat-refresh'
+import { markTabsReady } from '@/src/lib/push-notifications'
 
 const TAB_KEYS = ['hub', 'meet', 'ranks', 'notifications', 'messages', 'profile'] as const
 type TabKey = typeof TAB_KEYS[number]
@@ -106,6 +107,13 @@ export default function TabsLayout() {
 
     return () => sub.remove()
   }, [pathname])
+
+  // Opens a push/deep-link target that arrived during a cold start, before the
+  // tabs existed (see navigateWhenReady in push-notifications.ts).
+  useEffect(() => {
+    markTabsReady(true)
+    return () => markTabsReady(false)
+  }, [])
 
   useEffect(() => {
     if (!token) {

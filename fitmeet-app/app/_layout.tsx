@@ -14,7 +14,7 @@ import { BirthdayOverlay } from '@/src/components/BirthdayOverlay'
 import { WorldCupOverlay } from '@/src/components/WorldCupOverlay'
 import { api } from '@/src/lib/api'
 import { getTrackedLiveLocationEventId, stopLiveLocationTracking } from '@/src/lib/live-location'
-import { setupPushNotificationRouting, syncPushToken } from '@/src/lib/push-notifications'
+import { navigateWhenReady, setupPushNotificationRouting, syncPushToken } from '@/src/lib/push-notifications'
 import { setupRevenueCat } from '@/src/lib/revenuecat'
 import { useAuthStore } from '@/src/store/auth'
 import { palette } from '@/src/theme'
@@ -143,7 +143,10 @@ export default function RootLayout() {
       const path = appPathFromUrl(url, Boolean(token))
       if (!path || path === lastDeepLink.current) return
       lastDeepLink.current = path
-      router.push(path as never)
+      // Event links need a logged-in user, so they can wait for the tabs like push
+      // taps do; reset-password must open even when nobody is logged in.
+      if (path.startsWith('/event/')) navigateWhenReady(path)
+      else router.push(path as never)
     }
 
     Linking.getInitialURL().then(openAppUrl).catch(() => {})

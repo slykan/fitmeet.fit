@@ -5,7 +5,7 @@ import * as Location from 'expo-location'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator, Alert, AppState, Image, Modal, Pressable,
-  Keyboard, Linking, Platform, ScrollView, Share, StyleSheet, Text, TextInput, View,
+  Keyboard, Linking, Platform, ScrollView, Share, StyleSheet, Switch, Text, TextInput, View,
   type StyleProp, type ViewStyle,
 } from 'react-native'
 import { WebView } from 'react-native-webview'
@@ -355,6 +355,8 @@ export default function EventDetailScreen() {
   const [showSupportModal, setShowSupportModal] = useState(false)
   const [checkingIn, setCheckingIn] = useState(false)
   const [showLocationConsentModal, setShowLocationConsentModal] = useState(false)
+  const [checkInSheet, setCheckInSheet] = useState<'checkin' | 'live' | null>(null)
+  const [sheetShareLive, setSheetShareLive] = useState(true)
   const [rememberLiveSharing, setRememberLiveSharing] = useState(true)
   const [showBatteryOptModal, setShowBatteryOptModal] = useState(false)
   const [startingLiveTracking, setStartingLiveTracking] = useState(false)
@@ -833,17 +835,37 @@ export default function EventDetailScreen() {
     }
   }, [event?.id, event?.live_sharing_enabled, event?.checked_in_at, event?.status, event?.schedule.start_at, event?.schedule.duration_minutes])
 
+  // Opened from the "starting soon" push (or a check-in link): one sheet that does
+  // the check-in and live-location opt-in together, instead of an Alert followed by
+  // a second consent modal further down the page. When the push's own "Check in"
+  // button already checked the user in, it only offers the live location part.
   useEffect(() => {
     if (checkin !== '1' || checkInPromptShown.current || !event) return
     checkInPromptShown.current = true
 
     if (canCheckInNow(event)) {
-      Alert.alert('Check in', 'Mark that you made it to this event?', [
-        { text: 'Not now', style: 'cancel' },
-        { text: 'Check in', onPress: () => checkIn() },
-      ])
+      setSheetShareLive(true)
+      setCheckInSheet('checkin')
+    } else if (event.checked_in_at && !event.live_sharing_enabled && liveTrackingOpen(event)) {
+      if (me?.auto_share_live_location) {
+        beginLiveLocationSharing()
+      } else {
+        setSheetShareLive(true)
+        setCheckInSheet('live')
+      }
     }
   }, [checkin, event?.id, event?.checked_in_at, event?.is_joined])
+
+  async function confirmCheckInSheet() {
+    const mode = checkInSheet
+    setCheckInSheet(null)
+    const remember = sheetShareLive && !me?.auto_share_live_location && rememberLiveSharing
+    if (mode === 'checkin') {
+      await checkIn({ shareLive: sheetShareLive, remember })
+    } else if (mode === 'live') {
+      await beginLiveLocationSharing({ persistPreference: remember })
+    }
+  }
 
   const loadComments = useCallback(async () => {
     if (!id || !event) return
@@ -955,7 +977,10 @@ export default function EventDetailScreen() {
     }
   }
 
-  async function checkIn() {
+  // `choice` comes from the check-in sheet, which already asked about live location;
+  // without it (the Check in button on the page) the old flow applies: auto-share
+  // if the user opted in before, otherwise ask with the consent modal.
+  async function checkIn(choice?: { shareLive: boolean; remember: boolean }) {
     if (!event || checkingIn) return
 
     setCheckingIn(true)
@@ -968,7 +993,9 @@ export default function EventDetailScreen() {
       }
       setEvent(nextEvent)
       if (!nextEvent.live_sharing_enabled) {
-        if (me?.auto_share_live_location) {
+        if (choice) {
+          if (choice.shareLive) beginLiveLocationSharing({ persistPreference: choice.remember })
+        } else if (me?.auto_share_live_location) {
           beginLiveLocationSharing()
         } else {
           setShowLocationConsentModal(true)
@@ -1798,7 +1825,7 @@ export default function EventDetailScreen() {
                   <Text style={styles.checkedChipText}>Done</Text>
                 </View>
               ) : (
-                <Pressable style={[styles.checkInBtn, checkingIn && styles.disabledBtn]} onPress={checkIn} disabled={checkingIn}>
+                <Pressable style={[styles.checkInBtn, checkingIn && styles.disabledBtn]} onPress={() => checkIn()} disabled={checkingIn}>
                   {checkingIn ? (
                     <ActivityIndicator size="small" color="#041109" />
                   ) : (
@@ -1965,6 +1992,65 @@ export default function EventDetailScreen() {
               subtitle="Every coffee or beer helps keep this app running and improving."
               onPurchased={() => setShowSupportModal(false)}
             />
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      <Modal visible={checkInSheet !== null} transparent animationType="slide" onRequestClose={() => setCheckInSheet(null)}>
+        <Pressable style={[styles.modalBackdrop, bottomSheetBackdropStyle]} onPress={() => setCheckInSheet(null)}>
+          <Pressable style={styles.reminderModal} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.modalHeader}>
+              <View style={styles.modalIcon}>
+                <Ionicons name={checkInSheet === 'live' ? 'checkmark-circle' : 'location'} size={22} color={palette.accent} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.modalTitle}>{checkInSheet === 'live' ? "You're checked in" : 'Check in'}</Text>
+                <Text style={styles.modalSubtitle} numberOfLines={2}>
+                  {checkInSheet === 'live'
+                    ? 'Share your live location so the group can see you on the map?'
+                    : `Made it to ${event?.title ?? 'the event'}?`}
+                </Text>
+              </View>
+              <Pressable style={styles.modalClose} onPress={() => setCheckInSheet(null)}>
+                <Ionicons name="close" size={20} color={palette.textMuted} />
+              </Pressable>
+            </View>
+
+            {checkInSheet === 'checkin' && (
+              <Pressable style={styles.sheetLiveRow} onPress={() => setSheetShareLive((v) => !v)}>
+                <Ionicons name="navigate-outline" size={20} color={sheetShareLive ? palette.accent : palette.textMuted} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.sheetLiveTitle}>Share my live location</Text>
+                  <Text style={styles.sheetLiveText}>Everyone sees you on the map — works with your phone locked.</Text>
+                </View>
+                <Switch
+                  value={sheetShareLive}
+                  onValueChange={setSheetShareLive}
+                  trackColor={{ false: palette.line, true: 'rgba(57,255,20,0.45)' }}
+                  thumbColor={sheetShareLive ? palette.accent : '#8a8f98'}
+                />
+              </Pressable>
+            )}
+
+            {sheetShareLive && !me?.auto_share_live_location && (
+              <Pressable style={[styles.rememberRow, { marginBottom: 0 }]} onPress={() => setRememberLiveSharing((v) => !v)} hitSlop={6}>
+                <View style={[styles.rememberCheckbox, rememberLiveSharing && styles.rememberCheckboxOn]}>
+                  {rememberLiveSharing && <Ionicons name="checkmark" size={13} color="#041109" />}
+                </View>
+                <Text style={styles.rememberText}>Remember my choice and auto-share next time</Text>
+              </Pressable>
+            )}
+
+            <View style={styles.modalActions}>
+              <Pressable style={styles.modalSecondary} onPress={() => setCheckInSheet(null)}>
+                <Text style={styles.modalSecondaryText}>Not now</Text>
+              </Pressable>
+              <Pressable style={styles.modalPrimary} onPress={confirmCheckInSheet}>
+                <Text style={styles.modalPrimaryText}>
+                  {checkInSheet === 'live' ? 'Share location' : 'Check in'}
+                </Text>
+              </Pressable>
+            </View>
           </Pressable>
         </Pressable>
       </Modal>
@@ -2550,6 +2636,18 @@ const styles = StyleSheet.create({
   reminderOptionText: { color: palette.textMuted, fontSize: 13, fontWeight: '700' },
   reminderOptionTextActive: { color: palette.accent },
   rememberRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 },
+  sheetLiveRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: palette.line,
+    backgroundColor: palette.panelRaised,
+  },
+  sheetLiveTitle: { color: palette.text, fontSize: 14.5, fontWeight: '800' },
+  sheetLiveText: { color: palette.textMuted, fontSize: 12, marginTop: 2 },
   rememberCheckbox: {
     width: 18, height: 18, borderRadius: 5,
     borderWidth: 1.5, borderColor: palette.line,

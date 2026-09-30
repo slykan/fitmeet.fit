@@ -71,6 +71,32 @@ Notifications.setNotificationHandler({
   }),
 })
 
+// On a cold start (app killed, user taps the push) the response arrives while
+// app/index.tsx is still on its splash and about to <Redirect> to the hub tab --
+// pushing the event screen right then either throws (navigator not mounted yet)
+// or gets replaced by that redirect, so the user landed on the event list instead
+// of the event. Routes requested before the tabs are up are parked here and
+// opened by (tabs)/_layout once it mounts, on top of the hub (so back returns there).
+let tabsReady = false
+let pendingRoute: string | null = null
+
+export function navigateWhenReady(path: string) {
+  if (tabsReady) {
+    router.push(path as never)
+  } else {
+    pendingRoute = path
+  }
+}
+
+export function markTabsReady(ready: boolean) {
+  tabsReady = ready
+  if (!ready || !pendingRoute) return
+  const path = pendingRoute
+  pendingRoute = null
+  // Let the tab navigator finish its first render before stacking on top of it.
+  setTimeout(() => router.push(path as never), 0)
+}
+
 function enqueueBadgesFromPushData(data: Record<string, unknown> | undefined) {
   const raw = typeof data?.badge_keys === 'string' ? data.badge_keys : null
   if (!raw) return
@@ -91,7 +117,7 @@ function routeFromNotificationData(data: Record<string, unknown> | undefined) {
 
   if (type === 'badge_unlocked') {
     enqueueBadgesFromPushData(data)
-    router.push('/(tabs)/profile' as never)
+    navigateWhenReady('/(tabs)/profile')
     return
   }
 
@@ -99,34 +125,34 @@ function routeFromNotificationData(data: Record<string, unknown> | undefined) {
   // task didn't get to attach one) should still land on the same check-in prompt +
   // live-location toggle the "Check in" button itself triggers, not a plain event page.
   if (eventId && type === 'event_started') {
-    router.push(`/event/${eventId}?checkin=1` as never)
+    navigateWhenReady(`/event/${eventId}?checkin=1`)
     return
   }
 
   if (eventId && ['new_event', 'event_reminder', 'event_cancelled', 'event_rescheduled', 'rider_stopped', 'applause_sent', 'join_notification', 'moment_reminder'].includes(type ?? '')) {
-    router.push(`/event/${eventId}` as never)
+    navigateWhenReady(`/event/${eventId}`)
     return
   }
 
   if (eventId && ['event_comment', 'event_comment_mention'].includes(type ?? '')) {
-    router.push(`/event/${eventId}?wall=1` as never)
+    navigateWhenReady(`/event/${eventId}?wall=1`)
     return
   }
 
   if (type === 'new_message') {
     emitChatRefresh()
     const conversationId = data.conversation_id != null ? String(data.conversation_id) : null
-    router.push((conversationId ? `/(tabs)/messages?conversation=${conversationId}` : '/(tabs)/messages') as never)
+    navigateWhenReady((conversationId ? `/(tabs)/messages?conversation=${conversationId}` : '/(tabs)/messages'))
     return
   }
 
   if (type === 'training_synced') {
-    router.push('/(tabs)/notifications?tab=trainings' as never)
+    navigateWhenReady('/(tabs)/notifications?tab=trainings')
     return
   }
 
   if (type === 'beer_purchased') {
-    router.push('/beer-wall' as never)
+    navigateWhenReady('/beer-wall')
     return
   }
 
@@ -136,7 +162,7 @@ function routeFromNotificationData(data: Record<string, unknown> | undefined) {
   }
 
   if (type === 'friend_request' || type === 'friend_accepted' || type === 'announcement' || type === 'birthday') {
-    router.push('/(tabs)/notifications?tab=alerts' as never)
+    navigateWhenReady('/(tabs)/notifications?tab=alerts')
   }
 }
 
@@ -230,9 +256,19 @@ async function registerNotificationCategories() {
   ]).catch(() => {})
 }
 
+// getLastNotificationResponseAsync() keeps returning the same tap until another
+// one replaces it, and setupPushNotificationRouting() re-runs whenever the auth
+// token changes -- without this the same event would reopen on every re-login.
+let lastHandledResponseKey: string | null = null
+
 async function handleNotificationResponse(response: Notifications.NotificationResponse | null | undefined) {
-  const data = response?.notification.request.content.data as Record<string, unknown> | undefined
-  const actionIdentifier = response?.actionIdentifier
+  if (!response) return
+  const responseKey = `${response.notification.request.identifier}:${response.actionIdentifier}`
+  if (responseKey === lastHandledResponseKey) return
+  lastHandledResponseKey = responseKey
+
+  const data = response.notification.request.content.data as Record<string, unknown> | undefined
+  const actionIdentifier = response.actionIdentifier
   const eventId = data?.event_id != null ? String(data.event_id) : null
 
   if (eventId && actionIdentifier === CHECK_IN_ACTION_ID) {
@@ -241,17 +277,19 @@ async function handleNotificationResponse(response: Notifications.NotificationRe
     } catch {}
 
     await dismissEventNotification(response, eventId)
-    router.push(`/event/${eventId}` as never)
+    // Already checked in by the button itself -- checkin=1 makes the event screen
+    // offer live location sharing straight away (see the check-in sheet there).
+    navigateWhenReady(`/event/${eventId}?checkin=1`)
     return
   }
 
   if (actionIdentifier === BUY_BEER_ACTION_ID) {
-    router.push('/beer-wall' as never)
+    navigateWhenReady('/beer-wall')
     return
   }
 
   if (actionIdentifier === SEE_RANK_ACTION_ID) {
-    router.push('/(tabs)/ranks' as never)
+    navigateWhenReady('/(tabs)/ranks')
     return
   }
 
@@ -260,7 +298,7 @@ async function handleNotificationResponse(response: Notifications.NotificationRe
   }
 
   if (eventId && actionIdentifier === CHECK_RIDER_ACTION_ID) {
-    router.push(`/event/${eventId}` as never)
+    navigateWhenReady(`/event/${eventId}`)
     return
   }
 
