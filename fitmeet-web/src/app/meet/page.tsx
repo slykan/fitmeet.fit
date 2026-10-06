@@ -901,7 +901,7 @@ function EventsTab() {
       <CategoryFilter selectedCategories={selectedCategories} toggleCategory={toggleCategory} />
 
       {/* Radius filter */}
-      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+      <div className="filter-chip-scroll">
         {RADIUS_OPTIONS.map(r => (
           <button
             key={String(r.km)}
@@ -919,7 +919,7 @@ function EventsTab() {
       </div>
 
       {/* Event ownership filters */}
-      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+      <div className="filter-chip-scroll">
         <button
           onClick={() => setGoingOnly(g => !g)}
           className="flex-shrink-0 text-xs px-4 py-1.5 rounded-full border font-semibold transition-colors"

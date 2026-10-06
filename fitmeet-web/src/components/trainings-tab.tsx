@@ -81,6 +81,14 @@ function formatDate(iso: string): string {
 
 const PACE_CATEGORIES = new Set(['running', 'hiking'])
 
+// Synced trainings are mostly these (Strava/Huawei endurance types) — put them
+// first in the filter row, the rest keep the shared CATEGORIES order.
+const TRAINING_FIRST = ['running', 'cycling', 'hiking', 'walking']
+const TRAINING_CATEGORIES = [
+  ...TRAINING_FIRST.map(v => CATEGORIES.find(c => c.value === v)!).filter(Boolean),
+  ...CATEGORIES.filter(c => !TRAINING_FIRST.includes(c.value)),
+]
+
 function formatSpeed(mps: number | null, category: string): string | null {
   if (!mps) return null
   if (PACE_CATEGORIES.has(category)) {
@@ -196,8 +204,8 @@ export function TrainingsTab() {
         </button>
       </div>
 
-      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-        {[{ value: '', label: 'All' }, ...CATEGORIES].map(cat => (
+      <div className="filter-chip-scroll">
+        {[{ value: '', label: 'All' }, ...TRAINING_CATEGORIES].map(cat => (
           <button
             key={cat.value}
             onClick={() => setCategory(cat.value)}

@@ -92,7 +92,7 @@ export function WikiPhotosStrip({ lat, lng, track }: { lat?: number; lng?: numbe
           Along the route
         </p>
       </div>
-      <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+      <div className="filter-chip-scroll gap-3">
         {photos.map((photo, i) => (
           <a
             key={i}

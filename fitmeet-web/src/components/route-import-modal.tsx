@@ -83,7 +83,7 @@ export function RouteImportModal({ visible, importingId, onClose, onImport }: Pr
               className="w-full bg-transparent text-xs outline-none"
             />
           </div>
-          <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
+          <div className="filter-chip-scroll gap-1.5">
             {[{ value: '', label: 'All' }, ...CATEGORIES].map(cat => {
               const active = category === cat.value
               return (

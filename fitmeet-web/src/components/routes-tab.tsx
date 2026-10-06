@@ -139,7 +139,7 @@ export function RoutesTab() {
         />
       </div>
 
-      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+      <div className="filter-chip-scroll">
         {[{ value: '', label: 'All' }, ...CATEGORIES].map(cat => (
           <button
             key={cat.value}
@@ -152,7 +152,7 @@ export function RoutesTab() {
         ))}
       </div>
 
-      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+      <div className="filter-chip-scroll">
         {RADIUS_OPTIONS.map(radius => (
           <button
             key={String(radius.km)}
