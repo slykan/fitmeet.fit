@@ -104,7 +104,7 @@ export const posts: Post[] = [
   {
     slug: 'fitmeet-training-sync-strava',
     title: 'Your Strava Trainings Now Sync Automatically Into FitMeet',
-    description: 'Connect Strava once and every run, ride or workout shows up in FitMeet automatically — categorized, deduplicated, and packed with heart rate, power, cadence and pace. Garmin and Huawei Health are next.',
+    description: 'Connect Strava once and every run, ride or workout shows up in FitMeet automatically — categorized, deduplicated, and packed with heart rate, power, cadence and pace. Garmin and HUAWEI Health are next.',
     publishedAt: '2026-07-21',
     readTime: 4,
     category: 'Training',
@@ -140,7 +140,7 @@ export const posts: Post[] = [
       {
         heading: 'Built to Handle More Than One Source',
         paragraphs: [
-          'Strava is live today, but it will not be the only source for long — Garmin Connect and Huawei Health are next on the roadmap. FitMeet already has the groundwork in place for that: if the same training ever ends up reported by two connected providers, it gets matched and merged instead of showing up twice, and you decide which provider wins by ranking them in Connected apps.',
+          'Strava is live today, but it will not be the only source for long — Garmin Connect and HUAWEI Health are next on the roadmap. FitMeet already has the groundwork in place for that: if the same training ever ends up reported by two connected providers, it gets matched and merged instead of showing up twice, and you decide which provider wins by ranking them in Connected apps.',
         ],
       },
       {

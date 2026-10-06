@@ -13,6 +13,9 @@ class UserResource extends JsonResource
             'id'           => $this->id,
             'name'         => $this->name,
             'email'        => $this->email,
+            // true when the Terms/Privacy Policy changed since this user accepted them —
+            // the apps then block usage until the user accepts again (or logs out).
+            'needs_terms_consent' => (int) $this->terms_version < \App\Models\User::TERMS_VERSION,
             'avatar'       => $this->avatar,
             'phone'        => ($this->hide_phone && $request->user()?->id !== $this->id) ? null : $this->phone,
             'hide_phone'   => (bool) $this->hide_phone,

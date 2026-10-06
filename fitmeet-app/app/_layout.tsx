@@ -11,6 +11,7 @@ import { KeyboardAvoidingView, KeyboardProvider } from 'react-native-keyboard-co
 import { BadgeUnlockOverlay } from '@/src/components/BadgeUnlockOverlay'
 import { BeerTickerBanner, BEER_TICKER_HEIGHT } from '@/src/components/BeerTickerBanner'
 import { BirthdayOverlay } from '@/src/components/BirthdayOverlay'
+import { LaunchChecks } from '@/src/components/LaunchChecks'
 import { WorldCupOverlay } from '@/src/components/WorldCupOverlay'
 import { api } from '@/src/lib/api'
 import { getTrackedLiveLocationEventId, stopLiveLocationTracking } from '@/src/lib/live-location'
@@ -182,6 +183,7 @@ export default function RootLayout() {
         {/* <WorldCupOverlay /> */}
         <BirthdayOverlay />
         <BadgeUnlockOverlay />
+        <LaunchChecks />
       </ErrorBoundary>
     </KeyboardProvider>
   )

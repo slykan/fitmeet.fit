@@ -41,7 +41,7 @@ class AuthController extends Controller
             'name'              => $request->name,
             'email'             => $request->email,
             'password'          => $request->password,
-            'terms_accepted_at' => now(),
+            'terms_accepted_at' => now(), 'terms_version' => User::TERMS_VERSION,
         ]);
 
         $token = $user->createToken('fitmeet')->plainTextToken;
@@ -76,7 +76,7 @@ class AuthController extends Controller
             'name'              => $request->name,
             'email'             => $request->email,
             'password'          => $request->password,
-            'terms_accepted_at' => now(),
+            'terms_accepted_at' => now(), 'terms_version' => User::TERMS_VERSION,
         ]);
         $token = $user->createToken('fitmeet-mobile')->plainTextToken;
 
@@ -150,7 +150,7 @@ class AuthController extends Controller
                 'email'             => $g['email'],
                 'google_id'         => $g['sub'] ?? null,
                 'avatar'            => $g['picture'] ?? null,
-                'terms_accepted_at' => now(),
+                'terms_accepted_at' => now(), 'terms_version' => User::TERMS_VERSION,
             ]);
         }
 
@@ -195,7 +195,7 @@ class AuthController extends Controller
                 'name'              => $name ?? ($email ? explode('@', $email)[0] : 'FitMeet User'),
                 'email'             => $email,
                 'apple_id'          => $appleId,
-                'terms_accepted_at' => now(),
+                'terms_accepted_at' => now(), 'terms_version' => User::TERMS_VERSION,
             ]);
         }
 
@@ -401,13 +401,22 @@ class AuthController extends Controller
                 'email'             => $googleUser->getEmail(),
                 'google_id'         => $googleUser->getId(),
                 'avatar'            => $googleUser->getAvatar(),
-                'terms_accepted_at' => now(),
+                'terms_accepted_at' => now(), 'terms_version' => User::TERMS_VERSION,
             ]);
         }
 
         $token = $user->createToken('fitmeet')->plainTextToken;
 
         return redirect(env('FRONTEND_URL') . '/login/?token=' . $token);
+    }
+
+    // POST /api/me/accept-terms — renewed consent after the Terms/Privacy Policy changed.
+    public function acceptTerms(): JsonResponse
+    {
+        $user = auth()->user();
+        $user->update(['terms_accepted_at' => now(), 'terms_version' => User::TERMS_VERSION]);
+
+        return response()->json(['data' => new UserResource($user)]);
     }
 
     public function me(): JsonResponse
@@ -427,6 +436,20 @@ class AuthController extends Controller
     public function destroyAccount(): JsonResponse
     {
         $user = auth()->user();
+
+        // Withdraw FitMeet's HUAWEI Health authorization too, and keep a (user-less) trail
+        // entry; trainings and connections themselves go with the account (cascade).
+        $huawei = \App\Models\ProviderConnection::where('user_id', $user->id)->where('provider', 'huawei')->first();
+        if ($huawei) {
+            try {
+                \Illuminate\Support\Facades\Http::asForm()->post('https://oauth-login.cloud.huawei.com/oauth2/v3/revoke', [
+                    'token' => $huawei->access_token,
+                ]);
+            } catch (\Throwable $e) {
+                // account deletion must not fail because Huawei is unreachable
+            }
+            \App\Models\ProviderAuthorizationEvent::record(null, 'huawei', 'account_deleted', $huawei->scope, 'server');
+        }
 
         $user->tokens()->delete();
         $user->delete();

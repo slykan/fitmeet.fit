@@ -20,6 +20,9 @@ class ProviderConnectionController
                 'priority'       => $c->priority,
                 'connected_at'   => $c->connected_at,
                 'last_synced_at' => $c->last_synced_at,
+                // active | revoked | insufficient_scope | unavailable — anything but
+                // active means sync is paused and the apps ask the user to reconnect.
+                'status'         => $c->status ?? ProviderConnection::ACTIVE,
             ]);
 
         return response()->json(['data' => $connections]);

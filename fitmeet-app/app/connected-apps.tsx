@@ -3,12 +3,13 @@ import Constants from 'expo-constants'
 import * as WebBrowser from 'expo-web-browser'
 import { router, useFocusEffect } from 'expo-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { api } from '@/src/lib/api'
 import { clearStravaCodeCallback, setStravaCodeCallback } from '@/src/lib/strava-bridge'
 import { clearHuaweiCodeCallback, setHuaweiCodeCallback } from '@/src/lib/huawei-bridge'
+import { HUAWEI_STATUS_MESSAGE } from '@/src/components/LaunchChecks'
 import { palette, spacing } from '@/src/theme'
 
 WebBrowser.maybeCompleteAuthSession()
@@ -29,13 +30,26 @@ interface Connection {
   priority: number
   connected_at: string | null
   last_synced_at: string | null
+  // active | revoked | insufficient_scope | unavailable (see ProviderConnection on the API)
+  status?: string
 }
 
 const PROVIDERS = [
   { key: 'strava', label: 'Strava', color: '#FC4C02', available: true },
   { key: 'garmin', label: 'Garmin', color: '#00799B', available: false },
-  { key: 'huawei', label: 'Huawei Health', color: '#C7000B', available: true },
+  // Huawei brand rules: always "HUAWEI Health" (caps), with the official logo.
+  { key: 'huawei', label: 'HUAWEI Health', color: '#C7000B', available: true },
 ] as const
+
+const PROVIDER_LOGO: Record<string, number> = {
+  huawei: require('../assets/brand/huawei-health.png'),
+}
+
+// What FitMeet reads from each provider — shown before and after authorizing.
+const DATA_READ: Record<string, string> = {
+  strava: 'Reads your completed activities',
+  huawei: 'Reads your workout records (activity records) only',
+}
 
 function timeAgo(iso: string | null): string {
   if (!iso) return 'never'
@@ -57,7 +71,16 @@ export default function ConnectedAppsScreen() {
 
   function load() {
     api.get('/connections')
-      .then(({ data }) => setConnections(data.data ?? []))
+      .then(({ data }) => {
+        const list: Connection[] = data.data ?? []
+        setConnections(list)
+        // Live check so a revocation / switched-off HUAWEI Health Kit shows up immediately.
+        if (list.some(c => c.provider === 'huawei')) {
+          api.post('/huawei/verify')
+            .then(({ data: v }) => setConnections(prev => prev.map(c => c.provider === 'huawei' ? { ...c, status: v.status } : c)))
+            .catch(() => {})
+        }
+      })
       .catch(() => setConnections([]))
       .finally(() => setLoading(false))
   }
@@ -170,11 +193,20 @@ export default function ConnectedAppsScreen() {
   async function finishConnectHuawei(code: string) {
     setBusy('huawei')
     try {
-      const { data } = await api.post('/huawei/connect', { code })
-      Alert.alert('Connected', `Huawei Health connected — synced ${data.synced} training(s).`)
+      const { data } = await api.post('/huawei/connect', { code, source: 'app' })
+      const problem = data.status && data.status !== 'active' ? HUAWEI_STATUS_MESSAGE[data.status] : null
+      if (problem) {
+        // e.g. a required permission was unchecked on the consent screen (checklist 3.4)
+        Alert.alert('HUAWEI Health connected, sync not available', problem, [
+          { text: 'Later', style: 'cancel' },
+          { text: 'Re-authorize', onPress: () => connectHuawei() },
+        ])
+      } else {
+        Alert.alert('Connected', `HUAWEI Health connected — synced ${data.synced} training(s).`)
+      }
       load()
     } catch {
-      Alert.alert('Error', 'Could not connect Huawei Health. Please try again.')
+      Alert.alert('Error', 'Could not connect HUAWEI Health. Please try again.')
     } finally {
       setBusy(null)
     }
@@ -208,7 +240,7 @@ export default function ConnectedAppsScreen() {
       await finishConnectHuawei(code)
     } catch {
       setBusy(null)
-      Alert.alert('Error', 'Could not connect to Huawei Health. Please try again.')
+      Alert.alert('Error', 'Could not connect to HUAWEI Health. Please try again.')
     }
   }
 
@@ -218,32 +250,44 @@ export default function ConnectedAppsScreen() {
       const { data } = await api.post('/huawei/resync')
       Alert.alert('Resynced', `Refreshed ${data.synced} training(s) with full detail.`)
       load()
+    } catch (e: unknown) {
+      const status = (e as { response?: { data?: { status?: string } } })?.response?.data?.status
+      Alert.alert('HUAWEI Health', (status && HUAWEI_STATUS_MESSAGE[status]) || 'Could not resync HUAWEI Health. Please try again.')
+      load()
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  // Revoking in FitMeet (checklist 3.2): the user decides what happens to imported
+  // trainings, and gets a confirmation that FitMeet no longer has access.
+  async function doDisconnectHuawei(keepTrainings: boolean) {
+    setBusy('huawei')
+    try {
+      const { data } = await api.delete('/huawei/connect', { data: { keep_trainings: keepTrainings, source: 'app' } })
+      setConnections(prev => prev.filter(c => c.provider !== 'huawei'))
+      Alert.alert(
+        'HUAWEI Health disconnected',
+        'FitMeet no longer has access to your HUAWEI Health data. ' +
+          (data?.trainings_deleted ? `${data.trainings_deleted} imported training(s) were deleted.` : 'Trainings already imported were kept.'),
+      )
     } catch {
-      Alert.alert('Error', 'Could not resync Huawei Health. Please try again.')
+      Alert.alert('Error', 'Could not disconnect HUAWEI Health. Please try again.')
     } finally {
       setBusy(null)
     }
   }
 
   function disconnectHuawei() {
-    Alert.alert('Disconnect Huawei Health?', 'Your already-synced trainings stay in your history.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Disconnect',
-        style: 'destructive',
-        onPress: async () => {
-          setBusy('huawei')
-          try {
-            await api.delete('/huawei/connect')
-            setConnections(prev => prev.filter(c => c.provider !== 'huawei'))
-          } catch {
-            Alert.alert('Error', 'Could not disconnect Huawei Health. Please try again.')
-          } finally {
-            setBusy(null)
-          }
-        },
-      },
-    ])
+    Alert.alert(
+      'Disconnect HUAWEI Health?',
+      'FitMeet will stop reading your HUAWEI Health data and the authorization will be revoked. Keep the trainings already imported?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete trainings', style: 'destructive', onPress: () => doDisconnectHuawei(false) },
+        { text: 'Keep trainings', onPress: () => doDisconnectHuawei(true) },
+      ],
+    )
   }
 
   const PROVIDER_HANDLERS: Record<string, { connect: () => void; resync: () => void; disconnect: () => void }> = {
@@ -274,32 +318,55 @@ export default function ConnectedAppsScreen() {
             const isBusy = busy === p.key
             const isResyncing = busy === `${p.key}-resync`
             const anyBusy = busy !== null
+            const problem = connection?.status && connection.status !== 'active' ? connection.status : null
+            const logo = PROVIDER_LOGO[p.key]
 
             return (
               <View key={p.key} style={styles.row}>
                 <View style={styles.rowInfo}>
-                  <View style={[styles.dot, { backgroundColor: `${p.color}22` }]}>
-                    <View style={[styles.dotInner, { backgroundColor: p.color }]} />
-                  </View>
+                  {logo ? (
+                    <Image source={logo} style={styles.logo} accessibilityLabel={p.label} />
+                  ) : (
+                    <View style={[styles.dot, { backgroundColor: `${p.color}22` }]}>
+                      <View style={[styles.dotInner, { backgroundColor: p.color }]} />
+                    </View>
+                  )}
                   <View style={{ flex: 1 }}>
                     <Text style={styles.providerName}>{p.label}</Text>
-                    <Text style={styles.providerStatus}>
+                    <Text style={[styles.providerStatus, problem ? { color: '#f87171' } : null]}>
                       {!p.available
                         ? 'Coming soon'
-                        : connection
-                          ? `Connected · last synced ${timeAgo(connection.last_synced_at)}`
-                          : 'Not connected'}
+                        : problem
+                          ? 'Sync paused — action needed'
+                          : connection
+                            ? `Authorized · last synced ${timeAgo(connection.last_synced_at)}`
+                            : 'Not connected'}
                     </Text>
+                    {p.available && DATA_READ[p.key] ? <Text style={styles.dataRead}>{DATA_READ[p.key]}</Text> : null}
                   </View>
                 </View>
+
+                {problem && HUAWEI_STATUS_MESSAGE[problem] ? (
+                  <View style={styles.warning}>
+                    <Ionicons name="warning-outline" size={16} color="#f87171" />
+                    <Text style={styles.warningText}>{HUAWEI_STATUS_MESSAGE[problem]}</Text>
+                  </View>
+                ) : null}
 
                 {p.available && (
                   connection ? (
                     <View style={styles.actions}>
-                      <Pressable style={[styles.secondaryBtn, { flex: 1 }]} onPress={PROVIDER_HANDLERS[p.key].resync} disabled={anyBusy}>
-                        {isResyncing ? <ActivityIndicator size="small" color={palette.textMuted} /> : <Ionicons name="refresh-outline" size={14} color={palette.textMuted} />}
-                        <Text style={styles.secondaryBtnText}>Resync</Text>
-                      </Pressable>
+                      {problem ? (
+                        <Pressable style={[styles.connectBtn, { flex: 1, backgroundColor: p.color }]} onPress={PROVIDER_HANDLERS[p.key].connect} disabled={anyBusy}>
+                          {isBusy && <ActivityIndicator size="small" color="#fff" />}
+                          <Text style={styles.connectBtnText}>Reconnect</Text>
+                        </Pressable>
+                      ) : (
+                        <Pressable style={[styles.secondaryBtn, { flex: 1 }]} onPress={PROVIDER_HANDLERS[p.key].resync} disabled={anyBusy}>
+                          {isResyncing ? <ActivityIndicator size="small" color={palette.textMuted} /> : <Ionicons name="refresh-outline" size={14} color={palette.textMuted} />}
+                          <Text style={styles.secondaryBtnText}>Resync</Text>
+                        </Pressable>
+                      )}
                       <Pressable style={[styles.secondaryBtn, { flex: 1 }]} onPress={PROVIDER_HANDLERS[p.key].disconnect} disabled={anyBusy}>
                         {isBusy ? <ActivityIndicator size="small" color={palette.textMuted} /> : <Ionicons name="checkmark" size={14} color={p.color} />}
                         <Text style={styles.secondaryBtnText}>Disconnect</Text>
@@ -340,6 +407,10 @@ const styles = StyleSheet.create({
   dotInner: { width: 10, height: 10, borderRadius: 5 },
   providerName: { color: palette.text, fontSize: 15, fontWeight: '700' },
   providerStatus: { color: palette.textDim, fontSize: 12, marginTop: 2 },
+  logo: { width: 36, height: 36, borderRadius: 9 },
+  dataRead: { color: palette.textDim, fontSize: 11, marginTop: 2 },
+  warning: { flexDirection: 'row', gap: 8, alignItems: 'flex-start', padding: 10, borderRadius: 10, backgroundColor: 'rgba(248,113,113,0.08)', borderWidth: 1, borderColor: 'rgba(248,113,113,0.35)' },
+  warningText: { flex: 1, color: palette.text, fontSize: 12, lineHeight: 17 },
 
   actions: { flexDirection: 'row', gap: 8 },
   secondaryBtn: {

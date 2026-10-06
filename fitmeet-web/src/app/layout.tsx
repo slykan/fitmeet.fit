@@ -3,6 +3,7 @@ import { Space_Grotesk } from 'next/font/google'
 import { BadgeUnlockOverlay } from '@/components/badge-unlock-overlay'
 import { BeerTicker } from '@/components/beer-ticker'
 import { Providers } from '@/components/providers'
+import { TermsConsentGate } from '@/components/terms-consent-gate'
 import { Footer } from '@/components/footer'
 import './globals.css'
 
@@ -38,6 +39,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Providers>
           <BeerTicker />
           <BadgeUnlockOverlay />
+          <TermsConsentGate />
           {children}
         </Providers>
         <Footer />

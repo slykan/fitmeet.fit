@@ -9,7 +9,7 @@ import { Navbar } from '@/components/navbar'
 import { Button } from '@/components/ui/button'
 import { BadgeGrid } from '@/components/badge-grid'
 import { ConnectedAppsCard } from '@/components/connected-apps-card'
-import { AlertTriangle, Bell, Calendar, Camera, Mail, MapPin, Phone, Globe, Navigation, Pencil, Share2, Trash2, UserPlus } from 'lucide-react'
+import { AlertTriangle, Bell, Calendar, Camera, Download, Mail, MapPin, Phone, Globe, Navigation, Pencil, Share2, Trash2, UserPlus } from 'lucide-react'
 import api from '@/lib/api'
 
 interface AlibiStats {
@@ -394,10 +394,60 @@ export default function ProfilePage() {
           </div>
         )}
 
+        <YourDataCard />
         <DangerZone />
 
       </main>
     </>
+  )
+}
+
+// "Right to access": one click downloads everything FitMeet stores about the user
+// (GET /me/export) as a JSON file. Privacy policy linked next to it.
+function YourDataCard() {
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function download() {
+    setBusy(true)
+    setError(null)
+    try {
+      const res = await api.get('/me/export', { responseType: 'blob' })
+      const url = URL.createObjectURL(res.data as Blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `fitmeet-data-${new Date().toISOString().slice(0, 10)}.json`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+    } catch {
+      setError('Could not prepare your data. Please try again.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="rounded-2xl border p-4 sm:p-6 mt-2 mb-5" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
+      <h2 className="font-bold text-sm uppercase tracking-wide mb-1 flex items-center gap-2">
+        <Download size={14} style={{ color: 'var(--primary)' }} /> Your data
+      </h2>
+      <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
+        Download a copy of all personal data FitMeet stores about you — profile, trainings, events, messages,
+        connected apps and their authorization history. See our <Link href="/privacy" className="underline">Privacy Policy</Link>.
+      </p>
+      <button
+        type="button"
+        onClick={download}
+        disabled={busy}
+        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border transition-opacity hover:opacity-80 disabled:opacity-50"
+        style={{ borderColor: 'var(--border)' }}
+      >
+        <Download size={14} /> {busy ? 'Preparing…' : 'Download my data'}
+      </button>
+      {error && <p className="text-xs mt-2" style={{ color: '#ef4444' }}>{error}</p>}
+    </div>
   )
 }
 

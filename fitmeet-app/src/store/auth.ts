@@ -27,6 +27,8 @@ export interface MobileUser {
   birth_date: string | null
   onboarding_complete: boolean
   is_admin: boolean
+  // Terms/Privacy Policy changed since the user accepted them — LaunchChecks asks again.
+  needs_terms_consent: boolean
 }
 
 type AuthState = {
@@ -111,6 +113,7 @@ function normalizeUser(user: MobileUser): MobileUser {
     birth_date: user.birth_date ?? null,
     onboarding_complete: user.onboarding_complete ?? false,
     is_admin: user.is_admin ?? false,
+    needs_terms_consent: user.needs_terms_consent ?? false,
   }
 }
 

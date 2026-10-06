@@ -15,3 +15,6 @@ fitmeet-app/android/.gradle/
 # Sensitive keys — never commit
 *.p8
 huawei/
+
+# iGPSPORT prijava (logo, tekst)
+igpsport/

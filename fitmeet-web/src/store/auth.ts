@@ -23,6 +23,7 @@ export interface User {
   birth_date: string | null
   onboarding_complete: boolean
   is_admin: boolean
+  needs_terms_consent?: boolean
 }
 
 interface AuthState {

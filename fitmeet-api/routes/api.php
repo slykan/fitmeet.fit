@@ -37,6 +37,10 @@ Route::post('strava/login', [\App\Http\Controllers\Api\StravaController::class, 
 Route::get('strava/webhook',  [\App\Http\Controllers\Api\StravaController::class, 'webhookVerify']);
 Route::post('strava/webhook', [\App\Http\Controllers\Api\StravaController::class, 'webhookReceive']);
 
+// Data export download for the mobile app — signed URL from POST me/export-link, valid 10 min.
+Route::get('export/{user}', [\App\Http\Controllers\Api\AccountDataController::class, 'signedExport'])
+    ->name('account.export')->middleware('signed');
+
 // Turnstile page for mobile WebView
 Route::get('turnstile', function () {
     $siteKey = env('TURNSTILE_SITE_KEY', '0x4AAAAAAA272FNBOuqwbiqe');
@@ -110,6 +114,9 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\EnsureNotBanned::class])
     Route::get('me/stats',    [UserController::class, 'myStats']);
     Route::patch('me',        [UserController::class, 'update']);
     Route::delete('me',       [AuthController::class, 'destroyAccount']);
+    Route::post('me/accept-terms', [AuthController::class, 'acceptTerms']);
+    Route::get('me/export',   [\App\Http\Controllers\Api\AccountDataController::class, 'export']);
+    Route::post('me/export-link', [\App\Http\Controllers\Api\AccountDataController::class, 'exportLink']);
     Route::post('me/avatar',  [UserController::class, 'updateAvatar']);
     Route::post('me/push-token', [UserController::class, 'upsertPushToken']);
     Route::post('me/invite-tap', [UserController::class, 'recordInviteTap']);
@@ -135,6 +142,7 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\EnsureNotBanned::class])
     Route::post('huawei/connect',                  [\App\Http\Controllers\Api\HuaweiController::class, 'connect']);
     Route::delete('huawei/connect',                [\App\Http\Controllers\Api\HuaweiController::class, 'disconnect']);
     Route::post('huawei/resync',                   [\App\Http\Controllers\Api\HuaweiController::class, 'resync']);
+    Route::post('huawei/verify',                   [\App\Http\Controllers\Api\HuaweiController::class, 'verify']);
 
     // Trainings (Strava/Garmin/Huawei sync)
     Route::get('connections', [ProviderConnectionController::class, 'index']);

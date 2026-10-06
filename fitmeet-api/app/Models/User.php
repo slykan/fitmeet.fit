@@ -18,6 +18,11 @@ class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
+    // Version of the Terms + Privacy Policy users must accept. Bump it whenever either
+    // changes: users with an older (or no) accepted version are asked to consent again
+    // before they can keep using FitMeet. 2 = 2026-10-06 (HUAWEI Health, data export).
+    public const TERMS_VERSION = 2;
+
     protected $fillable = [
         'name',
         'email',
@@ -51,6 +56,7 @@ class User extends Authenticatable
         'birthday_notified_date',
         'fcm_token',
         'terms_accepted_at',
+        'terms_version',
         'banned_at',
     ];
 

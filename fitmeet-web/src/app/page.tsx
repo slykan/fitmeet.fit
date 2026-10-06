@@ -105,8 +105,8 @@ const latestFeatures: Array<{
 }> = [
   {
     icon: HeartPulse,
-    title: 'Sync with Huawei Health',
-    description: 'Connect Huawei Health to automatically import your completed workouts alongside Strava, with duplicates merged automatically.',
+    title: 'Sync with HUAWEI Health',
+    description: 'Connect HUAWEI Health to automatically import your completed workouts alongside Strava, with duplicates merged automatically.',
   },
   {
     icon: Share2,
@@ -358,7 +358,7 @@ export default async function HomePage() {
                       New in FitMeet
                     </p>
                     <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                      Huawei Health sync, live sharing, training cleanup
+                      HUAWEI Health sync, live sharing, training cleanup
                     </span>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-3">

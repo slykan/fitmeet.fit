@@ -3,7 +3,7 @@ import Constants from 'expo-constants'
 import { router } from 'expo-router'
 import { useState } from 'react'
 import { Linking } from 'react-native'
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs'
 
@@ -52,6 +52,19 @@ export default function ProfileScreen() {
   const [saving, setSaving]     = useState<PrefField | null>(null)
   const [prefError, setPrefError] = useState<string | null>(null)
   const [pushSaving, setPushSaving] = useState(false)
+  const [exporting, setExporting] = useState(false)
+
+  async function downloadMyData() {
+    setExporting(true)
+    try {
+      const { data } = await api.post('/me/export-link')
+      if (data?.url) await Linking.openURL(data.url)
+    } catch {
+      Alert.alert('Error', 'Could not prepare your data. Please try again.')
+    } finally {
+      setExporting(false)
+    }
+  }
   const pushEnabled = user?.push_notifications !== false
 
   async function togglePref(field: PrefField) {
@@ -178,6 +191,20 @@ export default function ProfileScreen() {
           <Ionicons name="link-outline" size={18} color={palette.accent} />
           <Text style={styles.settingsLinkText}>Connected apps</Text>
           <Ionicons name="chevron-forward" size={16} color={palette.textDim} />
+        </Pressable>
+
+        {/* Privacy policy — in-app entry path (Huawei App Release Checklist 1.1) */}
+        <Pressable style={styles.settingsLink} onPress={() => Linking.openURL('https://fitmeet.fit/privacy')}>
+          <Ionicons name="shield-outline" size={18} color={palette.accent} />
+          <Text style={styles.settingsLinkText}>Privacy Policy</Text>
+          <Ionicons name="open-outline" size={16} color={palette.textDim} />
+        </Pressable>
+
+        {/* Data export — "right to access": a short-lived download link opened in the browser */}
+        <Pressable style={styles.settingsLink} onPress={downloadMyData} disabled={exporting}>
+          <Ionicons name="download-outline" size={18} color={palette.accent} />
+          <Text style={styles.settingsLinkText}>Download my data</Text>
+          {exporting ? <ActivityIndicator size="small" color={palette.textDim} /> : <Ionicons name="open-outline" size={16} color={palette.textDim} />}
         </Pressable>
 
         {/* Admin broadcast */}

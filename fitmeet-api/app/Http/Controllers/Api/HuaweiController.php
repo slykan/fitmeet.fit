@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Jobs\RetryHuaweiBackfill;
+use App\Models\ProviderAuthorizationEvent;
 use App\Models\ProviderConnection;
+use App\Models\Training;
 use App\Services\HuaweiSyncService;
 use App\Services\TrainingSyncService;
 use Illuminate\Http\JsonResponse;
@@ -85,10 +87,34 @@ class HuaweiController
                 'scope'               => $data['scope'] ?? null,
                 'connected_at'        => now(),
                 'priority'            => $nextPriority === null ? 0 : $nextPriority + 1,
+                'status'              => ProviderConnection::ACTIVE,
+                'status_changed_at'   => now(),
             ],
         );
 
+        $source = $request->input('source') === 'web' ? 'web' : 'app';
+        ProviderAuthorizationEvent::record($user->id, 'huawei', ProviderAuthorizationEvent::GRANTED, $connection->scope, $source);
+
+        // A required data permission unchecked on the consent screen: keep the account
+        // linked but don't sync, and tell the app which permissions are missing so it
+        // can explain and offer to re-authorize (App Release Checklist 3.4).
+        $missing = $huawei->missingScopes($connection->scope);
+        if ($missing) {
+            $connection->markStatus(ProviderConnection::INSUFFICIENT_SCOPE, ProviderAuthorizationEvent::INSUFFICIENT_SCOPE, $source);
+
+            return response()->json([
+                'connected'      => true,
+                'status'         => ProviderConnection::INSUFFICIENT_SCOPE,
+                'missing_scopes' => $missing,
+                'synced'         => 0,
+            ]);
+        }
+
         $synced = $huawei->backfillHuawei($connection, $sync);
+        $status = $connection->fresh()->status;
+        if ($status !== ProviderConnection::ACTIVE) {
+            return response()->json(['connected' => true, 'status' => $status, 'synced' => 0]);
+        }
 
         // Huawei's cloud activity data can lag briefly right after a fresh OAuth grant
         // (device -> Huawei cloud sync isn't instant) -- if nothing came back on the
@@ -98,16 +124,20 @@ class HuaweiController
             RetryHuaweiBackfill::dispatch($connection->id)->delay(now()->addMinutes(2));
         }
 
-        return response()->json(['connected' => true, 'synced' => $synced]);
+        return response()->json(['connected' => true, 'status' => ProviderConnection::ACTIVE, 'synced' => $synced]);
     }
 
-    // DELETE /api/huawei/connect
-    public function disconnect(Request $request): JsonResponse
+    // DELETE /api/huawei/connect   { keep_trainings?: bool (default true) }
+    // Revoking in FitMeet (checklist 3.2): Huawei's token is revoked, no further data is
+    // read, and the user decides whether already-imported trainings stay or are deleted.
+    public function disconnect(Request $request, TrainingSyncService $sync): JsonResponse
     {
-        $connection = ProviderConnection::where('user_id', $request->user()->id)
+        $user = $request->user();
+        $connection = ProviderConnection::where('user_id', $user->id)
             ->where('provider', 'huawei')
             ->first();
 
+        $deleted = 0;
         if ($connection) {
             try {
                 Http::asForm()->post('https://oauth-login.cloud.huawei.com/oauth2/v3/revoke', [
@@ -117,10 +147,33 @@ class HuaweiController
                 Log::warning('Huawei token revoke failed', ['exception' => $e->getMessage()]);
             }
 
+            ProviderAuthorizationEvent::record($user->id, 'huawei', ProviderAuthorizationEvent::REVOKED_IN_APP, $connection->scope,
+                $request->input('source') === 'web' ? 'web' : 'app');
             $connection->delete();
         }
 
-        return response()->json(['disconnected' => true]);
+        if (!$request->boolean('keep_trainings', true)) {
+            $deleted = Training::where('user_id', $user->id)->where('provider', 'huawei')->delete();
+            $sync->recomputeAllGroups($user->id);
+        }
+
+        return response()->json(['disconnected' => true, 'trainings_deleted' => $deleted]);
+    }
+
+    // POST /api/huawei/verify — live check on app start (checklist 3.3 / 3.5): reports
+    // whether FitMeet can still read HUAWEI Health data, so a revocation or a switched-off
+    // HUAWEI Health Kit is shown to the user immediately.
+    public function verify(Request $request, HuaweiSyncService $huawei): JsonResponse
+    {
+        $connection = ProviderConnection::where('user_id', $request->user()->id)
+            ->where('provider', 'huawei')
+            ->first();
+
+        if (!$connection) {
+            return response()->json(['status' => 'none']);
+        }
+
+        return response()->json(['status' => $huawei->verify($connection)]);
     }
 
     // POST /api/huawei/resync
@@ -134,12 +187,13 @@ class HuaweiController
             return response()->json(['message' => 'Huawei not connected.'], 422);
         }
 
-        if (!$huawei->ensureFreshToken($connection)) {
-            return response()->json(['message' => 'Huawei token refresh failed.'], 422);
+        $status = $huawei->verify($connection);
+        if ($status !== ProviderConnection::ACTIVE) {
+            return response()->json(['message' => 'HUAWEI Health access is not available.', 'status' => $status], 422);
         }
 
         $synced = $huawei->backfillHuawei($connection, $sync);
 
-        return response()->json(['connected' => true, 'synced' => $synced]);
+        return response()->json(['connected' => true, 'status' => $connection->fresh()->status, 'synced' => $synced]);
     }
 }

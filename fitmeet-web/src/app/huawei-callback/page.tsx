@@ -26,8 +26,8 @@ export default function HuaweiCallbackPage() {
       if (!storedToken) { router.replace('/login'); return }
 
       api.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`
-      api.post('/huawei/connect', { code })
-        .then(() => router.replace('/profile?huawei_connected=1'))
+      api.post('/huawei/connect', { code, source: 'web' })
+        .then(({ data }) => router.replace(`/profile?huawei_connected=1&huawei_status=${encodeURIComponent(data?.status ?? 'active')}`))
         .catch(() => router.replace('/profile?huawei_error=1'))
       return
     }
@@ -48,7 +48,8 @@ export default function HuaweiCallbackPage() {
       flexDirection: 'column',
       gap: 12,
     }}>
-      <div style={{ fontSize: 18, color: '#C7000B', fontWeight: 900, letterSpacing: 1 }}>HUAWEI HEALTH</div>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/brand/huawei-health-logo-white.png" alt="HUAWEI Health" width={240} height={49} />
       <p style={{ color: '#aaa', fontSize: 15 }}>Connecting...</p>
     </div>
   )
