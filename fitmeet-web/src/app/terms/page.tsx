@@ -23,8 +23,12 @@ const sections = [
     body: 'FitMeet may suspend or terminate accounts that violate these Terms, without prior notice, including accounts responsible for reported objectionable content or abusive behaviour.',
   },
   {
+    title: 'Training and Health Data — Not Medical Advice',
+    body: 'FitMeet can import your workouts from connected apps such as HUAWEI Health and Strava. FitMeet and the services it connects to, including HUAWEI Health Service Kit, are not medical devices. Training, heart-rate and other data shown in FitMeet is for general fitness reference only and must not be used as a basis for medical diagnosis or treatment. Consult a qualified professional for medical advice.',
+  },
+  {
     title: 'Changes to These Terms',
-    body: 'We may update these Terms from time to time. Continued use of FitMeet after changes are published means you accept the updated Terms.',
+    body: 'We may update these Terms or our Privacy Policy from time to time. When we make material changes, we will ask you to review and accept them again before you continue using FitMeet; if you do not accept, you can stop using FitMeet and delete your account.',
   },
 ]
 
