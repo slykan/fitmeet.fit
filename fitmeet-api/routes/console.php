@@ -258,6 +258,12 @@ Artisan::command('huawei:sync', function () {
 
     foreach ($connections as $connection) {
         try {
+            // Paused connections (revoked / Health Kit off) get a live re-check each poll,
+            // so one that recovers resumes syncing without the user doing anything.
+            if (in_array($connection->status, [ProviderConnection::REVOKED, ProviderConnection::UNAVAILABLE], true)) {
+                $huawei->verify($connection);
+                $connection->refresh();
+            }
             $synced += $huawei->backfillHuawei($connection, $sync);
         } catch (\Throwable $e) {
             $this->error("Huawei sync failed for connection #{$connection->id}: {$e->getMessage()}");

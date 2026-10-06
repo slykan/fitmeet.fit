@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\ProviderAuthorizationEvent;
 use App\Models\ProviderConnection;
 use Illuminate\Http\Client\Response;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -36,21 +37,42 @@ class HuaweiSyncService
             return $connection->access_token;
         }
 
-        $res = Http::asForm()->post('https://oauth-login.cloud.huawei.com/oauth2/v3/token', [
+        $refresh = fn () => Http::asForm()->post('https://oauth-login.cloud.huawei.com/oauth2/v3/token', [
             'grant_type'    => 'refresh_token',
             'refresh_token' => $connection->refresh_token,
             'client_id'     => config('services.huawei.client_id'),
             'client_secret' => config('services.huawei.client_secret'),
         ]);
 
+        $res = $refresh();
+        if ($res->clientError()) {
+            sleep(2); // Huawei's token endpoint occasionally refuses a valid refresh token once
+            $res = $refresh();
+        }
+
+        $failKey = "huawei_refresh_failures:{$connection->id}";
         if (!$res->successful()) {
-            // A refused refresh token (4xx) means the user cancelled FitMeet's authorization
-            // in the HUAWEI Health app / HUAWEI ID — not a transient outage (5xx).
+            // Error code only — never tokens (privacy policy: no personal data in logs).
+            Log::error('Huawei token refresh failed', [
+                'connection_id' => $connection->id,
+                'status'        => $res->status(),
+                'error'         => $res->json('error'),
+                'sub_error'     => $res->json('sub_error'),
+            ]);
+            // A single refused refresh is NOT proof of revocation: on 2026-10-06 one-off
+            // refusals marked two live connections "revoked" and silently stopped their
+            // sync. Only refusals on two separate attempts in a row (poll / app launch)
+            // count; a real revocation is also caught at once by the data API's 401.
             if ($res->clientError()) {
-                $connection->markStatus(ProviderConnection::REVOKED, ProviderAuthorizationEvent::REVOKED_BY_PROVIDER);
+                $failures = (int) Cache::get($failKey, 0) + 1;
+                Cache::put($failKey, $failures, now()->addDay());
+                if ($failures >= 2) {
+                    $connection->markStatus(ProviderConnection::REVOKED, ProviderAuthorizationEvent::REVOKED_BY_PROVIDER);
+                }
             }
             return null;
         }
+        Cache::forget($failKey);
 
         $data = $res->json();
         $connection->update([
@@ -98,9 +120,11 @@ class HuaweiSyncService
      */
     public function verify(ProviderConnection $connection): string
     {
-        if ($connection->status === ProviderConnection::REVOKED || $connection->status === ProviderConnection::INSUFFICIENT_SCOPE) {
-            return $connection->status; // only a fresh authorization fixes these
+        if ($connection->status === ProviderConnection::INSUFFICIENT_SCOPE) {
+            return $connection->status; // only a fresh authorization with all permissions fixes this
         }
+        // REVOKED is re-checked too: if Huawei accepts the tokens again, the earlier refusal
+        // was not a real revocation and the connection heals itself (below).
 
         $accessToken = $this->ensureFreshToken($connection);
         if ($accessToken === null) {
@@ -109,8 +133,8 @@ class HuaweiSyncService
 
         $res = $this->fetchRecords($accessToken, 1);
         if ($res->successful()) {
-            // e.g. HUAWEI Health Kit switched back on
-            if ($connection->status === ProviderConnection::UNAVAILABLE) {
+            // e.g. HUAWEI Health Kit switched back on, or a revocation that wasn't one
+            if (in_array($connection->status, [ProviderConnection::UNAVAILABLE, ProviderConnection::REVOKED], true)) {
                 $connection->markStatus(ProviderConnection::ACTIVE, ProviderAuthorizationEvent::GRANTED);
             }
         } else {

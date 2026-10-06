@@ -157,6 +157,15 @@ const YEARS = [0, ...Array.from({ length: 6 }, (_, i) => CURRENT_YEAR - i)]
 export function TrainingsTab() {
   const router = useRouter()
   const [trainings, setTrainings] = useState<TrainingItem[]>([])
+  // Connected training apps — the empty state must not ask to "connect an app" when one
+  // is already connected but simply has no workouts yet.
+  const [connectedApps, setConnectedApps] = useState<string[]>([])
+  useEffect(() => {
+    const LABELS: Record<string, string> = { strava: 'Strava', huawei: 'HUAWEI Health', garmin: 'Garmin' }
+    api.get('/connections')
+      .then(({ data }) => setConnectedApps((data.data ?? []).map((c: { provider: string }) => LABELS[c.provider] ?? c.provider)))
+      .catch(() => {})
+  }, [])
   const [totals, setTotals] = useState<Totals | null>(null)
   const [loading, setLoading] = useState(true)
   const [scope, setScope] = useState<'friends' | 'mine'>('friends')
@@ -256,14 +265,16 @@ export function TrainingsTab() {
       {!loading && trainings.length === 0 && (
         <div className="text-center py-12 space-y-3">
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-            {scope === 'mine' ? 'No trainings synced yet.' : 'No trainings yet. Yours and friends’ synced workouts will show up here.'}
+            {connectedApps.length > 0
+              ? `Connected: ${connectedApps.join(', ')}. No workouts found there yet — new workouts appear here automatically once they reach that app's cloud (usually within 15 minutes).`
+              : scope === 'mine' ? 'No trainings synced yet.' : 'No trainings yet. Yours and friends’ synced workouts will show up here.'}
           </p>
           <button
             onClick={() => router.push('/profile')}
             className="inline-flex items-center gap-2 text-sm px-4 py-2.5 rounded-xl font-semibold transition-opacity hover:opacity-80"
             style={{ background: 'var(--primary)', color: '#000' }}
           >
-            <Link2 size={15} /> Connect an app
+            <Link2 size={15} /> {connectedApps.length > 0 ? 'Manage connected apps' : 'Connect an app'}
           </button>
         </div>
       )}

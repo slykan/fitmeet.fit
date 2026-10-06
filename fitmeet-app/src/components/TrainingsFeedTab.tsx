@@ -146,6 +146,15 @@ export function TrainingsFeedTab() {
   const [month, setMonth] = useState(0)
   const [year, setYear] = useState(0)
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set())
+  // Names of the user's connected training apps — the empty state must not ask to
+  // "connect an app" when one is already connected but simply has no workouts yet.
+  const [connectedApps, setConnectedApps] = useState<string[]>([])
+  useEffect(() => {
+    const LABELS: Record<string, string> = { strava: 'Strava', huawei: 'HUAWEI Health', garmin: 'Garmin' }
+    api.get('/connections')
+      .then(({ data }) => setConnectedApps((data.data ?? []).map((c: { provider: string }) => LABELS[c.provider] ?? c.provider)))
+      .catch(() => {})
+  }, [])
   const [showFilter, setShowFilter] = useState(false)
   const [deletingId, setDeletingId] = useState<number | null>(null)
 
@@ -340,11 +349,13 @@ export function TrainingsFeedTab() {
       ListEmptyComponent={!loading ? (
         <View style={{ alignItems: 'center', gap: 12, paddingVertical: spacing.xl }}>
           <Text style={styles.emptyText}>
-            {scope === 'mine' ? 'No trainings synced yet.' : 'No trainings yet. Yours and friends’ synced workouts will show up here.'}
+            {connectedApps.length > 0
+              ? `Connected: ${connectedApps.join(', ')}. No workouts found there yet — new workouts appear here automatically once they reach that app's cloud (usually within 15 minutes).`
+              : scope === 'mine' ? 'No trainings synced yet.' : 'No trainings yet. Yours and friends’ synced workouts will show up here.'}
           </Text>
           <Pressable style={styles.createRouteBtn} onPress={() => router.push('/connected-apps' as never)}>
             <Ionicons name="link-outline" size={16} color={palette.accent} />
-            <Text style={styles.createRouteBtnText}>Connect an app</Text>
+            <Text style={styles.createRouteBtnText}>{connectedApps.length > 0 ? 'Manage connected apps' : 'Connect an app'}</Text>
           </Pressable>
         </View>
       ) : null}
