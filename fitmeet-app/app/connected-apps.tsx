@@ -197,8 +197,11 @@ export default function ConnectedAppsScreen() {
         return
       }
 
+      // Huawei codes are base64 (+ / =) and arrive percent-encoded in the redirect URL —
+      // decode before posting, or the token exchange fails. Also keeps the dedupe below
+      // matching the already-decoded code from the huawei-callback deep-link route.
       const codeMatch = result.url.match(/[?&]code=([^&]+)/)
-      const code = codeMatch ? codeMatch[1] : null
+      const code = codeMatch ? decodeURIComponent(codeMatch[1]) : null
       if (!code || handledHuaweiCodeRef.current === code) { setBusy(null); return }
 
       handledHuaweiCodeRef.current = code

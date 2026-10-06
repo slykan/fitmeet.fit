@@ -49,7 +49,18 @@ class HuaweiController
     public function connect(Request $request, HuaweiSyncService $huawei, TrainingSyncService $sync): JsonResponse
     {
         $request->validate(['code' => 'required|string']);
-        $data = $this->exchangeCode($request->code);
+
+        // Huawei auth codes are base64 (contain + / =). Mobile app builds up to 1.4.44
+        // pulled the code out of the fitmeet:// redirect URL without decoding it, so it
+        // arrived still percent-encoded (%2B, %2F) and the token exchange 422'd every
+        // time — web worked because URLSearchParams decodes. A real code never contains
+        // '%', so decoding here is safe and fixes already-installed app versions.
+        $code = (string) $request->code;
+        if (str_contains($code, '%')) {
+            $code = rawurldecode($code);
+        }
+
+        $data = $this->exchangeCode($code);
         if (!$data || empty($data['access_token'])) {
             return response()->json(['message' => 'Huawei auth failed.'], 422);
         }
