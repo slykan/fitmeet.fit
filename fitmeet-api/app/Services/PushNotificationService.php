@@ -74,24 +74,28 @@ class PushNotificationService
 
         foreach ($tokens->chunk(500) as $chunk) {
             if ($dataOnly) {
-                // Hybrid, not pure data-only: a bare data message only reaches the app
-                // via FCM waking our background task, which a killed or deep-backgrounded
-                // app can simply never receive (confirmed live 2026-09-03: an identical
-                // plain-notification test push arrived instantly on the same device/token
-                // while a data-only one never arrived at all). Including a `notification`
-                // block guarantees the OS shows *something* on its own even when our JS
-                // never runs — trading away the custom Check-in/Open (etc.) action buttons
-                // in that case for actually being seen. The background task in
-                // push-notifications.ts still builds the rich version with buttons
-                // whenever it does get to run (app foregrounded/recently backgrounded).
-                $notification = Notification::create($title, $body);
+                // Data message in expo-notifications' own format: its native Firebase
+                // service builds the notification itself — title/message, channel, and the
+                // categoryId action buttons (Check in / Open …) — with no JS running, so it
+                // shows even when the app is killed. (The 2026-09-03 "data-only never
+                // arrives" was our _title/_body keys, which only our JS task understood;
+                // the plain `notification` block used since then lost the buttons.
+                // Verified live on Honor with the app killed, 2026-10-08.)
+                // `body` is the JSON the app reads as notification.request.content.data.
+                $appData = array_diff_key($payload, array_flip(['_data_only', '_title', '_body', 'categoryId', 'channelId']));
                 $message = CloudMessage::new()
-                    ->withNotification($notification)
-                    ->withData($payload)
+                    ->withData(array_filter([
+                        'title'      => $title,
+                        'message'    => $body,
+                        'body'       => json_encode($appData, JSON_UNESCAPED_UNICODE),
+                        'categoryId' => $categoryId,
+                        'channelId'  => $payload['channelId'] ?? null,
+                    ], fn ($value) => $value !== null))
                     ->withAndroidConfig(AndroidConfig::fromArray(['priority' => 'high']))
                     ->withApnsConfig(ApnsConfig::fromArray([
                         'headers' => ['apns-priority' => '10'],
                         'payload' => ['aps' => [
+                            'alert'             => ['title' => $title, 'body' => $body],
                             'content-available' => 1,
                             'category'          => $categoryId ?? '',
                         ]],
