@@ -647,6 +647,48 @@ HTML;
         ]);
     }
 
+    // GET /api/watch/next-event — what the FitMeet watch app shows: the joined event whose
+    // check-in is open now, else the next one in the coming 24 h. Kept tiny on purpose:
+    // the phone relays it to the watch over Huawei Wear Engine, where messages are small.
+    public function watchNextEvent(Request $request): JsonResponse
+    {
+        $events = $request->user()->joinedEvents()
+            ->where('events.status', 'active')
+            ->where('events.start_at', '>', now()->subHours(26))
+            ->where('events.start_at', '<', now()->addDay())
+            ->orderBy('events.start_at')
+            ->get(['events.id', 'events.title', 'events.start_at', 'events.duration_minutes']);
+
+        $window = function (Event $e) {
+            return [
+                $e->start_at->copy()->subMinutes(30),
+                $e->start_at->copy()->addMinutes($e->duration_minutes ?? 60)->addHours(2),
+            ];
+        };
+
+        // Same window as checkIn(): opens 30 min before the start, closes 2 h after the end.
+        $open = $events->first(function (Event $e) use ($window) {
+            [$opens, $closes] = $window($e);
+            return now()->between($opens, $closes);
+        });
+        $event = $open ?? $events->first(fn (Event $e) => $e->start_at->isFuture());
+
+        if (! $event) {
+            return response()->json(['event' => null]);
+        }
+
+        [$opens] = $window($event);
+
+        return response()->json(['event' => [
+            'id'            => $event->id,
+            'title'         => $event->title,
+            'start_at'      => $event->start_at->toIso8601String(),
+            'check_in_open' => $open !== null,
+            'opens_at'      => $opens->toIso8601String(),
+            'checked_in'    => $event->pivot->checked_in_at !== null,
+        ]]);
+    }
+
     // POST /api/events/{event}/location-sharing
     public function setLocationSharing(Request $request, Event $event): JsonResponse
     {
