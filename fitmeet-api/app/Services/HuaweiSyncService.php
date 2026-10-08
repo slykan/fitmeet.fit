@@ -95,6 +95,21 @@ class HuaweiSyncService
     }
 
     /**
+     * Whether the HUAWEI Health Kit switch (HUAWEI Health › Privacy management) is on.
+     * Switching it off does NOT make the data API refuse — activityRecords still answers
+     * 200 — it only shows up here, as opinion 2 (1 = on). Null when the answer is unclear.
+     */
+    private function healthKitEnabled(string $accessToken): ?bool
+    {
+        $res = Http::withToken($accessToken)
+            ->withHeaders(['x-client-id' => config('services.huawei.client_id')])
+            ->get('https://health-api.cloud.huawei.com/healthkit/v1/profile/privacyRecords');
+        $opinions = $res->successful() ? array_column((array) $res->json(), 'opinion') : [];
+
+        return $opinions ? !in_array(2, $opinions) : null;
+    }
+
+    /**
      * Turn a refused data request into a connection status the apps can explain:
      * 401 = authorization cancelled; 403 naming a scope/permission = a required
      * permission not granted; any other 403 = data access off on Huawei's side
@@ -131,6 +146,13 @@ class HuaweiSyncService
             return $connection->fresh()->status;
         }
 
+        if ($this->healthKitEnabled($accessToken) === false) {
+            if ($connection->status !== ProviderConnection::UNAVAILABLE) {
+                $connection->markStatus(ProviderConnection::UNAVAILABLE, ProviderAuthorizationEvent::PROVIDER_UNAVAILABLE);
+            }
+            return ProviderConnection::UNAVAILABLE;
+        }
+
         $res = $this->fetchRecords($accessToken, 1);
         if ($res->successful()) {
             // e.g. HUAWEI Health Kit switched back on, or a revocation that wasn't one
@@ -152,6 +174,12 @@ class HuaweiSyncService
 
         $accessToken = $this->ensureFreshToken($connection);
         if ($accessToken === null) {
+            return 0;
+        }
+
+        // Health Kit switched off: stop reading even though Huawei would still answer.
+        if ($this->healthKitEnabled($accessToken) === false) {
+            $connection->markStatus(ProviderConnection::UNAVAILABLE, ProviderAuthorizationEvent::PROVIDER_UNAVAILABLE);
             return 0;
         }
 
