@@ -14,6 +14,7 @@ import { BirthdayOverlay } from '@/src/components/BirthdayOverlay'
 import { LaunchChecks } from '@/src/components/LaunchChecks'
 import { WorldCupOverlay } from '@/src/components/WorldCupOverlay'
 import { api } from '@/src/lib/api'
+import { syncAutoCheckInGeofences } from '@/src/lib/auto-checkin'
 import { getTrackedLiveLocationEventId, stopLiveLocationTracking } from '@/src/lib/live-location'
 import { navigateWhenReady, setupPushNotificationRouting, syncPushToken } from '@/src/lib/push-notifications'
 import { setupRevenueCat } from '@/src/lib/revenuecat'
@@ -118,6 +119,12 @@ export default function RootLayout() {
 
     const cleanup = setupPushNotificationRouting()
     return cleanup
+  }, [hasHydrated, token])
+
+  // Automatic check-in: refresh the watched meeting points (joins/leaves made on the web too).
+  useEffect(() => {
+    if (!hasHydrated || !token) return
+    syncAutoCheckInGeofences().catch(() => {})
   }, [hasHydrated, token])
 
   // Orphaned live-location tracking from a previous session/crash — stop it if

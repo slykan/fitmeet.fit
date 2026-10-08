@@ -14,6 +14,7 @@ import { CityPicker } from '@/src/components/CityPicker'
 import { OptionPicker, type PickerOption } from '@/src/components/OptionPicker'
 import { countryCodeForName } from '@/src/lib/countries'
 import { api } from '@/src/lib/api'
+import { disableAutoCheckIn, enableAutoCheckIn } from '@/src/lib/auto-checkin'
 import { useAuthStore } from '@/src/store/auth'
 import { palette, spacing } from '@/src/theme'
 
@@ -62,6 +63,8 @@ export default function SettingsScreen() {
   const [phone,      setPhone]      = useState(user?.phone ?? '')
   const [hidePhone,  setHidePhone]  = useState(user?.hide_phone ?? false)
   const [autoShareLiveLocation, setAutoShareLiveLocation] = useState(user?.auto_share_live_location ?? false)
+  const [autoCheckInBusy, setAutoCheckInBusy] = useState(false)
+  const autoCheckIn = user?.auto_check_in ?? false
   const [shareTrainingsInFeed, setShareTrainingsInFeed] = useState(user?.share_trainings_in_feed ?? true)
   const [birthDay,   setBirthDay]   = useState(birth0.d)
   const [birthMonth, setBirthMonth] = useState(birth0.m)
@@ -131,6 +134,26 @@ export default function SettingsScreen() {
       Alert.alert('Error', 'Could not update avatar.')
     } finally {
       setAvatarSaving(false)
+    }
+  }
+
+  async function toggleAutoCheckIn() {
+    setAutoCheckInBusy(true)
+    try {
+      if (autoCheckIn) {
+        await disableAutoCheckIn()
+        return
+      }
+      const result = await enableAutoCheckIn()
+      if (result === 'no-location') {
+        Alert.alert('Location needed', 'Automatic check-in needs access to your location. You can allow it in your phone settings.')
+      } else if (result === 'no-background') {
+        Alert.alert('Allow all the time', 'Automatic check-in works while FitMeet is closed, so it needs location access "Allow all the time". FitMeet does not track you — your phone only tells FitMeet when you arrive at the meeting point of an event you joined.')
+      }
+    } catch {
+      Alert.alert('Error', 'Could not change automatic check-in. Please try again.')
+    } finally {
+      setAutoCheckInBusy(false)
     }
   }
 
@@ -317,6 +340,21 @@ export default function SettingsScreen() {
           <View style={[styles.toggle, autoShareLiveLocation && styles.toggleOn]}>
             <View style={[styles.knob, autoShareLiveLocation && styles.knobOn]} />
           </View>
+        </Pressable>
+
+        {/* Saved at once (not with Save): turning it on asks for location "Allow all the time". */}
+        <Pressable style={styles.toggleRow} disabled={autoCheckInBusy} onPress={toggleAutoCheckIn}>
+          <View style={styles.toggleInfo}>
+            <Text style={styles.toggleLabel}>Automatic check-in</Text>
+            <Text style={styles.toggleDesc}>Check in by yourself when you arrive at the meeting point of an event you joined. You get a "Checked in" notification, also on your watch. Needs location access "Allow all the time".</Text>
+          </View>
+          {autoCheckInBusy
+            ? <ActivityIndicator color={palette.accent} />
+            : (
+              <View style={[styles.toggle, autoCheckIn && styles.toggleOn]}>
+                <View style={[styles.knob, autoCheckIn && styles.knobOn]} />
+              </View>
+            )}
         </Pressable>
 
         <Pressable style={styles.toggleRow} onPress={() => setShareTrainingsInFeed(v => !v)}>

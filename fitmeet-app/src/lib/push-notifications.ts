@@ -124,7 +124,8 @@ function routeFromNotificationData(data: Record<string, unknown> | undefined) {
   // A bare tap on the check-in push (no action button, e.g. because the background
   // task didn't get to attach one) should still land on the same check-in prompt +
   // live-location toggle the "Check in" button itself triggers, not a plain event page.
-  if (eventId && type === 'event_started') {
+  // Automatic check-in already happened: same screen, which then offers live location.
+  if (eventId && (type === 'event_started' || type === 'auto_checked_in')) {
     navigateWhenReady(`/event/${eventId}?checkin=1`)
     return
   }

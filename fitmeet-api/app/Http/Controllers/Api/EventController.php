@@ -17,6 +17,7 @@ use App\Models\Event;
 use App\Models\EventLocationPoint;
 use App\Models\EventReminder;
 use App\Models\FriendRequest;
+use App\Services\AutoCheckIn;
 use App\Services\BadgeService;
 use App\Services\GpxElevationEnricher;
 use App\Services\GpxRouteParser;
@@ -645,6 +646,91 @@ HTML;
             'checked_in_at' => $checkedInAt->toIso8601String(),
             'data' => new EventResource($event),
         ]);
+    }
+
+    // GET /api/check-in/geofences — meeting points the app watches for automatic check-in:
+    // joined active events with a location, starting in the next 7 days, still open.
+    public function checkInGeofences(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if (! $user->auto_check_in) {
+            return response()->json(['data' => []]);
+        }
+
+        $events = $user->joinedEvents()
+            ->where('events.status', 'active')
+            ->whereNotNull('events.lat')
+            ->whereNotNull('events.lng')
+            ->where('events.start_at', '>', now()->subHours(26))
+            ->where('events.start_at', '<', now()->addDays(7))
+            ->orderBy('events.start_at')
+            ->get(['events.id', 'events.title', 'events.lat', 'events.lng', 'events.start_at', 'events.duration_minutes'])
+            ->filter(fn (Event $e) => $e->pivot->checked_in_at === null && AutoCheckIn::window($e)[1]->isFuture())
+            ->take(20) // iOS watches at most 20 regions per app
+            ->map(fn (Event $e) => [
+                'id'       => $e->id,
+                'title'    => $e->title,
+                'lat'      => $e->lat,
+                'lng'      => $e->lng,
+                'start_at' => $e->start_at->toIso8601String(),
+            ])
+            ->values();
+
+        return response()->json(['data' => $events]);
+    }
+
+    // POST /api/events/{event}/presence { inside, lat?, lng? } — the app's geofence for the
+    // meeting point fired. Inside while check-in is open: checked in now. Inside earlier:
+    // remembered and checked in when it opens (SendStartedEventNotifications).
+    public function presence(Request $request, Event $event): JsonResponse
+    {
+        $data = $request->validate([
+            'inside' => 'required|boolean',
+            'lat'    => 'required_if:inside,true|nullable|numeric|between:-90,90',
+            'lng'    => 'required_if:inside,true|nullable|numeric|between:-180,180',
+        ]);
+        $user = $request->user();
+
+        $participant = \DB::table('event_participants')
+            ->where('event_id', $event->id)
+            ->where('user_id', $user->id)
+            ->where('status', 'joined')
+            ->first();
+
+        if (! $user->auto_check_in || ! $participant || $event->status !== 'active') {
+            return response()->json(['message' => 'Automatic check-in is not available for this event.'], 422);
+        }
+        if ($participant->checked_in_at) {
+            return response()->json(['checked_in' => true, 'present' => false]);
+        }
+
+        $query = \DB::table('event_participants')->where('event_id', $event->id)->where('user_id', $user->id);
+
+        if (! $data['inside']) {
+            $query->update(['present_at' => null]);
+
+            return response()->json(['checked_in' => false, 'present' => false]);
+        }
+
+        if ($event->lat !== null && $event->lng !== null
+            && AutoCheckIn::distanceM((float) $data['lat'], (float) $data['lng'], $event->lat, $event->lng) > AutoCheckIn::MAX_DISTANCE_M) {
+            return response()->json(['message' => 'You are not at the meeting point.'], 422);
+        }
+
+        [$opens, $closes] = AutoCheckIn::window($event);
+        if (now()->gt($closes) || now()->lt($opens->copy()->subHours(AutoCheckIn::EARLY_ARRIVAL_HOURS))) {
+            return response()->json(['message' => 'Check-in is not available for this event right now.'], 422);
+        }
+
+        if (now()->gte($opens)) {
+            AutoCheckIn::checkIn($event, $user->id);
+
+            return response()->json(['checked_in' => true, 'present' => false]);
+        }
+
+        $query->update(['present_at' => now()]);
+
+        return response()->json(['checked_in' => false, 'present' => true]);
     }
 
     // GET /api/watch/next-event — what the FitMeet watch app shows: the joined event whose

@@ -192,6 +192,8 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\EnsureNotBanned::class])
     Route::post('events/{event}/join-notifications', [EventController::class, 'setJoinNotifications']);
     Route::post('events/{event}/check-in', [EventController::class, 'checkIn']);
     Route::get('watch/next-event', [EventController::class, 'watchNextEvent']);
+    Route::get('check-in/geofences', [EventController::class, 'checkInGeofences']);
+    Route::post('events/{event}/presence', [EventController::class, 'presence']);
     Route::post('events/{event}/location-sharing', [EventController::class, 'setLocationSharing']);
     Route::post('events/{event}/location', [EventController::class, 'updateLocation']);
     Route::get('events/{event}/live-positions', [EventController::class, 'livePositions']);

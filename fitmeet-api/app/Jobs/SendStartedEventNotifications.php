@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Mail\EventStartedMail;
 use App\Models\Event;
 use App\Models\EventNotification;
+use App\Services\AutoCheckIn;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Mail;
@@ -30,6 +31,13 @@ class SendStartedEventNotifications implements ShouldQueue
             ]);
 
             if (! $notification->wasRecentlyCreated) {
+                continue;
+            }
+
+            // Already waiting at the meeting point (automatic check-in, arrived before
+            // check-in opened): check them in — AutoCheckIn sends "Checked in" instead.
+            if ($user->pivot->present_at && ! $user->pivot->checked_in_at && $user->auto_check_in
+                && AutoCheckIn::checkIn($event, $user->id)) {
                 continue;
             }
 

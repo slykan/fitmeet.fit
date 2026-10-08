@@ -23,7 +23,9 @@ import { ElevationChart } from '@/src/components/ElevationChart'
 import { WikiPhotosStrip } from '@/src/components/WikiPhotosStrip'
 import type { ElevationPoint } from '@/src/components/ElevationChart'
 import { CATEGORIES } from '@/src/lib/categories'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import { api } from '@/src/lib/api'
+import { enableAutoCheckIn, syncAutoCheckInGeofences } from '@/src/lib/auto-checkin'
 import { enrichGpxWithElevation, fetchElevationProfile, parseGpxTextAsync } from '@/src/lib/gpx'
 import type { TrackSegment } from '@/src/lib/gpx'
 import { analyzeRouteSurface, type SurfaceAnalysis } from '@/src/lib/route-surface'
@@ -39,6 +41,8 @@ import { useAuthStore } from '@/src/store/auth'
 import { useBadgesStore } from '@/src/store/badges'
 import { palette, spacing } from '@/src/theme'
 import { SupportFitMeetCard } from '@/src/components/SupportFitMeetCard'
+
+const AUTO_CHECKIN_OFFER_KEY = 'fitmeet-auto-checkin-offer'
 
 type MomentCoverPosition = { x: number; y: number }
 type GpxActivityStats = {
@@ -336,6 +340,12 @@ export default function EventDetailScreen() {
   const { id, wall, checkin, live } = useLocalSearchParams<{ id: string; wall?: string; checkin?: string; live?: string }>()
   const me = useAuthStore(s => s.user)
   const refreshMe = useAuthStore(s => s.refreshMe)
+  // Offer automatic check-in once (on a joined event) until turned on or dismissed.
+  const [autoCheckInOffer, setAutoCheckInOffer] = useState(false)
+  const [autoCheckInBusy, setAutoCheckInBusy] = useState(false)
+  useEffect(() => {
+    AsyncStorage.getItem(AUTO_CHECKIN_OFFER_KEY).then(v => setAutoCheckInOffer(v !== 'dismissed')).catch(() => {})
+  }, [])
   const scrollRef = useRef<ScrollView | null>(null)
   const insets = useSafeAreaInsets()
   // Bottom-sheet modals (check-in prompts, location consent, battery-opt) sit flush
@@ -897,6 +907,27 @@ export default function EventDetailScreen() {
     }
   }
 
+  async function turnOnAutoCheckIn() {
+    setAutoCheckInBusy(true)
+    try {
+      const result = await enableAutoCheckIn()
+      if (result === 'enabled') {
+        Alert.alert('Automatic check-in on', 'You will be checked in when you arrive at the meeting point. You can turn it off in Settings.')
+      } else if (result === 'no-background') {
+        Alert.alert('Allow all the time', 'Automatic check-in works while FitMeet is closed, so it needs location access "Allow all the time". FitMeet does not track you — your phone only tells FitMeet when you arrive at the meeting point.')
+      }
+    } catch {
+      Alert.alert('Error', 'Could not turn on automatic check-in. Please try again.')
+    } finally {
+      setAutoCheckInBusy(false)
+    }
+  }
+
+  function dismissAutoCheckInOffer() {
+    setAutoCheckInOffer(false)
+    AsyncStorage.setItem(AUTO_CHECKIN_OFFER_KEY, 'dismissed').catch(() => {})
+  }
+
   async function join() {
     if (!event) return
     setActing(true)
@@ -912,6 +943,7 @@ export default function EventDetailScreen() {
       playRandomActionSound().catch(() => {})
       if (data.newly_unlocked?.length) useBadgesStore.getState().enqueue(data.newly_unlocked)
       setShowReminderModal(true)
+      syncAutoCheckInGeofences().catch(() => {})
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Could not join.'
       Alert.alert('Error', msg)
@@ -931,6 +963,7 @@ export default function EventDetailScreen() {
             await api.post(`/events/${event.id}/remind`, { offsets: [] }).catch(() => {})
             setActiveOffsets([])
             setSelectedOffsets(new Set())
+            syncAutoCheckInGeofences().catch(() => {})
             if (data.data) setEvent(data.data)
             else {
               const fresh = await api.get(`/events/${event.id}`)
@@ -1806,6 +1839,24 @@ export default function EventDetailScreen() {
                 })}
               </View>
             )}
+          </View>
+        )}
+
+        {/* Automatic check-in offer */}
+        {event.is_joined && !cancelled && !event.checked_in_at && autoCheckInOffer && me && !me.auto_check_in && (
+          <View style={styles.checkInCard}>
+            <View style={styles.checkInCardRow}>
+              <View style={styles.checkInCopy}>
+                <Text style={styles.checkInTitle}>Check in automatically?</Text>
+                <Text style={styles.checkInSub}>FitMeet checks you in when you arrive at the meeting point — you get a notification, also on your watch.</Text>
+              </View>
+              <Pressable style={[styles.checkInBtn, autoCheckInBusy && styles.disabledBtn]} onPress={turnOnAutoCheckIn} disabled={autoCheckInBusy}>
+                {autoCheckInBusy ? <ActivityIndicator size="small" color="#041109" /> : <Text style={styles.checkInBtnText}>Turn on</Text>}
+              </Pressable>
+            </View>
+            <Pressable onPress={dismissAutoCheckInOffer} hitSlop={8}>
+              <Text style={styles.checkInSub}>Not now</Text>
+            </Pressable>
           </View>
         )}
 

@@ -44,6 +44,7 @@ class UpdateProfileRequest extends FormRequest
             'email_friend_events'   => ['sometimes', 'boolean'],
             'push_notifications'    => ['sometimes', 'boolean'],
             'auto_share_live_location' => ['sometimes', 'boolean'],
+            'auto_check_in' => ['sometimes', 'boolean'],
             'share_trainings_in_feed' => ['sometimes', 'boolean'],
             'fcm_token'    => ['sometimes', 'nullable', 'string'],
             'avatar_file'  => ['sometimes', 'nullable', 'file', 'max:8192'],
