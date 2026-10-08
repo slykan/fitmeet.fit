@@ -68,6 +68,11 @@ export default function ConnectedAppsScreen() {
   const [busy, setBusy] = useState<string | null>(null)
   const handledCodeRef = useRef<string | null>(null)
   const handledHuaweiCodeRef = useRef<string | null>(null)
+  // On Android one Huawei grant reaches us twice — openAuthSessionAsync's result and the
+  // huawei-callback deep-link route — and the two copies of the code don't always compare
+  // equal ('+' vs ' '), so the code dedupe let both through: the second POST reused a
+  // spent code and showed "Could not connect" next to "Connected". One connect at a time.
+  const huaweiConnectStartedRef = useRef(0)
 
   function load() {
     api.get('/connections')
@@ -191,6 +196,8 @@ export default function ConnectedAppsScreen() {
   }
 
   async function finishConnectHuawei(code: string) {
+    if (Date.now() - huaweiConnectStartedRef.current < 60_000) return
+    huaweiConnectStartedRef.current = Date.now()
     setBusy('huawei')
     try {
       const { data } = await api.post('/huawei/connect', { code, source: 'app' })
@@ -206,6 +213,7 @@ export default function ConnectedAppsScreen() {
       }
       load()
     } catch {
+      huaweiConnectStartedRef.current = 0
       Alert.alert('Error', 'Could not connect HUAWEI Health. Please try again.')
     } finally {
       setBusy(null)
@@ -213,6 +221,7 @@ export default function ConnectedAppsScreen() {
   }
 
   async function connectHuawei() {
+    huaweiConnectStartedRef.current = 0
     setBusy('huawei')
     try {
       const authUrl =

@@ -10,6 +10,7 @@ use App\Services\HuaweiSyncService;
 use App\Services\TrainingSyncService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -61,12 +62,38 @@ class HuaweiController
         if (str_contains($code, '%')) {
             $code = rawurldecode($code);
         }
+        // URLSearchParams on the web callback turns a raw '+' into a space.
+        $code = str_replace(' ', '+', $code);
 
-        $data = $this->exchangeCode($code);
-        if (!$data || empty($data['access_token'])) {
-            return response()->json(['message' => 'Huawei auth failed.'], 422);
+        // App builds up to 1.4.45 post the same grant twice (auth-session result + deep
+        // link) in the same second. Run them one after the other; the second finds the
+        // code spent and gets the first one's answer instead of a 422 "could not connect".
+        $user = $request->user();
+        $lock = Cache::lock('huawei-connect:' . $user->id, 120);
+        $lock->block(90);
+        try {
+            $data = $this->exchangeCode($code);
+            if (!$data || empty($data['access_token'])) {
+                $recent = Cache::get('huawei-connect-result:' . $user->id);
+                if ($recent) {
+                    return response()->json($recent);
+                }
+                return response()->json(['message' => 'Huawei auth failed.'], 422);
+            }
+
+            $result = $this->completeConnect($request, $data, $huawei, $sync);
+            if ($result->getStatusCode() === 200) {
+                Cache::put('huawei-connect-result:' . $user->id, $result->getData(true), 60);
+            }
+
+            return $result;
+        } finally {
+            $lock->release();
         }
+    }
 
+    private function completeConnect(Request $request, array $data, HuaweiSyncService $huawei, TrainingSyncService $sync): JsonResponse
+    {
         $athleteId = $this->extractOpenId($data);
         if (!$athleteId) {
             return response()->json(['message' => 'Huawei auth failed.'], 422);
@@ -138,6 +165,7 @@ class HuaweiController
             ->first();
 
         $deleted = 0;
+        Cache::forget('huawei-connect-result:' . $user->id);
         if ($connection) {
             try {
                 Http::asForm()->post('https://oauth-login.cloud.huawei.com/oauth2/v3/revoke', [
