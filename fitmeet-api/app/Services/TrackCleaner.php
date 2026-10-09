@@ -22,6 +22,10 @@ class TrackCleaner
     /** ... for at least this long counts as a stop. */
     public const MIN_STOP_S = 60;
 
+    /** Stops at most this far apart in time and space are one stop broken by GPS jitter. */
+    public const MERGE_GAP_S = 90;
+    public const MERGE_RADIUS_M = 60;
+
     /** A point reached faster than this, from and back to its neighbours, is a GPS spike. */
     public const SPIKE_KMH = 60;
 
@@ -105,6 +109,20 @@ class TrackCleaner
             }
         }
 
-        return $stops;
+        // GPS jitter can split one stop in several (a fix jumps 50+ m and back): merge
+        // stops less than MERGE_GAP_S apart whose positions are close.
+        $merged = [];
+        foreach ($stops as $s) {
+            $last = $merged ? $merged[count($merged) - 1] : null;
+            if ($last
+                && $points[$s[0]]->recorded_at->getTimestamp() - $points[$last[1]]->recorded_at->getTimestamp() <= self::MERGE_GAP_S
+                && AutoCheckIn::distanceM($points[$last[0]]->lat, $points[$last[0]]->lng, $points[$s[0]]->lat, $points[$s[0]]->lng) <= self::MERGE_RADIUS_M) {
+                $merged[count($merged) - 1][1] = $s[1];
+            } else {
+                $merged[] = $s;
+            }
+        }
+
+        return $merged;
     }
 }
