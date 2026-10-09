@@ -1,0 +1,67 @@
+# EAS Build: u arhivu ide samo aplikacija (fitmeet-app/). Web, API, Huawei dokazi,
+# mediji i ključevi u korijenu repozitorija buildu ne trebaju (arhiva je bila 1,8 GB).
+# Kad postoji .easignore, EAS ne čita .gitignore — zato su ovdje i pravila aplikacije.
+# Pozor: "/*" + "!/fitmeet-app/" EAS NE razumije (izbaci sve) — zato popis.
+
+# --- korijen repozitorija ---
+/.agents/
+/.android-home/
+/.claude/
+/.codex/
+/FitMeetWatch/
+/fitmeet-api/
+/fitmeet-web/
+/harmonyOS/
+/help slideshow/
+/huawei/
+/igpsport/
+/images/
+/press/
+/deploy.sh
+/google-services.json
+/GoogleService-Info*.plist
+/fitmeet-release.keystore.backup
+/*.png
+/*.jpg
+/*.mp3
+/*.mp4
+/*.pdf
+/*.zip
+/*.docx
+/*.ips
+*.p8
+
+# --- aplikacija ---
+fitmeet-app/node_modules/
+fitmeet-app/.expo/
+fitmeet-app/.expo-home/
+fitmeet-app/.android-home/
+fitmeet-app/.gradle-local/
+fitmeet-app/.sandbox-home*/
+fitmeet-app/dist/
+fitmeet-app/dist-check/
+fitmeet-app/android/build/
+fitmeet-app/android/app/build/
+fitmeet-app/android/.gradle/
+fitmeet-app/android/app/.cxx/
+fitmeet-app/android/app/fitmeet-release.keystore
+fitmeet-app/android/app/src/main/assets/
+fitmeet-app/ios/build/
+fitmeet-app/ios/Pods/
+fitmeet-app/google-services (1).json
+fitmeet-app/fitmeet-493512-af893efc47a2.json
+fitmeet-app/client_secret_*.json
+fitmeet-app/app image.png
+*.aab
+*.apk
+*.ipa
+*.log
+fitmeet-app/mapping-archive/
+fitmeet-app/build-*.txt
+fitmeet-app/logurl*.txt
+fitmeet-app/google-services.json.old
+fitmeet-app/33da5aa4-9a5b-4e39-8267-dd4c2e67f06e.png
+# ključevi i certifikati nikad u arhivu
+*.jks
+*.pem
+*.keystore
