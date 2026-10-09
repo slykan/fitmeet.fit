@@ -19,6 +19,7 @@ use App\Models\EventReminder;
 use App\Models\FriendRequest;
 use App\Services\AutoCheckIn;
 use App\Services\BadgeService;
+use App\Services\TrackCleaner;
 use App\Services\GpxElevationEnricher;
 use App\Services\GpxRouteParser;
 use Illuminate\Http\JsonResponse;
@@ -1046,7 +1047,13 @@ HTML;
             ->orderBy('recorded_at')
             ->get();
 
-        return EventLocationPointResource::collection($points)->response();
+        // Trimmed to real movement, GPS spikes dropped; `pauses` lets the replay
+        // fast-forward the stops in between (older apps just ignore it).
+        $clean = TrackCleaner::clean($points);
+
+        return EventLocationPointResource::collection($clean['points'])
+            ->additional(['meta' => ['pauses' => $clean['pauses']]])
+            ->response();
     }
 
     // POST /api/events/{event}/applause
