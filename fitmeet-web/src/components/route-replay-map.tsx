@@ -6,6 +6,8 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { Play, Pause, FastForward, Maximize2, Minimize2 } from 'lucide-react'
 
+import { buildTimeline } from '@/lib/replay-timeline'
+
 export type ReplayPoint = {
   lat: number
   lng: number
@@ -18,6 +20,8 @@ export type ReplayTrack = {
   name: string
   avatar: string | null
   points: ReplayPoint[]
+  // Stops (from track-history meta.pauses) — fast-forwarded when nobody is moving.
+  pauses?: [string, string][]
 }
 
 type RiderPosition = {
@@ -213,13 +217,15 @@ export default function RouteReplayMap({ tracks, height = 320 }: { tracks: Repla
       elapsedMsList: t.points.map((p) => new Date(p.recorded_at).getTime() - commonStartMs),
       speeds: t.points.map((p) => p.speed_kmh),
     }))
-    return { items, totalRealMs }
+    // Replay clock: real time while anyone is moving; idle stretches squeezed.
+    return { items, totalRealMs, timeline: buildTimeline(validTracks, commonStartMs, totalRealMs) }
   }, [validTracks])
 
-  const totalRealMs = prepared?.totalRealMs ?? 0
+  const [idleLabel, setIdleLabel] = useState<string | null>(null)
+  const replayTotalMs = prepared?.timeline.totalMs ?? 0
   const animDurationMs = Math.min(
     ANIM_DURATION_MAX_MS,
-    Math.max(ANIM_DURATION_MIN_MS, (totalRealMs / 60000) * ANIM_MS_PER_REAL_MINUTE),
+    Math.max(ANIM_DURATION_MIN_MS, (replayTotalMs / 60000) * ANIM_MS_PER_REAL_MINUTE),
   )
 
   useEffect(() => {
@@ -237,6 +243,7 @@ export default function RouteReplayMap({ tracks, height = 320 }: { tracks: Repla
     elapsedMsRef.current = 0
     setPositions([])
     setTraveled({})
+    setIdleLabel(null)
   }, [prepared])
 
   function applyElapsed(elapsedMs: number) {
@@ -264,9 +271,13 @@ export default function RouteReplayMap({ tracks, height = 320 }: { tracks: Repla
     setTraveled(nextTraveled)
   }
 
+  // elapsedMsRef holds replay-clock ms (timeline.totalMs scale), not real ms.
   function runAnimation(resumeFromMs: number) {
+    if (!prepared) return
+    const { timeline } = prepared
     setPlayState('playing')
-    let virtualElapsed = totalRealMs > 0 ? (resumeFromMs / totalRealMs) * animDurationMs : 0
+    let virtualElapsed = replayTotalMs > 0 ? (resumeFromMs / replayTotalMs) * animDurationMs : 0
+    let shownLabel: string | null = null
     let lastFrameTime = performance.now()
     let lastUpdateTime = 0
     const step = (now: number) => {
@@ -274,8 +285,13 @@ export default function RouteReplayMap({ tracks, height = 320 }: { tracks: Repla
       lastFrameTime = now
       virtualElapsed += dt * speedRef.current
       const progress = Math.min(1, virtualElapsed / animDurationMs)
-      const realElapsed = progress * totalRealMs
-      elapsedMsRef.current = realElapsed
+      const replayElapsed = progress * replayTotalMs
+      const { realMs: realElapsed, idleLabel: label } = timeline.toReal(replayElapsed)
+      elapsedMsRef.current = replayElapsed
+      if (label !== shownLabel) {
+        shownLabel = label
+        setIdleLabel(label)
+      }
 
       if (progress >= 1 || now - lastUpdateTime >= PROGRESS_UPDATE_INTERVAL_MS) {
         lastUpdateTime = now
@@ -286,6 +302,7 @@ export default function RouteReplayMap({ tracks, height = 320 }: { tracks: Repla
         frameRef.current = requestAnimationFrame(step)
       } else {
         setPlayState('idle')
+        setIdleLabel(null)
       }
     }
     frameRef.current = requestAnimationFrame(step)
@@ -339,6 +356,16 @@ export default function RouteReplayMap({ tracks, height = 320 }: { tracks: Repla
         {playState === 'playing' && followPosition && <PlayCameraFollow position={followPosition} />}
         <RiderLayer positions={positions} />
       </MapContainer>
+      {idleLabel && playState !== 'idle' && (
+        <div className="absolute left-0 right-0 z-[500] flex justify-center pointer-events-none" style={{ bottom: 56 }}>
+          <span
+            className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold"
+            style={{ background: 'rgba(7,11,24,0.85)', borderColor: 'rgba(255,255,255,0.12)', color: 'var(--text)' }}
+          >
+            <Pause size={12} /> {idleLabel}
+          </span>
+        </div>
+      )}
       <div className="absolute bottom-3 left-3 z-[500] flex gap-1.5" style={{ pointerEvents: 'auto' }}>
         <button
           type="button"

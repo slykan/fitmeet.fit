@@ -553,6 +553,7 @@ function EventContent() {
     Promise.all(wanted.map((p) =>
       api.get(`/events/${event.id}/track-history/${p.id}`).then(({ data }) => ({
         id: p.id, name: p.name, avatar: p.avatar, points: (data.data ?? []) as ReplayPoint[],
+        pauses: (data.meta?.pauses ?? []) as [string, string][],
       }))
     ))
       .then((tracks) => { if (!cancelled) setReplayTracks(tracks) })

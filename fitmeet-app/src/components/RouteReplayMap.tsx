@@ -19,6 +19,8 @@ export type ReplayTrack = {
   name: string
   avatar: string | null
   points: ReplayPoint[]
+  // Stops (from track-history meta.pauses) — fast-forwarded when nobody is moving.
+  pauses?: [string, string][]
 }
 
 type Props = {
@@ -36,6 +38,9 @@ const ANIM_MS_PER_REAL_MINUTE = 1500
 const ANIM_DURATION_MIN_MS = 8000
 const ANIM_DURATION_MAX_MS = 60000
 const SPEED_STEPS = [1, 2, 4]
+// A stretch where nobody moves (a break, waiting for the group) plays as if it were
+// this long, instead of its real length, so the replay doesn't sit on a frozen marker.
+const IDLE_AS_REAL_MS = 60000
 const PROGRESS_UPDATE_INTERVAL_MS = 1000 / 20
 // Riders whose screen positions land within this many pixels of each other
 // are merged into a single cluster badge, same threshold live tracking uses.
@@ -301,6 +306,72 @@ function buildHtml(tracksJson: string) {
 </html>`
 }
 
+type TimelineSegment = {
+  realStart: number
+  realEnd: number
+  replayStart: number
+  replayEnd: number
+  label: string | null
+}
+
+// Maps the replay clock to real time. Stretches where nobody is moving — outside
+// every rider's own movement and stops (track-history meta.pauses) — play as
+// IDLE_AS_REAL_MS, everything else at its real length, so riders stay in sync.
+function buildTimeline(tracks: ReplayTrack[], commonStartMs: number, totalRealMs: number) {
+  const active: [number, number][] = []
+  for (const t of tracks) {
+    let cursor = new Date(t.points[0].recorded_at).getTime() - commonStartMs
+    const end = new Date(t.points[t.points.length - 1].recorded_at).getTime() - commonStartMs
+    const stops = (t.pauses ?? [])
+      .map(([a, b]) => [new Date(a).getTime() - commonStartMs, new Date(b).getTime() - commonStartMs] as [number, number])
+      .sort((x, y) => x[0] - y[0])
+    for (const [a, b] of stops) {
+      if (a > cursor) active.push([cursor, Math.min(a, end)])
+      cursor = Math.max(cursor, b)
+    }
+    if (end > cursor) active.push([cursor, end])
+  }
+  active.sort((x, y) => x[0] - y[0])
+  const merged: [number, number][] = []
+  for (const iv of active) {
+    const last = merged[merged.length - 1]
+    if (last && iv[0] <= last[1]) last[1] = Math.max(last[1], iv[1])
+    else merged.push([iv[0], iv[1]])
+  }
+
+  const segments: TimelineSegment[] = []
+  let real = 0
+  let replay = 0
+  const push = (realEnd: number, idle: boolean) => {
+    const len = realEnd - real
+    if (len <= 0) return
+    const squeeze = idle && len > IDLE_AS_REAL_MS
+    const replayLen = squeeze ? IDLE_AS_REAL_MS : len
+    segments.push({
+      realStart: real, realEnd, replayStart: replay, replayEnd: replay + replayLen,
+      label: squeeze ? `Break · ${Math.round(len / 60000)} min` : null,
+    })
+    real = realEnd
+    replay += replayLen
+  }
+  for (const [a, b] of merged) {
+    push(Math.min(a, totalRealMs), true)
+    push(Math.min(b, totalRealMs), false)
+  }
+  push(totalRealMs, true)
+
+  return {
+    totalMs: replay,
+    toReal(replayMs: number): { realMs: number; idleLabel: string | null } {
+      const seg = segments.find(s => replayMs <= s.replayEnd) ?? segments[segments.length - 1]
+      if (!seg) return { realMs: replayMs, idleLabel: null }
+      const span = seg.replayEnd - seg.replayStart
+      const frac = span > 0 ? Math.min(1, Math.max(0, (replayMs - seg.replayStart) / span)) : 1
+      return { realMs: seg.realStart + frac * (seg.realEnd - seg.realStart), idleLabel: seg.label }
+    },
+  }
+}
+
 export function RouteReplayMap({ tracks, onMapEnabledChange }: Props) {
   const webViewRef = useRef<WebViewType>(null)
   const [playState, setPlayState] = useState<PlayState>('idle')
@@ -335,9 +406,13 @@ export function RouteReplayMap({ tracks, onMapEnabledChange }: Props) {
     return Math.max(0, commonEndMs - commonStartMs)
   }, [validTracks, commonStartMs])
 
+  // Replay clock: real time while anyone is moving; idle stretches squeezed.
+  const timeline = useMemo(() => buildTimeline(validTracks, commonStartMs, totalRealMs), [validTracks, commonStartMs, totalRealMs])
+  const [idleLabel, setIdleLabel] = useState<string | null>(null)
+
   const animDurationMs = Math.min(
     ANIM_DURATION_MAX_MS,
-    Math.max(ANIM_DURATION_MIN_MS, (totalRealMs / 60000) * ANIM_MS_PER_REAL_MINUTE),
+    Math.max(ANIM_DURATION_MIN_MS, (timeline.totalMs / 60000) * ANIM_MS_PER_REAL_MINUTE),
   )
 
   const tracksJson = useMemo(() => JSON.stringify(validTracks.map((t) => ({
@@ -366,6 +441,7 @@ export function RouteReplayMap({ tracks, onMapEnabledChange }: Props) {
     setFollowTarget(null)
     speedRef.current = SPEED_STEPS[0]
     elapsedMsRef.current = 0
+    setIdleLabel(null)
   }, [tracksJson])
 
   function clearFollow() {
@@ -386,9 +462,11 @@ export function RouteReplayMap({ tracks, onMapEnabledChange }: Props) {
     webViewRef.current?.postMessage(JSON.stringify({ type: 'progress', elapsedMs, followCamera }))
   }
 
+  // elapsedMsRef holds replay-clock ms (timeline.totalMs scale), not real ms.
   function runAnimation(resumeFromMs: number) {
     setPlayState('playing')
-    let virtualElapsed = totalRealMs > 0 ? (resumeFromMs / totalRealMs) * animDurationMs : 0
+    let virtualElapsed = timeline.totalMs > 0 ? (resumeFromMs / timeline.totalMs) * animDurationMs : 0
+    let shownLabel: string | null = null
     let lastFrameTime = performance.now()
     let lastUpdateTime = 0
     const step = (now: number) => {
@@ -396,8 +474,13 @@ export function RouteReplayMap({ tracks, onMapEnabledChange }: Props) {
       lastFrameTime = now
       virtualElapsed += dt * speedRef.current
       const progress = Math.min(1, virtualElapsed / animDurationMs)
-      const realElapsed = progress * totalRealMs
-      elapsedMsRef.current = realElapsed
+      const replayElapsed = progress * timeline.totalMs
+      const { realMs: realElapsed, idleLabel: label } = timeline.toReal(replayElapsed)
+      elapsedMsRef.current = replayElapsed
+      if (label !== shownLabel) {
+        shownLabel = label
+        setIdleLabel(label)
+      }
 
       if (progress >= 1 || now - lastUpdateTime >= PROGRESS_UPDATE_INTERVAL_MS) {
         lastUpdateTime = now
@@ -408,6 +491,7 @@ export function RouteReplayMap({ tracks, onMapEnabledChange }: Props) {
         frameRef.current = requestAnimationFrame(step)
       } else {
         setPlayState('idle')
+        setIdleLabel(null)
       }
     }
     frameRef.current = requestAnimationFrame(step)
@@ -486,6 +570,14 @@ export function RouteReplayMap({ tracks, onMapEnabledChange }: Props) {
       >
         <Ionicons name={isFullscreen ? 'contract-outline' : 'expand-outline'} size={15} color={palette.text} />
       </Pressable>
+      {idleLabel && playState !== 'idle' && (
+        <View style={styles.idlePillWrap} pointerEvents="none">
+          <View style={styles.idlePill}>
+            <Ionicons name="pause" size={12} color={palette.text} />
+            <Text style={styles.idlePillText}>{idleLabel}</Text>
+          </View>
+        </View>
+      )}
       {followLabel && (
         <View style={styles.followPillWrap} pointerEvents="box-none">
           <Pressable style={styles.followPill} onPress={clearFollow}>
@@ -574,4 +666,23 @@ const styles = StyleSheet.create({
     backgroundColor: palette.accent,
   },
   followPillText: { color: '#031109', fontSize: 12, fontWeight: '800' },
+  idlePillWrap: {
+    position: 'absolute',
+    bottom: 52,
+    left: 12,
+    right: 12,
+    alignItems: 'center',
+  },
+  idlePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    backgroundColor: 'rgba(7,13,28,0.85)',
+    borderWidth: 1,
+    borderColor: palette.line,
+  },
+  idlePillText: { color: palette.text, fontSize: 12, fontWeight: '800' },
 })
