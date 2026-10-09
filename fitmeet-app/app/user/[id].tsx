@@ -2,8 +2,8 @@ import { Ionicons } from '@expo/vector-icons'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
 import {
-  ActivityIndicator, Animated, Easing, Image, Modal,
-  Pressable, ScrollView, Share, StyleSheet, Text, View,
+  ActivityIndicator, Alert, Animated, Easing, Image, KeyboardAvoidingView, Modal, Platform,
+  Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View,
 } from 'react-native'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -75,6 +75,9 @@ export default function UserProfileScreen() {
   const [loading, setLoading] = useState(true)
   const [zoom,    setZoom]    = useState(false)
   const [acting,  setActing]  = useState(false)
+  const [messageOpen, setMessageOpen] = useState(false)
+  const [messageBody, setMessageBody] = useState('')
+  const [messageBusy, setMessageBusy] = useState(false)
 
   useEffect(() => {
     api.get(`/users/${id}`)
@@ -125,6 +128,40 @@ export default function UserProfileScreen() {
         }
       },
     })
+  }
+
+  // Message: open the existing direct conversation, or write the first message here
+  // (a conversation only exists once it has a message).
+  async function openMessage() {
+    if (!profile) return
+    setMessageBusy(true)
+    try {
+      const { data } = await api.get('/messages')
+      const list = (data.data ?? data.conversations ?? []) as { id: number; is_group: boolean; partner: { id: number } | null }[]
+      const existing = list.find(c => !c.is_group && c.partner?.id === profile.id)
+      if (existing) router.push(`/(tabs)/messages?conversation=${existing.id}` as never)
+      else setMessageOpen(true)
+    } catch {
+      setMessageOpen(true)
+    } finally {
+      setMessageBusy(false)
+    }
+  }
+
+  async function sendFirstMessage() {
+    if (!profile || !messageBody.trim()) return
+    setMessageBusy(true)
+    try {
+      const { data } = await api.post('/messages/conversations', { participant_ids: [profile.id], body: messageBody.trim() })
+      setMessageOpen(false)
+      setMessageBody('')
+      router.push(`/(tabs)/messages?conversation=${data.conversation.id}` as never)
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message
+      Alert.alert('Error', msg ?? 'Could not send the message.')
+    } finally {
+      setMessageBusy(false)
+    }
   }
 
   async function shareProfile() {
@@ -185,6 +222,38 @@ export default function UserProfileScreen() {
         </Pressable>
       </Modal>
 
+      {/* First message */}
+      <Modal visible={messageOpen} transparent animationType="fade" onRequestClose={() => setMessageOpen(false)}>
+        <KeyboardAvoidingView style={styles.msgOverlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setMessageOpen(false)} />
+          <View style={styles.msgCard}>
+            <Text style={styles.msgTitle}>Message {profile.name}</Text>
+            <TextInput
+              style={styles.msgInput}
+              value={messageBody}
+              onChangeText={setMessageBody}
+              placeholder="Write a message…"
+              placeholderTextColor={palette.textDim}
+              multiline
+              maxLength={2000}
+              autoFocus
+            />
+            <View style={styles.msgActions}>
+              <Pressable style={styles.msgCancel} onPress={() => setMessageOpen(false)}>
+                <Text style={styles.msgCancelText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.msgSend, (!messageBody.trim() || messageBusy) && { opacity: 0.5 }]}
+                onPress={sendFirstMessage}
+                disabled={!messageBody.trim() || messageBusy}
+              >
+                {messageBusy ? <ActivityIndicator size="small" color="#041109" /> : <Text style={styles.msgSendText}>Send</Text>}
+              </Pressable>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 16 }]} showsVerticalScrollIndicator={false}>
 
         {/* Back */}
@@ -240,6 +309,16 @@ export default function UserProfileScreen() {
                     {friendLabel}
                   </Text>
               }
+            </Pressable>
+          )}
+          {!profile.is_self && (
+            <Pressable style={styles.shareBtn} onPress={openMessage} disabled={messageBusy}>
+              {messageBusy && !messageOpen
+                ? <ActivityIndicator size="small" color={palette.accent} />
+                : <>
+                    <Ionicons name="chatbubble-outline" size={17} color={palette.accent} />
+                    <Text style={styles.shareBtnLabel}>Message</Text>
+                  </>}
             </Pressable>
           )}
           <Pressable style={styles.shareBtn} onPress={shareProfile}>
@@ -352,6 +431,24 @@ const styles = StyleSheet.create({
     gap: 7,
   },
   shareBtnLabel: { color: palette.accent, fontSize: 14, fontWeight: '800' },
+  msgOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 20 },
+  msgCard: {
+    borderRadius: 20, borderWidth: 1, borderColor: palette.line,
+    backgroundColor: palette.panel, padding: 16, gap: 12,
+  },
+  msgTitle: { color: palette.text, fontSize: 16, fontWeight: '800' },
+  msgInput: {
+    minHeight: 96, maxHeight: 200, borderRadius: 14, borderWidth: 1, borderColor: palette.line,
+    paddingHorizontal: 12, paddingVertical: 10, color: palette.text, fontSize: 15, textAlignVertical: 'top',
+  },
+  msgActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10 },
+  msgCancel: { height: 40, paddingHorizontal: 16, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  msgCancelText: { color: palette.textMuted, fontSize: 14, fontWeight: '700' },
+  msgSend: {
+    height: 40, minWidth: 84, paddingHorizontal: 18, borderRadius: 12,
+    backgroundColor: palette.accent, alignItems: 'center', justifyContent: 'center',
+  },
+  msgSendText: { color: '#041109', fontSize: 14, fontWeight: '800' },
   moreBtn: {
     width: 44, height: 44, borderRadius: 16,
     borderWidth: 1, borderColor: palette.line,
