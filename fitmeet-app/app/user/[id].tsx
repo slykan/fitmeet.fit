@@ -316,13 +316,13 @@ export default function UserProfileScreen() {
               {messageBusy && !messageOpen
                 ? <ActivityIndicator size="small" color={palette.accent} />
                 : <>
-                    <Ionicons name="chatbubble-outline" size={17} color={palette.accent} />
+                    <Ionicons name="chatbubble-outline" size={14} color={palette.accent} />
                     <Text style={styles.shareBtnLabel}>Message</Text>
                   </>}
             </Pressable>
           )}
           <Pressable style={styles.shareBtn} onPress={shareProfile}>
-            <Ionicons name="share-social-outline" size={17} color={palette.accent} />
+            <Ionicons name="share-social-outline" size={14} color={palette.accent} />
             <Text style={styles.shareBtnLabel}>Share</Text>
           </Pressable>
           {!profile.is_self && (
@@ -416,7 +416,7 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   friendBtnActive: { borderColor: 'rgba(57,255,20,0.35)', backgroundColor: 'rgba(57,255,20,0.08)' },
-  friendBtnLabel:  { color: palette.text, fontSize: 14, fontWeight: '700' },
+  friendBtnLabel:  { color: palette.text, fontSize: 12, fontWeight: '700' },
   friendBtnLabelActive: { color: palette.accent },
   shareBtn: {
     flex: 1,
@@ -428,9 +428,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 7,
+    gap: 5,
   },
-  shareBtnLabel: { color: palette.accent, fontSize: 14, fontWeight: '800' },
+  shareBtnLabel: { color: palette.accent, fontSize: 12, fontWeight: '800' },
   msgOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 20 },
   msgCard: {
     borderRadius: 20, borderWidth: 1, borderColor: palette.line,
