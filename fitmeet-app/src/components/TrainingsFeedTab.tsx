@@ -235,7 +235,7 @@ export function TrainingsFeedTab() {
         </Pressable>
         <Pressable style={styles.weeklyBtn} onPress={() => router.push('/weekly-report' as never)}>
           <Ionicons name="sparkles" size={14} color={palette.accent} />
-          <Text style={styles.weeklyBtnLabel}>Weekly report</Text>
+          <Text style={styles.weeklyBtnLabel}>Reports</Text>
         </Pressable>
         <Pressable style={styles.connectBtn} onPress={() => router.push('/connected-apps' as never)}>
           <Ionicons name="link-outline" size={16} color={palette.accent} />

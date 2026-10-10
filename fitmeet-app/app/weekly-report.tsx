@@ -13,9 +13,10 @@ interface Day { date: string; minutes: number; by_sport: Record<string, number> 
 interface Sport { sport: string; label: string; trainings: number; minutes: number; km: number }
 interface WeekTraining { id: number; date: string; sport: string; name?: string; km?: number; min?: number; hr?: number }
 interface Stats {
-  period: { start: string; end: string }
+  kind: Kind
+  period: { start: string; end: string; days: number }
   totals: { trainings: number; hours: number; km: number; elevation_m: number; calories: number; active_days: number }
-  previous_4_weeks_avg: { trainings: number; hours: number; km: number }
+  previous_avg: { trainings: number; hours: number; km: number; periods: number }
   days: Day[]
   sports: Sport[]
   hr_zones_minutes: Record<string, number> | null
@@ -33,6 +34,13 @@ interface Report {
 interface Payload { available: boolean; stats: Stats; report: Report | null; quota: { analyses_left: number; questions_left: number } }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+type Kind = 'week' | 'month'
+
+const KIND_TEXT: Record<Kind, { title: string; compare: string; next: string; cta: string; ask: string }> = {
+  week: { title: 'Weekly report', compare: 'Arrows compare with your average week over the previous 4 weeks.', next: 'Next week', cta: 'Write my weekly report', ask: 'Ask the coach about your week…' },
+  month: { title: 'Monthly report', compare: 'Arrows compare with your average month over the previous 3 months.', next: 'Next month', cta: 'Write my monthly report', ask: 'Ask the coach about your month…' },
+}
 
 const SPORT_COLOR: Record<string, string> = {
   cycling: '#ffaa00', running: '#6cff2f', walking: '#3399ff', hiking: '#2dd4bf',
@@ -67,22 +75,25 @@ function delta(now: number, before: number): { text: string; up: boolean } | nul
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function WeeklyReportScreen() {
+  const [kind, setKind] = useState<Kind>('week')
   const [data, setData] = useState<Payload | null>(null)
   const [busy, setBusy] = useState<'write' | 'ask' | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [question, setQuestion] = useState('')
 
   useEffect(() => {
-    api.get('/reports/weekly').then(({ data }) => setData(data)).catch(() => setError('Could not load your week.'))
-  }, [])
+    setData(null)
+    setError(null)
+    api.get(`/reports/${kind}`).then(({ data }) => setData(data)).catch(() => setError('Could not load your report.'))
+  }, [kind])
 
   async function run(kind: 'write' | 'ask', q?: string) {
     setBusy(kind)
     setError(null)
     try {
       const { data } = kind === 'write'
-        ? await api.post('/reports/weekly', { language: phoneLanguage() })
-        : await api.post('/reports/weekly/ask', { question: q, language: phoneLanguage() })
+        ? await api.post(`/reports/${kind}`, { language: phoneLanguage() })
+        : await api.post(`/reports/${kind}/ask`, { question: q, language: phoneLanguage() })
       setData(data)
       if (kind === 'ask') setQuestion('')
     } catch (e: unknown) {
@@ -105,7 +116,9 @@ export default function WeeklyReportScreen() {
   const zoneTotal = stats.hr_zones_minutes ? Object.values(stats.hr_zones_minutes).reduce((a, b) => a + b, 0) : 0
   const asked = new Set(report?.answers.map(a => a.question.toLowerCase()) ?? [])
   const openQuestions = report?.questions.filter(q => !asked.has(q.toLowerCase())) ?? []
-  const prev = stats.previous_4_weeks_avg
+  const prev = stats.previous_avg
+  const text = KIND_TEXT[kind]
+  const monthly = kind === 'month'
   const tiles: { label: string; value: string; d: ReturnType<typeof delta> }[] = [
     { label: 'Trainings', value: String(stats.totals.trainings), d: delta(stats.totals.trainings, prev.trainings) },
     { label: 'Time', value: fmtMin(stats.totals.hours * 60), d: delta(stats.totals.hours, prev.hours) },
@@ -120,15 +133,23 @@ export default function WeeklyReportScreen() {
           <Ionicons name="chevron-back" size={22} color={palette.text} />
         </Pressable>
         <View style={{ flex: 1 }}>
-          <Text style={styles.topTitle}>Weekly report</Text>
+          <Text style={styles.topTitle}>{text.title}</Text>
           <Text style={styles.period}>
-            {new Date(stats.period.start).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })} – {new Date(stats.period.end).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })} · {stats.totals.active_days}/7 active days
+            {new Date(stats.period.start).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })} – {new Date(stats.period.end).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })} · {stats.totals.active_days}/{stats.period.days} active days
           </Text>
         </View>
       </View>
 
+      <View style={styles.toggle}>
+        {(['week', 'month'] as Kind[]).map(k => (
+          <Pressable key={k} style={[styles.toggleItem, kind === k && styles.toggleItemOn]} onPress={() => setKind(k)}>
+            <Text style={[styles.toggleText, kind === k && styles.toggleTextOn]}>{k === 'week' ? 'Week' : 'Month'}</Text>
+          </Pressable>
+        ))}
+      </View>
+
       <ScrollView contentContainerStyle={styles.content}>
-        {/* Totals vs the previous 4 weeks */}
+        {/* Totals vs the previous periods */}
         <View style={styles.tiles}>
           {tiles.map(t => (
             <View key={t.label} style={styles.tile}>
@@ -144,21 +165,25 @@ export default function WeeklyReportScreen() {
             </View>
           ))}
         </View>
-        <Text style={styles.small}>Arrows compare with your average week over the previous 4 weeks.</Text>
+        <Text style={styles.small}>{text.compare}</Text>
 
         {/* Chart 1: minutes per day, stacked by sport */}
-        <Section title="Your week">
-          <View style={styles.bars}>
-            {stats.days.map(d => (
+        <Section title={monthly ? 'Your month' : 'Your week'}>
+          <View style={[styles.bars, monthly && { gap: 3 }]}>
+            {stats.days.map((d, i) => (
               <View key={d.date} style={styles.barCol}>
-                <Text style={styles.barValue}>{d.minutes ? fmtMin(d.minutes) : ''}</Text>
+                <Text style={styles.barValue}>{!monthly && d.minutes ? fmtMin(d.minutes) : ''}</Text>
                 <View style={styles.barTrack}>
                   {Object.entries(d.by_sport).map(([sport, min]) => (
                     <View key={sport} style={{ height: `${(min / maxDay) * 100}%`, backgroundColor: sportColor(sport), borderRadius: 4, marginTop: 2 }} />
                   ))}
                   {d.minutes === 0 && <View style={styles.restDot} />}
                 </View>
-                <Text style={styles.barDay}>{new Date(d.date).toLocaleDateString(undefined, { weekday: 'short' }).slice(0, 2)}</Text>
+                <Text style={styles.barDay}>
+                  {monthly
+                    ? ((stats.days.length - 1 - i) % 7 === 0 ? new Date(d.date).getDate() : '')
+                    : new Date(d.date).toLocaleDateString(undefined, { weekday: 'short' }).slice(0, 2)}
+                </Text>
               </View>
             ))}
           </View>
@@ -205,7 +230,7 @@ export default function WeeklyReportScreen() {
                 <Text style={styles.body}>{report.summary}</Text>
                 {report.plan.length > 0 && (
                   <View style={styles.plan}>
-                    <Text style={styles.planTitle}>Next week</Text>
+                    <Text style={styles.planTitle}>{text.next}</Text>
                     {report.plan.map(p => (
                       <View key={p} style={styles.planRow}>
                         <Ionicons name="checkmark-circle" size={15} color={palette.accent} />
@@ -230,7 +255,7 @@ export default function WeeklyReportScreen() {
                     style={styles.input}
                     value={question}
                     onChangeText={setQuestion}
-                    placeholder="Ask the coach about your week…"
+                    placeholder={text.ask}
                     placeholderTextColor={palette.textDim}
                     maxLength={300}
                     editable={!busy && data.quota.questions_left > 0}
@@ -247,9 +272,9 @@ export default function WeeklyReportScreen() {
               </>
             ) : (
               <>
-                <Text style={styles.muted}>Let the coach go through your last 7 days and plan the next week.</Text>
+                <Text style={styles.muted}>{monthly ? 'Let the coach go through your last 30 days, see how the weeks trended and plan the next month.' : 'Let the coach go through your last 7 days and plan the next week.'}</Text>
                 <Pressable style={[styles.primaryBtn, busy && styles.disabled]} onPress={() => run('write')} disabled={!!busy || data.quota.analyses_left <= 0}>
-                  {busy === 'write' ? <ActivityIndicator color="#041109" /> : <Text style={styles.primaryText}>Write my weekly report</Text>}
+                  {busy === 'write' ? <ActivityIndicator color="#041109" /> : <Text style={styles.primaryText}>{text.cta}</Text>}
                 </Pressable>
               </>
             )}
@@ -271,7 +296,7 @@ export default function WeeklyReportScreen() {
         )}
 
         <Section title="Trainings">
-          {stats.trainings.length === 0 && <Text style={styles.muted}>No trainings in the last 7 days.</Text>}
+          {stats.trainings.length === 0 && <Text style={styles.muted}>No trainings in the last {stats.period.days} days.</Text>}
           {stats.trainings.map(t => (
             <Pressable key={t.id} style={styles.tr} onPress={() => router.push(`/training/${t.id}` as never)}>
               <View style={[styles.legendDot, { backgroundColor: sportColor(t.sport) }]} />
@@ -305,6 +330,11 @@ const styles = StyleSheet.create({
   topTitle: { color: palette.text, fontSize: 18, fontWeight: '800' },
   period: { color: palette.textDim, fontSize: 12, marginTop: 1 },
   content: { padding: spacing.md, paddingBottom: 48, gap: spacing.md },
+  toggle: { flexDirection: 'row', marginHorizontal: spacing.md, marginBottom: 4, padding: 3, borderRadius: 12, backgroundColor: palette.panel, borderWidth: 1, borderColor: palette.line },
+  toggleItem: { flex: 1, height: 34, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+  toggleItemOn: { backgroundColor: palette.accent },
+  toggleText: { color: palette.textMuted, fontSize: 13, fontWeight: '800' },
+  toggleTextOn: { color: '#041109' },
   muted: { color: palette.textMuted, fontSize: 13, lineHeight: 19 },
   small: { color: palette.textDim, fontSize: 11 },
 
