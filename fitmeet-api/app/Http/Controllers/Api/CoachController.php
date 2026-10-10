@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Training;
 use App\Models\TrainingCoachNote;
+use App\Models\WeeklyReport;
 use App\Services\TrainingCoach;
+use App\Services\WeeklyStats;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -115,6 +117,136 @@ class CoachController extends Controller
         return response()->json($this->payload($request, $training));
     }
 
+    // GET /api/reports/weekly — last 7 days stats (free) + the latest AI report
+    public function weekly(Request $request, WeeklyStats $weekly): JsonResponse
+    {
+        return response()->json($this->weeklyPayload($request, $weekly->forUser($request->user())));
+    }
+
+    // POST /api/reports/weekly { language } — (re)write the AI report when stale
+    public function weeklyGenerate(Request $request, WeeklyStats $weekly, TrainingCoach $coach): JsonResponse
+    {
+        $data = $request->validate(['language' => 'nullable|string|max:12']);
+        $stats = $weekly->forUser($request->user());
+        $latest = $this->latestReport($request);
+        if ($latest && !$this->isStale($latest, $stats)) {
+            return response()->json($this->weeklyPayload($request, $stats));
+        }
+        if (!TrainingCoach::available()) {
+            return response()->json(['message' => 'The coach is not available right now.'], 503);
+        }
+        if ($this->left($request, 'analyze') <= 0) {
+            return response()->json(['message' => 'You have used all coach analyses for this month.', 'code' => 'quota'], 429);
+        }
+
+        $language = $this->language($data['language'] ?? null);
+        try {
+            $result = $coach->weekly($stats, $language);
+        } catch (\Throwable $e) {
+            Log::warning('Weekly report failed', ['user_id' => $request->user()->id, 'error' => $e->getMessage()]);
+            return response()->json(['message' => 'The coach could not write your weekly report. Please try again.'], 502);
+        }
+
+        WeeklyReport::create([
+            'user_id'          => $request->user()->id,
+            'period_start'     => $stats['period']['start'],
+            'period_end'       => $stats['period']['end'],
+            'language'         => $language,
+            'headline'         => $result['headline'],
+            'summary'          => $result['summary'],
+            'plan'             => $result['plan'],
+            'questions'        => $result['questions'],
+            'answers'          => [],
+            'trainings_count'  => $stats['totals']['trainings'],
+            'last_training_at' => $stats['last_training_at'],
+            'model'            => (string) config('services.anthropic.coach_model'),
+        ]);
+        $this->log($request, null, 'analyze', $result['usage']);
+
+        return response()->json($this->weeklyPayload($request, $stats));
+    }
+
+    // POST /api/reports/weekly/ask { question, language }
+    public function weeklyAsk(Request $request, WeeklyStats $weekly, TrainingCoach $coach): JsonResponse
+    {
+        $data = $request->validate([
+            'question' => 'required|string|max:300',
+            'language' => 'nullable|string|max:12',
+        ]);
+        $report = $this->latestReport($request);
+        if (!$report) {
+            return response()->json(['message' => 'Create your weekly report first.'], 422);
+        }
+        $stats = $weekly->forUser($request->user());
+
+        $question = trim($data['question']);
+        foreach ($report->answers ?? [] as $qa) {
+            if (mb_strtolower($qa['question']) === mb_strtolower($question)) {
+                return response()->json($this->weeklyPayload($request, $stats));
+            }
+        }
+        if (!TrainingCoach::available()) {
+            return response()->json(['message' => 'The coach is not available right now.'], 503);
+        }
+        if ($this->left($request, 'ask') <= 0) {
+            return response()->json(['message' => 'You have used all coach questions for this month.', 'code' => 'quota'], 429);
+        }
+
+        try {
+            $result = $coach->askWeekly($stats, $this->language($data['language'] ?? $report->language), $report->only(['headline', 'summary', 'plan', 'answers']), $question);
+        } catch (\Throwable $e) {
+            Log::warning('Weekly question failed', ['user_id' => $request->user()->id, 'error' => $e->getMessage()]);
+            return response()->json(['message' => 'The coach could not answer. Please try again.'], 502);
+        }
+
+        $report->update(['answers' => array_merge($report->answers ?? [], [[
+            'question' => $question,
+            'answer'   => $result['answer'],
+            'at'       => now()->toIso8601String(),
+        ]])]);
+        $this->log($request, null, 'ask', $result['usage']);
+
+        return response()->json($this->weeklyPayload($request, $stats));
+    }
+
+    private function latestReport(Request $request): ?WeeklyReport
+    {
+        return WeeklyReport::where('user_id', $request->user()->id)->latest('id')->first();
+    }
+
+    /** A report is out of date once the 7-day window moved on or new trainings arrived. */
+    private function isStale(WeeklyReport $report, array $stats): bool
+    {
+        return $report->period_end->toDateString() !== $stats['period']['end']
+            || $report->trainings_count !== $stats['totals']['trainings']
+            || $report->last_training_at?->toIso8601String() !== ($stats['last_training_at'] ? \Illuminate\Support\Carbon::parse($stats['last_training_at'])->toIso8601String() : null);
+    }
+
+    private function weeklyPayload(Request $request, array $stats): array
+    {
+        $report = $this->latestReport($request);
+
+        return [
+            'available' => TrainingCoach::available(),
+            'stats'     => $stats,
+            'report'    => $report ? [
+                'headline'     => $report->headline,
+                'summary'      => $report->summary,
+                'plan'         => $report->plan ?? [],
+                'questions'    => $report->questions ?? [],
+                'answers'      => $report->answers ?? [],
+                'period_start' => $report->period_start->toDateString(),
+                'period_end'   => $report->period_end->toDateString(),
+                'created_at'   => $report->created_at->toIso8601String(),
+                'stale'        => $this->isStale($report, $stats),
+            ] : null,
+            'quota' => [
+                'analyses_left'  => $this->left($request, 'analyze'),
+                'questions_left' => $this->left($request, 'ask'),
+            ],
+        ];
+    }
+
     private function payload(Request $request, Training $training): array
     {
         $note = TrainingCoachNote::where('training_id', $training->id)->first();
@@ -148,11 +280,11 @@ class CoachController extends Controller
         return max(0, $limit - $used);
     }
 
-    private function log(Request $request, Training $training, string $kind, array $usage): void
+    private function log(Request $request, ?Training $training, string $kind, array $usage): void
     {
         DB::table('coach_requests')->insert([
             'user_id'       => $request->user()->id,
-            'training_id'   => $training->id,
+            'training_id'   => $training?->id,
             'kind'          => $kind,
             'input_tokens'  => $usage['input_tokens'] ?? 0,
             'output_tokens' => $usage['output_tokens'] ?? 0,

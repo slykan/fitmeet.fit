@@ -110,6 +110,77 @@ TXT;
         return ['answer' => trim($this->text($message)), 'usage' => $this->usage($message)];
     }
 
+    private const WEEKLY_TASK = <<<'TXT'
+Write the athlete's weekly report from this data (their last 7 days, each training, totals
+compared with their previous 4 weeks, sports mix, heart-rate zones). Return:
+- headline: one short sentence (max ~70 characters) summing up the week.
+- summary: 4–6 sentences — volume and intensity vs their usual weeks (numbers), the
+  standout training, personal records if any, balance (rest days, easy vs hard, variety).
+- plan: 2–3 short, concrete recommendations for the coming week.
+- questions: exactly 3 short follow-up questions (max ~60 characters each) the athlete
+  would naturally ask about this week, in first person.
+If the week had no trainings, say so kindly and suggest how to restart.
+TXT;
+
+    /** @return array{headline: string, summary: string, plan: string[], questions: string[], usage: array} */
+    public function weekly(array $stats, string $language): array
+    {
+        $message = $this->call(
+            $this->weeklyContext($stats, $language) . "\n\n" . self::WEEKLY_TASK,
+            [
+                'type'   => 'json_schema',
+                'schema' => [
+                    'type'       => 'object',
+                    'properties' => [
+                        'headline'  => ['type' => 'string'],
+                        'summary'   => ['type' => 'string'],
+                        'plan'      => ['type' => 'array', 'items' => ['type' => 'string']],
+                        'questions' => ['type' => 'array', 'items' => ['type' => 'string']],
+                    ],
+                    'required'             => ['headline', 'summary', 'plan', 'questions'],
+                    'additionalProperties' => false,
+                ],
+            ],
+        );
+
+        $data = json_decode($this->text($message), true);
+        if (!is_array($data) || empty($data['summary'])) {
+            throw new \RuntimeException('Coach returned no weekly report.');
+        }
+
+        return [
+            'headline'  => (string) $data['headline'],
+            'summary'   => (string) $data['summary'],
+            'plan'      => array_slice(array_values(array_map('strval', $data['plan'] ?? [])), 0, 3),
+            'questions' => array_slice(array_values(array_map('strval', $data['questions'] ?? [])), 0, 3),
+            'usage'     => $this->usage($message),
+        ];
+    }
+
+    /** @return array{answer: string, usage: array} */
+    public function askWeekly(array $stats, string $language, array $report, string $question): array
+    {
+        $earlier = "Your weekly report:\n{$report['headline']}\n{$report['summary']}\nPlan: " . implode(' | ', $report['plan'] ?? []);
+        foreach ($report['answers'] ?? [] as $qa) {
+            $earlier .= "\n\nAthlete asked: {$qa['question']}\nYou answered: {$qa['answer']}";
+        }
+
+        $message = $this->call(
+            $this->weeklyContext($stats, $language) . "\n\n" . $earlier
+                . "\n\nThe athlete now asks:\n<question>\n{$question}\n</question>\n\n"
+                . 'Answer in 2–5 sentences, specific to their week. If the question is not about '
+                . 'their training, fitness or sport, say briefly that you can only help with training.',
+            null,
+        );
+
+        return ['answer' => trim($this->text($message)), 'usage' => $this->usage($message)];
+    }
+
+    private function weeklyContext(array $stats, string $language): string
+    {
+        return "Weekly data (JSON):\n" . json_encode(['language' => $language] + $stats, JSON_UNESCAPED_UNICODE);
+    }
+
     private function call(string $prompt, ?array $format): mixed
     {
         $outputConfig = ['effort' => 'low'];
@@ -210,7 +281,7 @@ TXT;
                 'name' => $e['name'] ?? null, 'time' => gmdate('H:i:s', (int) ($e['moving_time'] ?? 0)),
                 'personal_record' => ($e['pr_rank'] ?? null) === 1 ? true : null,
             ]), $d['best_efforts'] ?? []),
-            'hr_zones_minutes' => $this->zones($s, $user?->birth_date?->age, $training->max_heartrate),
+            'hr_zones_minutes' => self::zones($s, $user?->birth_date?->age, $training->max_heartrate),
             'recent_same_sport' => $this->history($training),
             'load' => $this->load($training),
         ];
@@ -218,7 +289,8 @@ TXT;
         return "Training data (JSON):\n" . json_encode(array_filter($data, fn ($v) => $v !== null && $v !== []), JSON_UNESCAPED_UNICODE);
     }
 
-    private function zones(array $s, ?int $age, ?float $maxSeen): ?array
+    /** Minutes per HR zone (220 − age, else the highest HR seen) from a training's streams. */
+    public static function zones(array $s, ?int $age, ?float $maxSeen): ?array
     {
         $hr = $s['heartrate'] ?? null;
         $time = $s['time'] ?? null;
