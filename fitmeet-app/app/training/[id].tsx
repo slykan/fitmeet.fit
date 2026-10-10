@@ -157,7 +157,7 @@ export default function TrainingDetailScreen() {
       }
     }
     if (has(s.altitude) && !d?.trainer) {
-      series.push({ key: 'alt', label: 'Elevation', unit: 'm', color: '#3399ff', values: s.altitude! })
+      series.push({ key: 'alt', label: 'Elevation', unit: 'm', color: '#3399ff', values: s.altitude!, smooth: false })
       fmts.push("function(v){return Math.round(v)+' m'}")
     }
     if (has(s.watts)) {

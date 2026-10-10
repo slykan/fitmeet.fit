@@ -11,9 +11,24 @@ export type ChartSeries = {
   /** Pace: lower is better, so the axis runs the other way. */
   invert?: boolean
   format?: (v: number) => string
+  /** Elevation is already smooth; noisy signals get a light rolling mean for display. */
+  smooth?: boolean
 }
 
 const ROW_H = 150
+
+// Rolling mean over ±r points (gaps stay gaps) — display only; avg/max use raw values.
+function smoothed(values: (number | null)[], r: number): (number | null)[] {
+  return values.map((v, i) => {
+    if (v == null) return null
+    let sum = 0, n = 0
+    for (let k = Math.max(0, i - r); k <= Math.min(values.length - 1, i + r); k++) {
+      const w = values[k]
+      if (w != null && isFinite(w)) { sum += w; n++ }
+    }
+    return n ? sum / n : v
+  })
+}
 
 // Stacked line charts drawn as inline SVG in one WebView (same approach as
 // ElevationChart — no native chart dependency). x is distance (km) or time (min).
@@ -25,8 +40,11 @@ function buildHtml(x: number[], xUnit: string, series: ChartSeries[], formatJs: 
   const toX = (v: number) => padL + (v / maxX) * (W - padL - padR)
 
   const charts = series.map((s, si) => {
-    const pts = s.values.map((v, i) => (v == null || !isFinite(v) ? null : [x[i], v] as [number, number])).filter(Boolean) as [number, number][]
-    if (pts.length < 2) return ''
+    const raw = s.values.map((v, i) => (v == null || !isFinite(v) ? null : [x[i], v] as [number, number])).filter(Boolean) as [number, number][]
+    if (raw.length < 2) return ''
+    const shown = s.smooth === false ? s.values : smoothed(s.values, Math.max(1, Math.round(s.values.length / 150)))
+    const pts = shown.map((v, i) => (v == null || !isFinite(v) ? null : [x[i], v] as [number, number])).filter(Boolean) as [number, number][]
+    const rawYs = raw.map(p => p[1]).sort((a, b) => a - b)
     const ys = pts.map(p => p[1]).sort((a, b) => a - b)
     // Trim the extremes (GPS/pace spikes) so one outlier doesn't flatten the chart.
     const lo = ys[Math.floor(ys.length * 0.02)]
@@ -36,10 +54,10 @@ function buildHtml(x: number[], xUnit: string, series: ChartSeries[], formatJs: 
       const t = Math.min(1, Math.max(0, (v - lo) / range))
       return padT + (s.invert ? t : 1 - t) * (H - padT - padB)
     }
-    const avg = pts.reduce((a, p) => a + p[1], 0) / pts.length
+    const avg = raw.reduce((a, p) => a + p[1], 0) / raw.length
     const d = pts.map((p, i) => `${i ? 'L' : 'M'}${toX(p[0]).toFixed(1)},${toY(p[1]).toFixed(1)}`).join('')
     const area = `${d}L${toX(pts[pts.length - 1][0]).toFixed(1)},${H - padB}L${toX(pts[0][0]).toFixed(1)},${H - padB}Z`
-    const peak = s.invert ? ys[0] : ys[ys.length - 1]
+    const peak = s.invert ? rawYs[0] : rawYs[rawYs.length - 1]
     // Labels live in HTML: the SVG stretches to the screen width (preserveAspectRatio
     // none), which would distort any text drawn inside it.
     return `
