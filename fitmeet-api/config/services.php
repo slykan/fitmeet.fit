@@ -53,7 +53,10 @@ return [
 
     // AI coach (training analysis). One server-side key — users connect nothing.
     'anthropic' => [
-        'api_key'                 => env('ANTHROPIC_API_KEY'),
+        // The production .env is immutable (root-only), so the key can also live in
+        // storage/app/private/anthropic.key (chmod 600, not in git).
+        'api_key'                 => env('ANTHROPIC_API_KEY') ?: (is_readable($anthropicKeyFile = storage_path('app/private/anthropic.key'))
+            ? trim((string) file_get_contents($anthropicKeyFile)) : null),
         'coach_model'             => env('COACH_MODEL', 'claude-opus-5-5'),
         'coach_monthly_analyses'  => (int) env('COACH_MONTHLY_ANALYSES', 10),
         'coach_monthly_questions' => (int) env('COACH_MONTHLY_QUESTIONS', 20),
