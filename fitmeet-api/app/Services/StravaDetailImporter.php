@@ -17,6 +17,8 @@ class StravaDetailImporter
 
     public const STREAM_KEYS = ['time', 'distance', 'latlng', 'altitude', 'velocity_smooth', 'heartrate', 'cadence', 'watts', 'temp', 'moving', 'grade_smooth'];
 
+    private const AVERAGED_KEYS = ['heartrate', 'watts', 'cadence', 'velocity_smooth', 'temp', 'grade_smooth'];
+
     private const DETAIL_KEYS = [
         'description', 'device_name', 'trainer', 'commute', 'workout_type', 'sport_type',
         'calories', 'kilojoules', 'average_cadence', 'average_watts', 'max_watts',
@@ -59,13 +61,27 @@ class StravaDetailImporter
             if (!is_array($data) || count($data) !== $n) {
                 continue;
             }
-            $out[$key] = array_map(fn ($i) => $this->round($key, $data[$i]), $keep);
+            // Noisy per-second signals are averaged over each bucket — picking every Nth
+            // second made power/cadence charts a wall of spikes. Positions stay sampled.
+            $out[$key] = in_array($key, self::AVERAGED_KEYS, true)
+                ? array_map(fn ($k) => $this->round($key, $this->bucketAverage($data, $keep, $k)), array_keys($keep))
+                : array_map(fn ($i) => $this->round($key, $data[$i]), $keep);
         }
 
         return TrainingDetail::updateOrCreate(
             ['training_id' => $training->id],
             ['streams' => $out, 'streams_fetched_at' => now()],
         );
+    }
+
+    /** Mean of the source values between this kept index and the next one. */
+    private function bucketAverage(array $data, array $keep, int $k): float
+    {
+        $from = $keep[$k];
+        $to = $keep[$k + 1] ?? $from + 1;
+        $slice = array_slice($data, $from, max(1, $to - $from));
+
+        return array_sum($slice) / count($slice);
     }
 
     /** @return int[] evenly spaced indexes, first and last always included */
