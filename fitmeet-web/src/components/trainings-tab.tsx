@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Activity, ChevronDown, Clock, Flame, Gauge, HeartPulse, Layers, Link2, Mountain, Tag, Trash2, Wind, Zap } from 'lucide-react'
+import { Activity, ChevronDown, Clock, Flame, Gauge, HeartPulse, Layers, Link2, Mountain, Sparkles, Tag, Trash2, Wind, Zap } from 'lucide-react'
 
 import api from '@/lib/api'
 import { CATEGORIES, CATEGORY_EMOJI } from '@/lib/categories'
@@ -211,6 +211,13 @@ export function TrainingsTab() {
         >
           Just me
         </button>
+        <button
+          onClick={() => router.push('/reports')}
+          className="ml-auto inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border font-bold transition-opacity hover:opacity-80"
+          style={{ borderColor: 'color-mix(in srgb, var(--primary) 45%, transparent)', color: 'var(--primary)', background: 'color-mix(in srgb, var(--primary) 8%, transparent)' }}
+        >
+          <Sparkles size={13} /> Reports
+        </button>
       </div>
 
       <div className="filter-chip-scroll">
@@ -399,6 +406,17 @@ function TrainingCard({ training, onDeleted }: { training: TrainingItem; onDelet
             </div>
           )}
         </>
+      )}
+
+      {/* Full detail + AI coach are owner-only (Strava API terms) */}
+      {training.is_mine && (
+        <a
+          href={`/trainings/view?id=${training.id}`}
+          className="inline-flex items-center gap-1 text-xs font-semibold mt-2 transition-opacity hover:opacity-80"
+          style={{ color: 'var(--primary)' }}
+        >
+          <Sparkles size={12} /> Charts &amp; AI Coach
+        </a>
       )}
     </div>
   )
