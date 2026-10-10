@@ -24,6 +24,10 @@ class TrainingSyncService
             return null;
         }
 
+        if ($this->isDismissed('strava', $externalId)) {
+            return null;
+        }
+
         $rawType = $activity['sport_type'] ?? $activity['type'] ?? null;
 
         $training = Training::updateOrCreate(
@@ -95,6 +99,10 @@ class TrainingSyncService
         $externalId = isset($activity['id']) ? (string) $activity['id'] : null;
         $startTimeMs = $activity['startTime'] ?? null;
         if (!$externalId || !$startTimeMs) {
+            return null;
+        }
+
+        if ($this->isDismissed('huawei', $externalId)) {
             return null;
         }
 
@@ -176,6 +184,7 @@ class TrainingSyncService
         return match ((string) $rawType) {
             '57' => Category::Running, // confirmed: indoor running (treadmill, no altitude data)
             '90' => Category::Walking, // confirmed: outdoor walking (has GPS altitude data)
+            '97' => Category::Cycling, // confirmed 2026-10-10: indoor cycling (no distance, heart rate only)
             default => Category::Other,
         };
     }
@@ -205,21 +214,27 @@ class TrainingSyncService
     }
 
     /**
-     * Cross-provider dedup: group trainings for the same user that started within
-     * a 5 minute window (and, when both report distance, are within 20% of each
-     * other). The provider with the highest priority (lowest number) in the
-     * group is marked primary; the rest stay hidden from the default list.
+     * Cross-provider dedup: group trainings for the same user that are the same
+     * workout recorded twice — they started within 5 minutes of each other, or they
+     * overlap for at least 60% of the shorter one (one device started a few minutes
+     * late, e.g. a watch started 8 min after the trainer app on 2026-10-10) — and,
+     * when both report distance, are within 20% of each other. The provider with the
+     * highest priority (lowest number) in the group is marked primary; the rest stay
+     * hidden from the default list.
      */
     private function dedupe(Training $training): void
     {
+        $start = $training->started_at;
+        $end = $start->copy()->addSeconds((int) ($training->duration_s ?? 0));
+
         $candidates = Training::where('user_id', $training->user_id)
             ->where('provider', '!=', $training->provider)
-            ->whereBetween('started_at', [
-                $training->started_at->copy()->subMinutes(5),
-                $training->started_at->copy()->addMinutes(5),
-            ])
+            ->whereBetween('started_at', [$start->copy()->subHours(6), $end->copy()->addMinutes(5)])
             ->get()
             ->filter(function (Training $other) use ($training) {
+                if (!$this->sameWorkout($training, $other)) {
+                    return false;
+                }
                 if (!$training->distance_m || !$other->distance_m) {
                     return true;
                 }
@@ -240,6 +255,30 @@ class TrainingSyncService
         Training::whereIn('id', $memberIds)->update(['dedup_group_id' => $groupId]);
 
         $this->recomputePrimary($groupId, $training->user_id);
+    }
+
+    private function sameWorkout(Training $a, Training $b): bool
+    {
+        if (abs($a->started_at->getTimestamp() - $b->started_at->getTimestamp()) <= 5 * 60) {
+            return true;
+        }
+        if (!$a->duration_s || !$b->duration_s) {
+            return false;
+        }
+
+        $aEnd = $a->started_at->getTimestamp() + $a->duration_s;
+        $bEnd = $b->started_at->getTimestamp() + $b->duration_s;
+        $overlap = min($aEnd, $bEnd) - max($a->started_at->getTimestamp(), $b->started_at->getTimestamp());
+
+        return $overlap >= 0.6 * min($a->duration_s, $b->duration_s);
+    }
+
+    private function isDismissed(string $provider, string $externalId): bool
+    {
+        return \DB::table('training_dismissals')
+            ->where('provider', $provider)
+            ->where('external_id', $externalId)
+            ->exists();
     }
 
     private function recomputePrimary(string $groupId, int $userId): void

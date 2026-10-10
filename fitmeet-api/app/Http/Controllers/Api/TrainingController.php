@@ -120,6 +120,13 @@ class TrainingController
         $groupId = $training->dedup_group_id;
         $userId = $training->user_id;
 
+        // Remember it, or the next Huawei/Strava sync would import it again.
+        \DB::table('training_dismissals')->insertOrIgnore([
+            'user_id'     => $userId,
+            'provider'    => $training->provider,
+            'external_id' => $training->external_id,
+            'created_at'  => now(),
+        ]);
         $training->delete();
 
         // If it was part of a merged group, re-elect the primary (or ungroup the
