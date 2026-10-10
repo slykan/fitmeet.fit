@@ -154,6 +154,9 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\EnsureNotBanned::class])
     Route::get('reports/weekly', [\App\Http\Controllers\Api\CoachController::class, 'weekly']);
     Route::post('reports/weekly', [\App\Http\Controllers\Api\CoachController::class, 'weeklyGenerate'])->middleware('throttle:10,1');
     Route::post('reports/weekly/ask', [\App\Http\Controllers\Api\CoachController::class, 'weeklyAsk'])->middleware('throttle:10,1');
+    Route::get('reports/{kind}', [\App\Http\Controllers\Api\CoachController::class, 'weekly'])->whereIn('kind', ['week', 'month']);
+    Route::post('reports/{kind}', [\App\Http\Controllers\Api\CoachController::class, 'weeklyGenerate'])->whereIn('kind', ['week', 'month'])->middleware('throttle:10,1');
+    Route::post('reports/{kind}/ask', [\App\Http\Controllers\Api\CoachController::class, 'weeklyAsk'])->whereIn('kind', ['week', 'month'])->middleware('throttle:10,1');
     Route::post('trainings/{training}/coach/ask', [\App\Http\Controllers\Api\CoachController::class, 'ask'])->middleware('throttle:10,1');
     Route::delete('trainings/{training}', [TrainingController::class, 'destroy']);
     Route::get('notifications/count',              [FriendController::class, 'notificationsCount']);

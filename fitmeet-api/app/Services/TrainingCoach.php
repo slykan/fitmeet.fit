@@ -110,16 +110,20 @@ TXT;
         return ['answer' => trim($this->text($message)), 'usage' => $this->usage($message)];
     }
 
+    // "kind" in the data is "week" (last 7 days vs the previous 4 weeks) or "month"
+    // (last 30 days vs the previous 3 months).
     private const WEEKLY_TASK = <<<'TXT'
-Write the athlete's weekly report from this data (their last 7 days, each training, totals
-compared with their previous 4 weeks, sports mix, heart-rate zones). Return:
-- headline: one short sentence (max ~70 characters) summing up the week.
-- summary: 4–6 sentences — volume and intensity vs their usual weeks (numbers), the
+Write the athlete's report for the period in this data ("kind": week = last 7 days,
+month = last 30 days; each training, totals compared with their average period before,
+day-by-day volume, sports mix, heart-rate zones). Return:
+- headline: one short sentence (max ~70 characters) summing up the period.
+- summary: 4–6 sentences — volume and intensity vs their usual periods (numbers), the
   standout training, personal records if any, balance (rest days, easy vs hard, variety).
-- plan: 2–3 short, concrete recommendations for the coming week.
+  For a month, also say how the weeks trended (building up, steady, dropping off).
+- plan: 2–3 short, concrete recommendations for the coming week (month: coming month).
 - questions: exactly 3 short follow-up questions (max ~60 characters each) the athlete
-  would naturally ask about this week, in first person.
-If the week had no trainings, say so kindly and suggest how to restart.
+  would naturally ask about this period, in first person.
+If the period had no trainings, say so kindly and suggest how to restart.
 TXT;
 
     /** @return array{headline: string, summary: string, plan: string[], questions: string[], usage: array} */
@@ -160,7 +164,7 @@ TXT;
     /** @return array{answer: string, usage: array} */
     public function askWeekly(array $stats, string $language, array $report, string $question): array
     {
-        $earlier = "Your weekly report:\n{$report['headline']}\n{$report['summary']}\nPlan: " . implode(' | ', $report['plan'] ?? []);
+        $earlier = "Your {$stats['kind']}ly report:\n{$report['headline']}\n{$report['summary']}\nPlan: " . implode(' | ', $report['plan'] ?? []);
         foreach ($report['answers'] ?? [] as $qa) {
             $earlier .= "\n\nAthlete asked: {$qa['question']}\nYou answered: {$qa['answer']}";
         }
@@ -168,7 +172,7 @@ TXT;
         $message = $this->call(
             $this->weeklyContext($stats, $language) . "\n\n" . $earlier
                 . "\n\nThe athlete now asks:\n<question>\n{$question}\n</question>\n\n"
-                . 'Answer in 2–5 sentences, specific to their week. If the question is not about '
+                . 'Answer in 2–5 sentences, specific to this period of their training. If the question is not about '
                 . 'their training, fitness or sport, say briefly that you can only help with training.',
             null,
         );

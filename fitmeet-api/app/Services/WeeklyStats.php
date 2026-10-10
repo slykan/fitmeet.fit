@@ -16,11 +16,18 @@ use Illuminate\Support\Collection;
  */
 class WeeklyStats
 {
-    public function forUser(User $user, ?Carbon $today = null): array
+    /** Period length and how many earlier periods the totals are compared with. */
+    public const PERIODS = [
+        'week'  => ['days' => 7, 'compare' => 4],
+        'month' => ['days' => 30, 'compare' => 3],
+    ];
+
+    public function forUser(User $user, ?Carbon $today = null, string $kind = 'week'): array
     {
+        ['days' => $length, 'compare' => $compare] = self::PERIODS[$kind] ?? self::PERIODS['week'];
         $tz = config('app.timezone');
         $end = ($today ?? now($tz))->copy()->endOfDay();
-        $start = $end->copy()->subDays(6)->startOfDay();
+        $start = $end->copy()->subDays($length - 1)->startOfDay();
 
         $week = $this->trainings($user, $start, $end);
 
@@ -38,12 +45,12 @@ class WeeklyStats
             ];
         }
 
-        // Previous 4 weeks, as an average 7-day window.
-        $prev = $this->trainings($user, $start->copy()->subDays(28), $start->copy()->subSecond());
+        // The previous periods (4 weeks / 3 months), as an average period of the same length.
+        $prev = $this->trainings($user, $start->copy()->subDays($length * $compare), $start->copy()->subSecond());
         $prevAvg = [
-            'trainings' => round($prev->count() / 4, 1),
-            'hours'     => round($prev->sum('duration_s') / 3600 / 4, 1),
-            'km'        => round($prev->sum('distance_m') / 1000 / 4, 1),
+            'trainings' => round($prev->count() / $compare, 1),
+            'hours'     => round($prev->sum('duration_s') / 3600 / $compare, 1),
+            'km'        => round($prev->sum('distance_m') / 1000 / $compare, 1),
         ];
 
         $sports = $week->groupBy(fn (Training $t) => $t->category->value)->map(fn (Collection $g, $key) => [
@@ -57,7 +64,8 @@ class WeeklyStats
         [$zones, $prs] = $this->zonesAndRecords($user, $week);
 
         return [
-            'period'   => ['start' => $start->toDateString(), 'end' => $end->toDateString()],
+            'kind'     => $kind,
+            'period'   => ['start' => $start->toDateString(), 'end' => $end->toDateString(), 'days' => $length],
             'totals'   => [
                 'trainings'   => $week->count(),
                 'hours'       => round($week->sum('duration_s') / 3600, 1),
@@ -66,7 +74,8 @@ class WeeklyStats
                 'calories'    => (int) round($week->sum('calories')),
                 'active_days' => count(array_filter($days, fn ($d) => $d['minutes'] > 0)),
             ],
-            'previous_4_weeks_avg' => $prevAvg,
+            'previous_avg' => $prevAvg + ['periods' => $compare],
+            'previous_4_weeks_avg' => $prevAvg, // app 1.4.49 reads this name
             'days'      => $days,
             'sports'    => $sports,
             'hr_zones_minutes' => $zones,

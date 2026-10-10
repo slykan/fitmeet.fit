@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class WeeklyReport extends Model
 {
     protected $fillable = [
-        'user_id', 'period_start', 'period_end', 'language', 'headline', 'summary', 'plan',
+        'user_id', 'kind', 'period_start', 'period_end', 'language', 'headline', 'summary', 'plan',
         'questions', 'answers', 'trainings_count', 'last_training_at', 'model',
     ];
 

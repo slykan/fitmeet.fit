@@ -118,17 +118,18 @@ class CoachController extends Controller
     }
 
     // GET /api/reports/weekly — last 7 days stats (free) + the latest AI report
-    public function weekly(Request $request, WeeklyStats $weekly): JsonResponse
+    // (/reports/week and /reports/month; /reports/weekly = week, kept for app 1.4.49)
+    public function weekly(Request $request, WeeklyStats $weekly, string $kind = 'week'): JsonResponse
     {
-        return response()->json($this->weeklyPayload($request, $weekly->forUser($request->user())));
+        return response()->json($this->weeklyPayload($request, $weekly->forUser($request->user(), null, $kind)));
     }
 
     // POST /api/reports/weekly { language } — (re)write the AI report when stale
-    public function weeklyGenerate(Request $request, WeeklyStats $weekly, TrainingCoach $coach): JsonResponse
+    public function weeklyGenerate(Request $request, WeeklyStats $weekly, TrainingCoach $coach, string $kind = 'week'): JsonResponse
     {
         $data = $request->validate(['language' => 'nullable|string|max:12']);
-        $stats = $weekly->forUser($request->user());
-        $latest = $this->latestReport($request);
+        $stats = $weekly->forUser($request->user(), null, $kind);
+        $latest = $this->latestReport($request, $kind);
         if ($latest && !$this->isStale($latest, $stats)) {
             return response()->json($this->weeklyPayload($request, $stats));
         }
@@ -149,6 +150,7 @@ class CoachController extends Controller
 
         WeeklyReport::create([
             'user_id'          => $request->user()->id,
+            'kind'             => $kind,
             'period_start'     => $stats['period']['start'],
             'period_end'       => $stats['period']['end'],
             'language'         => $language,
@@ -167,17 +169,17 @@ class CoachController extends Controller
     }
 
     // POST /api/reports/weekly/ask { question, language }
-    public function weeklyAsk(Request $request, WeeklyStats $weekly, TrainingCoach $coach): JsonResponse
+    public function weeklyAsk(Request $request, WeeklyStats $weekly, TrainingCoach $coach, string $kind = 'week'): JsonResponse
     {
         $data = $request->validate([
             'question' => 'required|string|max:300',
             'language' => 'nullable|string|max:12',
         ]);
-        $report = $this->latestReport($request);
+        $report = $this->latestReport($request, $kind);
         if (!$report) {
-            return response()->json(['message' => 'Create your weekly report first.'], 422);
+            return response()->json(['message' => 'Create your report first.'], 422);
         }
-        $stats = $weekly->forUser($request->user());
+        $stats = $weekly->forUser($request->user(), null, $kind);
 
         $question = trim($data['question']);
         foreach ($report->answers ?? [] as $qa) {
@@ -209,9 +211,9 @@ class CoachController extends Controller
         return response()->json($this->weeklyPayload($request, $stats));
     }
 
-    private function latestReport(Request $request): ?WeeklyReport
+    private function latestReport(Request $request, string $kind): ?WeeklyReport
     {
-        return WeeklyReport::where('user_id', $request->user()->id)->latest('id')->first();
+        return WeeklyReport::where('user_id', $request->user()->id)->where('kind', $kind)->latest('id')->first();
     }
 
     /** A report is out of date once the 7-day window moved on or new trainings arrived. */
@@ -224,7 +226,7 @@ class CoachController extends Controller
 
     private function weeklyPayload(Request $request, array $stats): array
     {
-        $report = $this->latestReport($request);
+        $report = $this->latestReport($request, $stats['kind']);
 
         return [
             'available' => TrainingCoach::available(),
