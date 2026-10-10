@@ -57,23 +57,27 @@ function buildHtml(x: number[], xUnit: string, series: ChartSeries[], formatJs: 
     const avg = raw.reduce((a, p) => a + p[1], 0) / raw.length
     const d = pts.map((p, i) => `${i ? 'L' : 'M'}${toX(p[0]).toFixed(1)},${toY(p[1]).toFixed(1)}`).join('')
     const area = `${d}L${toX(pts[pts.length - 1][0]).toFixed(1)},${H - padB}L${toX(pts[0][0]).toFixed(1)},${H - padB}Z`
-    const peak = s.invert ? rawYs[0] : rawYs[rawYs.length - 1]
+    // GPS gives one-second speed spikes (a 2:50/km "best pace" on an easy run), so for
+    // speed/pace the peak comes from the smoothed line; HR/power/cadence keep the real max.
+    const peakFrom = s.key === 'pace' || s.key === 'speed' ? ys : rawYs
+    const peak = s.invert ? peakFrom[0] : peakFrom[peakFrom.length - 1]
     // Labels live in HTML: the SVG stretches to the screen width (preserveAspectRatio
     // none), which would distort any text drawn inside it.
     return `
       <div class="row">
         <div class="head"><span class="dot" style="background:${s.color}"></span>${s.label}
-          <span class="val"><span data-v="${avg}" data-f="${si}" data-p="Ø "></span> · <span data-v="${peak}" data-f="${si}" data-p="${s.invert ? 'best ' : 'max '}"></span></span></div>
+          <span class="val"><span class="pill" style="color:${s.color};border-color:${s.color}55" data-v="${avg}" data-f="${si}" data-p="Ø "></span><span class="pill dim" data-v="${peak}" data-f="${si}" data-p="${s.invert ? 'best ' : 'max '}"></span></span></div>
         <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
           <defs><linearGradient id="g${si}" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0" stop-color="${s.color}" stop-opacity="0.35"/><stop offset="1" stop-color="${s.color}" stop-opacity="0"/></linearGradient></defs>
+          ${[0.25, 0.5, 0.75].map(f => `<line x1="${padL + f * (W - padL - padR)}" y1="${padT}" x2="${padL + f * (W - padL - padR)}" y2="${H - padB}" class="grid"/>`).join('')}
           <line x1="${padL}" y1="${toY(hi)}" x2="${W - padR}" y2="${toY(hi)}" class="grid"/>
           <line x1="${padL}" y1="${toY(lo)}" x2="${W - padR}" y2="${toY(lo)}" class="grid"/>
           <path d="${area}" fill="url(#g${si})"/>
           <path d="${d}" fill="none" stroke="${s.color}" stroke-width="2.2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
           <line x1="${padL}" y1="${toY(avg)}" x2="${W - padR}" y2="${toY(avg)}" stroke="${s.color}" stroke-dasharray="5 5" stroke-opacity="0.7" vector-effect="non-scaling-stroke"/>
         </svg>
-        <div class="axis"><span>0</span><span>${maxX.toFixed(maxX < 10 ? 1 : 0)} ${xUnit}</span></div>
+        <div class="axis"><span>0</span><span>${(maxX / 2).toFixed(maxX < 10 ? 1 : 0)}</span><span>${maxX.toFixed(maxX < 10 ? 1 : 0)} ${xUnit}</span></div>
       </div>`
   }).join('')
 
@@ -81,11 +85,13 @@ function buildHtml(x: number[], xUnit: string, series: ChartSeries[], formatJs: 
 <style>
   html,body{margin:0;background:transparent;font-family:-apple-system,Roboto,sans-serif;color:#eafff0}
   .row{height:${ROW_H}px;box-sizing:border-box;padding:4px 0}
-  .head{font-size:12px;font-weight:800;display:flex;align-items:center;gap:6px;height:18px}
+  .head{font-size:13px;font-weight:800;display:flex;align-items:center;gap:7px;height:22px;letter-spacing:.2px}
   .dot{width:8px;height:8px;border-radius:4px;display:inline-block}
-  .val{margin-left:auto;color:#9fb3a8;font-weight:700}
-  svg{width:100%;height:${ROW_H - 40}px;display:block}
-  .grid{stroke:rgba(255,255,255,0.08);stroke-width:1;vector-effect:non-scaling-stroke}
+  .val{margin-left:auto;display:flex;gap:6px}
+  .pill{font-size:11px;font-weight:800;padding:2px 7px;border-radius:999px;border:1px solid}
+  .pill.dim{color:#b3bdd7;border-color:rgba(255,255,255,0.12)}
+  svg{width:100%;height:${ROW_H - 44}px;display:block}
+  .grid{stroke:rgba(255,255,255,0.06);stroke-width:1;vector-effect:non-scaling-stroke}
   .axis{display:flex;justify-content:space-between;font-size:10px;color:#7d8f86;height:14px}
 </style></head><body>${charts}
 <script>
