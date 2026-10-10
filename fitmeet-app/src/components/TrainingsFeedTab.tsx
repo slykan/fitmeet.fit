@@ -233,6 +233,10 @@ export function TrainingsFeedTab() {
             </View>
           )}
         </Pressable>
+        <Pressable style={styles.weeklyBtn} onPress={() => router.push('/weekly-report' as never)}>
+          <Ionicons name="sparkles" size={14} color={palette.accent} />
+          <Text style={styles.weeklyBtnLabel}>Weekly report</Text>
+        </Pressable>
         <Pressable style={styles.connectBtn} onPress={() => router.push('/connected-apps' as never)}>
           <Ionicons name="link-outline" size={16} color={palette.accent} />
         </Pressable>
@@ -434,7 +438,7 @@ export function TrainingsFeedTab() {
               {/* Full detail is owner-only (Strava API terms) */}
               {training.is_mine && (
                 <Pressable style={styles.detailsToggle} onPress={() => router.push(`/training/${training.id}` as never)}>
-                  <Ionicons name="stats-chart" size={13} color={palette.accent} />
+                  <Ionicons name="sparkles" size={13} color={palette.accent} />
                   <Text style={styles.detailsToggleText}>Charts & AI Coach</Text>
                 </Pressable>
               )}
@@ -464,7 +468,12 @@ export function TrainingsFeedTab() {
 const styles = StyleSheet.create({
   list: { padding: spacing.lg, paddingTop: spacing.md, flexGrow: 1 },
 
-  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  weeklyBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 36,
+    borderRadius: 999, borderWidth: 1, borderColor: 'rgba(108,255,47,0.35)', backgroundColor: 'rgba(108,255,47,0.08)',
+  },
+  weeklyBtnLabel: { color: palette.accent, fontSize: 13, fontWeight: '800' },
   connectBtn: {
     width: 36, height: 36, borderRadius: 12,
     backgroundColor: 'rgba(108,255,47,0.1)',
