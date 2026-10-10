@@ -119,15 +119,41 @@ class TrainingController
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
+        // A merged training may show the Huawei copy while the detail sits on the Strava one.
         $detail = $training->detail;
+        if (!$detail && $training->dedup_group_id) {
+            $detail = \App\Models\TrainingDetail::whereIn('training_id', Training::where('dedup_group_id', $training->dedup_group_id)->pluck('id'))->first();
+        }
 
         return response()->json([
-            'training_id' => $training->id,
-            'provider'    => $training->provider,
-            'details'     => $detail?->details,
-            'streams'     => $detail?->streams,
+            'training' => [
+                'id'             => $training->id,
+                'provider'       => $training->provider,
+                'category'       => ['value' => $training->category->value, 'label' => $training->category->label()],
+                'name'           => $training->name,
+                'started_at'     => $training->started_at,
+                'duration_s'     => $training->duration_s,
+                'distance_m'     => $training->distance_m,
+                'elevation_gain' => $training->elevation_gain,
+                'avg_heartrate'  => $training->avg_heartrate,
+                'max_heartrate'  => $training->max_heartrate,
+                'avg_watts'      => $training->avg_watts,
+                'max_watts'      => $training->max_watts,
+                'avg_cadence'    => $training->avg_cadence,
+                'calories'       => $training->calories,
+                'avg_speed_mps'  => $training->avg_speed_mps,
+                'max_speed_mps'  => $training->max_speed_mps,
+                'kilojoules'     => $training->kilojoules,
+                'gear_name'      => $training->gear_name,
+                'description'    => $training->description,
+            ],
+            'details'  => $detail?->details,
+            'streams'  => $detail?->streams,
             // false while the background import hasn't reached this training yet
-            'complete'    => (bool) ($detail?->details_fetched_at && $detail?->streams_fetched_at),
+            'complete' => (bool) ($detail?->details_fetched_at && $detail?->streams_fetched_at),
+            // Huawei-only trainings have no detail source (yet)
+            'has_source' => $training->provider === 'strava' || (bool) $detail
+                || ($training->dedup_group_id && Training::where('dedup_group_id', $training->dedup_group_id)->where('provider', 'strava')->exists()),
         ]);
     }
 

@@ -424,12 +424,21 @@ export function TrainingsFeedTab() {
               </View>
             </View>
 
-            {details.length > 0 && (
-              <Pressable style={styles.detailsToggle} onPress={() => toggleExpanded(training.id)}>
-                <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={13} color={palette.accent} />
-                <Text style={styles.detailsToggleText}>{expanded ? 'Hide details' : `Show details (${details.length})`}</Text>
-              </Pressable>
-            )}
+            <View style={styles.detailsActions}>
+              {details.length > 0 && (
+                <Pressable style={styles.detailsToggle} onPress={() => toggleExpanded(training.id)}>
+                  <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={13} color={palette.accent} />
+                  <Text style={styles.detailsToggleText}>{expanded ? 'Hide details' : `Show details (${details.length})`}</Text>
+                </Pressable>
+              )}
+              {/* Full detail is owner-only (Strava API terms) */}
+              {training.is_mine && (
+                <Pressable style={styles.detailsToggle} onPress={() => router.push(`/training/${training.id}` as never)}>
+                  <Ionicons name="stats-chart" size={13} color={palette.accent} />
+                  <Text style={styles.detailsToggleText}>Charts & splits</Text>
+                </Pressable>
+              )}
+            </View>
 
             {expanded && (
               <View style={styles.detailsExpanded}>
@@ -529,6 +538,7 @@ const styles = StyleSheet.create({
   detailText: { color: palette.textMuted, fontSize: 13 },
 
   providerText: { fontSize: 11, fontWeight: '800' },
+  detailsActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
   mergedRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   totalsCard: {
     flexDirection: 'row', flexWrap: 'wrap', gap: 16,
