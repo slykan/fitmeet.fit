@@ -435,7 +435,7 @@ export function TrainingsFeedTab() {
               {training.is_mine && (
                 <Pressable style={styles.detailsToggle} onPress={() => router.push(`/training/${training.id}` as never)}>
                   <Ionicons name="stats-chart" size={13} color={palette.accent} />
-                  <Text style={styles.detailsToggleText}>Charts & splits</Text>
+                  <Text style={styles.detailsToggleText}>Charts & AI Coach</Text>
                 </Pressable>
               )}
             </View>
