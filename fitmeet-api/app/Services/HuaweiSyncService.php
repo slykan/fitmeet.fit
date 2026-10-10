@@ -15,6 +15,9 @@ class HuaweiSyncService
     // Data scopes training sync needs. If the user unchecks either on the HUAWEI ID
     // consent screen, sync is disabled and the user is asked to re-authorize
     // (App Release Checklist 3.4) — the rest of FitMeet keeps working.
+    /** Seconds after connecting during which the Health Kit switch reading is ignored. */
+    private const FRESH_GRANT_GRACE_S = 60;
+
     public const REQUIRED_SCOPES = [
         'https://www.huawei.com/healthkit/activityrecord.read',
         'https://www.huawei.com/healthkit/activity.read',
@@ -95,6 +98,21 @@ class HuaweiSyncService
     }
 
     /**
+     * Right after a fresh authorization Huawei briefly reports the Health Kit switch as
+     * off (opinion 2) — seen on 2026-10-09/10: every reconnect turned "unavailable" two
+     * seconds later and the user looped on Reconnect. Ignore the switch for the first
+     * minute after connecting; the data API answering is what counts then.
+     */
+    private function healthKitSwitchedOff(ProviderConnection $connection, string $accessToken): bool
+    {
+        if ($connection->connected_at && $connection->connected_at->gt(now()->subSeconds(self::FRESH_GRANT_GRACE_S))) {
+            return false;
+        }
+
+        return $this->healthKitEnabled($accessToken) === false;
+    }
+
+    /**
      * Whether the HUAWEI Health Kit switch (HUAWEI Health › Privacy management) is on.
      * Switching it off does NOT make the data API refuse — activityRecords still answers
      * 200 — it only shows up here, as opinion 2 (1 = on). Null when the answer is unclear.
@@ -146,7 +164,7 @@ class HuaweiSyncService
             return $connection->fresh()->status;
         }
 
-        if ($this->healthKitEnabled($accessToken) === false) {
+        if ($this->healthKitSwitchedOff($connection, $accessToken)) {
             if ($connection->status !== ProviderConnection::UNAVAILABLE) {
                 $connection->markStatus(ProviderConnection::UNAVAILABLE, ProviderAuthorizationEvent::PROVIDER_UNAVAILABLE);
             }
@@ -178,7 +196,7 @@ class HuaweiSyncService
         }
 
         // Health Kit switched off: stop reading even though Huawei would still answer.
-        if ($this->healthKitEnabled($accessToken) === false) {
+        if ($this->healthKitSwitchedOff($connection, $accessToken)) {
             $connection->markStatus(ProviderConnection::UNAVAILABLE, ProviderAuthorizationEvent::PROVIDER_UNAVAILABLE);
             return 0;
         }
