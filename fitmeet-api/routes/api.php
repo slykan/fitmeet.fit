@@ -149,6 +149,9 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\EnsureNotBanned::class])
     Route::post('connections/reorder', [ProviderConnectionController::class, 'reorder']);
     Route::get('trainings', [TrainingController::class, 'index']);
     Route::get('trainings/{training}/details', [TrainingController::class, 'details']);
+    Route::get('trainings/{training}/coach', [\App\Http\Controllers\Api\CoachController::class, 'show']);
+    Route::post('trainings/{training}/coach', [\App\Http\Controllers\Api\CoachController::class, 'analyze'])->middleware('throttle:10,1');
+    Route::post('trainings/{training}/coach/ask', [\App\Http\Controllers\Api\CoachController::class, 'ask'])->middleware('throttle:10,1');
     Route::delete('trainings/{training}', [TrainingController::class, 'destroy']);
     Route::get('notifications/count',              [FriendController::class, 'notificationsCount']);
     Route::delete('notifications/clear-all',       [FriendController::class, 'notificationsClearAll']);

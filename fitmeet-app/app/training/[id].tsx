@@ -5,6 +5,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { TrainingCharts, type ChartSeries } from '@/src/components/TrainingCharts'
+import { TrainingCoachCard } from '@/src/components/TrainingCoachCard'
 import { api } from '@/src/lib/api'
 import { useAuthStore } from '@/src/store/auth'
 import { palette, spacing } from '@/src/theme'
@@ -218,6 +219,8 @@ export default function TrainingDetailScreen() {
             </View>
           ))}
         </View>
+
+        <TrainingCoachCard trainingId={t.id} />
 
         {!data.has_source ? (
           <Note text="Charts and splits come from Strava. This training was recorded only on HUAWEI Health." />

@@ -51,6 +51,14 @@ return [
         'webhook_verify_token' => env('STRAVA_WEBHOOK_VERIFY_TOKEN'),
     ],
 
+    // AI coach (training analysis). One server-side key — users connect nothing.
+    'anthropic' => [
+        'api_key'                 => env('ANTHROPIC_API_KEY'),
+        'coach_model'             => env('COACH_MODEL', 'claude-opus-5-5'),
+        'coach_monthly_analyses'  => (int) env('COACH_MONTHLY_ANALYSES', 10),
+        'coach_monthly_questions' => (int) env('COACH_MONTHLY_QUESTIONS', 20),
+    ],
+
     'huawei' => [
         'client_id'     => env('HUAWEI_CLIENT_ID'),
         'client_secret' => env('HUAWEI_CLIENT_SECRET'),
