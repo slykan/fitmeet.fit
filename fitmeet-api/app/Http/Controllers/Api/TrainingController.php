@@ -110,6 +110,27 @@ class TrainingController
         ]);
     }
 
+    // GET /api/trainings/{training}/details — full detail + chart streams, owner only
+    // (Strava API terms: a user's Strava data is shown to that user alone; friends keep
+    // seeing the basic training card).
+    public function details(Request $request, Training $training): JsonResponse
+    {
+        if ($training->user_id !== $request->user()->id) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
+        $detail = $training->detail;
+
+        return response()->json([
+            'training_id' => $training->id,
+            'provider'    => $training->provider,
+            'details'     => $detail?->details,
+            'streams'     => $detail?->streams,
+            // false while the background import hasn't reached this training yet
+            'complete'    => (bool) ($detail?->details_fetched_at && $detail?->streams_fetched_at),
+        ]);
+    }
+
     // DELETE /api/trainings/{training}
     public function destroy(Request $request, Training $training, TrainingSyncService $sync): JsonResponse
     {

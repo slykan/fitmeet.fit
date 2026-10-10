@@ -290,3 +290,65 @@ Artisan::command('badges:backfill', function () {
 
     $this->info("Backfill complete. Granted {$granted} badge(s).");
 })->purpose('Silently grant already-earned badges to existing users (no push notifications)');
+
+// Strava history + full detail (splits, laps, power, streams for charts) for the last
+// N days. Lists missing activities (cheap: 100 per call), then queues one detail job
+// per training, spaced out; the jobs also back off near Strava's rate limit.
+Artisan::command('strava:import-history {--days=365} {--user=}', function () {
+    $strava = app(\App\Services\StravaClient::class);
+    $sync = app(TrainingSyncService::class);
+    $after = now()->subDays((int) $this->option('days'));
+
+    $connections = ProviderConnection::where('provider', 'strava')
+        ->when($this->option('user'), fn ($q, $id) => $q->where('user_id', $id))
+        ->with('user')
+        ->get();
+
+    $listed = 0;
+    foreach ($connections as $connection) {
+        $token = $strava->freshToken($connection);
+        if (!$token || !$connection->user) {
+            $this->warn("Connection #{$connection->id}: no valid token, skipped.");
+            continue;
+        }
+        for ($page = 1; $page <= 20; $page++) {
+            $res = $strava->get($token, 'athlete/activities', ['after' => $after->getTimestamp(), 'per_page' => 100, 'page' => $page]);
+            if (!$res->successful()) {
+                $this->warn("Connection #{$connection->id}: list failed (HTTP {$res->status()}).");
+                break;
+            }
+            $activities = $res->json() ?? [];
+            $known = \App\Models\Training::where('provider', 'strava')
+                ->whereIn('external_id', array_map(fn ($a) => (string) $a['id'], $activities))
+                ->pluck('external_id')->all();
+            foreach ($activities as $activity) {
+                // Existing trainings keep their detail-level fields (the list has no calories…).
+                if (in_array((string) $activity['id'], $known, true)) {
+                    continue;
+                }
+                if ($sync->storeStravaActivity($connection->user, $activity)) {
+                    $listed++;
+                }
+            }
+            if (count($activities) < 100) {
+                break;
+            }
+        }
+    }
+
+    $queued = 0;
+    \App\Models\Training::where('provider', 'strava')
+        ->where('started_at', '>=', $after)
+        ->when($this->option('user'), fn ($q, $id) => $q->where('user_id', $id))
+        ->where(fn ($q) => $q->doesntHave('detail')
+            ->orWhereHas('detail', fn ($d) => $d->whereNull('details_fetched_at')->orWhereNull('streams_fetched_at')))
+        ->orderByDesc('started_at')
+        ->pluck('id')
+        ->each(function ($id) use (&$queued) {
+            // ~4 calls/min from this import, well under 100 per 15 min.
+            \App\Jobs\FetchStravaTrainingDetails::dispatch($id)->delay(now()->addSeconds($queued * 30));
+            $queued++;
+        });
+
+    $this->info("Listed {$listed} activit(y/ies); queued detail import for {$queued} training(s).");
+})->purpose('Import the last N days of Strava activities with full detail and streams');

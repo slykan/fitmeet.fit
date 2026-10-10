@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\Category;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Training extends Model
 {
@@ -60,5 +61,10 @@ class Training extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function detail(): HasOne
+    {
+        return $this->hasOne(TrainingDetail::class);
     }
 }

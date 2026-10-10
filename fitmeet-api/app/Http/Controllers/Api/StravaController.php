@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Resources\UserResource;
+use App\Jobs\FetchStravaTrainingDetails;
 use App\Models\ProviderConnection;
 use App\Models\User;
+use App\Services\StravaDetailImporter;
 use App\Services\TrainingSyncService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -309,7 +311,12 @@ class StravaController
 
         $res = Http::withToken($accessToken)->get("https://www.strava.com/api/v3/activities/{$objectId}");
         if ($res->successful()) {
-            $sync->storeStravaActivity($connection->user, $res->json(), notify: true);
+            $training = $sync->storeStravaActivity($connection->user, $res->json(), notify: true);
+            if ($training) {
+                // Full detail is already in this response; streams (charts) come in the background.
+                app(StravaDetailImporter::class)->storeDetails($training, $res->json());
+                FetchStravaTrainingDetails::dispatch($training->id, background: false);
+            }
             $connection->update(['last_synced_at' => now()]);
         }
 
@@ -333,7 +340,11 @@ class StravaController
                 ->get("https://www.strava.com/api/v3/activities/{$activity['id']}");
             $payload = $detail->successful() ? $detail->json() : $activity;
 
-            if ($sync->storeStravaActivity($connection->user, $payload)) {
+            if ($training = $sync->storeStravaActivity($connection->user, $payload)) {
+                if ($detail->successful()) {
+                    app(StravaDetailImporter::class)->storeDetails($training, $payload);
+                }
+                FetchStravaTrainingDetails::dispatch($training->id)->delay(now()->addSeconds($count * 30));
                 $count++;
             }
         }

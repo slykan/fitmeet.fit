@@ -148,6 +148,7 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\EnsureNotBanned::class])
     Route::get('connections', [ProviderConnectionController::class, 'index']);
     Route::post('connections/reorder', [ProviderConnectionController::class, 'reorder']);
     Route::get('trainings', [TrainingController::class, 'index']);
+    Route::get('trainings/{training}/details', [TrainingController::class, 'details']);
     Route::delete('trainings/{training}', [TrainingController::class, 'destroy']);
     Route::get('notifications/count',              [FriendController::class, 'notificationsCount']);
     Route::delete('notifications/clear-all',       [FriendController::class, 'notificationsClearAll']);
