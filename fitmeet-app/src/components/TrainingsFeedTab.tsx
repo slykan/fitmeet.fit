@@ -5,6 +5,8 @@ import {
   ActivityIndicator, Alert, FlatList, Image, Pressable, ScrollView, StyleSheet, Text, View,
 } from 'react-native'
 
+import AsyncStorage from '@react-native-async-storage/async-storage'
+
 import { api } from '@/src/lib/api'
 import { CATEGORIES } from '@/src/lib/categories'
 import { palette, spacing } from '@/src/theme'
@@ -56,6 +58,16 @@ interface TrainingDetailStat {
 type Scope = 'friends' | 'mine'
 
 // ─── Constants & helpers ────────────────────────────────────────────────────────
+
+const CONNECT_CARD_KEY = 'fitmeet-connect-app-card'
+
+// Shown on the "connect an app" card; soon = not connectable yet.
+const SYNC_PROVIDERS: { name: string; color: string; soon?: boolean }[] = [
+  { name: 'Strava', color: '#fc4c02' },
+  { name: 'HUAWEI Health', color: '#ff6a3d' },
+  { name: 'Garmin', color: '#00a0df', soon: true },
+  { name: 'iGPSPORT', color: '#e60012', soon: true },
+]
 
 const CATEGORY_EMOJI: Record<string, string> = Object.fromEntries(
   CATEGORIES.map(c => [c.value, c.emoji])
@@ -149,12 +161,24 @@ export function TrainingsFeedTab() {
   // Names of the user's connected training apps — the empty state must not ask to
   // "connect an app" when one is already connected but simply has no workouts yet.
   const [connectedApps, setConnectedApps] = useState<string[]>([])
+  // null until known, so the "connect an app" card doesn't flash for connected users
+  const [connectionsLoaded, setConnectionsLoaded] = useState(false)
+  const [connectCardDismissed, setConnectCardDismissed] = useState(true)
   useEffect(() => {
     const LABELS: Record<string, string> = { strava: 'Strava', huawei: 'HUAWEI Health', garmin: 'Garmin' }
     api.get('/connections')
-      .then(({ data }) => setConnectedApps((data.data ?? []).map((c: { provider: string }) => LABELS[c.provider] ?? c.provider)))
+      .then(({ data }) => {
+        setConnectedApps((data.data ?? []).map((c: { provider: string }) => LABELS[c.provider] ?? c.provider))
+        setConnectionsLoaded(true)
+      })
       .catch(() => {})
+    AsyncStorage.getItem(CONNECT_CARD_KEY).then(v => setConnectCardDismissed(v === 'dismissed')).catch(() => setConnectCardDismissed(false))
   }, [])
+
+  function dismissConnectCard() {
+    setConnectCardDismissed(true)
+    AsyncStorage.setItem(CONNECT_CARD_KEY, 'dismissed').catch(() => {})
+  }
   const [showFilter, setShowFilter] = useState(false)
   const [deletingId, setDeletingId] = useState<number | null>(null)
 
@@ -220,6 +244,33 @@ export function TrainingsFeedTab() {
 
   const header = (
     <View style={{ gap: spacing.md, marginBottom: spacing.md }}>
+      {connectionsLoaded && connectedApps.length === 0 && !connectCardDismissed && (
+        <View style={styles.connectCard}>
+          <Pressable style={styles.connectCardClose} onPress={dismissConnectCard} hitSlop={10}>
+            <Ionicons name="close" size={16} color={palette.textDim} />
+          </Pressable>
+          <View style={styles.connectCardHead}>
+            <View style={styles.connectCardBadge}><Ionicons name="sparkles" size={15} color="#041109" /></View>
+            <Text style={styles.connectCardTitle}>Unlock your AI Coach</Text>
+          </View>
+          <Text style={styles.connectCardText}>
+            Connect a training app — your workouts sync here automatically with charts, weekly & monthly reports and a personal AI coach.
+          </Text>
+          <View style={styles.providerRow}>
+            {SYNC_PROVIDERS.map(p => (
+              <View key={p.name} style={[styles.providerChip, p.soon && { opacity: 0.55 }]}>
+                <View style={[styles.providerDot, { backgroundColor: p.color }]} />
+                <Text style={styles.providerName}>{p.name}</Text>
+                {p.soon && <Text style={styles.soonTag}>SOON</Text>}
+              </View>
+            ))}
+          </View>
+          <Pressable style={styles.connectCardBtn} onPress={() => router.push('/connected-apps' as never)}>
+            <Ionicons name="link-outline" size={16} color="#041109" />
+            <Text style={styles.connectCardBtnText}>Connect an app</Text>
+          </Pressable>
+        </View>
+      )}
       <View style={styles.headerRow}>
         <Pressable
           style={[styles.filterBtn, activeFilterCount > 0 && styles.filterBtnActive]}
@@ -468,6 +519,22 @@ export function TrainingsFeedTab() {
 const styles = StyleSheet.create({
   list: { padding: spacing.lg, paddingTop: spacing.md, flexGrow: 1 },
 
+  connectCard: {
+    padding: 16, borderRadius: 18, gap: 10,
+    backgroundColor: palette.panel, borderWidth: 1, borderColor: 'rgba(108,255,47,0.35)',
+  },
+  connectCardClose: { position: 'absolute', top: 10, right: 10, zIndex: 1, padding: 4 },
+  connectCardHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  connectCardBadge: { width: 26, height: 26, borderRadius: 8, backgroundColor: palette.accent, alignItems: 'center', justifyContent: 'center' },
+  connectCardTitle: { color: palette.text, fontSize: 16, fontWeight: '800' },
+  connectCardText: { color: palette.textMuted, fontSize: 13, lineHeight: 19, paddingRight: 12 },
+  providerRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  providerChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 6, paddingHorizontal: 10, borderRadius: 999, backgroundColor: palette.panelRaised, borderWidth: 1, borderColor: palette.line },
+  providerDot: { width: 8, height: 8, borderRadius: 4 },
+  providerName: { color: palette.text, fontSize: 12, fontWeight: '700' },
+  soonTag: { color: palette.textDim, fontSize: 9, fontWeight: '800', letterSpacing: 0.5 },
+  connectCardBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 42, borderRadius: 12, backgroundColor: palette.accent },
+  connectCardBtnText: { color: '#041109', fontSize: 14, fontWeight: '800' },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   weeklyBtn: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 36,

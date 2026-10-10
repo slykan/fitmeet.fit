@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import { UserPlus, UserCheck, Check, X, Bell, Calendar, MapPin, Zap, PlayCircle, MessageCircle, Megaphone, Dumbbell, Share2 } from 'lucide-react'
+import { UserPlus, UserCheck, Check, X, Bell, Calendar, MapPin, Zap, PlayCircle, MessageCircle, Megaphone, Dumbbell, Share2, ChartLine } from 'lucide-react'
 
 import { ActivityFeed } from '@/components/activity-feed'
 import { MomentsGrid } from '@/components/moments-grid'
@@ -290,6 +290,15 @@ export default function NotificationsPage() {
             <h1 className="text-2xl font-bold">
               {tab === 'activity' ? 'Activity' : tab === 'trainings' ? 'Trainings' : tab === 'moments' ? 'Moments' : 'Alerts'}
             </h1>
+            {tab === 'trainings' && (
+              <Link
+                href="/reports"
+                className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-xl font-semibold transition-opacity hover:opacity-80"
+                style={{ background: 'rgba(57,255,20,0.15)', border: '1px solid rgba(57,255,20,0.4)', color: 'var(--primary)' }}
+              >
+                <ChartLine size={15} /> Reports
+              </Link>
+            )}
             {tab === 'moments' && (
               <div className="flex gap-2">
                 <Link

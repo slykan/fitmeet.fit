@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Activity, ChevronDown, Clock, Flame, Gauge, HeartPulse, Layers, Link2, Mountain, Sparkles, Tag, Trash2, Wind, Zap } from 'lucide-react'
+import { Activity, ChevronDown, Clock, Flame, Gauge, HeartPulse, Layers, Link2, Mountain, Sparkles, Tag, Trash2, Wind, X, Zap } from 'lucide-react'
 
 import api from '@/lib/api'
 import { CATEGORIES, CATEGORY_EMOJI } from '@/lib/categories'
@@ -154,18 +154,39 @@ const MONTHS = [
 const CURRENT_YEAR = new Date().getFullYear()
 const YEARS = [0, ...Array.from({ length: 6 }, (_, i) => CURRENT_YEAR - i)]
 
+const CONNECT_CARD_KEY = 'fitmeet-connect-app-card'
+
+// Shown on the "connect an app" card; soon = not connectable yet.
+const SYNC_PROVIDERS: { name: string; color: string; soon?: boolean }[] = [
+  { name: 'Strava', color: '#fc4c02' },
+  { name: 'HUAWEI Health', color: '#ff6a3d' },
+  { name: 'Garmin', color: '#00a0df', soon: true },
+  { name: 'iGPSPORT', color: '#e60012', soon: true },
+]
+
 export function TrainingsTab() {
   const router = useRouter()
   const [trainings, setTrainings] = useState<TrainingItem[]>([])
   // Connected training apps — the empty state must not ask to "connect an app" when one
   // is already connected but simply has no workouts yet.
   const [connectedApps, setConnectedApps] = useState<string[]>([])
+  const [connectionsLoaded, setConnectionsLoaded] = useState(false)
+  const [connectCardDismissed, setConnectCardDismissed] = useState(true)
   useEffect(() => {
     const LABELS: Record<string, string> = { strava: 'Strava', huawei: 'HUAWEI Health', garmin: 'Garmin' }
     api.get('/connections')
-      .then(({ data }) => setConnectedApps((data.data ?? []).map((c: { provider: string }) => LABELS[c.provider] ?? c.provider)))
+      .then(({ data }) => {
+        setConnectedApps((data.data ?? []).map((c: { provider: string }) => LABELS[c.provider] ?? c.provider))
+        setConnectionsLoaded(true)
+      })
       .catch(() => {})
+    try { setConnectCardDismissed(localStorage.getItem(CONNECT_CARD_KEY) === 'dismissed') } catch { setConnectCardDismissed(false) }
   }, [])
+
+  function dismissConnectCard() {
+    setConnectCardDismissed(true)
+    try { localStorage.setItem(CONNECT_CARD_KEY, 'dismissed') } catch {}
+  }
   const [totals, setTotals] = useState<Totals | null>(null)
   const [loading, setLoading] = useState(true)
   const [scope, setScope] = useState<'friends' | 'mine'>('friends')
@@ -196,6 +217,35 @@ export function TrainingsTab() {
 
   return (
     <div className="space-y-3">
+      {connectionsLoaded && connectedApps.length === 0 && !connectCardDismissed && (
+        <div className="relative rounded-2xl border p-5 space-y-3" style={{ background: 'var(--surface)', borderColor: 'color-mix(in srgb, var(--primary) 35%, transparent)' }}>
+          <button onClick={dismissConnectCard} title="Hide" className="absolute top-3 right-3 p-1 rounded-lg hover:opacity-70" style={{ color: 'var(--text-muted)' }}>
+            <X size={16} />
+          </button>
+          <div className="flex items-center gap-2">
+            <span className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'var(--primary)' }}><Sparkles size={15} color="#041109" /></span>
+            <h3 className="font-bold">Unlock your AI Coach</h3>
+          </div>
+          <p className="text-sm pr-6" style={{ color: 'var(--text-muted)' }}>
+            Connect a training app — your workouts sync here automatically with charts, weekly &amp; monthly reports and a personal AI coach.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {SYNC_PROVIDERS.map(p => (
+              <span key={p.name} className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-full border"
+                style={{ borderColor: 'var(--border)', background: 'var(--background)', opacity: p.soon ? 0.55 : 1 }}>
+                <span className="w-2 h-2 rounded-full" style={{ background: p.color }} />
+                {p.name}
+                {p.soon && <span className="text-[9px] font-bold tracking-wide" style={{ color: 'var(--text-muted)' }}>SOON</span>}
+              </span>
+            ))}
+          </div>
+          <button onClick={() => router.push('/profile')}
+            className="inline-flex items-center gap-2 text-sm px-4 py-2.5 rounded-xl font-bold transition-opacity hover:opacity-80"
+            style={{ background: 'var(--primary)', color: '#041109' }}>
+            <Link2 size={15} /> Connect an app
+          </button>
+        </div>
+      )}
       <div className="flex gap-2">
         <button
           onClick={() => setScope('friends')}

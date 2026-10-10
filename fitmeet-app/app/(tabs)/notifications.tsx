@@ -251,6 +251,11 @@ export default function NotificationsScreen() {
             <Text style={styles.clearBtnText}>Clear all</Text>
           </Pressable>
         )}
+        {tab === 'trainings' && (
+          <Pressable style={styles.momentsIconBtn} onPress={() => router.push('/weekly-report' as never)}>
+            <Ionicons name="analytics-outline" size={19} color={palette.accent} />
+          </Pressable>
+        )}
         {tab === 'moments' && (
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <Pressable style={styles.momentsIconBtn} onPress={() => router.push('/moments-slideshow' as never)}>
