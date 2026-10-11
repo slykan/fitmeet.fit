@@ -94,7 +94,8 @@ function fmtKm(m: number | null | undefined): string {
   return m ? `${(m / 1000).toFixed(m < 10000 ? 2 : 1)} km` : '–'
 }
 
-// Heart-rate zones as % of max HR (220 − age, or the highest HR seen if no birth date).
+// Heart-rate zones: the user's own (Profile › Heart rate zones), else 50–90 % of the
+// highest HR in this training.
 const ZONES = [
   { name: 'Z1 Recovery', from: 0.5, color: '#8f9bbd' },
   { name: 'Z2 Endurance', from: 0.6, color: '#3399ff' },
@@ -103,14 +104,14 @@ const ZONES = [
   { name: 'Z5 Max', from: 0.9, color: '#ff3b30' },
 ]
 
-function hrZones(hr: number[], time: number[] | undefined, maxHr: number) {
+// bounds = lower bound (bpm) of Z1..Z5
+function hrZones(hr: number[], time: number[] | undefined, bounds: number[]) {
   const secs = ZONES.map(() => 0)
   for (let i = 0; i < hr.length; i++) {
     const dt = time && i > 0 ? Math.max(0, time[i] - time[i - 1]) : 1
-    const pct = hr[i] / maxHr
-    if (pct < ZONES[0].from) continue
+    if (hr[i] < bounds[0]) continue
     let z = 0
-    for (let k = ZONES.length - 1; k >= 0; k--) if (pct >= ZONES[k].from) { z = k; break }
+    for (let k = bounds.length - 1; k >= 0; k--) if (hr[i] >= bounds[k]) { z = k; break }
     secs[z] += dt
   }
   const total = secs.reduce((a, b) => a + b, 0) || 1
@@ -173,11 +174,13 @@ export default function TrainingDetailScreen() {
   }, [s, d, usePace])
 
   const zones = useMemo(() => {
-    if (!s?.heartrate?.some(v => v > 0)) return null
-    const age = me?.birth_date ? new Date().getFullYear() - new Date(me.birth_date).getFullYear() : null
-    const maxHr = age ? 220 - age : Math.max(...s.heartrate)
-    return { maxHr, rows: hrZones(s.heartrate, s.time, maxHr), byAge: !!age }
-  }, [s, me?.birth_date])
+    const hr = s?.heartrate
+    if (!hr?.some(v => v > 0)) return null
+    const own = me?.hr_zones?.bounds
+    const bounds = own ?? ZONES.map(z => Math.round(z.from * Math.max(...hr)))
+    const personal = me?.hr_zones?.source === 'manual' || me?.hr_zones?.source === 'max'
+    return { bounds, personal, rows: hrZones(hr, s?.time, bounds) }
+  }, [s, me?.hr_zones])
 
   if (error) return <Center><Text style={styles.muted}>{error}</Text></Center>
   if (!t) return <Center><ActivityIndicator color={palette.accent} /></Center>
@@ -246,7 +249,9 @@ export default function TrainingDetailScreen() {
               </View>
             ))}
             <Text style={styles.small}>
-              Max HR {zones.maxHr} bpm {zones.byAge ? '(220 − age)' : '(highest in this training — add your birth date in Settings for better zones)'}
+              {zones.personal
+                ? `Your zones: ${zones.bounds.map((b, i) => `Z${i + 1} ${b}`).join(' · ')} bpm`
+                : 'Estimated zones — set your max HR or own zones on your Profile for accurate results.'}
             </Text>
           </Section>
         )}

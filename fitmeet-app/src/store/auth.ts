@@ -2,6 +2,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import Constants from 'expo-constants'
 import { create } from 'zustand'
 
+export interface HrZones {
+  bounds: number[] | null
+  max: number | null
+  source: 'manual' | 'max' | 'age' | 'observed' | null
+  highest_recorded: number | null
+}
+
 export interface MobileUser {
   id: number
   name: string
@@ -18,6 +25,8 @@ export interface MobileUser {
   push_notifications: boolean | null
   auto_share_live_location: boolean
   auto_check_in: boolean
+  // own profile: lower bounds (bpm) of Z1..Z5 and how they were set
+  hr_zones: HrZones | null
   share_trainings_in_feed: boolean
   location: { lat: number | null; lng: number | null }
   home: { lat: number | null; lng: number | null; city: string | null; country: string | null }
@@ -105,6 +114,7 @@ function normalizeUser(user: MobileUser): MobileUser {
     push_notifications: user.push_notifications ?? true,
     auto_share_live_location: user.auto_share_live_location ?? false,
     auto_check_in: user.auto_check_in ?? false,
+    hr_zones: user.hr_zones ?? null,
     share_trainings_in_feed: user.share_trainings_in_feed ?? true,
     location: user.location ?? { lat: null, lng: null },
     home: user.home ?? { lat: null, lng: null, city: null, country: null },

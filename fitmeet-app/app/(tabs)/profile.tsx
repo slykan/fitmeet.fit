@@ -13,6 +13,7 @@ import { useAuthStore } from '@/src/store/auth'
 import { palette, spacing } from '@/src/theme'
 import { AlibiCard } from '@/src/components/AlibiCard'
 import { BadgeGrid } from '@/src/components/BadgeGrid'
+import { HrZonesCard } from '@/src/components/HrZonesCard'
 
 function isBirthday(birthDate: string | null | undefined): boolean {
   if (!birthDate) return false
@@ -168,6 +169,9 @@ export default function ProfileScreen() {
 
         {/* Alibi stats */}
         <AlibiCard />
+
+        {/* Heart rate zones (used by charts, reports and the AI coach) */}
+        <HrZonesCard />
 
         {/* Badges */}
         <BadgeGrid />

@@ -70,7 +70,7 @@ function TrainingContent() {
   const params = useSearchParams()
   const router = useRouter()
   const id = params.get('id')
-  const me = useAuthStore(s => s.user) as { birth_date?: string | null } | null
+  const me = useAuthStore(s => s.user) as { hr_zones?: { bounds: number[] | null; source: string | null } | null } | null
   const [data, setData] = useState<DetailResponse | null>(null)
   const [coach, setCoach] = useState<CoachResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -107,18 +107,19 @@ function TrainingContent() {
   const zones = useMemo(() => {
     const hr = s?.heartrate
     if (!hr?.some(v => v > 0)) return null
-    const age = me?.birth_date ? new Date().getFullYear() - new Date(me.birth_date).getFullYear() : null
-    const maxHr = age ? 220 - age : Math.max(...hr)
+    // The user's own zones (Profile › Heart rate zones), else 50–90 % of this training's max HR.
+    const bounds = me?.hr_zones?.bounds ?? ZONES.map(z => Math.round(z.from * Math.max(...hr)))
+    const personal = me?.hr_zones?.source === 'manual' || me?.hr_zones?.source === 'max'
     const secs = ZONES.map(() => 0)
     hr.forEach((v, i) => {
       const dt = s?.time && i > 0 ? Math.max(0, s.time[i] - s.time[i - 1]) : 1
       let z = -1
-      ZONES.forEach((zone, k) => { if (v / maxHr >= zone.from) z = k })
+      bounds.forEach((from, k) => { if (v >= from) z = k })
       if (z >= 0) secs[z] += dt
     })
     const total = secs.reduce((a, b) => a + b, 0) || 1
-    return { maxHr, byAge: !!age, rows: ZONES.map((z, i) => ({ ...z, secs: secs[i], share: secs[i] / total })) }
-  }, [s, me?.birth_date])
+    return { bounds, personal, rows: ZONES.map((z, i) => ({ ...z, secs: secs[i], share: secs[i] / total })) }
+  }, [s, me?.hr_zones])
 
   if (!id) return null
   if (error) return <p className="text-center py-16 text-sm" style={{ color: 'var(--text-muted)' }}>{error}</p>
@@ -199,7 +200,9 @@ function TrainingContent() {
             </div>
           ))}
           <p className="text-[11px] pt-1" style={{ color: 'var(--text-muted)' }}>
-            Max HR {zones.maxHr} bpm {zones.byAge ? '(220 − age)' : '(highest in this training — add your birth date for better zones)'}
+            {zones.personal
+              ? 'Your zones: ' + zones.bounds.map((b, i) => 'Z' + (i + 1) + ' ' + b).join(' · ') + ' bpm'
+              : 'Estimated zones — set your max HR or own zones on your Profile in the app for accurate results.'}
           </p>
         </section>
       )}

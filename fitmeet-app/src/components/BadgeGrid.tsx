@@ -82,13 +82,14 @@ const styles = StyleSheet.create({
   title:    { color: palette.text, fontSize: 16, fontWeight: '800' },
   subtitle: { color: palette.textDim, fontSize: 11, marginTop: 1 },
 
+  // 4 per row on any phone width
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    gap: 8,
   },
   tile: {
-    width: 76,
+    width: '22.8%',
     alignItems: 'center',
     gap: 4,
     backgroundColor: 'rgba(57,255,20,0.08)',
