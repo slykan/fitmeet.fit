@@ -272,6 +272,11 @@ class CoachController extends Controller
 
     private function left(Request $request, string $kind): int
     {
+        // Admins have no monthly allowance (calls are still logged in coach_requests).
+        if ($request->user()->is_admin) {
+            return 999;
+        }
+
         $limit = (int) config($kind === 'analyze' ? 'services.anthropic.coach_monthly_analyses' : 'services.anthropic.coach_monthly_questions');
         $used = DB::table('coach_requests')
             ->where('user_id', $request->user()->id)
