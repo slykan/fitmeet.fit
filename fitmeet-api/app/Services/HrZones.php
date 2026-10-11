@@ -14,24 +14,25 @@ class HrZones
     public const NAMES = ['Z1', 'Z2', 'Z3', 'Z4', 'Z5'];
     private const SHARES = [0.5, 0.6, 0.7, 0.8, 0.9];
 
-    /** @return array{bounds: int[]|null, max: int|null, source: string|null} lower bound in bpm of Z1..Z5 */
+    /** @return array{bounds: int[]|null, max: int|null, rest: int|null, source: string|null} lower bound in bpm of Z1..Z5; source manual | hrr | max | age | observed */
     public static function forUser(?User $user, ?float $fallbackMax = null): array
     {
         $manual = $user?->hr_zones;
         if (is_array($manual) && count($manual) === 5) {
-            return ['bounds' => array_map('intval', $manual), 'max' => $user->hr_max, 'source' => 'manual'];
+            return ['bounds' => array_map('intval', $manual), 'max' => $user->hr_max, 'rest' => $user->hr_rest,
+                'source' => $user->hr_zone_method === 'hrr' ? 'hrr' : 'manual'];
         }
         if ($user?->hr_max) {
-            return ['bounds' => self::fromMax($user->hr_max), 'max' => (int) $user->hr_max, 'source' => 'max'];
+            return ['bounds' => self::fromMax($user->hr_max), 'max' => (int) $user->hr_max, 'rest' => $user->hr_rest, 'source' => 'max'];
         }
         if ($age = $user?->birth_date?->age) {
-            return ['bounds' => self::fromMax(220 - $age), 'max' => 220 - $age, 'source' => 'age'];
+            return ['bounds' => self::fromMax(220 - $age), 'max' => 220 - $age, 'rest' => null, 'source' => 'age'];
         }
         if ($fallbackMax) {
-            return ['bounds' => self::fromMax((int) $fallbackMax), 'max' => (int) $fallbackMax, 'source' => 'observed'];
+            return ['bounds' => self::fromMax((int) $fallbackMax), 'max' => (int) $fallbackMax, 'rest' => null, 'source' => 'observed'];
         }
 
-        return ['bounds' => null, 'max' => null, 'source' => null];
+        return ['bounds' => null, 'max' => null, 'rest' => null, 'source' => null];
     }
 
     /** @return int[] */

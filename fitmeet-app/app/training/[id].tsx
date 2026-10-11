@@ -178,7 +178,7 @@ export default function TrainingDetailScreen() {
     if (!hr?.some(v => v > 0)) return null
     const own = me?.hr_zones?.bounds
     const bounds = own ?? ZONES.map(z => Math.round(z.from * Math.max(...hr)))
-    const personal = me?.hr_zones?.source === 'manual' || me?.hr_zones?.source === 'max'
+    const personal = ['manual', 'hrr', 'max'].includes(me?.hr_zones?.source ?? '')
     return { bounds, personal, rows: hrZones(hr, s?.time, bounds) }
   }, [s, me?.hr_zones])
 

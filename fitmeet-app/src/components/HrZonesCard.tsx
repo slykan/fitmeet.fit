@@ -15,9 +15,15 @@ const ZONES = [
 ]
 const SHARES = [0.5, 0.6, 0.7, 0.8, 0.9]
 const fromMax = (max: number) => SHARES.map(s => Math.round(max * s))
+// Karvonen: rest + share × (max − rest)
+const fromHrr = (max: number, rest: number) => SHARES.map(s => Math.round(rest + s * (max - rest)))
+
+type Mode = 'max' | 'hrr' | 'manual'
+const MODE_LABEL: Record<Mode, string> = { max: 'Max HR', hrr: 'HRR', manual: 'Manual' }
 
 const SOURCE_TEXT: Record<string, string> = {
   manual: 'Your own zones',
+  hrr: 'Heart rate reserve (Karvonen)',
   max: 'From your max HR',
   age: 'Estimated from age (220 − age) — set your max HR for accurate zones',
   observed: 'Estimated from your highest recorded HR — set your max HR',
@@ -28,19 +34,26 @@ export function HrZonesCard() {
   const zones = useAuthStore(s => s.user?.hr_zones)
   const refreshMe = useAuthStore(s => s.refreshMe)
   const [editing, setEditing] = useState(false)
-  const [mode, setMode] = useState<'max' | 'manual'>('max')
+  const [mode, setMode] = useState<Mode>('max')
   const [max, setMax] = useState('')
+  const [rest, setRest] = useState('')
   const [bounds, setBounds] = useState<string[]>(['', '', '', '', ''])
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    setMode(zones?.source === 'manual' ? 'manual' : 'max')
+    setMode(zones?.source === 'manual' ? 'manual' : zones?.source === 'hrr' ? 'hrr' : 'max')
     setMax(zones?.max ? String(zones.max) : '')
+    setRest(zones?.rest ? String(zones.rest) : '')
     setBounds((zones?.bounds ?? []).map(String).concat(['', '', '', '', '']).slice(0, 5))
   }, [zones, editing])
 
   const shown = zones?.bounds ?? null
-  const previewBounds = mode === 'max' && Number(max) >= 120 ? fromMax(Number(max)) : bounds.map(Number)
+  const m = Number(max), r = Number(rest)
+  const previewBounds = mode === 'max' && m >= 120
+    ? fromMax(m)
+    : mode === 'hrr' && m >= 120 && r >= 30 && r < m
+      ? fromHrr(m, r)
+      : mode === 'manual' ? bounds.map(Number) : [0, 0, 0, 0, 0]
 
   async function save(payload: Record<string, unknown>) {
     setSaving(true)
@@ -57,16 +70,22 @@ export function HrZonesCard() {
   }
 
   function onSave() {
+    if (mode !== 'manual' && (!m || m < 120 || m > 230)) {
+      return Alert.alert('Max HR', 'Enter a max heart rate between 120 and 230 bpm.')
+    }
     if (mode === 'max') {
-      const m = Number(max)
-      if (!m || m < 120 || m > 230) return Alert.alert('Max HR', 'Enter a max heart rate between 120 and 230 bpm.')
-      save({ hr_max: m, hr_zones: null })
+      save({ hr_max: m, hr_zones: null, hr_zone_method: 'max' })
+    } else if (mode === 'hrr') {
+      if (!r || r < 30 || r > 110 || r >= m) {
+        return Alert.alert('Resting HR', 'Enter your resting heart rate (30–110 bpm, below your max).')
+      }
+      save({ hr_max: m, hr_rest: r, hr_zones: fromHrr(m, r), hr_zone_method: 'hrr' })
     } else {
       const b = bounds.map(Number)
       if (b.some(v => !v) || b.some((v, i) => i > 0 && v <= b[i - 1])) {
         return Alert.alert('Zones', 'Enter all five zones, each starting higher than the one before.')
       }
-      save({ hr_zones: b, hr_max: max ? Number(max) : null })
+      save({ hr_zones: b, hr_max: m || null, hr_zone_method: 'manual' })
     }
   }
 
@@ -103,14 +122,14 @@ export function HrZonesCard() {
       {editing && (
         <View style={{ gap: 12 }}>
           <View style={styles.toggle}>
-            {(['max', 'manual'] as const).map(m => (
-              <Pressable key={m} style={[styles.toggleItem, mode === m && styles.toggleOn]} onPress={() => setMode(m)}>
-                <Text style={[styles.toggleText, mode === m && styles.toggleTextOn]}>{m === 'max' ? 'From max HR' : 'Manual zones'}</Text>
+            {(['max', 'hrr', 'manual'] as const).map(k => (
+              <Pressable key={k} style={[styles.toggleItem, mode === k && styles.toggleOn]} onPress={() => setMode(k)}>
+                <Text style={[styles.toggleText, mode === k && styles.toggleTextOn]}>{MODE_LABEL[k]}</Text>
               </Pressable>
             ))}
           </View>
 
-          {mode === 'max' ? (
+          {mode !== 'manual' ? (
             <>
               <View style={styles.inputRow}>
                 <Text style={styles.inputLabel}>Max HR</Text>
@@ -122,6 +141,16 @@ export function HrZonesCard() {
                   <Text style={styles.suggest}>Highest HR in your trainings: <Text style={{ fontWeight: '800' }}>{zones.highest_recorded} bpm</Text> — tap to use</Text>
                 </Pressable>
               ) : null}
+              {mode === 'hrr' && (
+                <>
+                  <View style={styles.inputRow}>
+                    <Text style={styles.inputLabel}>Resting HR</Text>
+                    <TextInput style={styles.input} value={rest} onChangeText={setRest} keyboardType="number-pad" maxLength={3} placeholder="e.g. 50" placeholderTextColor={palette.textDim} />
+                    <Text style={styles.unit}>bpm</Text>
+                  </View>
+                  <Text style={styles.preview}>Zones = resting + 50/60/70/80/90 % of (max − resting). Measure resting HR in the morning, lying down.</Text>
+                </>
+              )}
             </>
           ) : (
             ZONES.map((z, i) => (

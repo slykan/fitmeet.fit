@@ -291,7 +291,9 @@ TXT;
             // The athlete's own zones (manual / max HR) — judge intensity against these.
             'hr_zones' => ($zones = HrZones::forUser($user, $training->max_heartrate))['bounds'] ? [
                 'lower_bounds_bpm' => array_combine(HrZones::NAMES, $zones['bounds']),
-                'set_by'           => $zones['source'], // manual | max | age | observed
+                'set_by'           => $zones['source'], // manual | hrr (Karvonen) | max | age | observed
+                'max_hr'           => $zones['max'],
+                'resting_hr'       => $zones['rest'],
                 'minutes'          => HrZones::minutes($s, $zones['bounds']),
             ] : null,
             'recent_same_sport' => $this->history($training),

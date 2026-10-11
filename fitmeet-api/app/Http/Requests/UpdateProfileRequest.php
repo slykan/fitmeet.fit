@@ -56,7 +56,9 @@ class UpdateProfileRequest extends FormRequest
                     }
                 }
             }],
-            'hr_zones.*'   => ['integer', 'between:50,230'],
+            'hr_zones.*'   => ['integer', 'between:40,230'],
+            'hr_rest'      => ['sometimes', 'nullable', 'integer', 'between:30,110'],
+            'hr_zone_method' => ['sometimes', 'nullable', 'in:max,hrr,manual'],
             'share_trainings_in_feed' => ['sometimes', 'boolean'],
             'fcm_token'    => ['sometimes', 'nullable', 'string'],
             'avatar_file'  => ['sometimes', 'nullable', 'file', 'max:8192'],

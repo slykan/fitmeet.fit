@@ -5,7 +5,8 @@ import { create } from 'zustand'
 export interface HrZones {
   bounds: number[] | null
   max: number | null
-  source: 'manual' | 'max' | 'age' | 'observed' | null
+  rest: number | null
+  source: 'manual' | 'hrr' | 'max' | 'age' | 'observed' | null
   highest_recorded: number | null
 }
 

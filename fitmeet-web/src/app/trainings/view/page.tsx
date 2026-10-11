@@ -109,7 +109,7 @@ function TrainingContent() {
     if (!hr?.some(v => v > 0)) return null
     // The user's own zones (Profile › Heart rate zones), else 50–90 % of this training's max HR.
     const bounds = me?.hr_zones?.bounds ?? ZONES.map(z => Math.round(z.from * Math.max(...hr)))
-    const personal = me?.hr_zones?.source === 'manual' || me?.hr_zones?.source === 'max'
+    const personal = ['manual', 'hrr', 'max'].includes(me?.hr_zones?.source ?? '')
     const secs = ZONES.map(() => 0)
     hr.forEach((v, i) => {
       const dt = s?.time && i > 0 ? Math.max(0, s.time[i] - s.time[i - 1]) : 1
