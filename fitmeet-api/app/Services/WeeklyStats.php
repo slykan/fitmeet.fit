@@ -110,7 +110,7 @@ class WeeklyStats
     {
         $sum = null;
         $prs = [];
-        $age = $user->birth_date?->age;
+        $bounds = HrZones::forUser($user, $week->max('max_heartrate'))['bounds'];
 
         foreach ($week as $t) {
             $detail = $t->detail ?? ($t->dedup_group_id
@@ -119,9 +119,8 @@ class WeeklyStats
             if (!$detail) {
                 continue;
             }
-            $z = TrainingCoach::zones($detail->streams ?? [], $age, $t->max_heartrate);
+            $z = HrZones::minutes($detail->streams ?? [], $bounds);
             if ($z) {
-                unset($z['max_hr_used']);
                 foreach ($z as $zone => $min) {
                     $sum[$zone] = ($sum[$zone] ?? 0) + $min;
                 }

@@ -45,6 +45,18 @@ class UpdateProfileRequest extends FormRequest
             'push_notifications'    => ['sometimes', 'boolean'],
             'auto_share_live_location' => ['sometimes', 'boolean'],
             'auto_check_in' => ['sometimes', 'boolean'],
+            'hr_max'       => ['sometimes', 'nullable', 'integer', 'between:120,230'],
+            // five ascending lower bounds (Z1..Z5) in bpm, or null for zones from max HR
+            'hr_zones'     => ['sometimes', 'nullable', 'array', 'size:5', function ($attribute, $value, $fail) {
+                $value = array_values((array) $value);
+                for ($i = 1; $i < count($value); $i++) {
+                    if ((int) $value[$i] <= (int) $value[$i - 1]) {
+                        $fail('Each zone must start higher than the one before (Z1 < Z2 < … < Z5).');
+                        return;
+                    }
+                }
+            }],
+            'hr_zones.*'   => ['integer', 'between:50,230'],
             'share_trainings_in_feed' => ['sometimes', 'boolean'],
             'fcm_token'    => ['sometimes', 'nullable', 'string'],
             'avatar_file'  => ['sometimes', 'nullable', 'file', 'max:8192'],

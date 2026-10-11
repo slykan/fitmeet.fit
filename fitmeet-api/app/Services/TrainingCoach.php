@@ -23,6 +23,9 @@ Write like a good human coach: warm but honest, specific, using the athlete's re
 (pace, heart rate, power, splits, comparisons with their recent trainings). No hype, no
 exclamation-mark spam, no generic advice that would fit any training. If data is missing
 (no heart rate, no GPS, indoor), work with what is there and don't pretend otherwise.
+Judge heart-rate intensity against the athlete's own zones ("hr_zones": lower bounds in
+bpm and minutes per zone) — never against generic 220 − age formulas. If set_by is "age" or
+"observed", the zones are only an estimate: say so when intensity matters.
 This is fitness coaching, not medical advice: if something looks like a health concern,
 suggest seeing a doctor instead of diagnosing.
 
@@ -285,39 +288,17 @@ TXT;
                 'name' => $e['name'] ?? null, 'time' => gmdate('H:i:s', (int) ($e['moving_time'] ?? 0)),
                 'personal_record' => ($e['pr_rank'] ?? null) === 1 ? true : null,
             ]), $d['best_efforts'] ?? []),
-            'hr_zones_minutes' => self::zones($s, $user?->birth_date?->age, $training->max_heartrate),
+            // The athlete's own zones (manual / max HR) — judge intensity against these.
+            'hr_zones' => ($zones = HrZones::forUser($user, $training->max_heartrate))['bounds'] ? [
+                'lower_bounds_bpm' => array_combine(HrZones::NAMES, $zones['bounds']),
+                'set_by'           => $zones['source'], // manual | max | age | observed
+                'minutes'          => HrZones::minutes($s, $zones['bounds']),
+            ] : null,
             'recent_same_sport' => $this->history($training),
             'load' => $this->load($training),
         ];
 
         return "Training data (JSON):\n" . json_encode(array_filter($data, fn ($v) => $v !== null && $v !== []), JSON_UNESCAPED_UNICODE);
-    }
-
-    /** Minutes per HR zone (220 − age, else the highest HR seen) from a training's streams. */
-    public static function zones(array $s, ?int $age, ?float $maxSeen): ?array
-    {
-        $hr = $s['heartrate'] ?? null;
-        $time = $s['time'] ?? null;
-        if (!$hr || !$time || count($hr) !== count($time)) {
-            return null;
-        }
-        $max = $age ? 220 - $age : max($maxSeen ?: 0, max($hr));
-        $bounds = ['Z1' => 0.5, 'Z2' => 0.6, 'Z3' => 0.7, 'Z4' => 0.8, 'Z5' => 0.9];
-        $secs = array_fill_keys(array_keys($bounds), 0);
-        foreach ($hr as $i => $v) {
-            $dt = $i > 0 ? max(0, $time[$i] - $time[$i - 1]) : 0;
-            $zone = null;
-            foreach ($bounds as $z => $from) {
-                if ($v >= $from * $max) {
-                    $zone = $z;
-                }
-            }
-            if ($zone) {
-                $secs[$zone] += $dt;
-            }
-        }
-
-        return ['max_hr_used' => $max] + array_map(fn ($sec) => round($sec / 60), $secs);
     }
 
     /** The athlete's last trainings of the same sport, before this one. */
