@@ -18,6 +18,9 @@ class HuaweiSyncService
     /** Seconds after connecting during which the Health Kit switch reading is ignored. */
     private const FRESH_GRANT_GRACE_S = 60;
 
+    /** Last privacyRecords answer, for logging why a connection was paused. */
+    private array $lastOpinions = [];
+
     public const REQUIRED_SCOPES = [
         'https://www.huawei.com/healthkit/activityrecord.read',
         'https://www.huawei.com/healthkit/activity.read',
@@ -109,7 +112,42 @@ class HuaweiSyncService
             return false;
         }
 
-        return $this->healthKitEnabled($accessToken) === false;
+        if ($this->healthKitEnabled($accessToken) !== false) {
+            return false;
+        }
+        // Huawei also reports "off" for a moment at random times (2026-10-11: the connection
+        // flapped unavailable/active all night). Only an answer that holds 2 s later counts.
+        $first = $this->lastOpinions;
+        sleep(2);
+        if ($this->healthKitEnabled($accessToken) !== false) {
+            Log::info('Huawei Health Kit reported off once, ignored', ['connection_id' => $connection->id, 'opinions' => $first]);
+            return false;
+        }
+        Log::warning('Huawei Health Kit reported off', ['connection_id' => $connection->id, 'opinions' => $this->lastOpinions]);
+
+        return true;
+    }
+
+    /**
+     * Activity records, retried once after 2 s when Huawei refuses (401/403): single
+     * refusals happen without the user changing anything and must not end the sync.
+     */
+    private function fetchRecordsConfirmed(ProviderConnection $connection, string $accessToken, int $days): Response
+    {
+        $res = $this->fetchRecords($accessToken, $days);
+        if (!in_array($res->status(), [401, 403], true)) {
+            return $res;
+        }
+        sleep(2);
+        $retry = $this->fetchRecords($accessToken, $days);
+        Log::warning($retry->successful() ? 'Huawei refused once, retry ok' : 'Huawei refused twice', [
+            'connection_id' => $connection->id,
+            'status'        => [$res->status(), $retry->status()],
+            // error codes only — never response bodies (privacy policy)
+            'error'         => $retry->successful() ? null : ($retry->json('error.code') ?? $retry->json('code') ?? $retry->json('errorCode')),
+        ]);
+
+        return $retry;
     }
 
     /**
@@ -123,6 +161,7 @@ class HuaweiSyncService
             ->withHeaders(['x-client-id' => config('services.huawei.client_id')])
             ->get('https://health-api.cloud.huawei.com/healthkit/v1/profile/privacyRecords');
         $opinions = $res->successful() ? array_column((array) $res->json(), 'opinion') : [];
+        $this->lastOpinions = $res->successful() ? $opinions : ['http' => $res->status()];
 
         return $opinions ? !in_array(2, $opinions) : null;
     }
@@ -171,7 +210,7 @@ class HuaweiSyncService
             return ProviderConnection::UNAVAILABLE;
         }
 
-        $res = $this->fetchRecords($accessToken, 1);
+        $res = $this->fetchRecordsConfirmed($connection, $accessToken, 1);
         if ($res->successful()) {
             // e.g. HUAWEI Health Kit switched back on, or a revocation that wasn't one
             if (in_array($connection->status, [ProviderConnection::UNAVAILABLE, ProviderConnection::REVOKED], true)) {
@@ -201,7 +240,7 @@ class HuaweiSyncService
             return 0;
         }
 
-        $res = $this->fetchRecords($accessToken, 90);
+        $res = $this->fetchRecordsConfirmed($connection, $accessToken, 90);
 
         if (!$res->successful()) {
             $this->handleRefusal($connection, $res);
