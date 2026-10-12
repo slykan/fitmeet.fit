@@ -120,10 +120,10 @@ class HuaweiSyncService
         $first = $this->lastOpinions;
         sleep(2);
         if ($this->healthKitEnabled($accessToken) !== false) {
-            Log::info('Huawei Health Kit reported off once, ignored', ['connection_id' => $connection->id, 'opinions' => $first]);
+            self::diag('Health Kit reported off once, ignored', ['connection_id' => $connection->id, 'opinions' => $first]);
             return false;
         }
-        Log::warning('Huawei Health Kit reported off', ['connection_id' => $connection->id, 'opinions' => $this->lastOpinions]);
+        self::diag('Health Kit reported off twice', ['connection_id' => $connection->id, 'opinions' => $this->lastOpinions]);
 
         return true;
     }
@@ -140,7 +140,7 @@ class HuaweiSyncService
         }
         sleep(2);
         $retry = $this->fetchRecords($accessToken, $days);
-        Log::warning($retry->successful() ? 'Huawei refused once, retry ok' : 'Huawei refused twice', [
+        self::diag($retry->successful() ? 'Refused once, retry ok' : 'Refused twice', [
             'connection_id' => $connection->id,
             'status'        => [$res->status(), $retry->status()],
             // error codes only — never response bodies (privacy policy)
@@ -205,6 +205,7 @@ class HuaweiSyncService
 
         if ($this->healthKitSwitchedOff($connection, $accessToken)) {
             if ($connection->status !== ProviderConnection::UNAVAILABLE) {
+                self::diag('Paused on verify: Health Kit off', ['connection_id' => $connection->id]);
                 $connection->markStatus(ProviderConnection::UNAVAILABLE, ProviderAuthorizationEvent::PROVIDER_UNAVAILABLE);
             }
             return ProviderConnection::UNAVAILABLE;
@@ -214,16 +215,44 @@ class HuaweiSyncService
         if ($res->successful()) {
             // e.g. HUAWEI Health Kit switched back on, or a revocation that wasn't one
             if (in_array($connection->status, [ProviderConnection::UNAVAILABLE, ProviderConnection::REVOKED], true)) {
+                self::diag('Healed on verify', ['connection_id' => $connection->id, 'was' => $connection->status]);
                 $connection->markStatus(ProviderConnection::ACTIVE, ProviderAuthorizationEvent::GRANTED);
             }
         } else {
+            self::diag('Verify refused', ['connection_id' => $connection->id, 'status' => $res->status()]);
             $this->handleRefusal($connection, $res);
         }
 
         return $connection->fresh()->status;
     }
 
-    public function backfillHuawei(ProviderConnection $connection, TrainingSyncService $sync): int
+    /** First negative poll is only remembered; true when the previous poll saw one too. */
+    private function secondStrike(ProviderConnection $connection, string $reason): bool
+    {
+        $key = "huawei_strike:{$connection->id}";
+        if (Cache::has($key)) {
+            Cache::forget($key);
+            return true;
+        }
+        Cache::put($key, $reason, now()->addMinutes(40));
+        self::diag('First strike, not paused', ['connection_id' => $connection->id, 'reason' => $reason]);
+
+        return false;
+    }
+
+    /** Huawei diagnostics in storage/logs/huawei.log — the app log only keeps errors. */
+    private static function diag(string $message, array $context = []): void
+    {
+        Log::build(['driver' => 'single', 'path' => storage_path('logs/huawei.log'), 'level' => 'debug'])
+            ->info($message, $context);
+    }
+
+    /**
+     * @param bool $background true for the 15-minute poll: a refusal or "Health Kit off" only
+     *   pauses the connection when the next poll sees it again (Huawei answers like that
+     *   at random for single polls); user-initiated calls act on the confirmed answer.
+     */
+    public function backfillHuawei(ProviderConnection $connection, TrainingSyncService $sync, bool $background = false): int
     {
         if ($connection->status !== null && $connection->status !== ProviderConnection::ACTIVE) {
             return 0;
@@ -236,22 +265,27 @@ class HuaweiSyncService
 
         // Health Kit switched off: stop reading even though Huawei would still answer.
         if ($this->healthKitSwitchedOff($connection, $accessToken)) {
+            if ($background && !$this->secondStrike($connection, 'health kit off')) {
+                return 0;
+            }
             $connection->markStatus(ProviderConnection::UNAVAILABLE, ProviderAuthorizationEvent::PROVIDER_UNAVAILABLE);
+            self::diag('Paused: Health Kit off', ['connection_id' => $connection->id, 'background' => $background]);
             return 0;
         }
 
         $res = $this->fetchRecordsConfirmed($connection, $accessToken, 90);
 
         if (!$res->successful()) {
-            $this->handleRefusal($connection, $res);
             // Status code only — response bodies may contain user data, which the
             // privacy policy promises never to write to logs.
-            Log::warning('Huawei activity fetch failed', [
-                'status'        => $res->status(),
-                'connection_id' => $connection->id,
-            ]);
+            self::diag('Activity fetch failed', ['connection_id' => $connection->id, 'status' => $res->status(), 'background' => $background]);
+            if (in_array($res->status(), [401, 403], true) && $background && !$this->secondStrike($connection, 'refused ' . $res->status())) {
+                return 0;
+            }
+            $this->handleRefusal($connection, $res);
             return 0;
         }
+        Cache::forget("huawei_strike:{$connection->id}");
 
         $count = 0;
         // Confirmed key is "activityRecord" (singular) — not the "activityRecords" the

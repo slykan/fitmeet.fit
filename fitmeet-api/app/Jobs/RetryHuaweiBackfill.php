@@ -28,6 +28,6 @@ class RetryHuaweiBackfill implements ShouldQueue
             return;
         }
 
-        $huawei->backfillHuawei($connection, $sync);
+        $huawei->backfillHuawei($connection, $sync, background: true);
     }
 }

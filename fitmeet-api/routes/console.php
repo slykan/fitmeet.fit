@@ -264,7 +264,7 @@ Artisan::command('huawei:sync', function () {
                 $huawei->verify($connection);
                 $connection->refresh();
             }
-            $synced += $huawei->backfillHuawei($connection, $sync);
+            $synced += $huawei->backfillHuawei($connection, $sync, background: true);
         } catch (\Throwable $e) {
             $this->error("Huawei sync failed for connection #{$connection->id}: {$e->getMessage()}");
         }
