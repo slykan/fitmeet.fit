@@ -1,14 +1,16 @@
 import {
   ArrowRight,
   Bell,
+  CalendarRange,
   CheckCircle2,
   Compass,
   HeartPulse,
+  LineChart,
   MessageSquareText,
   Play,
   Route,
   Share2,
-  Trash2,
+  Sparkles,
   Zap,
 } from 'lucide-react'
 import Link from 'next/link'
@@ -104,20 +106,38 @@ const latestFeatures: Array<{
   href?: string
 }> = [
   {
+    icon: Sparkles,
+    title: 'AI Coach',
+    description: 'Charts and a plain-language analysis for every training — and answers to your own questions.',
+    href: '/blog/fitmeet-ai-coach-weekly-monthly-reports',
+  },
+  {
+    icon: CalendarRange,
+    title: 'Weekly & monthly reports',
+    description: 'Distance, time, load and HR zones compared with the previous period, summed up by your coach.',
+  },
+  {
     icon: HeartPulse,
-    title: 'Sync with HUAWEI Health',
-    description: 'Connect HUAWEI Health to automatically import your completed workouts alongside Strava, with duplicates merged automatically.',
+    title: 'Your own HR zones',
+    description: 'Set zones from max HR, heart-rate reserve or by hand — used in every chart and report.',
   },
-  {
-    icon: Share2,
-    title: 'Share your live location',
-    description: 'Open the live map fullscreen during an event and share a link so friends can follow your run or ride in real time.',
-  },
-  {
-    icon: Trash2,
-    title: 'Clean up your training log',
-    description: 'Delete any synced training you don\'t want, from either Strava or Huawei, right from your training list.',
-  },
+]
+
+const coachPoints = [
+  { icon: LineChart, title: 'Charts for every training', text: 'Heart rate, pace or speed, power, cadence, elevation and splits.' },
+  { icon: MessageSquareText, title: 'Ask your coach', text: 'Three suggested questions per session, or ask your own — in your language.' },
+  { icon: CalendarRange, title: 'Week & month reports', text: 'Your load day by day, compared with the previous period.' },
+  { icon: HeartPulse, title: 'Zones that fit you', text: 'Max HR, HRR (Karvonen) or manual — not just 220 minus age.' },
+]
+
+// Demo values for the report preview (minutes per day, Mon–Sun)
+const demoWeek = [45, 0, 70, 35, 0, 120, 60]
+const demoZones = [
+  { color: '#8f9bbd', share: 0.12 },
+  { color: '#3399ff', share: 0.41 },
+  { color: '#6cff2f', share: 0.27 },
+  { color: '#ffaa00', share: 0.15 },
+  { color: '#ff3b30', share: 0.05 },
 ]
 
 const steps = [
@@ -358,7 +378,7 @@ export default async function HomePage() {
                       New in FitMeet
                     </p>
                     <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                      HUAWEI Health sync, live sharing, training cleanup
+                      AI Coach, reports, HR zones
                     </span>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-3">
@@ -398,6 +418,8 @@ export default async function HomePage() {
             <BannerCarousel />
           </div>
         </section>
+
+        <AiCoachSection />
 
         <LatestEventsCarousel events={latestEvents} />
 
@@ -510,6 +532,137 @@ export default async function HomePage() {
       </main>
 
     </>
+  )
+}
+
+function AiCoachSection() {
+  const teal = '#14b8a6'
+  const maxDay = Math.max(...demoWeek)
+  return (
+    <section className="py-16 md:py-20 border-y" style={{ borderColor: 'var(--border)' }}>
+      <div className="max-w-6xl mx-auto px-4">
+        <div className="grid gap-10 lg:grid-cols-[1fr_1fr] lg:items-center">
+          <div>
+            <div
+              className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-bold mb-4"
+              style={{ background: 'rgba(20,184,166,0.15)', color: teal }}
+            >
+              <Sparkles size={13} /> New · AI Coach
+            </div>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 leading-tight">
+              Your trainings, explained.
+              <br />
+              <span style={{ color: teal }}>By your own AI coach.</span>
+            </h2>
+            <p className="text-base leading-relaxed mb-7 max-w-xl" style={{ color: 'var(--text-muted)' }}>
+              Sync HUAWEI Health or Strava and every run, ride and workout gets clean charts, a short analysis
+              and a coach you can ask anything — plus weekly and monthly reports that show how your training
+              is really going.
+            </p>
+
+            <div className="grid gap-4 sm:grid-cols-2 mb-8">
+              {coachPoints.map(({ icon: Icon, title, text }) => (
+                <div key={title} className="flex gap-3">
+                  <div className="w-9 h-9 shrink-0 rounded-xl flex items-center justify-center" style={{ background: 'rgba(20,184,166,0.12)' }}>
+                    <Icon size={17} style={{ color: teal }} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold mb-0.5">{title}</p>
+                    <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>{text}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex gap-3 flex-wrap">
+              <Link
+                href="/register"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm active:scale-95 transition-transform"
+                style={{ background: teal, color: '#04110f' }}
+              >
+                Meet your coach <ArrowRight size={15} />
+              </Link>
+              <Link
+                href="/blog/fitmeet-ai-coach-weekly-monthly-reports"
+                className="inline-flex items-center gap-2 border px-6 py-3 rounded-xl font-semibold text-sm transition-opacity hover:opacity-80"
+                style={{ borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+              >
+                How it works
+              </Link>
+            </div>
+          </div>
+
+          {/* Report preview — illustrative demo data */}
+          <div
+            className="rounded-[28px] border p-5 md:p-6"
+            style={{
+              borderColor: 'rgba(20,184,166,0.25)',
+              background: 'linear-gradient(180deg, rgba(11,16,21,0.98), rgba(8,10,15,0.96))',
+              boxShadow: '0 20px 70px rgba(0,0,0,0.35)',
+            }}
+            aria-label="Example weekly report"
+          >
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <p className="text-xs uppercase tracking-wide" style={{ color: 'rgba(255,255,255,0.5)' }}>Weekly report</p>
+                <p className="text-sm font-semibold text-white">This week vs last week</p>
+              </div>
+              <span className="text-[11px] font-bold px-2.5 py-1 rounded-full" style={{ background: 'rgba(20,184,166,0.15)', color: teal }}>
+                Example
+              </span>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3 mb-6">
+              {[
+                { label: 'Distance', value: '96.4 km', delta: '+18%' },
+                { label: 'Time', value: '5 h 30 min', delta: '+12%' },
+                { label: 'Sessions', value: '5', delta: '+1' },
+              ].map((s) => (
+                <div key={s.label} className="rounded-xl px-3 py-2.5" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                  <p className="text-[10px] uppercase tracking-wide" style={{ color: 'rgba(255,255,255,0.5)' }}>{s.label}</p>
+                  <p className="text-base font-bold text-white">{s.value}</p>
+                  <p className="text-[11px] font-semibold" style={{ color: teal }}>{s.delta}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex items-end gap-2 h-28 mb-2">
+              {demoWeek.map((m, i) => (
+                <div key={i} className="flex-1 flex flex-col items-center justify-end h-full">
+                  <div
+                    className="w-full rounded-md"
+                    style={{
+                      height: m ? `${Math.max(8, (m / maxDay) * 100)}%` : '4px',
+                      background: m ? `linear-gradient(180deg, ${teal}, rgba(20,184,166,0.35))` : 'rgba(255,255,255,0.08)',
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-2 mb-6">
+              {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, i) => (
+                <span key={i} className="flex-1 text-center text-[10px]" style={{ color: 'rgba(255,255,255,0.45)' }}>{d}</span>
+              ))}
+            </div>
+
+            <p className="text-[10px] uppercase tracking-wide mb-2" style={{ color: 'rgba(255,255,255,0.5)' }}>Time in HR zones</p>
+            <div className="flex h-2.5 rounded-full overflow-hidden mb-6">
+              {demoZones.map((z, i) => (
+                <div key={i} style={{ width: `${z.share * 100}%`, background: z.color }} />
+              ))}
+            </div>
+
+            <div className="rounded-2xl p-4 flex gap-3" style={{ background: 'rgba(20,184,166,0.08)', border: '1px solid rgba(20,184,166,0.22)' }}>
+              <Sparkles size={16} className="shrink-0 mt-0.5" style={{ color: teal }} />
+              <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.82)' }}>
+                Solid week — most of your time was in Z2, exactly where base endurance is built. Saturday&apos;s long ride
+                was the big jump; keep tomorrow easy before adding more intensity.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
   )
 }
 
