@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { useEffect, useState } from 'react'
 
 const BANNERS = [
+  { src: '/hero3.jpg', alt: 'FitMeet AI Coach: workout analysis, weekly reports and HR zones on mobile and web' },
   { src: '/hero1.jpg', alt: 'FitMeet app screens showing the live map, routes and chat' },
   { src: '/hero2.jpg', alt: 'FitMeet app screens showing training log, event chat and community' },
 ]
