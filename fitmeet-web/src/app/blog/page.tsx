@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Apple, ArrowRight, Beer, BookOpen, Download, MapPin, MessageCircle, Navigation, PencilLine, Route, Share2, ShieldCheck, ShoppingBag, Sparkles, Tag, Users } from 'lucide-react'
+import { Apple, ArrowRight, Beer, BookOpen, CalendarRange, Download, HeartPulse, LineChart, MapPin, MessageCircle, Navigation, PencilLine, Route, Share2, ShieldCheck, ShoppingBag, Sparkles, Tag, Users } from 'lucide-react'
 import { Navbar } from '@/components/navbar'
 import { posts } from '@/lib/posts'
 
@@ -60,7 +60,55 @@ export default function BlogPage() {
               <p className="text-sm font-bold uppercase tracking-widest" style={{ color: 'var(--primary)' }}>News</p>
             </div>
 
-            {/* Route POI markers — top news */}
+            {/* AI Coach + reports — top news */}
+            <Link
+              href="/blog/fitmeet-ai-coach-weekly-monthly-reports"
+              className="rounded-2xl border p-6 flex flex-col gap-4 transition-opacity hover:opacity-90 mb-4"
+              style={{
+                background: 'linear-gradient(135deg, rgba(20,184,166,0.10) 0%, rgba(20,184,166,0.02) 100%)',
+                borderColor: 'rgba(20,184,166,0.30)',
+              }}
+            >
+              <div className="flex items-center gap-3">
+                <span
+                  className="text-xs font-bold px-3 py-1 rounded-full"
+                  style={{ background: 'rgba(20,184,166,0.18)', color: '#14b8a6' }}
+                >
+                  New · AI Coach
+                </span>
+                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>13 October 2026</span>
+              </div>
+              <div className="flex flex-col md:flex-row md:items-center gap-4">
+                <div className="flex-1">
+                  <h2 className="text-xl font-bold leading-snug mb-2">
+                    Meet your AI Coach — training analysis, weekly and monthly reports
+                  </h2>
+                  <p className="text-sm leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+                    Open any training for charts and a plain-language analysis, ask the coach your own questions, follow your load in weekly and monthly reports, and set heart-rate zones that actually fit you.
+                  </p>
+                </div>
+                <div className="flex items-center justify-center w-16 h-16 rounded-2xl shrink-0" style={{ background: 'rgba(20,184,166,0.12)' }}>
+                  <Sparkles size={32} style={{ color: '#14b8a6' }} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {[
+                  { icon: LineChart, label: 'Training charts' },
+                  { icon: MessageCircle, label: 'Ask the coach' },
+                  { icon: CalendarRange, label: 'Week & month reports' },
+                  { icon: HeartPulse, label: 'Personal HR zones' },
+                ].map(({ icon: Icon, label }) => (
+                  <div key={label} className="flex items-center gap-1.5 text-xs font-semibold">
+                    <Icon size={12} style={{ color: '#14b8a6' }} /> {label}
+                  </div>
+                ))}
+              </div>
+              <div className="flex items-center gap-1.5 text-xs font-semibold mt-auto" style={{ color: '#14b8a6' }}>
+                Read more <ArrowRight size={12} />
+              </div>
+            </Link>
+
+            {/* Route POI markers */}
             <Link
               href="/blog/route-poi-markers-beer-coffee-viewpoint"
               className="rounded-2xl border p-6 flex flex-col gap-4 transition-opacity hover:opacity-90 mb-4"

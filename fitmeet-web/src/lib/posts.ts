@@ -15,6 +15,57 @@ export interface Post {
 
 export const posts: Post[] = [
   {
+    slug: 'fitmeet-ai-coach-weekly-monthly-reports',
+    title: 'Meet Your AI Coach: Training Analysis, Weekly and Monthly Reports',
+    description: 'Every synced training now comes with charts and an AI coach that explains what you did and answers your questions — plus weekly and monthly reports, and heart-rate zones built around you, not a formula.',
+    publishedAt: '2026-10-13',
+    readTime: 4,
+    category: 'Training',
+    sections: [
+      {
+        heading: 'From a Log of Numbers to Something That Talks Back',
+        paragraphs: [
+          'Syncing your trainings into FitMeet gave you one place for every run, ride and workout. But a list of averages does not tell you much on its own. Was that ride actually easy? Why did the last 10 km feel so hard? Is this week heavier than last week?',
+          'That is what the new AI Coach is for. Open any of your trainings and tap Charts & AI Coach: you get clean charts of heart rate, pace or speed, power, cadence and elevation, your splits, time in each heart-rate zone — and a short, plain-language analysis of the session written for you.',
+        ],
+      },
+      {
+        heading: 'Ask It Anything About Your Training',
+        paragraphs: [
+          'Under every analysis there are three suggested questions picked for that specific session — things like "Was my pacing even?" or "How hard was this compared to my usual rides?" — and a box to ask your own. The coach answers using the actual data from that training and your recent history, not generic advice.',
+          'Questions and answers appear in your phone\'s language, so the suggestions and the analysis read naturally whether you train in English, Croatian, German or anything else.',
+        ],
+      },
+      {
+        heading: 'Weekly and Monthly Reports',
+        paragraphs: [
+          'Tap Reports — next to the filters in your Trainings tab, or in the top right corner — and switch between Week and Month. Each report adds up your distance, time, elevation and number of sessions, compares them with the previous period, and charts how your load was spread across the days, plus your time in each heart-rate zone.',
+          'On top of the numbers, the coach writes a short summary of the period: what went well, where the load jumped, and what to keep an eye on next. You can ask follow-up questions about the whole week or month, the same way you can for a single training.',
+        ],
+      },
+      {
+        heading: 'Heart-Rate Zones That Fit You',
+        paragraphs: [
+          'Zones based on "220 minus your age" are wrong for a lot of people — especially anyone who has trained for years. So your profile now has a Heart rate zones card, right above your badges, with three ways to set them: from your max heart rate, from heart-rate reserve (the Karvonen method, using your max and resting HR), or by typing in each zone yourself.',
+          'Not sure what your max is? FitMeet shows the highest heart rate it has seen in your trainings and lets you use it with one tap. Whatever you choose is then used everywhere — in the training charts, the reports, and by the AI coach when it talks about how hard you worked.',
+        ],
+      },
+      {
+        heading: 'Your Data Stays Yours',
+        paragraphs: [
+          'The coach only ever looks at your own trainings, and only you see its analysis. Your trainings are analysed to answer you — they are not shared with other users and not used to train AI models.',
+          'Each month you get 10 training analyses and 20 questions, which is plenty for checking in on your key sessions and your week.',
+        ],
+      },
+      {
+        heading: 'Available Now',
+        paragraphs: [
+          'AI Coach, weekly and monthly reports and personal heart-rate zones are live today on fitmeet.fit and rolling out to the Android and iOS apps with the latest update. Connect HUAWEI Health or Strava in your Trainings tab to sync your sessions — Garmin and iGPSPORT are coming soon — and open any training to meet your coach.',
+        ],
+      },
+    ],
+  },
+  {
     slug: 'route-poi-markers-beer-coffee-viewpoint',
     title: 'Mark the Beer Stop, the Viewpoint, and Every Break on Your Route',
     description: 'Route drawing now has five FitMeet-only markers — beer, coffee, cigarette, pause and viewpoint — so organisers can flag exactly where the group will stop, on both web and mobile.',
