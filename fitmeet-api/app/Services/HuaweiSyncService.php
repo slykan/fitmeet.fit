@@ -21,6 +21,9 @@ class HuaweiSyncService
     /** Last privacyRecords answer, for logging why a connection was paused. */
     private array $lastOpinions = [];
 
+    /** Any privacyRecords answer in this check said "off" (even one later ignored as a blip). */
+    private bool $sawHealthKitOff = false;
+
     public const REQUIRED_SCOPES = [
         'https://www.huawei.com/healthkit/activityrecord.read',
         'https://www.huawei.com/healthkit/activity.read',
@@ -162,6 +165,9 @@ class HuaweiSyncService
             ->get('https://health-api.cloud.huawei.com/healthkit/v1/profile/privacyRecords');
         $opinions = $res->successful() ? array_column((array) $res->json(), 'opinion') : [];
         $this->lastOpinions = $res->successful() ? $opinions : ['http' => $res->status()];
+        if ($opinions && in_array(2, $opinions)) {
+            $this->sawHealthKitOff = true;
+        }
 
         return $opinions ? !in_array(2, $opinions) : null;
     }
@@ -175,7 +181,13 @@ class HuaweiSyncService
      */
     private function handleRefusal(ProviderConnection $connection, Response $res): void
     {
-        if ($res->status() === 401) {
+        if ($res->status() === 401 && $this->sawHealthKitOff) {
+            // 2026-10-21: with Health Kit off (iPhone, HUAWEI Health) Huawei also answers the
+            // data API with 401. Calling that "revoked" told the user access was cancelled and
+            // the status flapped revoked/unavailable all night — the fix is the Health Kit switch.
+            self::diag('Refused while Health Kit off: unavailable, not revoked', ['connection_id' => $connection->id]);
+            $connection->markStatus(ProviderConnection::UNAVAILABLE, ProviderAuthorizationEvent::PROVIDER_UNAVAILABLE);
+        } elseif ($res->status() === 401) {
             $connection->markStatus(ProviderConnection::REVOKED, ProviderAuthorizationEvent::REVOKED_BY_PROVIDER);
         } elseif ($res->status() === 403) {
             $body = strtolower($res->body());
@@ -203,6 +215,7 @@ class HuaweiSyncService
             return $connection->fresh()->status;
         }
 
+        $this->sawHealthKitOff = false;
         if ($this->healthKitSwitchedOff($connection, $accessToken)) {
             if ($connection->status !== ProviderConnection::UNAVAILABLE) {
                 self::diag('Paused on verify: Health Kit off', ['connection_id' => $connection->id]);
@@ -214,7 +227,11 @@ class HuaweiSyncService
         $res = $this->fetchRecordsConfirmed($connection, $accessToken, 1);
         if ($res->successful()) {
             // e.g. HUAWEI Health Kit switched back on, or a revocation that wasn't one
-            if (in_array($connection->status, [ProviderConnection::UNAVAILABLE, ProviderConnection::REVOKED], true)) {
+            if ($this->sawHealthKitOff && $connection->status === ProviderConnection::UNAVAILABLE) {
+                // one data answer while Health Kit still reads "off" is not a recovery — healing
+                // here made the connection flap active/paused every poll (2026-10-21)
+                self::diag('Not healed: Health Kit still reads off', ['connection_id' => $connection->id]);
+            } elseif (in_array($connection->status, [ProviderConnection::UNAVAILABLE, ProviderConnection::REVOKED], true)) {
                 self::diag('Healed on verify', ['connection_id' => $connection->id, 'was' => $connection->status]);
                 $connection->markStatus(ProviderConnection::ACTIVE, ProviderAuthorizationEvent::GRANTED);
             }
@@ -263,6 +280,7 @@ class HuaweiSyncService
             return 0;
         }
 
+        $this->sawHealthKitOff = false;
         // Health Kit switched off: stop reading even though Huawei would still answer.
         if ($this->healthKitSwitchedOff($connection, $accessToken)) {
             if ($background && !$this->secondStrike($connection, 'health kit off')) {
