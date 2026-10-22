@@ -413,7 +413,7 @@ export default async function HomePage() {
           </div>
         </section>
 
-        <section className="pb-16 md:pb-20">
+        <section className="py-16 md:py-20">
           <div className="max-w-6xl mx-auto px-4">
             <BannerCarousel />
           </div>
