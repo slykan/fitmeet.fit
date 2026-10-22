@@ -44,7 +44,7 @@ const HUAWEI_SCOPES = [
 const STATUS_MESSAGE: Record<string, string> = {
   revoked: 'Authorization was cancelled in the HUAWEI Health app. Reconnect to resume syncing your trainings.',
   insufficient_scope: 'Not all permissions were granted. Training sync needs both "Activity record" and "Activity" — reconnect and allow both.',
-  unavailable: 'HUAWEI Health Kit is turned off or your data can\'t be accessed. Turn on HUAWEI Health Kit in the HUAWEI Health app (Me › Privacy management), then reconnect.',
+  unavailable: 'HUAWEI Health Kit is turned off for your HUAWEI ID, so no trainings are shared. In the HUAWEI Health app turn on HUAWEI Health Kit — iPhone: Me › Third-party services, Android: Me › Privacy management — then reconnect.',
 }
 
 function timeAgo(iso: string | null): string {
@@ -279,7 +279,9 @@ function ConnectedAppsCardInner() {
                 <div className="mt-2 flex gap-2 items-start rounded-lg p-3 text-xs"
                   style={{ background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.35)', color: 'var(--text)' }}>
                   <AlertTriangle size={14} className="shrink-0 mt-0.5" style={{ color: '#f87171' }} />
-                  <span>{STATUS_MESSAGE[problem]}</span>
+                  <span>{STATUS_MESSAGE[problem]}{' '}
+                    <a href="/help/huawei-health" style={{ color: 'var(--primary)', textDecoration: 'underline' }}>How to fix</a>
+                  </span>
                 </div>
               )}
 

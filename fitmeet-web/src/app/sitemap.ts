@@ -53,6 +53,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: siteUrl('/press'),               lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
     { url: siteUrl('/press/brand-details'), lastModified: now, changeFrequency: 'monthly', priority: 0.4 },
     { url: siteUrl('/privacy'),             lastModified: now, changeFrequency: 'yearly',  priority: 0.3 },
+    { url: siteUrl('/help/huawei-health'), lastModified: now, changeFrequency: 'monthly', priority: 0.4 },
     { url: siteUrl('/csae'),                lastModified: now, changeFrequency: 'yearly',  priority: 0.2 },
   ]
 

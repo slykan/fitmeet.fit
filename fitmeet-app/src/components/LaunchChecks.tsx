@@ -11,7 +11,7 @@ import { palette, spacing } from '@/src/theme'
 export const HUAWEI_STATUS_MESSAGE: Record<string, string> = {
   revoked: 'FitMeet\'s access was cancelled in the HUAWEI Health app, so your trainings are no longer synced. Reconnect to resume.',
   insufficient_scope: 'Not all permissions were granted. Training sync needs both "Activity record" and "Activity" — reconnect and allow both.',
-  unavailable: 'HUAWEI Health Kit is turned off or your data can\'t be accessed. Turn on HUAWEI Health Kit in the HUAWEI Health app (Me › Privacy management), then reconnect.',
+  unavailable: 'HUAWEI Health Kit is turned off for your HUAWEI ID, so no trainings are shared. In the HUAWEI Health app turn on HUAWEI Health Kit — iPhone: Me › Third-party services, Android: Me › Privacy management — then reconnect.',
 }
 
 const RECHECK_MS = 10 * 60 * 1000

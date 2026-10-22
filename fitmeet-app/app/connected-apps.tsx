@@ -358,7 +358,16 @@ export default function ConnectedAppsScreen() {
                 {problem && HUAWEI_STATUS_MESSAGE[problem] ? (
                   <View style={styles.warning}>
                     <Ionicons name="warning-outline" size={16} color="#f87171" />
-                    <Text style={styles.warningText}>{HUAWEI_STATUS_MESSAGE[problem]}</Text>
+                    <Text style={styles.warningText}>
+                      {HUAWEI_STATUS_MESSAGE[problem]}{' '}
+                      <Text
+                        style={styles.warningLink}
+                        accessibilityRole="link"
+                        onPress={() => WebBrowser.openBrowserAsync('https://fitmeet.fit/help/huawei-health')}
+                      >
+                        How to fix
+                      </Text>
+                    </Text>
                   </View>
                 ) : null}
 
@@ -420,6 +429,7 @@ const styles = StyleSheet.create({
   dataRead: { color: palette.textDim, fontSize: 11, marginTop: 2 },
   warning: { flexDirection: 'row', gap: 8, alignItems: 'flex-start', padding: 10, borderRadius: 10, backgroundColor: 'rgba(248,113,113,0.08)', borderWidth: 1, borderColor: 'rgba(248,113,113,0.35)' },
   warningText: { flex: 1, color: palette.text, fontSize: 12, lineHeight: 17 },
+  warningLink: { color: palette.accent, textDecorationLine: 'underline', fontWeight: '600' },
 
   actions: { flexDirection: 'row', gap: 8 },
   secondaryBtn: {
