@@ -352,3 +352,45 @@ Artisan::command('strava:import-history {--days=365} {--user=}', function () {
 
     $this->info("Listed {$listed} activit(y/ies); queued detail import for {$queued} training(s).");
 })->purpose('Import the last N days of Strava activities with full detail and streams');
+
+// Dijagnostika jedne HUAWEI Health veze: što Huawei vraća (bez tokena) i što je FitMeet spremio.
+// Primjer: php artisan huawei:diag 23 --days=2
+Artisan::command('huawei:diag {connection} {--days=2}', function () {
+    $c = \App\Models\ProviderConnection::where('provider', 'huawei')->find($this->argument('connection'));
+    if (!$c) {
+        $this->error('Nema te Huawei veze.');
+        return;
+    }
+    $this->line("Veza {$c->id}, korisnik {$c->user_id}, status {$c->status}, spojena {$c->connected_at}");
+    $tok = app(\App\Services\HuaweiSyncService::class)->ensureFreshToken($c);
+    if (!$tok) {
+        $this->error('Osvježavanje tokena nije uspjelo.');
+        return;
+    }
+    $h = ['x-client-id' => config('services.huawei.client_id')];
+    $base = 'https://health-api.cloud.huawei.com/healthkit/';
+
+    $p = \Illuminate\Support\Facades\Http::withToken($tok)->withHeaders($h)->get($base . 'v1/profile/privacyRecords');
+    $this->line("PRIVACY HTTP {$p->status()}: " . $p->body());
+
+    $days = (int) $this->option('days');
+    $a = \Illuminate\Support\Facades\Http::withToken($tok)->withHeaders($h)->get($base . 'v2/activityRecords', [
+        'startTime' => now()->subDays($days)->getTimestampMs(),
+        'endTime'   => now()->getTimestampMs(),
+    ]);
+    $r = (array) ($a->json('activityRecord') ?? []);
+    $this->line("ACTIVITY HTTP {$a->status()}, zapisa u Huawei oblaku (zadnjih {$days} d): " . count($r));
+    foreach ($r as $x) {
+        $this->line('  ' . date('d.m. H:i', (int) (($x['startTime'] ?? 0) / 1000)) . ' tip ' . ($x['activityType'] ?? '?') . ' id ' . ($x['id'] ?? '?'));
+    }
+    if (!$a->successful()) {
+        $this->line('  ' . substr($a->body(), 0, 400));
+    }
+
+    $saved = \App\Models\Training::where('user_id', $c->user_id)->where('provider', 'huawei')
+        ->where('started_at', '>=', now()->subDays($days))->orderByDesc('started_at')->get(['started_at', 'category', 'external_id']);
+    $this->line('Spremljeno u FitMeet (zadnjih ' . $days . ' d): ' . $saved->count());
+    foreach ($saved as $s) {
+        $this->line('  ' . $s->started_at . ' ' . $s->category . ' id ' . $s->external_id);
+    }
+})->purpose('Diagnose one HUAWEI Health connection (no tokens printed)');
