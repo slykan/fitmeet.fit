@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { useCallback, useEffect, useState } from 'react'
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 
+import { FoodLog, type Meal, type MealTemplate, type QuickDrink } from '@/src/components/FoodLog'
 import { HealthGauge, type EnergyDay } from '@/src/components/HealthGauge'
 import { api } from '@/src/lib/api'
 import { useAuthStore } from '@/src/store/auth'
@@ -29,6 +30,25 @@ interface HealthPayload {
   today: EnergyDay | null
   week: EnergyDay | null
   w_per_kg?: number | null
+  date: string
+  is_today: boolean
+  meals: Meal[]
+  recent: MealTemplate[]
+  quick_drinks: QuickDrink[]
+  estimates_left: number
+}
+
+const shiftDay = (iso: string, by: number) => {
+  const d = new Date(iso + 'T12:00:00')
+  d.setDate(d.getDate() + by)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+const dayLabel = (iso: string, isToday: boolean) => {
+  if (isToday) return 'Today'
+  const d = new Date(iso + 'T12:00:00')
+  const y = new Date(); y.setDate(y.getDate() - 1)
+  if (d.toDateString() === y.toDateString()) return 'Yesterday'
+  return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
 }
 
 const SEX: { value: Sex; label: string }[] = [
@@ -81,13 +101,18 @@ export function HealthPanel({ startEditing = false, onSaved }: { startEditing?: 
     setSteps(str(p.avg_daily_steps)); setFtp(str(p.ftp_w)); setGoal(p.goal); setTarget(str(p.target_weight_kg))
   }
 
-  const load = useCallback(() => {
+  const [date, setDate] = useState<string | null>(null)
+  const [dayLoading, setDayLoading] = useState(false)
+
+  const load = useCallback((d: string | null) => {
     setError(null)
-    api.get<HealthPayload>('/health')
+    setDayLoading(true)
+    api.get<HealthPayload>('/health', { params: d ? { date: d } : {} })
       .then(({ data }) => { setData(data); fill(data.profile); if (!data.complete) setEditing(true) })
       .catch(() => setError('Could not load your health data.'))
+      .finally(() => setDayLoading(false))
   }, [])
-  useEffect(load, [load])
+  useEffect(() => load(date), [load, date])
 
   async function save() {
     const d = parseInt(day, 10), m = parseInt(month, 10), y = parseInt(year, 10)
@@ -128,7 +153,27 @@ export function HealthPanel({ startEditing = false, onSaved }: { startEditing?: 
   if (!editing && data.complete && data.today && data.week) {
     return (
       <View style={{ gap: spacing.md }}>
-        <HealthGauge today={data.today} week={data.week} />
+        <View style={styles.dayNav}>
+          <Pressable hitSlop={10} style={styles.dayBtn} onPress={() => setDate(shiftDay(data.date, -1))} disabled={dayLoading}>
+            <Ionicons name="chevron-back" size={18} color={palette.text} />
+          </Pressable>
+          <Pressable style={{ flex: 1, alignItems: 'center' }} onPress={() => setDate(null)} disabled={data.is_today}>
+            <Text style={styles.dayText}>{dayLabel(data.date, data.is_today)}</Text>
+            {!data.is_today && <Text style={styles.dayHint}>tap for today</Text>}
+          </Pressable>
+          <Pressable hitSlop={10} style={[styles.dayBtn, data.is_today && { opacity: 0.3 }]} onPress={() => setDate(shiftDay(data.date, 1))} disabled={data.is_today || dayLoading}>
+            <Ionicons name="chevron-forward" size={18} color={palette.text} />
+          </Pressable>
+        </View>
+        <HealthGauge key={data.date} today={data.today} week={data.week} todayLabel={data.is_today ? 'Today' : 'Day'} />
+        <FoodLog<HealthPayload>
+          date={data.date}
+          meals={data.meals}
+          recent={data.recent}
+          quickDrinks={data.quick_drinks}
+          estimatesLeft={data.estimates_left}
+          onChange={p => setData(p)}
+        />
         <View style={styles.facts}>
           <Fact label="Weight" value={`${data.profile.weight_kg} kg`} />
           <Fact label="Height" value={`${data.profile.height_cm} cm`} />
@@ -230,6 +275,10 @@ function Fact({ label, value }: { label: string; value: string }) {
 
 const styles = StyleSheet.create({
   loading: { paddingVertical: 40, alignItems: 'center' },
+  dayNav: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  dayBtn: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.panel, borderWidth: 1, borderColor: palette.line },
+  dayText: { color: palette.text, fontSize: 15, fontWeight: '800' },
+  dayHint: { color: palette.textDim, fontSize: 10 },
   muted: { color: palette.textMuted, fontSize: 13 },
   card: { backgroundColor: palette.panel, borderRadius: 22, borderWidth: 1, borderColor: 'rgba(255,59,48,0.25)', padding: spacing.md, gap: 12 },
   head: { flexDirection: 'row', alignItems: 'center', gap: 10 },

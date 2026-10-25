@@ -122,6 +122,9 @@ class HealthProfile
                 ? (int) round(array_sum(array_column($logged, 'intake')) / count($logged)) : 0,
             'logged_days' => count($logged),
         ];
+        foreach (['protein_g', 'carbs_g', 'fat_g'] as $k) {
+            $week[$k] = $logged ? round(array_sum(array_column($logged, $k)) / count($logged), 1) : 0;
+        }
 
         return $base + [
             'bmr'   => $bmr,

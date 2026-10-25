@@ -13,6 +13,12 @@ export interface EnergyDay {
   total: number
   trainings: number
   estimated: boolean
+  intake?: number
+  protein_g?: number
+  carbs_g?: number
+  fat_g?: number
+  water_ml?: number
+  logged_days?: number
 }
 
 const W = 260
@@ -38,10 +44,11 @@ const fmt = (n: number) => Math.round(n).toLocaleString('en-US').replace(/,/g, '
  * Half-circle gauge: colour scale up to ~2.2 × BMR, white needle = BMR (basal),
  * green needle = estimated total burn (BMR + steps + trainings + food), Today / 7-day average.
  */
-export function HealthGauge({ today, week }: { today: EnergyDay; week: EnergyDay }) {
+export function HealthGauge({ today, week, todayLabel = 'Today' }: { today: EnergyDay; week: EnergyDay; todayLabel?: string }) {
   const [mode, setMode] = useState<'today' | 'week'>('today')
   const d = mode === 'today' ? today : week
-  const max = Math.max(Math.ceil((d.bmr * 2.2) / 500) * 500, Math.ceil((d.total * 1.1) / 500) * 500)
+  const intake = d.intake ?? 0
+  const max = Math.max(Math.ceil((d.bmr * 2.2) / 500) * 500, Math.ceil((Math.max(d.total, intake) * 1.1) / 500) * 500)
   const share = (v: number) => Math.min(1, Math.max(0, v / max))
 
   const needle = (v: number, color: string, len: number, width: number) => {
@@ -59,7 +66,7 @@ export function HealthGauge({ today, week }: { today: EnergyDay; week: EnergyDay
         <View style={styles.toggle}>
           {(['today', 'week'] as const).map(m => (
             <Pressable key={m} style={[styles.toggleItem, mode === m && styles.toggleOn]} onPress={() => setMode(m)}>
-              <Text style={[styles.toggleText, mode === m && styles.toggleTextOn]}>{m === 'today' ? 'Today' : '7 days'}</Text>
+              <Text style={[styles.toggleText, mode === m && styles.toggleTextOn]}>{m === 'today' ? todayLabel : '7 days'}</Text>
             </Pressable>
           ))}
         </View>
@@ -78,6 +85,9 @@ export function HealthGauge({ today, week }: { today: EnergyDay; week: EnergyDay
           </Defs>
           <Path d={arc(0, 1, R)} stroke={palette.line} strokeWidth={STROKE} fill="none" strokeLinecap="round" />
           <Path d={arc(0, share(d.total), R)} stroke="url(#scale)" strokeWidth={STROKE} fill="none" strokeLinecap="round" />
+          {/* inner thin arc = eaten (food log) */}
+          {intake > 0 && <Path d={arc(0, 1, R - 26)} stroke="rgba(255,255,255,0.06)" strokeWidth={6} fill="none" strokeLinecap="round" />}
+          {intake > 0 && <Path d={arc(0, share(intake), R - 26)} stroke="#ff9f43" strokeWidth={6} fill="none" strokeLinecap="round" />}
           {/* BMR tick on the ring */}
           <G>
             <Line x1={point(share(d.bmr), R - STROKE / 2 - 3).x} y1={point(share(d.bmr), R - STROKE / 2 - 3).y}
@@ -105,10 +115,18 @@ export function HealthGauge({ today, week }: { today: EnergyDay; week: EnergyDay
           <Text style={styles.legendLabel}>Burned</Text>
           <Text style={styles.legendValue}>{fmt(d.total)}</Text>
         </View>
-        <View style={styles.legendItem}>
-          <Text style={[styles.legendLabel, { color: palette.accent }]}>+{fmt(above)}</Text>
-          <Text style={styles.legendLabel}>above BMR</Text>
-        </View>
+        {intake > 0 ? (
+          <View style={styles.legendItem}>
+            <View style={[styles.dot, { backgroundColor: '#ff9f43' }]} />
+            <Text style={styles.legendLabel}>Eaten</Text>
+            <Text style={styles.legendValue}>{fmt(intake)}</Text>
+          </View>
+        ) : (
+          <View style={styles.legendItem}>
+            <Text style={[styles.legendLabel, { color: palette.accent }]}>+{fmt(above)}</Text>
+            <Text style={styles.legendLabel}>above BMR</Text>
+          </View>
+        )}
       </View>
 
       <View style={styles.parts}>
@@ -117,6 +135,12 @@ export function HealthGauge({ today, week }: { today: EnergyDay; week: EnergyDay
         <Part icon="barbell-outline" label={mode === 'today' ? `Training${d.trainings === 1 ? '' : 's'} (${d.trainings})` : 'Training'} value={d.training} />
         <Part icon="restaurant-outline" label="Digestion" value={d.food} />
       </View>
+      {intake > 0 && (
+        <Text style={[styles.balance, { color: intake > d.total ? '#ff9f43' : palette.accent }]}>
+          {intake > d.total ? `+${fmt(intake - d.total)} kcal surplus` : `−${fmt(d.total - intake)} kcal deficit`}
+          {mode === 'week' && d.logged_days ? `  ·  avg of ${d.logged_days} logged day${d.logged_days === 1 ? '' : 's'}` : ''}
+        </Text>
+      )}
       {d.estimated && <Text style={styles.note}>Some trainings had no calories — estimated from heart rate or duration.</Text>}
     </View>
   )
@@ -158,4 +182,5 @@ const styles = StyleSheet.create({
   partLabel: { flex: 1, color: palette.textMuted, fontSize: 12 },
   partValue: { color: palette.text, fontSize: 13, fontWeight: '800' },
   note: { color: palette.textDim, fontSize: 10 },
+  balance: { fontSize: 13, fontWeight: '800', textAlign: 'center' },
 })

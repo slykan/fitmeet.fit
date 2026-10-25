@@ -1,8 +1,9 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Bed, Dumbbell, Flame, Footprints, HeartPulse, Loader2, Pencil, UtensilsCrossed } from 'lucide-react'
+import { Bed, ChevronLeft, ChevronRight, Dumbbell, Flame, Footprints, HeartPulse, Loader2, Pencil, UtensilsCrossed } from 'lucide-react'
 
+import { FoodLog, type Meal, type MealTemplate, type QuickDrink } from '@/components/food-log'
 import api from '@/lib/api'
 
 // Health (own profile only): first visit — or "Edit health data" — shows the form, fields we
@@ -12,7 +13,23 @@ import api from '@/lib/api'
 type Sex = 'male' | 'female' | 'na'
 type Goal = 'lose' | 'maintain' | 'gain'
 
-export interface EnergyDay { bmr: number; steps: number; training: number; food: number; total: number; trainings: number; estimated: boolean }
+export interface EnergyDay {
+  bmr: number; steps: number; training: number; food: number; total: number; trainings: number; estimated: boolean
+  intake?: number; protein_g?: number; carbs_g?: number; fat_g?: number; water_ml?: number; logged_days?: number
+}
+
+const shiftDay = (iso: string, by: number) => {
+  const d = new Date(iso + 'T12:00:00')
+  d.setDate(d.getDate() + by)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+const dayLabel = (iso: string, isToday: boolean) => {
+  if (isToday) return 'Today'
+  const d = new Date(iso + 'T12:00:00')
+  const y = new Date(); y.setDate(y.getDate() - 1)
+  if (d.toDateString() === y.toDateString()) return 'Yesterday'
+  return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+}
 
 interface HealthPayload {
   complete: boolean
@@ -26,6 +43,12 @@ interface HealthPayload {
   today: EnergyDay | null
   week: EnergyDay | null
   w_per_kg?: number | null
+  date: string
+  is_today: boolean
+  meals: Meal[]
+  recent: MealTemplate[]
+  quick_drinks: QuickDrink[]
+  estimates_left: number
 }
 
 const SEX: { value: Sex; label: string }[] = [
@@ -53,12 +76,13 @@ export function HealthPanel({ startEditing = false }: { startEditing?: boolean }
     steps: str(p.avg_daily_steps), ftp: str(p.ftp_w), goal: p.goal, target: str(p.target_weight_kg),
   })
 
-  const load = useCallback(() => {
-    api.get<HealthPayload>('/health')
+  const [date, setDate] = useState<string | null>(null)
+  const load = useCallback((d: string | null) => {
+    api.get<HealthPayload>('/health', { params: d ? { date: d } : {} })
       .then(({ data }) => { setData(data); fill(data.profile); if (!data.complete) setEditing(true) })
       .catch(() => setError('Could not load your health data.'))
   }, [])
-  useEffect(load, [load])
+  useEffect(() => load(date), [load, date])
 
   async function save(e: React.FormEvent) {
     e.preventDefault()
@@ -91,7 +115,17 @@ export function HealthPanel({ startEditing = false }: { startEditing?: boolean }
     const p = data.profile
     return (
       <div className="flex flex-col gap-4">
-        <EnergyGauge today={data.today} week={data.week} />
+        <div className="flex items-center gap-2">
+          <button onClick={() => setDate(shiftDay(data.date, -1))} aria-label="Previous day" className="w-9 h-9 rounded-xl border flex items-center justify-center" style={card}><ChevronLeft size={17} /></button>
+          <button onClick={() => setDate(null)} disabled={data.is_today} className="flex-1 text-center">
+            <div className="font-bold">{dayLabel(data.date, data.is_today)}</div>
+            {!data.is_today && <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>click for today</div>}
+          </button>
+          <button onClick={() => setDate(shiftDay(data.date, 1))} disabled={data.is_today} aria-label="Next day" className="w-9 h-9 rounded-xl border flex items-center justify-center disabled:opacity-30" style={card}><ChevronRight size={17} /></button>
+        </div>
+        <EnergyGauge key={data.date} today={data.today} week={data.week} todayLabel={data.is_today ? 'Today' : 'Day'} />
+        <FoodLog<HealthPayload> date={data.date} meals={data.meals} recent={data.recent} quickDrinks={data.quick_drinks}
+          estimatesLeft={data.estimates_left} onChange={p => setData(p)} />
         <div className="flex flex-wrap gap-2">
           <Fact label="Weight" value={`${p.weight_kg} kg`} />
           <Fact label="Height" value={`${p.height_cm} cm`} />
@@ -196,10 +230,11 @@ const point = (share: number, r: number) => { const a = Math.PI * (1 - share); r
 const arc = (from: number, to: number, r: number) => { const a = point(from, r), b = point(to, r); return `M ${a.x} ${a.y} A ${r} ${r} 0 0 1 ${b.x} ${b.y}` }
 
 /** Half-circle gauge: white needle = BMR, green needle = estimated total burn; Today / 7-day average. */
-export function EnergyGauge({ today, week }: { today: EnergyDay; week: EnergyDay }) {
+export function EnergyGauge({ today, week, todayLabel = 'Today' }: { today: EnergyDay; week: EnergyDay; todayLabel?: string }) {
   const [mode, setMode] = useState<'today' | 'week'>('today')
   const d = mode === 'today' ? today : week
-  const max = Math.max(Math.ceil((d.bmr * 2.2) / 500) * 500, Math.ceil((d.total * 1.1) / 500) * 500)
+  const intake = d.intake ?? 0
+  const max = Math.max(Math.ceil((d.bmr * 2.2) / 500) * 500, Math.ceil((Math.max(d.total, intake) * 1.1) / 500) * 500)
   const share = (v: number) => Math.min(1, Math.max(0, v / max))
   const needle = (v: number, color: string, len: number, width: number) => {
     const p = point(share(v), len)
@@ -217,7 +252,7 @@ export function EnergyGauge({ today, week }: { today: EnergyDay; week: EnergyDay
           {(['today', 'week'] as const).map(m => (
             <button key={m} onClick={() => setMode(m)} className="px-3 h-7 text-xs font-bold rounded-lg"
               style={{ background: mode === m ? 'var(--primary)' : 'transparent', color: mode === m ? '#000' : 'var(--text-muted)' }}>
-              {m === 'today' ? 'Today' : '7 days'}
+              {m === 'today' ? todayLabel : '7 days'}
             </button>
           ))}
         </div>
@@ -233,6 +268,8 @@ export function EnergyGauge({ today, week }: { today: EnergyDay; week: EnergyDay
           </defs>
           <path d={arc(0, 1, R)} stroke="rgba(255,255,255,0.08)" strokeWidth={STROKE} fill="none" strokeLinecap="round" />
           <path d={arc(0, share(d.total), R)} stroke="url(#energy-scale)" strokeWidth={STROKE} fill="none" strokeLinecap="round" />
+          {intake > 0 && <path d={arc(0, 1, R - 26)} stroke="rgba(255,255,255,0.06)" strokeWidth={6} fill="none" strokeLinecap="round" />}
+          {intake > 0 && <path d={arc(0, share(intake), R - 26)} stroke="#ff9f43" strokeWidth={6} fill="none" strokeLinecap="round" />}
           <line x1={t1.x} y1={t1.y} x2={t2.x} y2={t2.y} stroke="#fff" strokeWidth={3} strokeLinecap="round" />
           {needle(d.bmr, 'rgba(255,255,255,0.75)', R - 34, 3)}
           {needle(d.total, '#6cff2f', R - 16, 4)}
@@ -247,8 +284,16 @@ export function EnergyGauge({ today, week }: { today: EnergyDay; week: EnergyDay
       <div className="flex justify-center gap-5 text-xs" style={{ color: 'var(--text-muted)' }}>
         <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-white" /> BMR <b className="text-white">{fmt(d.bmr)}</b></span>
         <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full" style={{ background: '#6cff2f' }} /> Burned <b className="text-white">{fmt(d.total)}</b></span>
-        <span><b style={{ color: '#6cff2f' }}>+{fmt(d.total - d.bmr)}</b> above BMR</span>
+        {intake > 0
+          ? <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full" style={{ background: '#ff9f43' }} /> Eaten <b className="text-white">{fmt(intake)}</b></span>
+          : <span><b style={{ color: '#6cff2f' }}>+{fmt(d.total - d.bmr)}</b> above BMR</span>}
       </div>
+      {intake > 0 && (
+        <p className="text-sm font-bold text-center" style={{ color: intake > d.total ? '#ff9f43' : '#6cff2f' }}>
+          {intake > d.total ? `+${fmt(intake - d.total)} kcal surplus` : `−${fmt(d.total - intake)} kcal deficit`}
+          {mode === 'week' && d.logged_days ? ` · avg of ${d.logged_days} logged day${d.logged_days === 1 ? '' : 's'}` : ''}
+        </p>
+      )}
 
       <div className="grid grid-cols-2 gap-y-2 gap-x-4 pt-3 text-sm" style={{ borderTop: '1px solid rgba(57,255,20,0.18)' }}>
         <Part icon={<Bed size={14} />} label="Basal" value={d.bmr} />
