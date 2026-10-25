@@ -123,7 +123,7 @@ export function HealthPanel({ startEditing = false }: { startEditing?: boolean }
           </button>
           <button onClick={() => setDate(shiftDay(data.date, 1))} disabled={data.is_today} aria-label="Next day" className="w-9 h-9 rounded-xl border flex items-center justify-center disabled:opacity-30" style={card}><ChevronRight size={17} /></button>
         </div>
-        <EnergyGauge key={data.date} today={data.today} week={data.week} todayLabel={data.is_today ? 'Today' : 'Day'} />
+        <EnergyGauge key={data.date} today={data.today} week={data.week} todayLabel={data.is_today ? 'Today' : 'Day'} avgSteps={data.profile.avg_daily_steps} />
         <FoodLog<HealthPayload> date={data.date} meals={data.meals} recent={data.recent} quickDrinks={data.quick_drinks}
           estimatesLeft={data.estimates_left} onChange={p => setData(p)} />
         <div className="flex flex-wrap gap-2">
@@ -230,7 +230,7 @@ const point = (share: number, r: number) => { const a = Math.PI * (1 - share); r
 const arc = (from: number, to: number, r: number) => { const a = point(from, r), b = point(to, r); return `M ${a.x} ${a.y} A ${r} ${r} 0 0 1 ${b.x} ${b.y}` }
 
 /** Half-circle gauge: white needle = BMR, green needle = estimated total burn; Today / 7-day average. */
-export function EnergyGauge({ today, week, todayLabel = 'Today' }: { today: EnergyDay; week: EnergyDay; todayLabel?: string }) {
+export function EnergyGauge({ today, week, todayLabel = 'Today', avgSteps }: { today: EnergyDay; week: EnergyDay; todayLabel?: string; avgSteps?: number | null }) {
   const [mode, setMode] = useState<'today' | 'week'>('today')
   const d = mode === 'today' ? today : week
   const intake = d.intake ?? 0
@@ -297,7 +297,7 @@ export function EnergyGauge({ today, week, todayLabel = 'Today' }: { today: Ener
 
       <div className="grid grid-cols-2 gap-y-2 gap-x-4 pt-3 text-sm" style={{ borderTop: '1px solid rgba(57,255,20,0.18)' }}>
         <Part icon={<Bed size={14} />} label="Basal" value={d.bmr} />
-        <Part icon={<Footprints size={14} />} label="Steps" value={d.steps} />
+        <Part icon={<Footprints size={14} />} label={avgSteps ? `Steps (${fmt(avgSteps)}/day)` : 'Steps (not set)'} value={d.steps} />
         <Part icon={<Dumbbell size={14} />} label={mode === 'today' ? `Training${d.trainings === 1 ? '' : 's'} (${d.trainings})` : 'Training'} value={d.training} />
         <Part icon={<UtensilsCrossed size={14} />} label="Digestion" value={d.food} />
       </div>
@@ -309,7 +309,7 @@ export function EnergyGauge({ today, week, todayLabel = 'Today' }: { today: Ener
 function Part({ icon, label, value }: { icon: React.ReactNode; label: string; value: number }) {
   return (
     <div className="flex items-center gap-2" style={{ color: 'var(--text-muted)' }}>
-      {icon}<span className="flex-1 truncate">{label}</span><b className="text-white">{fmt(value)}</b>
+      {icon}<span className="flex-1 truncate">{label}</span><b className="text-white">{fmt(value)} <span className="text-[10px] font-semibold" style={{ color: 'var(--text-muted)' }}>kcal</span></b>
     </div>
   )
 }

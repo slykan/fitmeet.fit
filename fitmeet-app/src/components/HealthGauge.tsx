@@ -44,7 +44,7 @@ const fmt = (n: number) => Math.round(n).toLocaleString('en-US').replace(/,/g, '
  * Half-circle gauge: colour scale up to ~2.2 × BMR, white needle = BMR (basal),
  * green needle = estimated total burn (BMR + steps + trainings + food), Today / 7-day average.
  */
-export function HealthGauge({ today, week, todayLabel = 'Today' }: { today: EnergyDay; week: EnergyDay; todayLabel?: string }) {
+export function HealthGauge({ today, week, todayLabel = 'Today', avgSteps }: { today: EnergyDay; week: EnergyDay; todayLabel?: string; avgSteps?: number | null }) {
   const [mode, setMode] = useState<'today' | 'week'>('today')
   const d = mode === 'today' ? today : week
   const intake = d.intake ?? 0
@@ -131,7 +131,7 @@ export function HealthGauge({ today, week, todayLabel = 'Today' }: { today: Ener
 
       <View style={styles.parts}>
         <Part icon="bed-outline" label="Basal" value={d.bmr} />
-        <Part icon="footsteps-outline" label="Steps" value={d.steps} />
+        <Part icon="footsteps-outline" label={avgSteps ? `Steps (${fmt(avgSteps)}/day)` : 'Steps (not set)'} value={d.steps} />
         <Part icon="barbell-outline" label={mode === 'today' ? `Training${d.trainings === 1 ? '' : 's'} (${d.trainings})` : 'Training'} value={d.training} />
         <Part icon="restaurant-outline" label="Digestion" value={d.food} />
       </View>
@@ -151,7 +151,7 @@ function Part({ icon, label, value }: { icon: keyof typeof Ionicons.glyphMap; la
     <View style={styles.part}>
       <Ionicons name={icon} size={14} color={palette.textDim} />
       <Text style={styles.partLabel} numberOfLines={1}>{label}</Text>
-      <Text style={styles.partValue}>{fmt(value)}</Text>
+      <Text style={styles.partValue}>{fmt(value)} <Text style={styles.partUnit}>kcal</Text></Text>
     </View>
   )
 }
@@ -180,6 +180,7 @@ const styles = StyleSheet.create({
   parts: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 8, borderTopWidth: 1, borderTopColor: 'rgba(108,255,47,0.18)', paddingTop: 10 },
   part: { width: '50%', flexDirection: 'row', alignItems: 'center', gap: 6, paddingRight: 8 },
   partLabel: { flex: 1, color: palette.textMuted, fontSize: 12 },
+  partUnit: { color: palette.textDim, fontSize: 10, fontWeight: '600' },
   partValue: { color: palette.text, fontSize: 13, fontWeight: '800' },
   note: { color: palette.textDim, fontSize: 10 },
   balance: { fontSize: 13, fontWeight: '800', textAlign: 'center' },

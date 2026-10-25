@@ -165,7 +165,7 @@ export function HealthPanel({ startEditing = false, onSaved }: { startEditing?: 
             <Ionicons name="chevron-forward" size={18} color={palette.text} />
           </Pressable>
         </View>
-        <HealthGauge key={data.date} today={data.today} week={data.week} todayLabel={data.is_today ? 'Today' : 'Day'} />
+        <HealthGauge key={data.date} today={data.today} week={data.week} todayLabel={data.is_today ? 'Today' : 'Day'} avgSteps={data.profile.avg_daily_steps} />
         <FoodLog<HealthPayload>
           date={data.date}
           meals={data.meals}
