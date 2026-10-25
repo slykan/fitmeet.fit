@@ -154,6 +154,9 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\EnsureNotBanned::class])
     Route::get('reports/weekly', [\App\Http\Controllers\Api\CoachController::class, 'weekly']);
     Route::post('reports/weekly', [\App\Http\Controllers\Api\CoachController::class, 'weeklyGenerate'])->middleware('throttle:10,1');
     Route::post('reports/weekly/ask', [\App\Http\Controllers\Api\CoachController::class, 'weeklyAsk'])->middleware('throttle:10,1');
+    // Aplikacija do 1.4.51 greškom šalje /reports/write i /reports/ask/ask (bez razdoblja) — za nju tjedni izvještaj.
+    Route::post('reports/write', [\App\Http\Controllers\Api\CoachController::class, 'weeklyGenerate'])->middleware('throttle:10,1');
+    Route::post('reports/ask/ask', [\App\Http\Controllers\Api\CoachController::class, 'weeklyAsk'])->middleware('throttle:10,1');
     Route::get('reports/{kind}', [\App\Http\Controllers\Api\CoachController::class, 'weekly'])->whereIn('kind', ['week', 'month']);
     Route::post('reports/{kind}', [\App\Http\Controllers\Api\CoachController::class, 'weeklyGenerate'])->whereIn('kind', ['week', 'month'])->middleware('throttle:10,1');
     Route::post('reports/{kind}/ask', [\App\Http\Controllers\Api\CoachController::class, 'weeklyAsk'])->whereIn('kind', ['week', 'month'])->middleware('throttle:10,1');

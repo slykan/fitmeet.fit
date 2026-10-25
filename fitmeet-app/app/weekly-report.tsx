@@ -87,15 +87,16 @@ export default function WeeklyReportScreen() {
     api.get(`/reports/${kind}`).then(({ data }) => setData(data)).catch(() => setError('Could not load your report.'))
   }, [kind])
 
-  async function run(kind: 'write' | 'ask', q?: string) {
-    setBusy(kind)
+  // action = što radimo (napiši / pitaj); kind = razdoblje (week / month) iz stanja ekrana
+  async function run(action: 'write' | 'ask', q?: string) {
+    setBusy(action)
     setError(null)
     try {
-      const { data } = kind === 'write'
+      const { data } = action === 'write'
         ? await api.post(`/reports/${kind}`, { language: phoneLanguage() })
         : await api.post(`/reports/${kind}/ask`, { question: q, language: phoneLanguage() })
       setData(data)
-      if (kind === 'ask') setQuestion('')
+      if (action === 'ask') setQuestion('')
     } catch (e: unknown) {
       setError((e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'The coach is not reachable right now.')
     } finally {
