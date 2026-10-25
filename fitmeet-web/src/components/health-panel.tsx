@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Bed, ChevronLeft, ChevronRight, Dumbbell, Flame, Footprints, HeartPulse, Loader2, Pencil, UtensilsCrossed } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Dumbbell, Flame, HeartPulse, Loader2, Pencil } from 'lucide-react'
 
 import { FoodLog, type Meal, type MealTemplate, type QuickDrink } from '@/components/food-log'
 import { HrZonesCard } from '@/components/hr-zones-card'
@@ -230,30 +230,50 @@ function Fact({ label, value }: { label: string; value: string }) {
 }
 
 // ── Gauge ─────────────────────────────────────────────────────────────────────
-const W = 260, CX = 130, CY = 132, R = 108, STROKE = 18
+const W = 290, H = 168, CX = 145, CY = 150, R = 120, STROKE = 12
 const point = (share: number, r: number) => { const a = Math.PI * (1 - share); return { x: CX + r * Math.cos(a), y: CY - r * Math.sin(a) } }
 const arc = (from: number, to: number, r: number) => { const a = point(from, r), b = point(to, r); return `M ${a.x} ${a.y} A ${r} ${r} 0 0 1 ${b.x} ${b.y}` }
 
-/** Half-circle gauge: white needle = BMR, green needle = estimated total burn; Today / 7-day average. */
-export function EnergyGauge({ today, week, todayLabel = 'Today', avgSteps }: { today: EnergyDay; week: EnergyDay; todayLabel?: string; avgSteps?: number | null }) {
+/**
+ * Energy gauge (look of HUAWEI Health): kcal scale with ticks, two short needles on the ring —
+ * white = BMR (basal), green = estimated total burned — burned in the middle; Today / 7-day average.
+ */
+export function EnergyGauge({ today, week, todayLabel = 'Today' }: { today: EnergyDay; week: EnergyDay; todayLabel?: string; avgSteps?: number | null }) {
   const [mode, setMode] = useState<'today' | 'week'>('today')
   const d = mode === 'today' ? today : week
   const intake = d.intake ?? 0
-  const max = Math.max(Math.ceil((d.bmr * 2.2) / 500) * 500, Math.ceil((Math.max(d.total, intake) * 1.1) / 500) * 500)
+  const max = Math.max(Math.ceil((d.bmr * 2) / 500) * 500, Math.ceil((Math.max(d.total, intake) * 1.1) / 500) * 500)
   const share = (v: number) => Math.min(1, Math.max(0, v / max))
-  const needle = (v: number, color: string, len: number, width: number) => {
-    const p = point(share(v), len)
-    return <line x1={CX} y1={CY} x2={p.x} y2={p.y} stroke={color} strokeWidth={width} strokeLinecap="round" style={{ transition: 'all .6s ease' }} />
+  const major = max > 4000 ? 1000 : 500
+
+  const ticks: React.ReactNode[] = []
+  for (let v = 0; v <= max; v += 100) {
+    const isMajor = v % major === 0
+    const a = point(share(v), R - STROKE / 2 - 4), b = point(share(v), R - STROKE / 2 - (isMajor ? 11 : 7))
+    ticks.push(<line key={`t${v}`} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={isMajor ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.18)'} strokeWidth={isMajor ? 1.5 : 1} />)
+    if (isMajor && v > 0 && v < max) {
+      const t = point(share(v), R - STROKE / 2 - 22)
+      ticks.push(<text key={`l${v}`} x={t.x} y={t.y + 3} fill="rgba(255,255,255,0.45)" fontSize={9} textAnchor="middle">{v >= 1000 ? `${v / 1000}k` : v}</text>)
+    }
   }
-  const t1 = point(share(d.bmr), R - STROKE / 2 - 3), t2 = point(share(d.bmr), R + STROKE / 2 + 3)
+  const needle = (v: number, color: string, width: number) => {
+    const a = point(share(v), R - STROKE / 2 - 6), b = point(share(v), R + STROKE / 2 + 6)
+    // dark outline first so the needle stands out on any part of the coloured ring
+    return (
+      <g>
+        <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="#0b1020" strokeWidth={width + 3} strokeLinecap="round" />
+        <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={color} strokeWidth={width} strokeLinecap="round" />
+      </g>
+    )
+  }
 
   return (
-    <div className="rounded-2xl border p-4 flex flex-col gap-3" style={{ background: 'rgba(57,255,20,0.06)', borderColor: 'rgba(57,255,20,0.3)' }}>
+    <div className="rounded-2xl border p-4 flex flex-col gap-3" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
       <div className="flex items-center gap-2">
         <Flame size={18} style={{ color: '#ffaa00' }} />
         <span className="font-bold">Energy</span>
         <div className="flex-1" />
-        <div className="flex p-0.5 rounded-xl" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+        <div className="flex p-0.5 rounded-xl" style={{ border: '1px solid var(--border)' }}>
           {(['today', 'week'] as const).map(m => (
             <button key={m} onClick={() => setMode(m)} className="px-3 h-7 text-xs font-bold rounded-lg"
               style={{ background: mode === m ? 'var(--primary)' : 'transparent', color: mode === m ? '#000' : 'var(--text-muted)' }}>
@@ -263,58 +283,46 @@ export function EnergyGauge({ today, week, todayLabel = 'Today', avgSteps }: { t
         </div>
       </div>
 
-      <div className="relative flex justify-center">
-        <svg width={W} height={150} viewBox={`0 0 ${W} 150`} role="img" aria-label={`Burned ${fmt(d.total)} kcal, BMR ${fmt(d.bmr)} kcal`}>
+      <div className="flex justify-center -mb-1">
+        <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`Burned ${fmt(d.total)} kcal, basal ${fmt(d.bmr)} kcal, eaten ${fmt(intake)} kcal`}>
           <defs>
             <linearGradient id="energy-scale" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0" stopColor="#3399ff" /><stop offset="0.38" stopColor="#6cff2f" />
-              <stop offset="0.68" stopColor="#ffd60a" /><stop offset="0.86" stopColor="#ffaa00" /><stop offset="1" stopColor="#ff3b30" />
+              <stop offset="0" stopColor="#ff4d4f" /><stop offset="0.3" stopColor="#ff9f43" />
+              <stop offset="0.55" stopColor="#ffd60a" /><stop offset="1" stopColor="#3ddc68" />
             </linearGradient>
           </defs>
-          <path d={arc(0, 1, R)} stroke="rgba(255,255,255,0.08)" strokeWidth={STROKE} fill="none" strokeLinecap="round" />
-          <path d={arc(0, share(d.total), R)} stroke="url(#energy-scale)" strokeWidth={STROKE} fill="none" strokeLinecap="round" />
-          {intake > 0 && <path d={arc(0, 1, R - 26)} stroke="rgba(255,255,255,0.06)" strokeWidth={6} fill="none" strokeLinecap="round" />}
-          {intake > 0 && <path d={arc(0, share(intake), R - 26)} stroke="#ff9f43" strokeWidth={6} fill="none" strokeLinecap="round" />}
-          <line x1={t1.x} y1={t1.y} x2={t2.x} y2={t2.y} stroke="#fff" strokeWidth={3} strokeLinecap="round" />
-          {needle(d.bmr, 'rgba(255,255,255,0.55)', R - 34, 1.5)}
-          {needle(d.total, '#6cff2f', R - 16, 2.2)}
-          <circle cx={CX} cy={CY} r={5} fill="#12192d" stroke="#6cff2f" strokeWidth={1.5} />
+          <circle cx={CX} cy={CY} r={R - 44} fill="rgba(255,255,255,0.035)" />
+          <path d={arc(0, 1, R)} stroke="url(#energy-scale)" strokeWidth={STROKE} fill="none" strokeLinecap="round" />
+          {ticks}
+          {needle(d.bmr, '#ffffff', 3)}
+          {needle(d.total, '#6cff2f', 4)}
+          <text x={CX} y={CY - 56} fill="rgba(255,255,255,0.55)" fontSize={11} textAnchor="middle">
+            {mode === 'today' ? (todayLabel === 'Today' ? 'Burned today' : 'Burned') : 'Burned per day'}
+          </text>
+          <text x={CX} y={CY - 18} fill="#fff" fontSize={38} fontWeight={900} textAnchor="middle">{fmt(d.total)}</text>
+          <text x={CX} y={CY - 2} fill="rgba(255,255,255,0.55)" fontSize={11} textAnchor="middle">kcal</text>
         </svg>
-        <div className="absolute bottom-8 text-center pointer-events-none" style={{ textShadow: '0 0 10px #050816, 0 0 4px #050816, 0 0 2px #050816' }}>
-          <div className="text-3xl font-black tracking-tight">{fmt(d.total)}</div>
-          <div className="text-[11px] -mt-1" style={{ color: 'var(--text-muted)' }}>kcal {mode === 'today' ? 'today' : 'per day'}</div>
-        </div>
       </div>
 
+      {/* first row right under the gauge: basal (white needle) · burned (green needle) · eaten */}
       <div className="flex justify-center gap-5 text-xs" style={{ color: 'var(--text-muted)' }}>
-        <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-white" /> BMR <b className="text-white">{fmt(d.bmr)}</b></span>
+        <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-white" /> Basal <b className="text-white">{fmt(d.bmr)}</b></span>
         <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full" style={{ background: '#6cff2f' }} /> Burned <b className="text-white">{fmt(d.total)}</b></span>
-        {intake > 0
-          ? <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full" style={{ background: '#ff9f43' }} /> Eaten <b className="text-white">{fmt(intake)}</b></span>
-          : <span><b style={{ color: '#6cff2f' }}>+{fmt(d.total - d.bmr)}</b> above BMR</span>}
+        <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full" style={{ background: '#ff9f43' }} /> Eaten <b className="text-white">{fmt(intake)}</b></span>
       </div>
       {intake > 0 && (
         <p className="text-sm font-bold text-center" style={{ color: intake > d.total ? '#ff9f43' : '#6cff2f' }}>
           {intake > d.total ? `+${fmt(intake - d.total)} kcal surplus` : `−${fmt(d.total - intake)} kcal deficit`}
-          {mode === 'week' && d.logged_days ? ` · avg of ${d.logged_days} logged day${d.logged_days === 1 ? '' : 's'}` : ''}
         </p>
       )}
 
-      <div className="grid grid-cols-2 gap-y-2 gap-x-4 pt-3 text-sm" style={{ borderTop: '1px solid rgba(57,255,20,0.18)' }}>
-        <Part icon={<Bed size={14} />} label="Basal" value={d.bmr} />
-        <Part icon={<Footprints size={14} />} label={avgSteps ? `Walking · ${fmt(avgSteps)} steps/day` : 'Walking (add your steps)'} value={d.steps} />
-        <Part icon={<Dumbbell size={14} />} label={mode === 'today' ? `Training${d.trainings === 1 ? '' : 's'} (${d.trainings})` : 'Training'} value={d.training} />
-        <Part icon={<UtensilsCrossed size={14} />} label="Digestion" value={d.food} />
+      <div className="flex items-center gap-2 pt-3 text-sm" style={{ borderTop: '1px solid var(--border)', color: 'var(--text-muted)' }}>
+        <Dumbbell size={15} />
+        <span className="flex-1">{mode === 'today' ? `Training${d.trainings === 1 ? '' : 's'} (${d.trainings})` : `Training (avg ${d.trainings}/day)`}</span>
+        <b className="text-white">{fmt(d.training)} <span className="text-[10px] font-semibold" style={{ color: 'var(--text-muted)' }}>kcal</span></b>
       </div>
+      {mode === 'week' && intake > 0 && d.logged_days ? <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Eaten = average of {d.logged_days} logged day{d.logged_days === 1 ? '' : 's'}.</p> : null}
       {d.estimated && <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Some trainings had no calories — estimated from heart rate or duration.</p>}
-    </div>
-  )
-}
-
-function Part({ icon, label, value }: { icon: React.ReactNode; label: string; value: number }) {
-  return (
-    <div className="flex items-center gap-2" style={{ color: 'var(--text-muted)' }}>
-      {icon}<span className="flex-1 leading-tight">{label}</span><b className="text-white">{fmt(value)} <span className="text-[10px] font-semibold" style={{ color: 'var(--text-muted)' }}>kcal</span></b>
     </div>
   )
 }
