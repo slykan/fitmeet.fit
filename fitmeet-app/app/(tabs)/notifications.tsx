@@ -156,7 +156,7 @@ function GenericCard({
 export default function NotificationsScreen() {
   const tabBarHeight = useBottomTabBarHeight()
   const { tab: tabParam } = useLocalSearchParams<{ tab?: string }>()
-  const [tab,           setTab]           = useState<FeedTab>('activity')
+  const [tab,           setTab]           = useState<FeedTab>('trainings')
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [loading,       setLoading]       = useState(true)
   const [refreshing,    setRefreshing]    = useState(false)
@@ -253,7 +253,7 @@ export default function NotificationsScreen() {
       </View>
 
       <View style={styles.tabBar}>
-        {(['activity', 'trainings', 'health', 'alerts'] as const).map(t => (
+        {(['trainings', 'health', 'activity', 'alerts'] as const).map(t => (
           <Pressable
             key={t}
             style={[styles.tabBtn, tab === t && styles.tabBtnActive]}

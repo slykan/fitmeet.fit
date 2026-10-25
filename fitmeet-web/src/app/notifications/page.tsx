@@ -199,7 +199,7 @@ export default function NotificationsPage() {
   const { token, user }  = useAuthStore()
   const router     = useRouter()
   const [mounted,  setMounted]  = useState(false)
-  const [tab,      setTab]      = useState<FeedTab>('activity')
+  const [tab,      setTab]      = useState<FeedTab>('trainings')
   const [notifs,   setNotifs]   = useState<Notif[]>([])
   const [loading,  setLoading]  = useState(true)
   const [acting,   setActing]   = useState<number | null>(null)
@@ -291,7 +291,7 @@ export default function NotificationsPage() {
           </div>
 
           <div className="grid grid-cols-4 gap-1 p-1 rounded-xl mb-6 w-full" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-            {(['activity', 'trainings', 'health', 'alerts'] as const).map(t => (
+            {(['trainings', 'health', 'activity', 'alerts'] as const).map(t => (
               <button
                 key={t}
                 onClick={() => setTab(t)}

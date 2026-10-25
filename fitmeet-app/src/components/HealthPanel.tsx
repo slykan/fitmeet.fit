@@ -4,6 +4,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 
 
 import { FoodLog, type Meal, type MealTemplate, type QuickDrink } from '@/src/components/FoodLog'
 import { HealthGauge, type EnergyDay } from '@/src/components/HealthGauge'
+import { HrZonesCard } from '@/src/components/HrZonesCard'
 import { api } from '@/src/lib/api'
 import { useAuthStore } from '@/src/store/auth'
 import { palette, spacing } from '@/src/theme'
@@ -188,11 +189,13 @@ export function HealthPanel({ startEditing = false, onSaved }: { startEditing?: 
           <Ionicons name="create-outline" size={16} color={palette.accent} />
           <Text style={styles.editText}>Edit health data</Text>
         </Pressable>
+        <HrZonesCard />
       </View>
     )
   }
 
   return (
+    <View style={{ gap: spacing.md }}>
     <View style={styles.card}>
       <View style={styles.head}>
         <Ionicons name="heart" size={18} color="#ff3b30" />
@@ -245,6 +248,8 @@ export function HealthPanel({ startEditing = false, onSaved }: { startEditing?: 
           {saving ? <ActivityIndicator color="#041109" /> : <Text style={styles.saveText}>Save</Text>}
         </Pressable>
       </View>
+    </View>
+    <HrZonesCard />
     </View>
   )
 }

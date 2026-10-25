@@ -94,9 +94,9 @@ export function HealthGauge({ today, week, todayLabel = 'Today', avgSteps }: { t
               x2={point(share(d.bmr), R + STROKE / 2 + 3).x} y2={point(share(d.bmr), R + STROKE / 2 + 3).y}
               stroke="#ffffff" strokeWidth={3} strokeLinecap="round" />
           </G>
-          {needle(d.bmr, 'rgba(255,255,255,0.75)', R - 34, 3)}
-          {needle(d.total, palette.accent, R - 16, 4)}
-          <Circle cx={CX} cy={CY} r={8} fill={palette.panelRaised} stroke={palette.accent} strokeWidth={2} />
+          {needle(d.bmr, 'rgba(255,255,255,0.55)', R - 34, 1.5)}
+          {needle(d.total, palette.accent, R - 16, 2.2)}
+          <Circle cx={CX} cy={CY} r={5} fill={palette.panelRaised} stroke={palette.accent} strokeWidth={1.5} />
         </Svg>
         <View style={styles.center} pointerEvents="none">
           <Text style={styles.total}>{fmt(d.total)}</Text>
@@ -170,8 +170,9 @@ const styles = StyleSheet.create({
   toggleTextOn: { color: '#041109' },
   gaugeWrap: { alignItems: 'center', justifyContent: 'flex-end' },
   center: { position: 'absolute', bottom: 34, alignItems: 'center' },
-  total: { color: palette.text, fontSize: 30, fontWeight: '900', letterSpacing: -0.5 },
-  totalLabel: { color: palette.textDim, fontSize: 11, marginTop: -2 },
+  // dark halo so the needles look like they run under the number
+  total: { color: palette.text, fontSize: 30, fontWeight: '900', letterSpacing: -0.5, textShadowColor: 'rgba(5,8,22,0.95)', textShadowRadius: 10, textShadowOffset: { width: 0, height: 0 } },
+  totalLabel: { color: palette.textDim, fontSize: 11, marginTop: -2, textShadowColor: 'rgba(5,8,22,0.95)', textShadowRadius: 6, textShadowOffset: { width: 0, height: 0 } },
   legendRow: { flexDirection: 'row', justifyContent: 'center', gap: 18, marginTop: -4 },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   dot: { width: 8, height: 8, borderRadius: 4 },

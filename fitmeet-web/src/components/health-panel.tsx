@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Bed, ChevronLeft, ChevronRight, Dumbbell, Flame, Footprints, HeartPulse, Loader2, Pencil, UtensilsCrossed } from 'lucide-react'
 
 import { FoodLog, type Meal, type MealTemplate, type QuickDrink } from '@/components/food-log'
+import { HrZonesCard } from '@/components/hr-zones-card'
 import api from '@/lib/api'
 
 // Health (own profile only): first visit — or "Edit health data" — shows the form, fields we
@@ -140,12 +141,14 @@ export function HealthPanel({ startEditing = false }: { startEditing?: boolean }
           style={{ background: 'rgba(57,255,20,0.06)', border: '1px solid rgba(57,255,20,0.35)', color: 'var(--primary)' }}>
           <Pencil size={15} /> Edit health data
         </button>
+        <HrZonesCard />
       </div>
     )
   }
 
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => setF(s => ({ ...s, [k]: e.target.value }))
   return (
+    <div className="flex flex-col gap-4">
     <form onSubmit={save} className="rounded-2xl border p-4 sm:p-6 flex flex-col gap-4" style={{ ...card, borderColor: 'rgba(255,59,48,0.3)' }}>
       <div className="flex items-start gap-3">
         <HeartPulse size={20} style={{ color: '#ff3b30' }} />
@@ -183,6 +186,8 @@ export function HealthPanel({ startEditing = false }: { startEditing?: boolean }
         </button>
       </div>
     </form>
+    <HrZonesCard />
+    </div>
   )
 }
 
@@ -271,11 +276,11 @@ export function EnergyGauge({ today, week, todayLabel = 'Today', avgSteps }: { t
           {intake > 0 && <path d={arc(0, 1, R - 26)} stroke="rgba(255,255,255,0.06)" strokeWidth={6} fill="none" strokeLinecap="round" />}
           {intake > 0 && <path d={arc(0, share(intake), R - 26)} stroke="#ff9f43" strokeWidth={6} fill="none" strokeLinecap="round" />}
           <line x1={t1.x} y1={t1.y} x2={t2.x} y2={t2.y} stroke="#fff" strokeWidth={3} strokeLinecap="round" />
-          {needle(d.bmr, 'rgba(255,255,255,0.75)', R - 34, 3)}
-          {needle(d.total, '#6cff2f', R - 16, 4)}
-          <circle cx={CX} cy={CY} r={8} fill="#12192d" stroke="#6cff2f" strokeWidth={2} />
+          {needle(d.bmr, 'rgba(255,255,255,0.55)', R - 34, 1.5)}
+          {needle(d.total, '#6cff2f', R - 16, 2.2)}
+          <circle cx={CX} cy={CY} r={5} fill="#12192d" stroke="#6cff2f" strokeWidth={1.5} />
         </svg>
-        <div className="absolute bottom-8 text-center pointer-events-none">
+        <div className="absolute bottom-8 text-center pointer-events-none" style={{ textShadow: '0 0 10px #050816, 0 0 4px #050816, 0 0 2px #050816' }}>
           <div className="text-3xl font-black tracking-tight">{fmt(d.total)}</div>
           <div className="text-[11px] -mt-1" style={{ color: 'var(--text-muted)' }}>kcal {mode === 'today' ? 'today' : 'per day'}</div>
         </div>
