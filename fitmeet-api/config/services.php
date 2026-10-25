@@ -60,6 +60,9 @@ return [
         'coach_model'             => env('COACH_MODEL', 'claude-opus-5-5'),
         'coach_monthly_analyses'  => (int) env('COACH_MONTHLY_ANALYSES', 10),
         'coach_monthly_questions' => (int) env('COACH_MONTHLY_QUESTIONS', 20),
+        // Health › Food: AI estimate of kcal + macros from a text description
+        'meal_model'              => env('MEAL_MODEL', 'claude-haiku-5-5'),
+        'meal_monthly_estimates'  => (int) env('MEAL_MONTHLY_ESTIMATES', 150),
     ],
 
     'huawei' => [

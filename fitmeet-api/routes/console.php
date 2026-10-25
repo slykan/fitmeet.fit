@@ -394,3 +394,20 @@ Artisan::command('huawei:diag {connection} {--days=2}', function () {
         $this->line('  ' . $s->started_at . ' ' . $s->category . ' id ' . $s->external_id);
     }
 })->purpose('Diagnose one HUAWEI Health connection (no tokens printed)');
+
+// Health: once a night, recalculate yesterday (trainings synced after midnight still count) and
+// freeze it in health_days — later weight/profile changes don't rewrite past days.
+Artisan::command('health:close-day {--date=}', function () {
+    $tz = \App\Services\HealthProfile::tz();
+    $day = $this->option('date') ? \Carbon\Carbon::parse($this->option('date'), $tz) : now($tz)->subDay();
+    $n = 0;
+    User::whereNotNull('weight_kg')->whereNotNull('height_cm')->whereNotNull('sex')->whereNotNull('birth_date')
+        ->chunkById(200, function ($users) use ($day, &$n) {
+            foreach ($users as $u) {
+                \App\Services\HealthProfile::day($u, $day, null, true);
+                $n++;
+            }
+        });
+    $this->info("health_days {$day->toDateString()}: {$n} users");
+})->purpose('Recalculate and freeze yesterday\'s Health energy snapshot');
+Schedule::command('health:close-day')->dailyAt('03:00')->timezone(config('app.event_timezone', 'Europe/Zagreb'));

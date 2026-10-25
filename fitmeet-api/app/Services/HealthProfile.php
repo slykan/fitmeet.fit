@@ -2,10 +2,11 @@
 
 namespace App\Services;
 
+use App\Models\HealthDay;
+use App\Models\Meal;
 use App\Models\Training;
 use App\Models\User;
 use Carbon\Carbon;
-use Illuminate\Support\Collection;
 
 /**
  * Health: basal metabolic rate and estimated daily energy expenditure from the profile
@@ -32,6 +33,12 @@ class HealthProfile
         'martial_arts' => 7.8, 'skiing' => 6.0, 'surfing' => 3.0, 'climbing' => 7.5, 'padel' => 6.0,
         'ice_skating' => 5.5, 'inline_skating' => 7.5, 'walking' => 3.5, 'rowing' => 7.0, 'kayaking' => 5.0,
     ];
+
+    /** Days start at local midnight (the app itself runs in UTC; DB times are UTC). */
+    public static function tz(): string
+    {
+        return (string) config('app.event_timezone', 'Europe/Zagreb');
+    }
 
     public static function missing(User $user): array
     {
@@ -79,67 +86,126 @@ class HealthProfile
     }
 
     /**
-     * Everything the Health screen and the AI coach need.
-     * today = calendar day in the app timezone; week = average day of the last 7 days (today included).
+     * Everything the Health screen and the AI coach need, for one calendar day (app timezone).
+     * "today" = the chosen day (default today); "week" = average day of the 7 days ending on it.
      */
-    public static function summary(User $user, ?Carbon $now = null): array
+    public static function summary(User $user, ?Carbon $date = null): array
     {
-        $tz = config('app.timezone');
-        $now = ($now ?? now($tz))->copy()->tz($tz);
+        $tz = self::tz();
+        $date = ($date ?? now($tz))->copy()->tz($tz)->startOfDay();
         $bmr = self::bmr($user);
         $missing = self::missing($user);
 
         $base = [
-            'complete' => ! $missing,
-            'missing'  => $missing,
-            'profile'  => self::inputs($user),
+            'complete'   => ! $missing,
+            'missing'    => $missing,
+            'profile'    => self::inputs($user),
             'updated_at' => $user->health_updated_at?->toIso8601String(),
+            'date'       => $date->toDateString(),
+            'is_today'   => $date->isSameDay(now($tz)),
         ];
         if (! $bmr) {
             return $base + ['bmr' => null, 'today' => null, 'week' => null];
         }
 
-        $from = $now->copy()->subDays(6)->startOfDay();
-        $trainings = Training::where('user_id', $user->id)->where('is_primary', true)
-            ->whereBetween('started_at', [$from, $now->copy()->endOfDay()])->get();
-
-        $steps = $user->avg_daily_steps;
-        $stepsKcal = $steps ? (int) round($steps * self::KCAL_PER_STEP_KG * $user->weight_kg) : 0;
-
-        $day = function (Collection $list) use ($bmr, $stepsKcal, $user) {
-            $kcal = 0;
-            $estimated = false;
-            foreach ($list as $t) {
-                $e = self::trainingKcal($t, $user);
-                $kcal += $e['kcal'];
-                $estimated = $estimated || $e['source'] !== 'device';
-            }
-            $tef = (int) round(($bmr['kcal'] + $stepsKcal + $kcal) * self::TEF);
-            return [
-                'bmr'       => $bmr['kcal'],
-                'steps'     => $stepsKcal,
-                'training'  => $kcal,
-                'food'      => $tef,
-                'total'     => $bmr['kcal'] + $stepsKcal + $kcal + $tef,
-                'trainings' => $list->count(),
-                'estimated' => $estimated,
-            ];
-        };
-
-        $today = $day($trainings->filter(fn (Training $t) => $t->started_at->copy()->tz($tz)->isSameDay($now)));
-        $week = $day($trainings);
-        // 7-day average: training kcal and count spread over 7 days, BMR/steps are per day already
-        $week['training'] = (int) round($week['training'] / 7);
-        $week['trainings'] = round($week['trainings'] / 7, 1);
-        $week['food'] = (int) round(($bmr['kcal'] + $stepsKcal + $week['training']) * self::TEF);
-        $week['total'] = $bmr['kcal'] + $stepsKcal + $week['training'] + $week['food'];
+        $days = [];
+        for ($i = 6; $i >= 0; $i--) {
+            $days[] = self::day($user, $date->copy()->subDays($i), $bmr['kcal']);
+        }
+        $avg = fn (string $k, int $p = 0) => round(array_sum(array_column($days, $k)) / 7, $p);
+        $week = [
+            'bmr' => (int) $avg('bmr'), 'steps' => (int) $avg('steps'), 'training' => (int) $avg('training'),
+            'food' => (int) $avg('food'), 'total' => (int) $avg('total'), 'trainings' => $avg('trainings', 1),
+            'estimated' => (bool) array_filter(array_column($days, 'estimated')),
+            // eaten: average over days that have food logged (empty days would only drag it down)
+            'intake' => ($logged = array_filter($days, fn ($d) => $d['intake'] > 0))
+                ? (int) round(array_sum(array_column($logged, 'intake')) / count($logged)) : 0,
+            'logged_days' => count($logged),
+        ];
 
         return $base + [
             'bmr'   => $bmr,
-            'today' => $today,
+            'today' => end($days),
             'week'  => $week,
             'w_per_kg' => $user->ftp_w ? round($user->ftp_w / $user->weight_kg, 2) : null,
         ];
+    }
+
+    /**
+     * One day: burned (BMR + steps + trainings + thermic effect of food) and eaten (meals).
+     * Past days come from the health_days snapshot when there is one; today (or a past day
+     * seen for the first time) is calculated and the snapshot saved.
+     */
+    public static function day(User $user, Carbon $day, ?int $bmrKcal = null, bool $recalculate = false): array
+    {
+        $tz = self::tz();
+        $day = $day->copy()->tz($tz)->startOfDay();
+        $today = now($tz)->startOfDay();
+        if ($day->gt($today)) {
+            return self::emptyDay($bmrKcal ?? 0);
+        }
+
+        $snap = HealthDay::where('user_id', $user->id)->whereDate('day', $day->toDateString())->first();
+        $meals = Meal::where('user_id', $user->id)->whereDate('eaten_on', $day->toDateString())->get();
+        $eaten = [
+            'intake'    => (int) $meals->sum('kcal'),
+            'protein_g' => round($meals->sum('protein_g'), 1),
+            'carbs_g'   => round($meals->sum('carbs_g'), 1),
+            'fat_g'     => round($meals->sum('fat_g'), 1),
+            'water_ml'  => (int) $meals->sum('volume_ml'),
+        ];
+
+        // A past day keeps its burned side; only the food side can still change (late logging)
+        if ($snap && $day->lt($today) && ! $recalculate) {
+            $food = $eaten['intake'] > 0 ? (int) round($eaten['intake'] * self::TEF) : $snap->food_kcal;
+            $d = [
+                'bmr' => $snap->bmr_kcal, 'steps' => $snap->steps_kcal, 'training' => $snap->training_kcal, 'food' => $food,
+                'total' => $snap->bmr_kcal + $snap->steps_kcal + $snap->training_kcal + $food,
+                'trainings' => $snap->trainings, 'estimated' => $snap->estimated,
+            ] + $eaten;
+            if ($snap->intake_kcal !== $eaten['intake'] || $snap->food_kcal !== $food) {
+                $snap->update(['intake_kcal' => $eaten['intake'], 'food_kcal' => $food, 'total_kcal' => $d['total'],
+                    'protein_g' => $eaten['protein_g'], 'carbs_g' => $eaten['carbs_g'], 'fat_g' => $eaten['fat_g'], 'water_ml' => $eaten['water_ml']]);
+            }
+            return $d;
+        }
+
+        $bmrKcal ??= self::bmr($user)['kcal'] ?? null;
+        if (! $bmrKcal) {
+            return self::emptyDay(0);
+        }
+        $trainings = Training::where('user_id', $user->id)->where('is_primary', true)
+            ->whereBetween('started_at', [$day->copy()->utc(), $day->copy()->endOfDay()->utc()])->get();
+        $trainingKcal = 0;
+        $estimated = false;
+        foreach ($trainings as $t) {
+            $e = self::trainingKcal($t, $user);
+            $trainingKcal += $e['kcal'];
+            $estimated = $estimated || $e['source'] !== 'device';
+        }
+        $steps = $user->avg_daily_steps ? (int) round($user->avg_daily_steps * self::KCAL_PER_STEP_KG * $user->weight_kg) : 0;
+        // Thermic effect of food: ~10 % of what was eaten; without a food log, ~10 % of the burn
+        $food = (int) round(($eaten['intake'] > 0 ? $eaten['intake'] : $bmrKcal + $steps + $trainingKcal) * self::TEF);
+        $d = [
+            'bmr' => $bmrKcal, 'steps' => $steps, 'training' => $trainingKcal, 'food' => $food,
+            'total' => $bmrKcal + $steps + $trainingKcal + $food,
+            'trainings' => $trainings->count(), 'estimated' => $estimated,
+        ] + $eaten;
+
+        HealthDay::updateOrCreate(['user_id' => $user->id, 'day' => $day->toDateString()], [
+            'bmr_kcal' => $d['bmr'], 'steps_kcal' => $d['steps'], 'training_kcal' => $d['training'], 'food_kcal' => $d['food'],
+            'total_kcal' => $d['total'], 'intake_kcal' => $d['intake'], 'protein_g' => $d['protein_g'], 'carbs_g' => $d['carbs_g'],
+            'fat_g' => $d['fat_g'], 'water_ml' => $d['water_ml'], 'trainings' => $d['trainings'], 'weight_kg' => $user->weight_kg,
+            'estimated' => $estimated,
+        ]);
+
+        return $d;
+    }
+
+    private static function emptyDay(int $bmr): array
+    {
+        return ['bmr' => $bmr, 'steps' => 0, 'training' => 0, 'food' => 0, 'total' => $bmr, 'trainings' => 0, 'estimated' => false,
+            'intake' => 0, 'protein_g' => 0, 'carbs_g' => 0, 'fat_g' => 0, 'water_ml' => 0];
     }
 
     public static function inputs(User $user): array

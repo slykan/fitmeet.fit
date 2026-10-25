@@ -156,6 +156,9 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\EnsureNotBanned::class])
     Route::post('reports/weekly/ask', [\App\Http\Controllers\Api\CoachController::class, 'weeklyAsk'])->middleware('throttle:10,1');
     Route::get('health', [\App\Http\Controllers\Api\HealthController::class, 'show']);
     Route::put('health', [\App\Http\Controllers\Api\HealthController::class, 'update'])->middleware('throttle:20,1');
+    Route::post('meals/estimate', [\App\Http\Controllers\Api\MealController::class, 'estimate'])->middleware('throttle:20,1');
+    Route::post('meals', [\App\Http\Controllers\Api\MealController::class, 'store'])->middleware('throttle:60,1');
+    Route::delete('meals/{meal}', [\App\Http\Controllers\Api\MealController::class, 'destroy']);
 
     // Aplikacija do 1.4.51 greškom šalje /reports/write i /reports/ask/ask (bez razdoblja) — za nju tjedni izvještaj.
     Route::post('reports/write', [\App\Http\Controllers\Api\CoachController::class, 'weeklyGenerate'])->middleware('throttle:10,1');

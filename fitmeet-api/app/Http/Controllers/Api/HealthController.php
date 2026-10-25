@@ -15,9 +15,14 @@ use Illuminate\Validation\Rule;
  */
 class HealthController extends Controller
 {
+    /** ?date=YYYY-MM-DD (default today, local time) — energy, food log, recent meals, allowance. */
     public function show(Request $request): JsonResponse
     {
-        return response()->json(HealthProfile::summary($request->user()));
+        $tz = HealthProfile::tz();
+        $request->validate(['date' => ['nullable', 'date_format:Y-m-d', 'before_or_equal:' . now($tz)->toDateString()]]);
+        $date = $request->filled('date') ? \Carbon\Carbon::parse($request->input('date'), $tz) : null;
+
+        return response()->json(MealController::payload($request, $date));
     }
 
     public function update(Request $request): JsonResponse
@@ -53,11 +58,13 @@ class HealthController extends Controller
 
         if ($weightChanged) {
             WeightLog::updateOrCreate(
-                ['user_id' => $user->id, 'measured_on' => now(config('app.timezone'))->toDateString()],
+                ['user_id' => $user->id, 'measured_on' => now(HealthProfile::tz())->toDateString()],
                 ['weight_kg' => $user->weight_kg, 'body_fat_pct' => $user->body_fat_pct],
             );
         }
 
-        return response()->json(HealthProfile::summary($user->fresh()));
+        $request->setUserResolver(fn () => $user->fresh());
+
+        return response()->json(MealController::payload($request));
     }
 }
