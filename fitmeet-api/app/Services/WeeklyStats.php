@@ -92,6 +92,9 @@ class WeeklyStats
                 'elev'  => $t->elevation_gain ? (int) round($t->elevation_gain) : null,
             ], fn ($v) => $v !== null))->values()->all(),
             'last_training_at' => $week->max('started_at')?->toIso8601String(),
+            // Health profile for the AI coach (own report only): body, BMR, FTP, goal, avg day energy
+            'athlete'  => HealthProfile::forCoach($user),
+            'energy_avg_day_kcal' => HealthProfile::summary($user, $today)['week'] ?? null,
         ];
     }
 

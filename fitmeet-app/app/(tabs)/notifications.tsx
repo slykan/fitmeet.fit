@@ -4,31 +4,30 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { badgeEvents } from './_layout'
 import {
   ActivityIndicator, Image, Linking, Pressable, RefreshControl,
-  ScrollView, Share, StyleSheet, Text, View,
+  ScrollView, StyleSheet, Text, View,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs'
 
 import { ActivityFeed } from '@/src/components/ActivityFeed'
-import { MomentsGrid, type MomentsGridHandle } from '@/src/components/MomentsGrid'
+import { HealthPanel } from '@/src/components/HealthPanel'
 import { TrainingsFeedTab } from '@/src/components/TrainingsFeedTab'
 import { api } from '@/src/lib/api'
-import { setBackScrollHandler } from '@/src/lib/back-scroll'
 import { useBadgesStore } from '@/src/store/badges'
 import { palette, spacing } from '@/src/theme'
 
-type FeedTab = 'activity' | 'trainings' | 'moments' | 'alerts'
+type FeedTab = 'activity' | 'trainings' | 'health' | 'alerts'
 
 const TAB_ICONS: Record<FeedTab, keyof typeof Ionicons.glyphMap> = {
   activity:  'pulse-outline',
   trainings: 'barbell-outline',
-  moments:   'images-outline',
+  health:    'heart-outline',
   alerts:    'notifications-outline',
 }
 const TAB_LABELS: Record<FeedTab, string> = {
   activity:  'Activity',
   trainings: 'Trainings',
-  moments:   'Moments',
+  health:    'Health',
   alerts:    'Alerts',
 }
 
@@ -163,7 +162,6 @@ export default function NotificationsScreen() {
   const [refreshing,    setRefreshing]    = useState(false)
   const [acting,        setActing]        = useState<number | null>(null)
   const [alertsUnread,  setAlertsUnread]  = useState(0)
-  const momentsGridRef = useRef<MomentsGridHandle>(null)
   const appliedTabParamRef = useRef<string | null>(null)
 
   // A push (e.g. "new training synced") carries ?tab=trainings so tapping it
@@ -172,16 +170,12 @@ export default function NotificationsScreen() {
   // since the query param itself doesn't change while the screen stays mounted.
   useEffect(() => {
     if (!tabParam || tabParam === appliedTabParamRef.current) return
-    if (!(['activity', 'trainings', 'moments', 'alerts'] as const).includes(tabParam as FeedTab)) return
+    // Moments moved out of the Feed (Meet › gallery button); old links still open it
+    if (tabParam === 'moments') { appliedTabParamRef.current = tabParam; router.push('/moments' as never); return }
+    if (!(['activity', 'trainings', 'health', 'alerts'] as const).includes(tabParam as FeedTab)) return
     appliedTabParamRef.current = tabParam
     setTab(tabParam as FeedTab)
   }, [tabParam])
-
-  useFocusEffect(useCallback(() => {
-    if (tab !== 'moments') return
-    setBackScrollHandler(() => momentsGridRef.current?.scrollToTopOrFalse() ?? false)
-    return () => setBackScrollHandler(null)
-  }, [tab]))
 
   const load = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true)
@@ -243,7 +237,7 @@ export default function NotificationsScreen() {
         <View>
           <Text style={styles.eyebrow}>Feed</Text>
           <Text style={styles.title}>
-            {tab === 'activity' ? 'Activity' : tab === 'trainings' ? 'Trainings' : tab === 'moments' ? 'Moments' : 'Alerts'}
+            {tab === 'activity' ? 'Activity' : tab === 'trainings' ? 'Trainings' : tab === 'health' ? 'Health' : 'Alerts'}
           </Text>
         </View>
         {tab === 'alerts' && notifications.length > 0 && (
@@ -256,25 +250,10 @@ export default function NotificationsScreen() {
             <Ionicons name="analytics-outline" size={19} color={palette.accent} />
           </Pressable>
         )}
-        {tab === 'moments' && (
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            <Pressable style={styles.momentsIconBtn} onPress={() => router.push('/moments-slideshow' as never)}>
-              <Ionicons name="play-circle-outline" size={18} color={palette.accent} />
-            </Pressable>
-            <Pressable
-              style={styles.momentsIconBtn}
-              onPress={() => Share.share({
-                message: 'Check out FitMeet Moments — real people, real events 📸 https://fitmeet.fit/moments',
-              })}
-            >
-              <Ionicons name="share-social-outline" size={18} color={palette.accent} />
-            </Pressable>
-          </View>
-        )}
       </View>
 
       <View style={styles.tabBar}>
-        {(['activity', 'trainings', 'moments', 'alerts'] as const).map(t => (
+        {(['activity', 'trainings', 'health', 'alerts'] as const).map(t => (
           <Pressable
             key={t}
             style={[styles.tabBtn, tab === t && styles.tabBtnActive]}
@@ -293,7 +272,11 @@ export default function NotificationsScreen() {
 
       {tab === 'activity' && <ActivityFeed />}
       {tab === 'trainings' && <TrainingsFeedTab />}
-      {tab === 'moments' && <MomentsGrid ref={momentsGridRef} />}
+      {tab === 'health' && (
+        <ScrollView contentContainerStyle={[styles.content, { paddingBottom: tabBarHeight + 8 }]} showsVerticalScrollIndicator={false}>
+          <HealthPanel />
+        </ScrollView>
+      )}
 
       {tab === 'alerts' && (
       <ScrollView

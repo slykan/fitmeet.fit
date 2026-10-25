@@ -4,17 +4,17 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import { UserPlus, UserCheck, Check, X, Bell, Calendar, MapPin, Zap, PlayCircle, MessageCircle, Megaphone, Dumbbell, Share2, ChartLine } from 'lucide-react'
+import { UserPlus, UserCheck, Check, X, Bell, Calendar, MapPin, Zap, PlayCircle, MessageCircle, Megaphone, Dumbbell, ChartLine } from 'lucide-react'
 
 import { ActivityFeed } from '@/components/activity-feed'
-import { MomentsGrid } from '@/components/moments-grid'
+import { HealthPanel } from '@/components/health-panel'
 import { Navbar } from '@/components/navbar'
 import { TrainingsTab } from '@/components/trainings-tab'
 import api from '@/lib/api'
 import { formatEventDateTime } from '@/lib/event-time'
 import { useAuthStore } from '@/store/auth'
 
-type FeedTab = 'activity' | 'trainings' | 'moments' | 'alerts'
+type FeedTab = 'activity' | 'trainings' | 'health' | 'alerts'
 
 const notificationsSeenKey = (userId: number) => `fitmeet-notifications-last-seen:${userId}`
 
@@ -269,17 +269,6 @@ export default function NotificationsPage() {
     }
   }
 
-  function handleShareMoments() {
-    const url = 'https://fitmeet.fit/moments'
-    if (navigator.share) {
-      navigator.share({ title: 'FitMeet Moments', text: 'Real people, real events 📸', url })
-    } else {
-      navigator.clipboard.writeText(url)
-        .then(() => alert('Link copied!'))
-        .catch(() => {})
-    }
-  }
-
   return (
     <>
       <Navbar />
@@ -288,7 +277,7 @@ export default function NotificationsPage() {
 
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-2xl font-bold">
-              {tab === 'activity' ? 'Activity' : tab === 'trainings' ? 'Trainings' : tab === 'moments' ? 'Moments' : 'Alerts'}
+              {tab === 'activity' ? 'Activity' : tab === 'trainings' ? 'Trainings' : tab === 'health' ? 'Health' : 'Alerts'}
             </h1>
             {tab === 'trainings' && (
               <Link
@@ -299,28 +288,10 @@ export default function NotificationsPage() {
                 <ChartLine size={15} /> Reports
               </Link>
             )}
-            {tab === 'moments' && (
-              <div className="flex gap-2">
-                <Link
-                  href="/moments/slideshow"
-                  className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-xl font-semibold transition-opacity hover:opacity-80"
-                  style={{ background: 'rgba(57,255,20,0.15)', border: '1px solid rgba(57,255,20,0.4)', color: 'var(--primary)' }}
-                >
-                  <PlayCircle size={15} /> Play
-                </Link>
-                <button
-                  onClick={handleShareMoments}
-                  className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-xl font-semibold transition-opacity hover:opacity-80"
-                  style={{ background: 'rgba(57,255,20,0.08)', border: '1px solid rgba(57,255,20,0.25)', color: 'var(--primary)' }}
-                >
-                  <Share2 size={15} /> Share
-                </button>
-              </div>
-            )}
           </div>
 
           <div className="grid grid-cols-4 gap-1 p-1 rounded-xl mb-6 w-full" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-            {(['activity', 'trainings', 'moments', 'alerts'] as const).map(t => (
+            {(['activity', 'trainings', 'health', 'alerts'] as const).map(t => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
@@ -330,7 +301,7 @@ export default function NotificationsPage() {
                   color:      tab === t ? '#000' : 'var(--text-muted)',
                 }}
               >
-                {t === 'activity' ? 'Activity' : t === 'trainings' ? 'Trainings' : t === 'moments' ? 'Moments' : 'Alerts'}
+                {t === 'activity' ? 'Activity' : t === 'trainings' ? 'Trainings' : t === 'health' ? 'Health' : 'Alerts'}
                 {t === 'alerts' && alertsUnread > 0 && (
                   <span
                     className="absolute top-1 right-2 w-[7px] h-[7px] rounded-full"
@@ -343,7 +314,7 @@ export default function NotificationsPage() {
 
           {tab === 'activity' && <ActivityFeed />}
           {tab === 'trainings' && <TrainingsTab />}
-          {tab === 'moments' && <MomentsGrid />}
+          {tab === 'health' && <HealthPanel />}
 
           {tab === 'alerts' && (
           <>

@@ -28,6 +28,10 @@ bpm and minutes per zone) — never against generic 220 − age formulas. If set
 "observed", the zones are only an estimate: say so when intensity matters.
 This is fitness coaching, not medical advice: if something looks like a health concern,
 suggest seeing a doctor instead of diagnosing.
+The "athlete" block may include sex, weight, height, body fat, BMR, average daily steps,
+FTP (W and W/kg) and a goal (lose / maintain / gain weight, target weight). Use it where it
+adds something real — power in W/kg, energy burned vs BMR, advice that fits the goal — and
+never comment on someone's body or weight in a judging way.
 
 Always write in the language given as "language" (BCP-47 code, e.g. "hr" = Croatian,
 "en" = English, "de" = German), using that language's natural sports vocabulary.
@@ -248,10 +252,7 @@ TXT;
 
         $data = [
             'language' => $language,
-            'athlete'  => array_filter([
-                'age'    => $user?->birth_date ? $user->birth_date->age : null,
-                'skill'  => $user?->skill_level,
-            ]),
+            'athlete'  => \App\Services\HealthProfile::forCoach($user),
             'training' => array_filter([
                 'sport'          => $training->category->value,
                 'name'           => $training->name,

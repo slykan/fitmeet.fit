@@ -9,7 +9,7 @@ import { Navbar } from '@/components/navbar'
 import { Button } from '@/components/ui/button'
 import { BadgeGrid } from '@/components/badge-grid'
 import { ConnectedAppsCard } from '@/components/connected-apps-card'
-import { AlertTriangle, Bell, Calendar, Camera, Download, Mail, MapPin, Phone, Globe, Navigation, Pencil, Share2, Trash2, UserPlus } from 'lucide-react'
+import { AlertTriangle, Bell, HeartPulse, Calendar, Camera, Download, Mail, MapPin, Phone, Globe, Navigation, Pencil, Share2, Trash2, UserPlus } from 'lucide-react'
 import api from '@/lib/api'
 
 interface AlibiStats {
@@ -271,6 +271,14 @@ export default function ProfilePage() {
         </div>
 
         <AlibiCard />
+
+        {/* Health: sex, weight, height, body fat, steps, FTP — BMR, daily energy, AI coach */}
+        <Link href="/health" className="flex items-center gap-3 rounded-2xl border p-4 sm:p-5 mb-5 transition-opacity hover:opacity-85"
+          style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
+          <HeartPulse size={18} style={{ color: '#ff3b30' }} />
+          <span className="flex-1 font-semibold">Health settings</span>
+          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>BMR · calories · AI coach</span>
+        </Link>
 
         <BadgeGrid />
 
