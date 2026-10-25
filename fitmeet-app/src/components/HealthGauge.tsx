@@ -131,7 +131,7 @@ export function HealthGauge({ today, week, todayLabel = 'Today', avgSteps }: { t
 
       <View style={styles.parts}>
         <Part icon="bed-outline" label="Basal" value={d.bmr} />
-        <Part icon="footsteps-outline" label={avgSteps ? `Steps (${fmt(avgSteps)}/day)` : 'Steps (not set)'} value={d.steps} />
+        <Part icon="footsteps-outline" label={avgSteps ? `Walking · ${fmt(avgSteps)} steps/day` : 'Walking (add your steps)'} value={d.steps} />
         <Part icon="barbell-outline" label={mode === 'today' ? `Training${d.trainings === 1 ? '' : 's'} (${d.trainings})` : 'Training'} value={d.training} />
         <Part icon="restaurant-outline" label="Digestion" value={d.food} />
       </View>
@@ -150,7 +150,7 @@ function Part({ icon, label, value }: { icon: keyof typeof Ionicons.glyphMap; la
   return (
     <View style={styles.part}>
       <Ionicons name={icon} size={14} color={palette.textDim} />
-      <Text style={styles.partLabel} numberOfLines={1}>{label}</Text>
+      <Text style={styles.partLabel} numberOfLines={2}>{label}</Text>
       <Text style={styles.partValue}>{fmt(value)} <Text style={styles.partUnit}>kcal</Text></Text>
     </View>
   )

@@ -302,7 +302,7 @@ export function EnergyGauge({ today, week, todayLabel = 'Today', avgSteps }: { t
 
       <div className="grid grid-cols-2 gap-y-2 gap-x-4 pt-3 text-sm" style={{ borderTop: '1px solid rgba(57,255,20,0.18)' }}>
         <Part icon={<Bed size={14} />} label="Basal" value={d.bmr} />
-        <Part icon={<Footprints size={14} />} label={avgSteps ? `Steps (${fmt(avgSteps)}/day)` : 'Steps (not set)'} value={d.steps} />
+        <Part icon={<Footprints size={14} />} label={avgSteps ? `Walking · ${fmt(avgSteps)} steps/day` : 'Walking (add your steps)'} value={d.steps} />
         <Part icon={<Dumbbell size={14} />} label={mode === 'today' ? `Training${d.trainings === 1 ? '' : 's'} (${d.trainings})` : 'Training'} value={d.training} />
         <Part icon={<UtensilsCrossed size={14} />} label="Digestion" value={d.food} />
       </div>
@@ -314,7 +314,7 @@ export function EnergyGauge({ today, week, todayLabel = 'Today', avgSteps }: { t
 function Part({ icon, label, value }: { icon: React.ReactNode; label: string; value: number }) {
   return (
     <div className="flex items-center gap-2" style={{ color: 'var(--text-muted)' }}>
-      {icon}<span className="flex-1 truncate">{label}</span><b className="text-white">{fmt(value)} <span className="text-[10px] font-semibold" style={{ color: 'var(--text-muted)' }}>kcal</span></b>
+      {icon}<span className="flex-1 leading-tight">{label}</span><b className="text-white">{fmt(value)} <span className="text-[10px] font-semibold" style={{ color: 'var(--text-muted)' }}>kcal</span></b>
     </div>
   )
 }
