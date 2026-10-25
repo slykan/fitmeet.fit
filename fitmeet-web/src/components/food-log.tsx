@@ -123,7 +123,7 @@ export function FoodLog<T>({ date, meals, recent, quickDrinks, estimatesLeft, on
 
       {!adding ? (
         <button onClick={() => setAdding(true)} className="flex items-center justify-center gap-1 h-10 rounded-xl font-bold text-sm text-black" style={{ background: 'var(--primary)' }}>
-          <Plus size={17} /> Meal
+          <Plus size={17} /> Add meal
         </button>
       ) : (
         <div className="flex flex-col gap-3">
@@ -134,8 +134,8 @@ export function FoodLog<T>({ date, meals, recent, quickDrinks, estimatesLeft, on
             maxLength={500}
             rows={3}
             autoFocus
-            className="w-full rounded-xl border p-3 text-sm bg-transparent outline-none focus:border-[var(--primary)]"
-            style={{ borderColor: 'var(--border)' }}
+            className="w-full rounded-xl border-2 p-3 text-base outline-none"
+            style={{ borderColor: 'var(--primary)', background: 'rgba(57,255,20,0.05)' }}
           />
           {estimate && (
             <div className="rounded-xl p-3 flex flex-col gap-1" style={{ background: 'rgba(255,255,255,0.04)' }}>

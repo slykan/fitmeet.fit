@@ -13,7 +13,6 @@ import { useAuthStore } from '@/src/store/auth'
 import { palette, spacing } from '@/src/theme'
 import { AlibiCard } from '@/src/components/AlibiCard'
 import { BadgeGrid } from '@/src/components/BadgeGrid'
-import { HrZonesCard } from '@/src/components/HrZonesCard'
 
 function isBirthday(birthDate: string | null | undefined): boolean {
   if (!birthDate) return false
@@ -170,10 +169,7 @@ export default function ProfileScreen() {
         {/* Alibi stats */}
         <AlibiCard />
 
-        {/* Heart rate zones (used by charts, reports and the AI coach) */}
-        <HrZonesCard />
-
-        {/* Health: sex, weight, height, body fat, steps, FTP — BMR, daily energy, AI coach */}
+        {/* Health: sex, weight, height, body fat, steps, FTP, heart rate zones — BMR, daily energy, AI coach */}
         <Pressable style={styles.settingsLink} onPress={() => router.push('/health' as never)}>
           <Ionicons name="heart-outline" size={18} color="#ff3b30" />
           <Text style={styles.settingsLinkText}>Health settings</Text>

@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useState } from 'react'
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 
 import { api } from '@/src/lib/api'
 import { palette, spacing } from '@/src/theme'
@@ -127,13 +127,22 @@ export function FoodLog<T>({ date, meals, recent, quickDrinks, estimatesLeft, on
         </View>
       )}
 
-      {!adding ? (
-        <Pressable style={styles.addBtn} onPress={() => setAdding(true)}>
-          <Ionicons name="add" size={18} color="#041109" />
-          <Text style={styles.addText}>Meal</Text>
-        </Pressable>
-      ) : (
-        <View style={styles.addBox}>
+      <Pressable style={styles.addBtn} onPress={() => setAdding(true)}>
+        <Ionicons name="add" size={18} color="#041109" />
+        <Text style={styles.addText}>Add meal</Text>
+      </Pressable>
+
+      {/* Bottom sheet that rises with the keyboard, so the text field is always visible */}
+      <Modal visible={adding} transparent animationType="slide" onRequestClose={reset}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <Pressable style={styles.overlay} onPress={reset}>
+            <Pressable style={styles.sheet} onPress={e => e.stopPropagation()}>
+              <View style={styles.sheetHandle} />
+              <View style={styles.sheetHead}>
+                <Ionicons name="restaurant" size={18} color="#ff9f43" />
+                <Text style={styles.sheetTitle}>Add a meal or drink</Text>
+              </View>
+              <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.addBox}>
           <TextInput
             style={styles.textArea}
             value={text}
@@ -180,8 +189,11 @@ export function FoodLog<T>({ date, meals, recent, quickDrinks, estimatesLeft, on
             )}
           </View>
           <Text style={styles.note}>{estimatesLeft} AI estimates left this month · repeat and quick drinks are free</Text>
-        </View>
-      )}
+              </ScrollView>
+            </Pressable>
+          </Pressable>
+        </KeyboardAvoidingView>
+      </Modal>
 
       <Text style={styles.section}>Quick drinks</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
@@ -232,8 +244,14 @@ const styles = StyleSheet.create({
   dayMacros: { color: palette.textMuted, fontSize: 11, marginTop: 6 },
   addBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, height: 42, borderRadius: 12, backgroundColor: palette.accent },
   addText: { color: '#041109', fontSize: 14, fontWeight: '800' },
-  addBox: { gap: 10 },
-  textArea: { minHeight: 70, borderRadius: 12, borderWidth: 1, borderColor: palette.line, color: palette.text, fontSize: 14, padding: 10, textAlignVertical: 'top' },
+  addBox: { gap: 12, paddingBottom: 8 },
+  // highlighted: green frame, bigger text, so it's obvious where to type
+  textArea: { minHeight: 96, borderRadius: 14, borderWidth: 2, borderColor: palette.accent, backgroundColor: 'rgba(108,255,47,0.05)', color: palette.text, fontSize: 16, padding: 12, textAlignVertical: 'top' },
+  overlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.55)' },
+  sheet: { backgroundColor: palette.panel, borderTopLeftRadius: 24, borderTopRightRadius: 24, borderWidth: 1, borderColor: palette.line, padding: spacing.md, paddingBottom: spacing.lg, maxHeight: '85%', gap: 10 },
+  sheetHandle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: palette.line },
+  sheetHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  sheetTitle: { color: palette.text, fontSize: 17, fontWeight: '800' },
   estimate: { backgroundColor: palette.panelRaised, borderRadius: 12, padding: 10, gap: 4 },
   estRow: { flexDirection: 'row', gap: 8 },
   estName: { flex: 1, color: palette.textMuted, fontSize: 12 },

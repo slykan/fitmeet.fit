@@ -9,7 +9,6 @@ import { Navbar } from '@/components/navbar'
 import { Button } from '@/components/ui/button'
 import { BadgeGrid } from '@/components/badge-grid'
 import { ConnectedAppsCard } from '@/components/connected-apps-card'
-import { HrZonesCard } from '@/components/hr-zones-card'
 import { AlertTriangle, Bell, HeartPulse, Calendar, Camera, Download, Mail, MapPin, Phone, Globe, Navigation, Pencil, Share2, Trash2, UserPlus } from 'lucide-react'
 import api from '@/lib/api'
 
@@ -278,11 +277,8 @@ export default function ProfilePage() {
           style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
           <HeartPulse size={18} style={{ color: '#ff3b30' }} />
           <span className="flex-1 font-semibold">Health settings</span>
-          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>BMR · calories · AI coach</span>
+          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>BMR · HR zones · calories · AI coach</span>
         </Link>
-
-        {/* Heart rate zones (charts, reports, AI coach) — same card as in Health */}
-        <div className="mb-5"><HrZonesCard /></div>
 
         <BadgeGrid />
 
