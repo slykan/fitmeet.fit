@@ -189,7 +189,6 @@ export function HealthPanel({ startEditing = false, onSaved }: { startEditing?: 
           <Ionicons name="create-outline" size={16} color={palette.accent} />
           <Text style={styles.editText}>Edit health data</Text>
         </Pressable>
-        <HrZonesCard />
       </View>
     )
   }

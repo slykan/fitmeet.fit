@@ -141,7 +141,6 @@ export function HealthPanel({ startEditing = false }: { startEditing?: boolean }
           style={{ background: 'rgba(57,255,20,0.06)', border: '1px solid rgba(57,255,20,0.35)', color: 'var(--primary)' }}>
           <Pencil size={15} /> Edit health data
         </button>
-        <HrZonesCard />
       </div>
     )
   }
