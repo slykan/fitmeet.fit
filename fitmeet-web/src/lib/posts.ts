@@ -15,6 +15,66 @@ export interface Post {
 
 export const posts: Post[] = [
   {
+    slug: 'fitmeet-health-energy-food-log',
+    title: 'Introducing Health: Your Daily Energy, a Food Log and a Coach That Knows You',
+    description: 'A new Health tab shows how much energy you burn — basal metabolism plus your trainings — next to what you eat. Describe a meal in a few words and the AI estimates calories and macros. Your AI coach now knows your body, your FTP and your goal.',
+    publishedAt: '2026-10-26',
+    readTime: 5,
+    category: 'Health',
+    sections: [
+      {
+        heading: 'A New Health Tab in Your Feed',
+        paragraphs: [
+          'Your Feed now has four tabs: Trainings, Health, Activity and Alerts. Health is where everything about your body and your energy lives — and it opens with one simple question: how much did you burn today, and how much did you eat?',
+          'Moments has moved out of the Feed to make room. Your event photos are still one tap away: use the gallery button at the top of Meet.',
+        ],
+      },
+      {
+        heading: 'Tell FitMeet a Little About Yourself',
+        paragraphs: [
+          'The first time you open Health, you fill in a short form: sex, weight and height. Your date of birth comes straight from your profile, so you don\'t type it twice. Optionally, add your body fat from a smart scale (a rough number is fine), your average daily steps, your FTP if you ride, and a goal — lose weight, maintain or gain — with a target weight.',
+          'Hit Save and the form folds away. You can change everything later with Edit health data, or from Profile › Health settings. Your heart-rate zones live there too now, together with the rest of your health data. Every weight change is also kept by date, so your history stays honest.',
+          'This data is private. Only you can see it, it is never shown on your public profile, and it is used only to calculate your numbers and to brief your AI coach.',
+        ],
+      },
+      {
+        heading: 'Your Energy at a Glance',
+        paragraphs: [
+          'The Energy gauge starts from your basal metabolic rate (BMR) — the energy your body uses at complete rest. FitMeet calculates it with the Mifflin-St Jeor formula, or with Katch-McArdle when you have entered your body fat, which is more accurate for athletes with more muscle.',
+          'On top of that come your walking (from your average daily steps), your synced trainings and a small amount for digesting food. Two short needles on the dial show the whole story: the white one is your basal metabolism, the green one is everything you burned. Right under the dial you see Basal, Burned and Eaten side by side, and below it the calories from your trainings.',
+          'If a training came in without calories, FitMeet estimates them from your average heart rate, or from the duration and sport — and tells you when it did. Switch between Today and 7 days to see a single day or your average day of the past week.',
+        ],
+      },
+      {
+        heading: 'Log Food in Plain Words',
+        paragraphs: [
+          'Tap Add meal and simply describe what you had — "2 eggs, toast with butter and a coffee with milk" or "burek with cheese and yogurt". The AI splits it into items, picks realistic portions, and estimates calories plus protein, carbs and fat. You see what it assumed, can correct the total before saving, or enter calories yourself if you prefer.',
+          'Drinks are one tap: water, espresso, coffee with milk, beer, wine, juice, cola or a sports drink. Meals you have logged before show up under Repeat, so your usual breakfast or protein shake is a single tap too. Once food is logged, the gauge shows your calorie deficit or surplus for the day.',
+          'You get 150 AI estimates a month. Repeating a meal and the quick drink buttons are free and don\'t count.',
+        ],
+      },
+      {
+        heading: 'Every Day Is Kept',
+        paragraphs: [
+          'Use the arrows above the gauge to go back through previous days. FitMeet keeps a daily record of what you burned and ate, closed off each night — so when your weight changes next month, last month\'s days still show what they really were. Days follow your local time, not a server clock.',
+        ],
+      },
+      {
+        heading: 'A Coach That Knows Who You Are',
+        paragraphs: [
+          'Your AI coach now gets a short athlete profile with every analysis: age, sex, weight, height, body fat, BMR, average steps, FTP and watts per kilo, and your goal. That makes its advice a lot more specific — power in W/kg on a climb, whether you fuelled enough for the training load, or tips that fit a weight-loss goal instead of generic ones.',
+          'In weekly and monthly reports it also sees your average energy burned and, if you log food, your average intake and macros — so it can tell you when you are short on protein for the amount you train. Food logs are estimates, and the coach treats them that way: as direction, not exact accounting. And it is instructed never to comment on your body or weight in a judging way.',
+        ],
+      },
+      {
+        heading: 'Available Now',
+        paragraphs: [
+          'Health is live on fitmeet.fit today and is rolling out in the latest FitMeet app update for Android, with iOS following soon. Fill in your health data once, and your energy, food and coach will take it from there.',
+        ],
+      },
+    ],
+  },
+  {
     slug: 'fitmeet-ai-coach-weekly-monthly-reports',
     title: 'Meet Your AI Coach: Training Analysis, Weekly and Monthly Reports',
     description: 'Every synced training now comes with charts and an AI coach that explains what you did and answers your questions — plus weekly and monthly reports, and heart-rate zones built around you, not a formula.',
@@ -46,7 +106,7 @@ export const posts: Post[] = [
       {
         heading: 'Heart-Rate Zones That Fit You',
         paragraphs: [
-          'Zones based on "220 minus your age" are wrong for a lot of people — especially anyone who has trained for years. So your profile now has a Heart rate zones card, right above your badges, with three ways to set them: from your max heart rate, from heart-rate reserve (the Karvonen method, using your max and resting HR), or by typing in each zone yourself.',
+          'Zones based on "220 minus your age" are wrong for a lot of people — especially anyone who has trained for years. So FitMeet now has a Heart rate zones card (today you will find it in Profile › Health settings) with three ways to set them: from your max heart rate, from heart-rate reserve (the Karvonen method, using your max and resting HR), or by typing in each zone yourself.',
           'Not sure what your max is? FitMeet shows the highest heart rate it has seen in your trainings and lets you use it with one tap. Whatever you choose is then used everywhere — in the training charts, the reports, and by the AI coach when it talks about how hard you worked.',
         ],
       },
