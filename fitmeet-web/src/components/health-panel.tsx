@@ -244,7 +244,7 @@ export function EnergyGauge({ today, week, todayLabel = 'Today' }: { today: Ener
   const max = Math.max(Math.ceil((d.bmr * 2) / 500) * 500, Math.ceil((Math.max(d.total, intake) * 1.1) / 500) * 500)
   const share = (v: number) => Math.min(1, Math.max(0, v / max))
   const major = max > 4000 ? 1000 : 500
-  const p = useSweep(`${mode}-${d.bmr}-${d.total}`)
+  const p = useSweep(`${mode}-${d.bmr}-${d.total}-${intake}`)
 
   const ticks: React.ReactNode[] = []
   for (let v = 0; v <= max; v += 100) {
@@ -294,6 +294,7 @@ export function EnergyGauge({ today, week, todayLabel = 'Today' }: { today: Ener
           <circle cx={CX} cy={CY} r={R - 44} fill="rgba(255,255,255,0.035)" />
           <path d={arc(0, 1, R)} stroke="url(#energy-scale)" strokeWidth={STROKE} fill="none" strokeLinecap="round" />
           {ticks}
+          {intake > 0 && needle(intake * p, '#ff9f43', 4)}
           {needle(d.bmr * p, '#ffffff', 3)}
           {needle(d.total * p, '#6cff2f', 4)}
           <text x={CX} y={CY - 56} fill="rgba(255,255,255,0.55)" fontSize={11} textAnchor="middle">

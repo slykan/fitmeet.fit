@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useState } from 'react'
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
+import { ActivityIndicator, Alert, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 
 import { api } from '@/src/lib/api'
 import { palette, spacing } from '@/src/theme'
@@ -55,6 +55,7 @@ export function FoodLog<T>({ date, meals, recent, quickDrinks, estimatesLeft, on
 
   async function runEstimate() {
     if (text.trim().length < 2) return
+    Keyboard.dismiss() // the press is already registered; hide the keyboard so the estimate is visible
     setBusy('estimate')
     setError(null)
     try {
@@ -135,14 +136,16 @@ export function FoodLog<T>({ date, meals, recent, quickDrinks, estimatesLeft, on
       {/* Bottom sheet that rises with the keyboard, so the text field is always visible */}
       <Modal visible={adding} transparent animationType="slide" onRequestClose={reset}>
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <Pressable style={styles.overlay} onPress={reset}>
-            <Pressable style={styles.sheet} onPress={e => e.stopPropagation()}>
+          <View style={styles.overlay}>
+            {/* backdrop is a sibling behind the sheet (not a parent), so taps inside the sheet go straight to its buttons */}
+            <Pressable style={StyleSheet.absoluteFill} onPress={reset} />
+            <View style={styles.sheet}>
               <View style={styles.sheetHandle} />
               <View style={styles.sheetHead}>
                 <Ionicons name="restaurant" size={18} color="#ff9f43" />
                 <Text style={styles.sheetTitle}>Add a meal or drink</Text>
               </View>
-              <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.addBox}>
+              <ScrollView keyboardShouldPersistTaps="always" contentContainerStyle={styles.addBox}>
           <TextInput
             style={styles.textArea}
             value={text}
@@ -190,8 +193,8 @@ export function FoodLog<T>({ date, meals, recent, quickDrinks, estimatesLeft, on
           </View>
           <Text style={styles.note}>{estimatesLeft} AI estimates left this month · repeat and quick drinks are free</Text>
               </ScrollView>
-            </Pressable>
-          </Pressable>
+            </View>
+          </View>
         </KeyboardAvoidingView>
       </Modal>
 
