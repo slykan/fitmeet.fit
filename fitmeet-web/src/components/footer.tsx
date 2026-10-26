@@ -15,7 +15,12 @@ export function Footer() {
           <span>·</span>
           <span>Find your people. Move together.</span>
         </div>
-        <div className="flex items-center gap-5">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+          {[['/guides', 'Guides'], ['/tools', 'Calculators'], ['/blog', 'Blog'], ['/market', 'Marketplace'], ['/help', 'Help']].map(([href, label]) => (
+            <Link key={href} href={href} className="hover:underline transition-colors" style={{ color: 'var(--text-muted)' }}>
+              {label}
+            </Link>
+          ))}
           <Link
             href="/about"
             className="hover:underline transition-colors"

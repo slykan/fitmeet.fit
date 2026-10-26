@@ -1,0 +1,12 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "XW6SS447Q7.fit.fitmeet.app",
+        "appIDs": ["XW6SS447Q7.fit.fitmeet.app"],
+        "paths": ["/events/share*", "/events/view*", "/events/check-in*", "/reset-password*"]
+      }
+    ]
+  }
+}

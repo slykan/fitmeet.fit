@@ -17,6 +17,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 
 import { Navbar } from '@/components/navbar'
+import { AdSense } from '@/components/adsense'
 import { HeroMap } from '@/components/hero-map'
 import { LatestEventsCarousel } from '@/components/latest-events-carousel'
 import { LatestUsersTicker } from '@/components/latest-users-ticker'
@@ -226,6 +227,7 @@ export default async function HomePage() {
   return (
     <>
       <Navbar />
+      <AdSense />
       <main className="flex-1">
         <section className="relative overflow-hidden border-b" style={{ borderColor: 'var(--border)' }}>
           <div

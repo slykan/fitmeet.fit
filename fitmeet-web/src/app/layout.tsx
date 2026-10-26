@@ -26,14 +26,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${spaceGrotesk.variable} h-full antialiased`} suppressHydrationWarning>
-      {/* eslint-disable-next-line @next/next/no-head-element */}
+      {/* AdSense: not global any more — only content pages render <AdSense /> (components/adsense.tsx) */}
       <head>
-        {/* Google AdSense */}
-        <script
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3054841074530422"
-          crossOrigin="anonymous"
-        />
+        <meta name="google-adsense-account" content="ca-pub-3054841074530422" />
       </head>
       <body className="min-h-full flex flex-col bg-[--background] text-[--text-primary]">
         <Providers>

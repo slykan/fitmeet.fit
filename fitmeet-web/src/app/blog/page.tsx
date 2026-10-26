@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { Apple, ArrowRight, Beer, BookOpen, CalendarRange, Download, HeartPulse, LineChart, MapPin, MessageCircle, Navigation, PencilLine, Route, Share2, ShieldCheck, ShoppingBag, Sparkles, Tag, Users } from 'lucide-react'
 import { Navbar } from '@/components/navbar'
+import { AdSense } from '@/components/adsense'
 import { posts } from '@/lib/posts'
 
 export const metadata = {
@@ -40,6 +41,7 @@ export default function BlogPage() {
   return (
     <>
       <Navbar />
+      <AdSense />
       <main className="flex-1">
         <section className="py-16 md:py-20 border-b" style={{ borderColor: 'var(--border)' }}>
           <div className="max-w-6xl mx-auto px-4">

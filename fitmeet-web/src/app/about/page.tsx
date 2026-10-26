@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { ArrowRight, Users } from 'lucide-react'
 import { Navbar } from '@/components/navbar'
+import { AdSense } from '@/components/adsense'
 import { ShareButton } from '@/components/share-button'
 import type { Metadata } from 'next'
 
@@ -13,6 +14,7 @@ export default function AboutPage() {
   return (
     <>
       <Navbar />
+      <AdSense />
       <main className="flex-1">
         <section className="py-16 md:py-20 border-b" style={{ borderColor: 'var(--border)' }}>
           <div className="max-w-3xl mx-auto px-4">

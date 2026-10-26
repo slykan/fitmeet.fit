@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, ArrowRight, Clock } from 'lucide-react'
 import { Navbar } from '@/components/navbar'
+import { AdSense } from '@/components/adsense'
 import { ShareButton } from '@/components/share-button'
 import { posts, getPost } from '@/lib/posts'
 import type { Metadata } from 'next'
@@ -61,6 +62,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   return (
     <>
       <Navbar />
+      <AdSense />
       <main className="flex-1">
         <div className="max-w-3xl mx-auto px-4 py-12 md:py-16">
 

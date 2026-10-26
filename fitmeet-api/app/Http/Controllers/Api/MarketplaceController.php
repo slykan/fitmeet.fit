@@ -17,7 +17,7 @@ class MarketplaceController extends Controller
     // GET /api/market/public-latest (no auth)
     public function publicLatest(Request $request): JsonResponse
     {
-        $limit = min((int) ($request->query('limit', 10)), 20);
+        $limit = min((int) ($request->query('limit', 10)), 60); // public /market page shows up to 60
 
         $listings = MarketplaceListing::with(['seller', 'images'])
             ->where('status', 'active')
