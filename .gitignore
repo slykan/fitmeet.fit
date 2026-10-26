@@ -21,3 +21,6 @@ igpsport/
 
 # local release builds (AAB/APK)
 builds/
+
+# Next.js static export output (built on the server by deploy.sh)
+fitmeet-web/dist/
