@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
-import { useState } from 'react'
-import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { useEffect, useState } from 'react'
+import { AccessibilityInfo, Pressable, StyleSheet, Text, View } from 'react-native'
 import Svg, { Circle, Defs, G, Line, LinearGradient, Path, Stop, Text as SvgText } from 'react-native-svg'
 
 import { palette, spacing } from '@/src/theme'
@@ -52,6 +52,7 @@ export function HealthGauge({ today, week, todayLabel = 'Today' }: { today: Ener
   const max = Math.max(Math.ceil((d.bmr * 2) / 500) * 500, Math.ceil((Math.max(d.total, intake) * 1.1) / 500) * 500)
   const share = (v: number) => Math.min(1, Math.max(0, v / max))
   const major = max > 4000 ? 1000 : 500
+  const p = useSweep(`${mode}-${d.bmr}-${d.total}`)
 
   const ticks = []
   for (let v = 0; v <= max; v += 100) {
@@ -106,8 +107,8 @@ export function HealthGauge({ today, week, todayLabel = 'Today' }: { today: Ener
           <Circle cx={CX} cy={CY} r={R - 44} fill="rgba(255,255,255,0.035)" />
           <Path d={arc(0, 1, R)} stroke="url(#scale)" strokeWidth={STROKE} fill="none" strokeLinecap="round" />
           <G>{ticks}</G>
-          {needle(d.bmr, '#ffffff', 3, 'bmr')}
-          {needle(d.total, palette.accent, 4, 'total')}
+          {needle(d.bmr * p, '#ffffff', 3, 'bmr')}
+          {needle(d.total * p, palette.accent, 4, 'total')}
           <SvgText x={CX} y={CY - 56} fill={palette.textDim} fontSize={11} textAnchor="middle">
             {mode === 'today' ? (todayLabel === 'Today' ? 'Burned today' : 'Burned') : 'Burned per day'}
           </SvgText>
@@ -178,3 +179,26 @@ const styles = StyleSheet.create({
   trainingValue: { color: palette.text, fontSize: 14, fontWeight: '800' },
   note: { color: palette.textDim, fontSize: 10 },
 })
+
+/** 0 → 1 over ~1.1 s (ease-out) whenever key changes: needles sweep from 0 to their place. Instant with Reduce Motion. */
+function useSweep(key: string): number {
+  const [p, setP] = useState(0)
+  useEffect(() => {
+    let raf = 0
+    let cancelled = false
+    setP(0)
+    AccessibilityInfo.isReduceMotionEnabled().then(reduce => {
+      if (cancelled) return
+      if (reduce) return setP(1)
+      const start = Date.now()
+      const tick = () => {
+        const t = Math.min(1, (Date.now() - start) / 1100)
+        setP(1 - Math.pow(1 - t, 3))
+        if (t < 1) raf = requestAnimationFrame(tick)
+      }
+      raf = requestAnimationFrame(tick)
+    }).catch(() => setP(1))
+    return () => { cancelled = true; cancelAnimationFrame(raf) }
+  }, [key])
+  return p
+}

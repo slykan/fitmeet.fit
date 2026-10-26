@@ -244,6 +244,7 @@ export function EnergyGauge({ today, week, todayLabel = 'Today' }: { today: Ener
   const max = Math.max(Math.ceil((d.bmr * 2) / 500) * 500, Math.ceil((Math.max(d.total, intake) * 1.1) / 500) * 500)
   const share = (v: number) => Math.min(1, Math.max(0, v / max))
   const major = max > 4000 ? 1000 : 500
+  const p = useSweep(`${mode}-${d.bmr}-${d.total}`)
 
   const ticks: React.ReactNode[] = []
   for (let v = 0; v <= max; v += 100) {
@@ -293,8 +294,8 @@ export function EnergyGauge({ today, week, todayLabel = 'Today' }: { today: Ener
           <circle cx={CX} cy={CY} r={R - 44} fill="rgba(255,255,255,0.035)" />
           <path d={arc(0, 1, R)} stroke="url(#energy-scale)" strokeWidth={STROKE} fill="none" strokeLinecap="round" />
           {ticks}
-          {needle(d.bmr, '#ffffff', 3)}
-          {needle(d.total, '#6cff2f', 4)}
+          {needle(d.bmr * p, '#ffffff', 3)}
+          {needle(d.total * p, '#6cff2f', 4)}
           <text x={CX} y={CY - 56} fill="rgba(255,255,255,0.55)" fontSize={11} textAnchor="middle">
             {mode === 'today' ? (todayLabel === 'Today' ? 'Burned today' : 'Burned') : 'Burned per day'}
           </text>
@@ -324,4 +325,23 @@ export function EnergyGauge({ today, week, todayLabel = 'Today' }: { today: Ener
       {d.estimated && <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Some trainings had no calories — estimated from heart rate or duration.</p>}
     </div>
   )
+}
+
+/** 0 → 1 over ~1.1 s (ease-out) whenever key changes: needles sweep from 0 to their place. Instant with reduced motion. */
+function useSweep(key: string): number {
+  const [p, setP] = useState(0)
+  useEffect(() => {
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) { setP(1); return }
+    let raf = 0
+    const start = performance.now()
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / 1100)
+      setP(1 - Math.pow(1 - t, 3))
+      if (t < 1) raf = requestAnimationFrame(tick)
+    }
+    setP(0)
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [key])
+  return p
 }
