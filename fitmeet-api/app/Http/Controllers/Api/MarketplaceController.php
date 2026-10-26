@@ -267,6 +267,7 @@ HTML;
             'images.*'         => 'image|max:5120',
             'keep_image_ids'   => 'nullable|array',
             'keep_image_ids.*' => 'integer',
+            'image_order'      => 'nullable|string|max:500',
         ]);
 
         if (ContentFilterService::containsObjectionableContent($data['title'] ?? null)
@@ -274,8 +275,41 @@ HTML;
             return response()->json(['message' => 'This listing isn\'t allowed. Please revise the title/description.'], 422);
         }
 
-        unset($data['images'], $data['keep_image_ids']);
+        unset($data['images'], $data['keep_image_ids'], $data['image_order']);
         $listing->update($data);
+
+        // image_order (JSON, app 1.4.56+ / web): the full photo list in display order —
+        // "id:<existing image id>" or "new:<index in images[]>". Photos not listed are deleted.
+        $order = json_decode((string) $request->input('image_order', ''), true);
+        if (is_array($order)) {
+            $order = array_slice(array_values(array_filter($order, fn ($t) => is_string($t) && preg_match('/^(id|new):\d+$/', $t))), 0, 5);
+            $keep = [];
+            foreach ($order as $t) {
+                if (str_starts_with($t, 'id:')) $keep[] = (int) substr($t, 3);
+            }
+            foreach ($listing->images as $img) {
+                if (! in_array($img->id, $keep, true)) {
+                    Storage::disk('public')->delete($img->path);
+                    $img->delete();
+                }
+            }
+            $new = $request->file('images') ?? [];
+            foreach ($order as $pos => $t) {
+                [$kind, $n] = explode(':', $t);
+                if ($kind === 'id') {
+                    MarketplaceListingImage::where('listing_id', $listing->id)->where('id', (int) $n)->update(['sort_order' => $pos]);
+                } elseif (isset($new[(int) $n])) {
+                    MarketplaceListingImage::create([
+                        'listing_id' => $listing->id,
+                        'path'       => $new[(int) $n]->store('marketplace', 'public'),
+                        'sort_order' => $pos,
+                    ]);
+                }
+            }
+            $listing->load(['seller', 'images']);
+
+            return response()->json(['data' => new MarketplaceListingResource($listing)]);
+        }
 
         $keepIds = $request->input('keep_image_ids');
         if ($keepIds !== null || $request->hasFile('images')) {

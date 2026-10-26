@@ -3,12 +3,15 @@
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
-import { ChevronLeft, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
 import api from '@/lib/api'
 import { CATEGORIES, CATEGORY_EMOJI } from '@/lib/categories'
 import { useAuthStore } from '@/store/auth'
+
+// One list for existing photos (when editing) and newly picked ones, in display order.
+type Photo = { key: string; url: string } & ({ kind: 'existing'; id: number } | { kind: 'new'; file: File })
 
 const CONDITIONS = [
   { value: 'new',      label: 'New' },
@@ -29,8 +32,7 @@ function CreateContent() {
   const [currency, setCurrency] = useState('EUR')
   const [condition, setCond]    = useState('used')
   const [category, setCategory] = useState('running')
-  const [images, setImages]     = useState<File[]>([])
-  const [previews, setPreviews] = useState<string[]>([])
+  const [photos, setPhotos]     = useState<Photo[]>([])
   const [saving, setSaving]     = useState(false)
   const [error, setError]       = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -48,7 +50,9 @@ function CreateContent() {
       setCurrency(l.currency ?? 'EUR')
       setCond(l.condition ?? 'used')
       setCategory(l.category?.value ?? 'running')
-      if (l.images?.length) setPreviews(l.images)
+      if (l.images_meta?.length) {
+        setPhotos(l.images_meta.map((m: { id: number; url: string }) => ({ key: `id${m.id}`, kind: 'existing' as const, id: m.id, url: m.url })))
+      }
     }).catch(() => router.replace('/meet'))
   }, [editId, router, token])
 
@@ -78,17 +82,26 @@ function CreateContent() {
 
   async function pickImages(files: FileList | null) {
     if (!files) return
-    const raw = [...images, ...Array.from(files)].slice(0, 5)
-    const compressed = await Promise.all(raw.map((f, i) => i < images.length ? f : compressImage(f)))
-    setImages(compressed)
-    setPreviews(compressed.map(f => URL.createObjectURL(f)))
+    const room = Math.max(0, 5 - photos.length)
+    const picked = await Promise.all(Array.from(files).slice(0, room).map(compressImage))
+    const stamp = Date.now()
+    setPhotos(p => [...p, ...picked.map((file, i) => ({ key: `new${stamp}-${i}`, kind: 'new' as const, file, url: URL.createObjectURL(file) }))])
+    if (fileRef.current) fileRef.current.value = ''
   }
 
   function removeImage(idx: number) {
-    const nextFiles = images.filter((_, i) => i !== idx)
-    const nextPrev  = previews.filter((_, i) => i !== idx)
-    setImages(nextFiles)
-    setPreviews(nextPrev)
+    setPhotos(p => p.filter((_, i) => i !== idx))
+  }
+
+  // move a photo one place left (-1) or right (+1); the first photo is the cover
+  function moveImage(idx: number, dir: -1 | 1) {
+    setPhotos(p => {
+      const j = idx + dir
+      if (j < 0 || j >= p.length) return p
+      const next = [...p]
+      ;[next[idx], next[j]] = [next[j], next[idx]]
+      return next
+    })
   }
 
   async function handleSave() {
@@ -106,7 +119,11 @@ function CreateContent() {
       form.append('currency', currency)
       if (type === 'sell') form.append('condition', condition)
       form.append('category', category)
-      if (images.length) images.forEach(f => form.append('images[]', f))
+      // new files in display order; image_order says where each photo goes (and which old ones stay)
+      let n = 0
+      const order = photos.map(p => (p.kind === 'existing' ? `id:${p.id}` : `new:${n++}`))
+      photos.forEach(p => { if (p.kind === 'new') form.append('images[]', p.file) })
+      if (editId) form.append('image_order', JSON.stringify(order))
 
       if (editId) {
         await api.post(`/market/${editId}`, form)
@@ -159,21 +176,36 @@ function CreateContent() {
           {/* Images — only for sell */}
           {type === 'sell' && (
             <div className="rounded-2xl border p-4 space-y-3" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
-              <p className="font-bold text-sm">Photos <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(max 5)</span></p>
+              <p className="font-bold text-sm">Photos <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(max 5 · use the arrows to reorder, the first one is the cover)</span></p>
               <div className="flex flex-wrap gap-2">
-                {previews.map((src, i) => (
-                  <div key={i} className="relative w-24 h-24 rounded-xl overflow-hidden border" style={{ borderColor: 'var(--border)' }}>
-                    <Image src={src} alt="" fill className="object-cover" unoptimized />
+                {photos.map((photo, i) => (
+                  <div key={photo.key} className="relative w-24 h-24 rounded-xl overflow-hidden border" style={{ borderColor: i === 0 ? 'var(--primary)' : 'var(--border)' }}>
+                    <Image src={photo.url} alt="" fill className="object-cover" unoptimized />
+                    {i === 0 && (
+                      <span className="absolute top-1 left-1 px-1.5 rounded text-[10px] font-bold text-black" style={{ background: 'var(--primary)' }}>Cover</span>
+                    )}
                     <button
+                      type="button"
                       onClick={() => removeImage(i)}
+                      aria-label="Remove photo"
                       className="absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center"
                       style={{ background: 'rgba(0,0,0,0.7)' }}
                     >
                       <X size={11} color="#fff" />
                     </button>
+                    {photos.length > 1 && (
+                      <div className="absolute bottom-0 inset-x-0 flex justify-between" style={{ background: 'rgba(0,0,0,0.55)' }}>
+                        <button type="button" onClick={() => moveImage(i, -1)} disabled={i === 0} aria-label="Move left" className="w-1/2 h-6 flex items-center justify-center disabled:opacity-30">
+                          <ChevronLeft size={14} color="#fff" />
+                        </button>
+                        <button type="button" onClick={() => moveImage(i, 1)} disabled={i === photos.length - 1} aria-label="Move right" className="w-1/2 h-6 flex items-center justify-center disabled:opacity-30">
+                          <ChevronRight size={14} color="#fff" />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
-                {previews.length < 5 && (
+                {photos.length < 5 && (
                   <button
                     onClick={() => fileRef.current?.click()}
                     className="w-24 h-24 rounded-xl border-2 border-dashed flex items-center justify-center text-2xl transition-opacity hover:opacity-70"

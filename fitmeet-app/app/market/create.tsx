@@ -28,10 +28,8 @@ interface ImageAsset {
   type: string
 }
 
-interface ExistingImage {
-  id: number
-  url: string
-}
+// One list for existing photos (when editing) and newly picked ones, in display order.
+type Photo = { key: string; uri: string } & ({ kind: 'existing'; id: number } | { kind: 'new'; asset: ImageAsset })
 
 export default function MarketCreateScreen() {
   const { id: editId } = useLocalSearchParams<{ id?: string }>()
@@ -44,8 +42,7 @@ export default function MarketCreateScreen() {
   const [currency,  setCurrency] = useState('EUR')
   const [condition, setCond]     = useState('used')
   const [category,  setCategory] = useState('running')
-  const [images,    setImages]   = useState<ImageAsset[]>([])
-  const [existingImages, setExistingImages] = useState<ExistingImage[]>([])
+  const [photos,    setPhotos]   = useState<Photo[]>([])
   const [saving,    setSaving]   = useState(false)
   const [error,     setError]    = useState<string | null>(null)
   const [loadingEdit, setLoadingEdit] = useState(!!editId)
@@ -65,12 +62,12 @@ export default function MarketCreateScreen() {
       setCond(l.condition ?? 'used')
       setCategory(l.category?.value ?? 'running')
       if (l.images_meta?.length) {
-        setExistingImages(l.images_meta.map((m: { id: number; url: string }) => ({ id: m.id, url: m.url })))
+        setPhotos(l.images_meta.map((m: { id: number; url: string }) => ({ key: `id${m.id}`, kind: 'existing' as const, id: m.id, uri: m.url })))
       }
     }).catch(() => router.back()).finally(() => setLoadingEdit(false))
   }, [editId, token])
 
-  const totalImages = existingImages.length + images.length
+  const totalImages = photos.length
 
   async function pickImages() {
     const remaining = 5 - totalImages
@@ -82,20 +79,29 @@ export default function MarketCreateScreen() {
       selectionLimit: remaining,
     })
     if (result.canceled) return
-    const next = [...images, ...result.assets.map(a => ({
-      uri:  a.uri,
-      name: a.fileName ?? `image_${Date.now()}.jpg`,
-      type: a.mimeType ?? 'image/jpeg',
-    }))].slice(0, 5 - existingImages.length)
-    setImages(next)
-  }
-
-  function removeExistingImage(id: number) {
-    setExistingImages(prev => prev.filter(img => img.id !== id))
+    const stamp = Date.now()
+    const added: Photo[] = result.assets.slice(0, remaining).map((a, i) => ({
+      key: `new${stamp}-${i}`,
+      kind: 'new',
+      uri: a.uri,
+      asset: { uri: a.uri, name: a.fileName ?? `image_${stamp}_${i}.jpg`, type: a.mimeType ?? 'image/jpeg' },
+    }))
+    setPhotos(prev => [...prev, ...added].slice(0, 5))
   }
 
   function removeImage(idx: number) {
-    setImages(prev => prev.filter((_, i) => i !== idx))
+    setPhotos(prev => prev.filter((_, i) => i !== idx))
+  }
+
+  // move a photo one place left (-1) or right (+1); the first photo is the cover
+  function moveImage(idx: number, dir: -1 | 1) {
+    setPhotos(prev => {
+      const j = idx + dir
+      if (j < 0 || j >= prev.length) return prev
+      const next = [...prev]
+      ;[next[idx], next[j]] = [next[j], next[idx]]
+      return next
+    })
   }
 
   async function handleSave() {
@@ -115,14 +121,13 @@ export default function MarketCreateScreen() {
       fd.append('currency', currency)
       if (type === 'sell') fd.append('condition', condition)
       fd.append('category', category)
-      if (editId) {
-        existingImages.forEach(img => {
-          fd.append('keep_image_ids[]', String(img.id))
-        })
-      }
-      images.forEach(img => {
-        fd.append('images[]', { uri: img.uri, name: img.name, type: img.type } as never)
+      // new files in display order; image_order says where each photo goes (and which old ones stay)
+      let n = 0
+      const order = photos.map(p => (p.kind === 'existing' ? `id:${p.id}` : `new:${n++}`))
+      photos.forEach(p => {
+        if (p.kind === 'new') fd.append('images[]', { uri: p.asset.uri, name: p.asset.name, type: p.asset.type } as never)
       })
+      if (editId) fd.append('image_order', JSON.stringify(order))
 
       if (editId) {
         await api.post(`/market/${editId}`, fd, { headers: { 'Content-Type': 'multipart/form-data' } })
@@ -211,23 +216,26 @@ export default function MarketCreateScreen() {
         {type === 'sell' && (
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>
-              Photos <Text style={{ fontWeight: '400', color: palette.textMuted }}>(max 5)</Text>
+              Photos <Text style={{ fontWeight: '400', color: palette.textMuted }}>(max 5 · arrows reorder, first = cover)</Text>
             </Text>
             <View style={styles.imageRow}>
-              {existingImages.map(img => (
-                <View key={`ex-${img.id}`} style={styles.imageThumb}>
-                  <Image source={{ uri: img.url }} style={styles.imageThumbImg} resizeMode="cover" />
-                  <Pressable style={styles.imageRemove} onPress={() => removeExistingImage(img.id)} hitSlop={4}>
-                    <Ionicons name="close" size={12} color="#fff" />
-                  </Pressable>
-                </View>
-              ))}
-              {images.map((img, i) => (
-                <View key={i} style={styles.imageThumb}>
-                  <Image source={{ uri: img.uri }} style={styles.imageThumbImg} resizeMode="cover" />
+              {photos.map((p, i) => (
+                <View key={p.key} style={[styles.imageThumb, i === 0 && styles.imageCoverThumb]}>
+                  <Image source={{ uri: p.uri }} style={styles.imageThumbImg} resizeMode="cover" />
+                  {i === 0 && <Text style={styles.coverBadge}>Cover</Text>}
                   <Pressable style={styles.imageRemove} onPress={() => removeImage(i)} hitSlop={4}>
                     <Ionicons name="close" size={12} color="#fff" />
                   </Pressable>
+                  {photos.length > 1 && (
+                    <View style={styles.imageMoveBar}>
+                      <Pressable style={styles.imageMoveBtn} onPress={() => moveImage(i, -1)} disabled={i === 0} hitSlop={4}>
+                        <Ionicons name="chevron-back" size={15} color={i === 0 ? 'rgba(255,255,255,0.3)' : '#fff'} />
+                      </Pressable>
+                      <Pressable style={styles.imageMoveBtn} onPress={() => moveImage(i, 1)} disabled={i === photos.length - 1} hitSlop={4}>
+                        <Ionicons name="chevron-forward" size={15} color={i === photos.length - 1 ? 'rgba(255,255,255,0.3)' : '#fff'} />
+                      </Pressable>
+                    </View>
+                  )}
                 </View>
               ))}
               {totalImages < 5 && (
@@ -387,6 +395,10 @@ const styles = StyleSheet.create({
   imageThumb: { width: 80, height: 80, borderRadius: 14, overflow: 'hidden', position: 'relative' },
   imageThumbImg: { width: 80, height: 80 },
   imageRemove: { position: 'absolute', top: 4, right: 4, width: 20, height: 20, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.7)', alignItems: 'center', justifyContent: 'center' },
+  imageCoverThumb: { borderWidth: 2, borderColor: palette.accent },
+  coverBadge: { position: 'absolute', top: 4, left: 4, paddingHorizontal: 4, borderRadius: 4, overflow: 'hidden', backgroundColor: palette.accent, color: '#041109', fontSize: 9, fontWeight: '800' },
+  imageMoveBar: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 24, flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.55)' },
+  imageMoveBtn: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   imagePicker: { width: 80, height: 80, borderRadius: 14, borderWidth: 2, borderColor: palette.line, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' },
 
   field:       { gap: 6 },
