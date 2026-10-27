@@ -816,6 +816,125 @@
         "izvor_vremena": "popis"
     },
     {
+        "kljuc": "obala-ultra-trail",
+        "naslov": "Obala Ultra Trail (SLO)",
+        "kat": "running",
+        "datum": "2026-11-07",
+        "vrijeme": "06:00",
+        "lokacija": "Dekani, Slovenia",
+        "opis": "Trail uz slovensku obalu (6.–8.11.): 108 km (start u Dekanima), 64, 35, 17 i 11 km, cilj u Izoli. Satnica je prema prošlogodišnjem rasporedu (108 km u 6:00, 35 km u 11:00) — provjeri na stranici organizatora.",
+        "url": "https:\/\/www.obalaultratrail.si\/",
+        "geo": {
+            "lat": 45.548328,
+            "lng": 13.810344,
+            "upit": "Dekani, Slovenia",
+            "naziv": "Dekani, Koper \/ Capodistria, Upravna enota Koper \/ Unità amministrativa Capodistria, 6271, Slovenija"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "novomeski-polmaraton",
+        "naslov": "Novomeški polmaraton (SLO)",
+        "kat": "running",
+        "datum": "2026-11-15",
+        "vrijeme": "10:00",
+        "lokacija": "Seidlova cesta, Novo mesto, Slovenia",
+        "opis": "Polumaraton 21 km te kraće utrke kroz povijesni centar Novog mesta. Satnica još nije objavljena — 10:00 je okvirno.",
+        "url": "https:\/\/www.novomesto21.si\/",
+        "geo": {
+            "lat": 45.813171,
+            "lng": 15.175089,
+            "upit": "Seidlova cesta, Novo mesto, Slovenia",
+            "naziv": "Seidlova cesta, Ragovo, Novo Mesto, Novo mesto, 8000, Slovenija"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "redbull-soundclash",
+        "naslov": "Red Bull SoundClash: Siddharta vs Big Foot Mama",
+        "kat": "music",
+        "datum": "2026-11-27",
+        "vrijeme": "20:00",
+        "lokacija": "Arena Stožice, Ljubljana, Slovenia",
+        "opis": "Dvoboj dvaju najvećih slovenskih rock bendova na dvije pozornice. Dodatni koncert 28. studenoga u 20:00. Ulaznice rasprodane.",
+        "url": "https:\/\/www.redbull.com\/si-sl\/events\/red-bull-soundclash",
+        "geo": {
+            "lat": 46.081371,
+            "lng": 14.52146,
+            "upit": "Arena Stožice, Ljubljana, Slovenia",
+            "naziv": "Arena Stožice, 100, Vojkova cesta, Nove Stožice (BS3), Četrtna skupnost Bežigrad, Ljubljana, Upravna Enota Ljubljana, 1000, Slovenija"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "vitranc-muski",
+        "naslov": "Pokal Vitranc – Svjetski kup (muški)",
+        "kat": "skiing",
+        "datum": "2027-01-02",
+        "vrijeme": "10:00",
+        "lokacija": "Podkoren, Kranjska Gora, Slovenia",
+        "opis": "Svjetski skijaški kup u Podkorenu: veleslalom u subotu 2.1., slalom u nedjelju 3.1. Prva vožnja okvirno u 10:00, druga u 13:00 (službena satnica još nije objavljena).",
+        "url": "https:\/\/pokal-vitranc.com\/en",
+        "geo": {
+            "lat": 46.493762,
+            "lng": 13.756686,
+            "upit": "Podkoren, Kranjska Gora, Slovenia",
+            "naziv": "Podkoren, Kranjska Gora, 4280, Slovenija"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "vitranc-zenski",
+        "naslov": "Zlata lisica – Svjetski kup (žene), Kranjska Gora",
+        "kat": "skiing",
+        "datum": "2027-01-29",
+        "vrijeme": "10:00",
+        "lokacija": "Podkoren, Kranjska Gora, Slovenia",
+        "opis": "Ženski Svjetski kup: veleslalom 29.1. i slalom 30.1. Satnica okvirna — provjeri na stranici organizatora.",
+        "url": "https:\/\/pokal-vitranc.com\/en",
+        "geo": {
+            "lat": 46.493762,
+            "lng": 13.756686,
+            "upit": "Podkoren, Kranjska Gora, Slovenia",
+            "naziv": "Podkoren, Kranjska Gora, 4280, Slovenija"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "planica-ski-marathon",
+        "naslov": "Planica Ski Marathon (SLO)",
+        "kat": "skiing",
+        "datum": "2027-01-31",
+        "vrijeme": "10:00",
+        "lokacija": "Rateče, Slovenia",
+        "opis": "Skijaško trčanje: 42, 21, 10 i 5 km te dječje utrke u Nordijskom centru Planica. Satnica okvirna.",
+        "url": "https:\/\/www.planica.si\/",
+        "geo": {
+            "lat": 46.497655,
+            "lng": 13.715792,
+            "upit": "Rateče, Slovenia",
+            "naziv": "Rateče, Kranjska Gora, 4283, Slovenija"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "planica-skokovi",
+        "naslov": "Planica – finale Svjetskog kupa u skijaškim letovima",
+        "kat": "skiing",
+        "datum": "2027-03-19",
+        "vrijeme": "10:00",
+        "lokacija": "Nordijski center Planica, Rateče, Slovenia",
+        "opis": "Finale sezone na Letalnici bratov Gorišek (HS 240): pojedinačno 19.3., ekipno 20.3., završni let 21.3. Kvalifikacije 18.3. Satnica okvirna — ovisi o vremenu.",
+        "url": "https:\/\/www.planica.si\/",
+        "geo": {
+            "lat": 46.477076,
+            "lng": 13.724926,
+            "upit": "Nordijski center Planica, Rateče, Slovenia",
+            "naziv": "Nordijski center Planica, Rateče, Kranjska Gora, 4283, Slovenija"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
         "kljuc": "mostar-polumaraton",
         "naslov": "11. Mostarski polumaraton (BiH)",
         "kat": "running",
