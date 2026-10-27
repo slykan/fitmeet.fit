@@ -46,7 +46,7 @@ foreach ($popis as [$kljuc, $naslov, $kat, $datum, $vrijeme, $lokacija, $opis, $
     foreach (array_unique([$lokacija, preg_replace('/^[^,]+,\s*/', '', $lokacija)]) as $upit) {
         $cache = "$dir/cache/geo-" . md5($upit) . '.json';
         $novo = !is_file($cache);
-        $j = json_decode(dohvati('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=hr&q=' . rawurlencode($upit), $cache), true);
+        $j = json_decode(dohvati('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=hr,it,si,rs,ba,hu,me,at&q=' . rawurlencode($upit), $cache), true);
         if ($novo) {
             usleep(1100000); // pravila Nominatima: najviše 1 upit u sekundi
         }

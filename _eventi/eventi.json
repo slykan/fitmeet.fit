@@ -782,6 +782,23 @@
         "izvor_vremena": "popis"
     },
     {
+        "kljuc": "valdagno-granfondo",
+        "naslov": "Gran Fondo Valdagno (Italija)",
+        "kat": "cycling",
+        "datum": "2027-04-18",
+        "vrijeme": "09:30",
+        "lokacija": "Piazza Cavour, Valdagno, Italy",
+        "opis": "Granfondo kroz Prealpi Venete (Vicenza): duga staza 112 km i kratka 78 km, zajednički start u 9:30 s trgova Verdi i Cavour. Prijave otvorene od 1. studenoga.",
+        "url": "https:\/\/www.quicicloturismo.it\/2026\/10\/21\/gran-fondo-valdagno-due-percorsi-nelle-prealpi-venete-pochi-giorni-per-lapertura-iscrizioni\/",
+        "geo": {
+            "lat": 45.650593,
+            "lng": 11.302188,
+            "upit": "Piazza Cavour, Valdagno, Italy",
+            "naziv": "Piazza C. Cavour, Peghini, Valdagno, Comunità Montana Agno-Chiampo, Vicenza, Veneto, 36078, Italija"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
         "kljuc": "arena-andre-rieu",
         "naslov": "André Rieu u Areni Zagreb",
         "kat": "music",
