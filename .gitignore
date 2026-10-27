@@ -24,3 +24,5 @@ builds/
 
 # Next.js static export output (built on the server by deploy.sh)
 fitmeet-web/dist/
+_eventi/cache/
+_eventi/pregled-naslovnica.png

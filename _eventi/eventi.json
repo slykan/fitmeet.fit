@@ -1,0 +1,1107 @@
+[
+    {
+        "kljuc": "halloween-jarun",
+        "naslov": "2. Halloween Run",
+        "kat": "running",
+        "datum": "2026-10-31",
+        "vrijeme": "19:00",
+        "lokacija": "Jarun, Zagreb, Croatia",
+        "opis": "Noćna utrka oko Jaruna, 6–10 km. Kostimi dobrodošli!",
+        "url": "https:\/\/runners.hr\/utrke\/2-halloween-run-2026\/",
+        "geo": {
+            "lat": 45.786027,
+            "lng": 15.924763,
+            "upit": "Jarun, Zagreb, Croatia",
+            "naziv": "Mjesni odbor Jarun, Gradska četvrt Trešnjevka - jug, Zagreb, Grad Zagreb, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "petrova-gora",
+        "naslov": "Petrova Gora trail",
+        "kat": "running",
+        "datum": "2026-10-31",
+        "vrijeme": "10:00",
+        "lokacija": "Muljava, Vojnić, Croatia",
+        "opis": "Trail: Petrova staza 19 km i Zoranova staza 11 km. Start kod Lovačkog doma Muljava.",
+        "url": "https:\/\/runners.hr\/utrke\/petrova-gora-trail-2026-duga\/",
+        "geo": {
+            "lat": 45.318262,
+            "lng": 15.779322,
+            "upit": "Muljava, Vojnić, Croatia",
+            "naziv": "Muljava, Radonja, Općina Vojnić, Karlovačka županija, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "tribunj-trail",
+        "naslov": "Tribunj trail",
+        "kat": "running",
+        "datum": "2026-10-31",
+        "vrijeme": "10:00",
+        "lokacija": "Tribunj, Croatia",
+        "opis": "Trail utrka na 10 km.",
+        "url": "https:\/\/runners.hr\/utrke\/tribunj-trail-2026-10km\/",
+        "geo": {
+            "lat": 43.756172,
+            "lng": 15.746118,
+            "upit": "Tribunj, Croatia",
+            "naziv": "Općina Tribunj, Šibensko-kninska županija, 22212, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "japetic-nocna",
+        "naslov": "Noćna utrka na Japetić",
+        "kat": "running",
+        "datum": "2026-10-31",
+        "vrijeme": "18:30",
+        "lokacija": "Japetić, Jastrebarsko, Croatia",
+        "opis": "Noćna uzbrdica na Japetić, 2,6 km (uz noćni pohod).",
+        "url": "https:\/\/runners.hr\/utrke\/nocna-utrka-japetic-2026-2-6km\/",
+        "geo": {
+            "lat": 45.748987,
+            "lng": 15.609197,
+            "upit": "Japetić, Jastrebarsko, Croatia",
+            "naziv": "Japetić, Prodin Dol, Grad Jastrebarsko, Zagrebačka županija, 10453, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "ploce-trail",
+        "naslov": "5. Ploče trail",
+        "kat": "running",
+        "datum": "2026-11-07",
+        "vrijeme": "10:00",
+        "lokacija": "Baćina, Ploče, Croatia",
+        "opis": "Velika utrka 7 bunkera 17 km i Mala utrka Višnjica 7 km (10:15).",
+        "url": "https:\/\/runners.hr\/utrke\/5-ploce-trail-2026-17km\/",
+        "geo": {
+            "lat": 43.06738,
+            "lng": 17.427214,
+            "upit": "Baćina, Ploče, Croatia",
+            "naziv": "Baćina, Grad Ploče, Dubrovačko-neretvanska županija, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "ultra-12h-zagreb",
+        "naslov": "Ultra maraton 12 sati Zagreb",
+        "kat": "running",
+        "datum": "2026-11-07",
+        "vrijeme": "08:00",
+        "lokacija": "Zagreb, Croatia",
+        "opis": "Maraton, 6-satni i 12-satni ultramaraton.",
+        "url": "https:\/\/runners.hr\/utrke\/ultra-maraton-12-sati-2026-12h\/",
+        "geo": {
+            "lat": 45.813097,
+            "lng": 15.97728,
+            "upit": "Zagreb, Croatia",
+            "naziv": "Grad Zagreb, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "trailx-1",
+        "naslov": "Trail X liga – 1. kolo",
+        "kat": "running",
+        "datum": "2026-11-07",
+        "vrijeme": "10:00",
+        "lokacija": "Zagreb, Croatia",
+        "opis": "X run 3,4 km i 6,8 km te X duatlon.",
+        "url": "https:\/\/runners.hr\/utrke\/trail-x-liga-1-kolo-6-8km\/",
+        "geo": {
+            "lat": 45.813097,
+            "lng": 15.97728,
+            "upit": "Zagreb, Croatia",
+            "naziv": "Grad Zagreb, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "baranjski-polumaraton",
+        "naslov": "11. Baranjski Ferivi polumaraton",
+        "kat": "running",
+        "datum": "2026-11-07",
+        "vrijeme": "10:00",
+        "lokacija": "Kopačevo, Bilje, Croatia",
+        "opis": "Polumaraton 21,1 km kroz Park prirode Kopački rit; utrka građana 5 km i štafeta 3×5 km u 10:40, dječje utrke u 12:00. Start i cilj: Prijemni centar Kopački rit.",
+        "url": "https:\/\/runners.hr\/utrke\/11-baranjski-ferivi-polumaraton-2026-21km\/",
+        "geo": {
+            "lat": 45.600102,
+            "lng": 18.787139,
+            "upit": "Kopačevo, Bilje, Croatia",
+            "naziv": "Kopačevo, Općina Bilje, Osječko-baranjska županija, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "zagrebacki-nocni-cener",
+        "naslov": "15. Zagrebački noćni cener",
+        "kat": "running",
+        "datum": "2026-11-08",
+        "vrijeme": "19:00",
+        "lokacija": "Trg bana Josipa Jelačića, Zagreb, Croatia",
+        "opis": "Noćna utrka na 10 km ulicama Zagreba, cilj na Trgu bana Jelačića.",
+        "url": "https:\/\/runners.hr\/utrke\/15-zagrebacki-nocni-cener-2026\/",
+        "geo": {
+            "lat": 45.813089,
+            "lng": 15.977168,
+            "upit": "Trg bana Josipa Jelačića, Zagreb, Croatia",
+            "naziv": "Trg bana Josipa Jelačića, Kaptol, Mjesni odbor \"August Cesarec\", Gradska četvrt Gornji grad - Medveščak, Zagreb, Grad Zagreb, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "koprivnica-utrka",
+        "naslov": "44. Međunarodna atletska utrka grada Koprivnice",
+        "kat": "running",
+        "datum": "2026-11-08",
+        "vrijeme": "11:30",
+        "lokacija": "Koprivnica, Croatia",
+        "opis": "Seniori i veterani 5,7 km; mlađe kategorije od 10:00.",
+        "url": "https:\/\/runners.hr\/utrke\/44-medunarodna-atletska-utrka-grada-koprivnice-2026-5-7km\/",
+        "geo": {
+            "lat": 46.162334,
+            "lng": 16.830791,
+            "upit": "Koprivnica, Croatia",
+            "naziv": "Grad Koprivnica, Koprivničko-križevačka županija, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "skabrnja-vukovar",
+        "naslov": "Dani sjećanja – od Škabrnje do Vukovara",
+        "kat": "running",
+        "datum": "2026-11-14",
+        "vrijeme": "12:00",
+        "lokacija": "Škabrnja, Croatia",
+        "opis": "Memorijalna atletska utrka na 5 km.",
+        "url": "https:\/\/runners.hr\/utrke\/10-dani-sjecanja-skabrnja-vukovar-2026\/",
+        "geo": {
+            "lat": 44.091032,
+            "lng": 15.452601,
+            "upit": "Škabrnja, Croatia",
+            "naziv": "Općina Škabrnja, Zadarska županija, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "olea-trail",
+        "naslov": "Olea Trail",
+        "kat": "running",
+        "datum": "2026-11-14",
+        "vrijeme": "11:00",
+        "lokacija": "Stara Novalja, Pag, Croatia",
+        "opis": "Trail kroz maslinike Paga: 12, 17,2 i 25 km (11:00) te maraton 45,4 km (08:00).",
+        "url": "https:\/\/runners.hr\/utrke\/olea-trail-2026-long-25km\/",
+        "geo": {
+            "lat": 44.496613,
+            "lng": 14.946185,
+            "upit": "Pag, Croatia",
+            "naziv": "Pag, Zadarska županija, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "koza-trail",
+        "naslov": "1. Koza trail",
+        "kat": "running",
+        "datum": "2026-11-14",
+        "vrijeme": "10:00",
+        "lokacija": "Bičići, Barban, Croatia",
+        "opis": "Koza 12,3 km i Prč 5 km; dječje utrke u 9:30. Start kod Društvenog doma Bičići.",
+        "url": "https:\/\/runners.hr\/utrke\/1-koza-trail-2026-koza-123km\/",
+        "geo": {
+            "lat": 45.025263,
+            "lng": 13.931142,
+            "upit": "Bičići, Barban, Croatia",
+            "naziv": "Bičići, Općina Barban, Istarska županija, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "ivan-starek",
+        "naslov": "39. Polumaraton Ivan Starek",
+        "kat": "running",
+        "datum": "2026-11-15",
+        "vrijeme": "11:05",
+        "lokacija": "Jarun, Zagreb, Croatia",
+        "opis": "Polumaraton 21,1 km oko Jaruna; Jarunska desetka (11:00) i petica (10:55).",
+        "url": "https:\/\/runners.hr\/utrke\/39-polumaraton-ivan-starek-2026-21km\/",
+        "geo": {
+            "lat": 45.786027,
+            "lng": 15.924763,
+            "upit": "Jarun, Zagreb, Croatia",
+            "naziv": "Mjesni odbor Jarun, Gradska četvrt Trešnjevka - jug, Zagreb, Grad Zagreb, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "nin-zadar",
+        "naslov": "43. Halfmarathon Nin – Zadar",
+        "kat": "running",
+        "datum": "2026-11-22",
+        "vrijeme": "11:00",
+        "lokacija": "Nin, Croatia",
+        "opis": "Polumaraton od Nina do Zadra.",
+        "url": "https:\/\/runners.hr\/utrke\/43-halfmarathon-nin-zadar-2026\/",
+        "geo": {
+            "lat": 44.243074,
+            "lng": 15.184026,
+            "upit": "Nin, Croatia",
+            "naziv": "Nin, Grad Nin, Zadarska županija, 23223, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "slavonska-xica",
+        "naslov": "Slavonska X-ica",
+        "kat": "running",
+        "datum": "2026-11-25",
+        "vrijeme": "18:00",
+        "lokacija": "Trg Vatroslava Lisinskog, Osijek, Croatia",
+        "opis": "Utrka na 5 km kroz Tvrđu; start iza Rektorata.",
+        "url": "https:\/\/runners.hr\/utrke\/slavonska-x-ica-2026\/",
+        "geo": {
+            "lat": 45.554879,
+            "lng": 18.695369,
+            "upit": "Osijek, Croatia",
+            "naziv": "Osijek, Grad Osijek, Osječko-baranjska županija, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "papuk-trail",
+        "naslov": "Papuk trek & trail",
+        "kat": "running",
+        "datum": "2026-11-28",
+        "vrijeme": "09:00",
+        "lokacija": "Velika, Croatia",
+        "opis": "Park prirode Papuk: Challenger 25–28 km, Active 19 km i Light 11 km.",
+        "url": "https:\/\/runners.hr\/utrke\/papuk-trek-trail-2026-challenger\/",
+        "geo": {
+            "lat": 45.443546,
+            "lng": 17.665033,
+            "upit": "Velika, Croatia",
+            "naziv": "Općina Velika, Požeško-slavonska županija, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "trailx-2",
+        "naslov": "Trail X liga – 2. kolo",
+        "kat": "running",
+        "datum": "2026-11-28",
+        "vrijeme": "10:00",
+        "lokacija": "Zagreb, Croatia",
+        "opis": "X run 3,4 km i 6,8 km te X duatlon.",
+        "url": "https:\/\/runners.hr\/utrke\/trail-x-liga-2-kolo-6-8km\/",
+        "geo": {
+            "lat": 45.813097,
+            "lng": 15.97728,
+            "upit": "Zagreb, Croatia",
+            "naziv": "Grad Zagreb, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "vrbanovica-trail",
+        "naslov": "Vrbanovica Trail",
+        "kat": "running",
+        "datum": "2026-11-28",
+        "vrijeme": "10:00",
+        "lokacija": "Kaštelir, Croatia",
+        "opis": "Otvoreno prvenstvo Istre u trailu 26,9 km (10:00), plava 12,4 km i zelena 7,5 km (10:15).",
+        "url": "https:\/\/runners.hr\/utrke\/vrbanovica-trail-2026-26-9km\/",
+        "geo": {
+            "lat": 45.303995,
+            "lng": 13.688987,
+            "upit": "Kaštelir, Croatia",
+            "naziv": "Kaštelir, Općina Kaštelir-Labinci, Istarska županija, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "novigrad-run",
+        "naslov": "9. Novigrad Cittanova Run",
+        "kat": "running",
+        "datum": "2026-11-29",
+        "vrijeme": "11:00",
+        "lokacija": "Aminess Maestral Hotel, Novigrad, Croatia",
+        "opis": "Polumaraton i 10 km (11:00), 5 km (11:30), dječji Fun Run (10:30).",
+        "url": "https:\/\/runners.hr\/utrke\/novigrad-cittanova-run-2026-polumaraton\/",
+        "geo": {
+            "lat": 45.315918,
+            "lng": 13.563028,
+            "upit": "Novigrad, Croatia",
+            "naziv": "Grad Novigrad, Istarska županija, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "12-za-11",
+        "naslov": "Memorijalno trčanje 12 za 11",
+        "kat": "running",
+        "datum": "2026-12-02",
+        "vrijeme": "09:00",
+        "lokacija": "Trg hrvatskih branitelja, Velika, Croatia",
+        "opis": "Memorijalno trčanje 11–20 km.",
+        "url": "https:\/\/runners.hr\/utrke\/memorijalno-trcanje-12-za-11-2026\/",
+        "geo": {
+            "lat": 45.801784,
+            "lng": 17.065878,
+            "upit": "Trg hrvatskih branitelja, Velika, Croatia",
+            "naziv": "Trg hrvatskih branitelja, Sajmište, Velika Pisanica, Općina Velika Pisanica, Bjelovarsko-bilogorska županija, 43271, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "omiska-transverzala",
+        "naslov": "Omiška transverzala",
+        "kat": "running",
+        "datum": "2026-12-05",
+        "vrijeme": "08:30",
+        "lokacija": "Omiš, Croatia",
+        "opis": "Trail na 24 km iznad Omiša.",
+        "url": "https:\/\/runners.hr\/utrke\/omiska-transverzala-2026-24km\/",
+        "geo": {
+            "lat": 43.443497,
+            "lng": 16.692277,
+            "upit": "Omiš, Croatia",
+            "naziv": "Omiš, Grad Omiš, Splitsko-dalmatinska županija, 21310, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "sibenik-half",
+        "naslov": "7. Šibenik half marathon RUNESCO",
+        "kat": "running",
+        "datum": "2026-12-05",
+        "vrijeme": "11:00",
+        "lokacija": "Šibenik, Croatia",
+        "opis": "Polumaraton kroz grad dviju UNESCO lokaliteta.",
+        "url": "https:\/\/runners.hr\/utrke\/7-sibenik-half-marathon-runesco-2026\/",
+        "geo": {
+            "lat": 43.734065,
+            "lng": 15.894477,
+            "upit": "Šibenik, Croatia",
+            "naziv": "Grad Šibenik, Šibensko-kninska županija, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "policnik",
+        "naslov": "29. Atletska utrka Poličnik",
+        "kat": "running",
+        "datum": "2026-12-05",
+        "vrijeme": "12:30",
+        "lokacija": "Poličnik, Croatia",
+        "opis": "Utrka na 10 km; dječje utrke u 11:30. Start kod igrališta Grabi.",
+        "url": "https:\/\/runners.hr\/utrke\/29-atletska-utrka-policnik-2026\/",
+        "geo": {
+            "lat": 44.174304,
+            "lng": 15.378463,
+            "upit": "Poličnik, Croatia",
+            "naziv": "Poličnik, Općina Poličnik, Zadarska županija, 23241, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "bozicna-vrbaka",
+        "naslov": "Božićna utrka oko Vrbaka",
+        "kat": "running",
+        "datum": "2026-12-05",
+        "vrijeme": "16:00",
+        "lokacija": "Semeljci, Croatia",
+        "opis": "Božićna utrka na 5 km; start ispred zgrade Općine Semeljci.",
+        "url": "https:\/\/runners.hr\/utrke\/bozicna-utrka-vrbaka-2026\/",
+        "geo": {
+            "lat": 45.360329,
+            "lng": 18.541815,
+            "upit": "Semeljci, Croatia",
+            "naziv": "Semeljci, Općina Semeljci, Osječko-baranjska županija, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "rudarski-cener",
+        "naslov": "6. Rudarski cener",
+        "kat": "running",
+        "datum": "2026-12-05",
+        "vrijeme": "10:00",
+        "lokacija": "Ivanečki park, Ivanec, Croatia",
+        "opis": "Utrka na 10 km i Mali rudar 2,8 km.",
+        "url": "https:\/\/runners.hr\/utrke\/rudarski-cener-10km\/",
+        "geo": {
+            "lat": 46.223968,
+            "lng": 16.124441,
+            "upit": "Ivanec, Croatia",
+            "naziv": "Grad Ivanec, Varaždinska županija, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "zagreb-advent-run",
+        "naslov": "Zagreb Advent Run",
+        "kat": "running",
+        "datum": "2026-12-06",
+        "vrijeme": "12:00",
+        "lokacija": "Trg Krešimira Ćosića 9, Zagreb, Croatia",
+        "opis": "Adventska utrka na 5 i 10 km.",
+        "url": "https:\/\/runners.hr\/utrke\/zagreb-advent-run-2026\/",
+        "geo": {
+            "lat": 45.805701,
+            "lng": 15.9521,
+            "upit": "Trg Krešimira Ćosića 9, Zagreb, Croatia",
+            "naziv": "Zonar Zagreb, 9, Trg Krešimira Ćosića, Mjesni odbor \"Samoborček\", Gradska četvrt Trešnjevka - sjever, Zagreb, Grad Zagreb, 10000, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "jarun-advent",
+        "naslov": "JaRun Advent",
+        "kat": "running",
+        "datum": "2026-12-11",
+        "vrijeme": "19:00",
+        "lokacija": "Jarun, Zagreb, Croatia",
+        "opis": "Noćna adventska utrka oko Jaruna, 6–10 km.",
+        "url": "https:\/\/runners.hr\/utrke\/jarun-advent-2026\/",
+        "geo": {
+            "lat": 45.786027,
+            "lng": 15.924763,
+            "upit": "Jarun, Zagreb, Croatia",
+            "naziv": "Mjesni odbor Jarun, Gradska četvrt Trešnjevka - jug, Zagreb, Grad Zagreb, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "hyrox-varazdin",
+        "naslov": "HYROX Varaždin – The Arena Part II",
+        "kat": "fitness",
+        "datum": "2026-12-12",
+        "vrijeme": "07:30",
+        "lokacija": "Arena Varaždin, Varaždin, Croatia",
+        "opis": "HYROX fitness natjecanje: 8 × 1 km trčanja i 8 funkcionalnih stanica.",
+        "url": "https:\/\/runners.hr\/utrke\/hyrox-varazdin-2026-arena-part-ii\/",
+        "geo": {
+            "lat": 46.317207,
+            "lng": 16.360536,
+            "upit": "Arena Varaždin, Varaždin, Croatia",
+            "naziv": "Arena Varaždin, 1, Ulica Ivana Severa, Ribnjak, Varaždin, Grad Varaždin, Varaždinska županija, 42104, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "gorica-advent",
+        "naslov": "Gorica Advent Run",
+        "kat": "running",
+        "datum": "2026-12-12",
+        "vrijeme": "12:00",
+        "lokacija": "Trg kralja Tomislava, Velika Gorica, Croatia",
+        "opis": "Adventska utrka na 4 km; KIDs & TEENs utrka u 11:30. Start kod Muzeja Turopolja.",
+        "url": "https:\/\/runners.hr\/utrke\/gorica-advent-run-2026-4km\/",
+        "geo": {
+            "lat": 45.711778,
+            "lng": 16.079076,
+            "upit": "Trg kralja Tomislava, Velika Gorica, Croatia",
+            "naziv": "Trg kralja Tomislava, Mala Gorica, Gradska četvrt Stari grad, Velika Gorica, Grad Velika Gorica, Zagrebačka županija, 10410, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "biograd-bozicna",
+        "naslov": "5. Božićna utrka Biograd",
+        "kat": "running",
+        "datum": "2026-12-12",
+        "vrijeme": "12:30",
+        "lokacija": "Biograd na Moru, Croatia",
+        "opis": "1, 5 i 10 km (memorijalna TeN 4 JoLe); dječje utrke u 11:00.",
+        "url": "https:\/\/runners.hr\/utrke\/5-bozicna-utrka-biograd-2026-10km\/",
+        "geo": {
+            "lat": 43.937715,
+            "lng": 15.447764,
+            "upit": "Biograd na Moru, Croatia",
+            "naziv": "Grad Biograd na Moru, Zadarska županija, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "vukovar-advent",
+        "naslov": "Vukovar Advent Run",
+        "kat": "running",
+        "datum": "2026-12-12",
+        "vrijeme": "19:00",
+        "lokacija": "Ulica J. J. Strossmayera, Vukovar, Croatia",
+        "opis": "Noćna adventska utrka 2,5 i 5 km kroz centar Vukovara.",
+        "url": "https:\/\/runners.hr\/utrke\/vukovar-advent-run-2026-5km\/",
+        "geo": {
+            "lat": 45.053034,
+            "lng": 18.750138,
+            "upit": "Ulica J. J. Strossmayera, Vukovar, Croatia",
+            "naziv": "Ulica J. J. Strossmayera, Bošnjaci, Općina Bošnjaci, Vukovarsko-srijemska županija, 32275, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "cakovec-advent",
+        "naslov": "Advent Run Čakovec",
+        "kat": "running",
+        "datum": "2026-12-19",
+        "vrijeme": "11:00",
+        "lokacija": "Čakovec, Croatia",
+        "opis": "Humanitarna adventska utrka u centru Čakovca.",
+        "url": "https:\/\/runners.hr\/utrke\/humanitarna-utrka-advent-run-cakovec-2026\/",
+        "geo": {
+            "lat": 46.389231,
+            "lng": 16.436859,
+            "upit": "Čakovec, Croatia",
+            "naziv": "Grad Čakovec, Međimurska županija, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "kotoriba",
+        "naslov": "8. Božićna utrka Kotoriba",
+        "kat": "running",
+        "datum": "2026-12-19",
+        "vrijeme": "18:00",
+        "lokacija": "Kotoriba, Croatia",
+        "opis": "Božićna utrka na 3,3 km.",
+        "url": "https:\/\/runners.hr\/utrke\/8-bozicna-utrka-kotoriba-2026\/",
+        "geo": {
+            "lat": 46.353843,
+            "lng": 16.812771,
+            "upit": "Kotoriba, Croatia",
+            "naziv": "Općina Kotoriba, Međimurska županija, 40329, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "umag-hohoho",
+        "naslov": "HO! HO! HO! Run Umag",
+        "kat": "running",
+        "datum": "2026-12-26",
+        "vrijeme": "12:00",
+        "lokacija": "Umag, Croatia",
+        "opis": "5 i 10 km; dječji Fun Run u 11:30. Start kod Olimpika.",
+        "url": "https:\/\/runners.hr\/utrke\/ho-ho-ho-run-umag-2026-10km\/",
+        "geo": {
+            "lat": 45.432359,
+            "lng": 13.52241,
+            "upit": "Umag, Croatia",
+            "naziv": "Umag, Grad Umag, Istarska županija, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "zapresic-christmas",
+        "naslov": "8. Christmas run Zaprešić",
+        "kat": "running",
+        "datum": "2026-12-27",
+        "vrijeme": "15:00",
+        "lokacija": "Ulica Ksavera Šandora Đalskog, Zaprešić, Croatia",
+        "opis": "Utrka na 5 km, speed test 2,5 km i štafeta (15:00), dječje utrke u 16:00.",
+        "url": "https:\/\/runners.hr\/utrke\/8-christmas-run-ak-fit-2026\/",
+        "geo": {
+            "lat": 45.870776,
+            "lng": 15.798708,
+            "upit": "Ulica Ksavera Šandora Đalskog, Zaprešić, Croatia",
+            "naziv": "Ulica Ksavera Šandora Đalskog, Gradska četvrt Zaprešić Sjever, Zaprešić, Grad Zaprešić, Zagrebačka županija, 10290, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "airun-pula",
+        "naslov": "aiRUN utrka na 1 milju",
+        "kat": "running",
+        "datum": "2027-01-01",
+        "vrijeme": "20:00",
+        "lokacija": "Riječki gat, Pula, Croatia",
+        "opis": "Novogodišnja milja na Riječkom gatu; i Pivska milja. Dječje utrke u 18:30.",
+        "url": "https:\/\/runners.hr\/utrke\/airun-utrka-na-1-milju-2027-airun-milja\/",
+        "geo": {
+            "lat": 44.874816,
+            "lng": 13.847118,
+            "upit": "Riječki gat, Pula, Croatia",
+            "naziv": "Riječki gat, Punta, Mjesni odbor Arena, Pula, Grad Pula, Istarska županija, 52103, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "slanina-run",
+        "naslov": "2. Slanina Run Našice",
+        "kat": "running",
+        "datum": "2027-01-09",
+        "vrijeme": "10:00",
+        "lokacija": "Našice, Croatia",
+        "opis": "Masna milja 1,6 km i Masni fit 4,8 km. Start na igralištu u naselju Urbarija.",
+        "url": "https:\/\/runners.hr\/utrke\/2-slanina-run-nasice-2027-masni-fit-4-8km\/",
+        "geo": {
+            "lat": 45.490776,
+            "lng": 18.093808,
+            "upit": "Našice, Croatia",
+            "naziv": "Grad Našice, Osječko-baranjska županija, 31500, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "varazdin-zimske",
+        "naslov": "10. Zimske varaždinske utrke",
+        "kat": "running",
+        "datum": "2027-02-07",
+        "vrijeme": "09:00",
+        "lokacija": "Arena Varaždin, Varaždin, Croatia",
+        "opis": "Zimski polumaraton i maraton (AIMS certificirane staze); start i cilj kod Sportske dvorane Arena Varaždin, maraton u 9:30.",
+        "url": "https:\/\/runners.hr\/utrke\/10-hervis-zimske-varazdinske-utrke-2027\/",
+        "geo": {
+            "lat": 46.317207,
+            "lng": 16.360536,
+            "upit": "Arena Varaždin, Varaždin, Croatia",
+            "naziv": "Arena Varaždin, 1, Ulica Ivana Severa, Ribnjak, Varaždin, Grad Varaždin, Varaždinska županija, 42104, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "polojska-ultra",
+        "naslov": "10. Polojska ultra",
+        "kat": "running",
+        "datum": "2027-03-06",
+        "vrijeme": "08:00",
+        "lokacija": "Poloj, Slavonski Brod, Croatia",
+        "opis": "Ultramaraton 100 km (08:00) i 50 km (12:00), pojedinačno i štafete.",
+        "url": "https:\/\/runners.hr\/utrke\/10-polojska-ultra-2027-100km\/",
+        "geo": {
+            "lat": 45.129102,
+            "lng": 18.040005,
+            "upit": "Poloj, Slavonski Brod, Croatia",
+            "naziv": "Poloj, Mjesni odbor Josip Juraj Strossmayer, Slavonski Brod, Grad Slavonski Brod, Brodsko-posavska županija, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "proljetni-cener",
+        "naslov": "10. Zagrebački proljetni cener",
+        "kat": "running",
+        "datum": "2027-03-13",
+        "vrijeme": "11:10",
+        "lokacija": "Savski nasip, Zagreb, Croatia",
+        "opis": "Utrke na 5 i 10 km u 11:10, nordijsko hodanje i štafete u 11:00, canicross u 9:00. Start ispred Boćarskog doma na Savskom nasipu.",
+        "url": "https:\/\/runners.hr\/utrke\/10-zagrebacki-proljetni-cener-2027\/",
+        "geo": {
+            "lat": 45.79063,
+            "lng": 15.860477,
+            "upit": "Savski nasip, Zagreb, Croatia",
+            "naziv": "Savski nasip, Mjesni odbor Stenjevec - jug, Gradska četvrt Stenjevec, Zagreb, Grad Zagreb, 10158, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "halfyard-mura",
+        "naslov": "Halfyard Ultra Svetomartinska Mura",
+        "kat": "running",
+        "datum": "2027-03-20",
+        "vrijeme": "09:00",
+        "lokacija": "Žabnik, Sveti Martin na Muri, Croatia",
+        "opis": "Backyard ultra format, pojedinačno i timovi. Start kod Mlinarske kuće Žabnik.",
+        "url": "https:\/\/runners.hr\/utrke\/halfyard-ultra-svetomartinska-mura-2027-pojedinacno\/",
+        "geo": {
+            "lat": 46.525624,
+            "lng": 16.376217,
+            "upit": "Žabnik, Sveti Martin na Muri, Croatia",
+            "naziv": "Žabnik, Općina Sveti Martin na Muri, Međimurska županija, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "zadar-night-run",
+        "naslov": "Rentlio Zadar Night Run",
+        "kat": "running",
+        "datum": "2027-04-03",
+        "vrijeme": "20:30",
+        "lokacija": "Kopnena vrata, Zadar, Croatia",
+        "opis": "Noćni polumaraton (20:30), 10 km (20:45) i 5 km. Start kod Kopnenih vrata.",
+        "url": "https:\/\/runners.hr\/utrke\/rentlio-zadar-night-run-2027-polumaraton\/",
+        "geo": {
+            "lat": 44.112104,
+            "lng": 15.228453,
+            "upit": "Kopnena vrata, Zadar, Croatia",
+            "naziv": "Kopnena vrata, Ulica Ante Kuzmanića, Mjesni odbor Poluotok, Zadar, Grad Zadar, Zadarska županija, 23103, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "osjecki-ferivi",
+        "naslov": "23. Osječki Ferivi polumaraton",
+        "kat": "running",
+        "datum": "2027-04-17",
+        "vrijeme": "09:00",
+        "lokacija": "Trg Svetog Trojstva, Osijek, Croatia",
+        "opis": "Polumaraton 21,1 km i štafeta 3×7 km (9:00) iz Tvrđe; dan ranije (16.4. u 19:00) noćna utrka na 5 km, dječje utrke 17.4. u 17:00 kod ZOO-a.",
+        "url": "https:\/\/runners.hr\/utrke\/23-osjecki-ferivi-polumaraton-2027\/",
+        "geo": {
+            "lat": 45.560578,
+            "lng": 18.695773,
+            "upit": "Trg Svetog Trojstva, Osijek, Croatia",
+            "naziv": "Trg Svetog Trojstva, Gradska četvrt Tvrđa, Osijek, Grad Osijek, Osječko-baranjska županija, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "arena-andre-rieu",
+        "naslov": "André Rieu u Areni Zagreb",
+        "kat": "music",
+        "datum": "2026-11-20",
+        "vrijeme": "19:30",
+        "lokacija": "Arena Zagreb, Zagreb, Croatia",
+        "opis": "André Rieu i Johann Strauss Orchestra.",
+        "url": "https:\/\/www.zagrebarena.hr\/",
+        "geo": {
+            "lat": 45.77114,
+            "lng": 15.943666,
+            "upit": "Arena Zagreb, Zagreb, Croatia",
+            "naziv": "Arena Zagreb, Ulica Vice Vukova, Mjesni odbor Lanište, Gradska četvrt Novi Zagreb - zapad, Zagreb, Grad Zagreb, 10173, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "arena-brightman",
+        "naslov": "Sarah Brightman – A Winter Symphony",
+        "kat": "music",
+        "datum": "2026-11-22",
+        "vrijeme": "20:00",
+        "lokacija": "Arena Zagreb, Zagreb, Croatia",
+        "opis": "Sarah Brightman s turnejom A Winter Symphony.",
+        "url": "https:\/\/www.zagrebarena.hr\/",
+        "geo": {
+            "lat": 45.77114,
+            "lng": 15.943666,
+            "upit": "Arena Zagreb, Zagreb, Croatia",
+            "naziv": "Arena Zagreb, Ulica Vice Vukova, Mjesni odbor Lanište, Gradska četvrt Novi Zagreb - zapad, Zagreb, Grad Zagreb, 10173, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "arena-cvek",
+        "naslov": "Matija Cvek u Areni Zagreb",
+        "kat": "music",
+        "datum": "2026-11-28",
+        "vrijeme": "20:00",
+        "lokacija": "Arena Zagreb, Zagreb, Croatia",
+        "opis": "Koncert Matije Cveka.",
+        "url": "https:\/\/www.zagrebarena.hr\/",
+        "geo": {
+            "lat": 45.77114,
+            "lng": 15.943666,
+            "upit": "Arena Zagreb, Zagreb, Croatia",
+            "naziv": "Arena Zagreb, Ulica Vice Vukova, Mjesni odbor Lanište, Gradska četvrt Novi Zagreb - zapad, Zagreb, Grad Zagreb, 10173, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "arena-joksimovic",
+        "naslov": "Željko Joksimović u Areni Zagreb",
+        "kat": "music",
+        "datum": "2026-12-04",
+        "vrijeme": "20:00",
+        "lokacija": "Arena Zagreb, Zagreb, Croatia",
+        "opis": "Koncert Željka Joksimovića (i 5. prosinca).",
+        "url": "https:\/\/www.zagrebarena.hr\/",
+        "geo": {
+            "lat": 45.77114,
+            "lng": 15.943666,
+            "upit": "Arena Zagreb, Zagreb, Croatia",
+            "naziv": "Arena Zagreb, Ulica Vice Vukova, Mjesni odbor Lanište, Gradska četvrt Novi Zagreb - zapad, Zagreb, Grad Zagreb, 10173, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "arena-zecic",
+        "naslov": "Dražen Zečić u Areni Zagreb",
+        "kat": "music",
+        "datum": "2026-12-12",
+        "vrijeme": "20:00",
+        "lokacija": "Arena Zagreb, Zagreb, Croatia",
+        "opis": "Koncert Dražena Zečića.",
+        "url": "https:\/\/www.zagrebarena.hr\/",
+        "geo": {
+            "lat": 45.77114,
+            "lng": 15.943666,
+            "upit": "Arena Zagreb, Zagreb, Croatia",
+            "naziv": "Arena Zagreb, Ulica Vice Vukova, Mjesni odbor Lanište, Gradska četvrt Novi Zagreb - zapad, Zagreb, Grad Zagreb, 10173, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "arena-severina",
+        "naslov": "Severina u Areni Zagreb",
+        "kat": "music",
+        "datum": "2026-12-15",
+        "vrijeme": "20:00",
+        "lokacija": "Arena Zagreb, Zagreb, Croatia",
+        "opis": "Koncert Severine.",
+        "url": "https:\/\/www.zagrebarena.hr\/",
+        "geo": {
+            "lat": 45.77114,
+            "lng": 15.943666,
+            "upit": "Arena Zagreb, Zagreb, Croatia",
+            "naziv": "Arena Zagreb, Ulica Vice Vukova, Mjesni odbor Lanište, Gradska četvrt Novi Zagreb - zapad, Zagreb, Grad Zagreb, 10173, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "arena-skoro",
+        "naslov": "Miroslav Škoro u Areni Zagreb",
+        "kat": "music",
+        "datum": "2026-12-19",
+        "vrijeme": "20:00",
+        "lokacija": "Arena Zagreb, Zagreb, Croatia",
+        "opis": "Koncert Miroslava Škore.",
+        "url": "https:\/\/www.zagrebarena.hr\/",
+        "geo": {
+            "lat": 45.77114,
+            "lng": 15.943666,
+            "upit": "Arena Zagreb, Zagreb, Croatia",
+            "naziv": "Arena Zagreb, Ulica Vice Vukova, Mjesni odbor Lanište, Gradska četvrt Novi Zagreb - zapad, Zagreb, Grad Zagreb, 10173, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "arena-forza",
+        "naslov": "Indira Forza – 30 godina karijere",
+        "kat": "music",
+        "datum": "2026-12-23",
+        "vrijeme": "20:00",
+        "lokacija": "Arena Zagreb, Zagreb, Croatia",
+        "opis": "Koncert povodom 30 godina karijere.",
+        "url": "https:\/\/www.zagrebarena.hr\/",
+        "geo": {
+            "lat": 45.77114,
+            "lng": 15.943666,
+            "upit": "Arena Zagreb, Zagreb, Croatia",
+            "naziv": "Arena Zagreb, Ulica Vice Vukova, Mjesni odbor Lanište, Gradska četvrt Novi Zagreb - zapad, Zagreb, Grad Zagreb, 10173, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "arena-muslimovic",
+        "naslov": "Halid Muslimović – Mene je učilo vrijeme",
+        "kat": "music",
+        "datum": "2026-12-27",
+        "vrijeme": "20:00",
+        "lokacija": "Arena Zagreb, Zagreb, Croatia",
+        "opis": "Koncert Halida Muslimovića.",
+        "url": "https:\/\/www.zagrebarena.hr\/",
+        "geo": {
+            "lat": 45.77114,
+            "lng": 15.943666,
+            "upit": "Arena Zagreb, Zagreb, Croatia",
+            "naziv": "Arena Zagreb, Ulica Vice Vukova, Mjesni odbor Lanište, Gradska četvrt Novi Zagreb - zapad, Zagreb, Grad Zagreb, 10173, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "arena-ilic",
+        "naslov": "Miroslav Ilić u Areni Zagreb",
+        "kat": "music",
+        "datum": "2027-01-23",
+        "vrijeme": "20:00",
+        "lokacija": "Arena Zagreb, Zagreb, Croatia",
+        "opis": "Koncert Miroslava Ilića.",
+        "url": "https:\/\/www.zagrebarena.hr\/",
+        "geo": {
+            "lat": 45.77114,
+            "lng": 15.943666,
+            "upit": "Arena Zagreb, Zagreb, Croatia",
+            "naziv": "Arena Zagreb, Ulica Vice Vukova, Mjesni odbor Lanište, Gradska četvrt Novi Zagreb - zapad, Zagreb, Grad Zagreb, 10173, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "arena-lukas",
+        "naslov": "Aca Lukas u Areni Zagreb",
+        "kat": "music",
+        "datum": "2027-02-13",
+        "vrijeme": "20:00",
+        "lokacija": "Arena Zagreb, Zagreb, Croatia",
+        "opis": "Koncert Ace Lukasa.",
+        "url": "https:\/\/www.zagrebarena.hr\/",
+        "geo": {
+            "lat": 45.77114,
+            "lng": 15.943666,
+            "upit": "Arena Zagreb, Zagreb, Croatia",
+            "naziv": "Arena Zagreb, Ulica Vice Vukova, Mjesni odbor Lanište, Gradska četvrt Novi Zagreb - zapad, Zagreb, Grad Zagreb, 10173, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "arena-rokvic",
+        "naslov": "Nikola Rokvić u Areni Zagreb",
+        "kat": "music",
+        "datum": "2027-02-20",
+        "vrijeme": "20:00",
+        "lokacija": "Arena Zagreb, Zagreb, Croatia",
+        "opis": "Koncert Nikole Rokvića.",
+        "url": "https:\/\/www.zagrebarena.hr\/",
+        "geo": {
+            "lat": 45.77114,
+            "lng": 15.943666,
+            "upit": "Arena Zagreb, Zagreb, Croatia",
+            "naziv": "Arena Zagreb, Ulica Vice Vukova, Mjesni odbor Lanište, Gradska četvrt Novi Zagreb - zapad, Zagreb, Grad Zagreb, 10173, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "arena-dragovic",
+        "naslov": "Doris Dragović u Areni Zagreb",
+        "kat": "music",
+        "datum": "2027-03-06",
+        "vrijeme": "20:00",
+        "lokacija": "Arena Zagreb, Zagreb, Croatia",
+        "opis": "Koncert Doris Dragović.",
+        "url": "https:\/\/www.zagrebarena.hr\/",
+        "geo": {
+            "lat": 45.77114,
+            "lng": 15.943666,
+            "upit": "Arena Zagreb, Zagreb, Croatia",
+            "naziv": "Arena Zagreb, Ulica Vice Vukova, Mjesni odbor Lanište, Gradska četvrt Novi Zagreb - zapad, Zagreb, Grad Zagreb, 10173, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "arena-sose",
+        "naslov": "Adi Šoše u Areni Zagreb",
+        "kat": "music",
+        "datum": "2027-03-12",
+        "vrijeme": "20:00",
+        "lokacija": "Arena Zagreb, Zagreb, Croatia",
+        "opis": "Koncert Adija Šoše.",
+        "url": "https:\/\/www.zagrebarena.hr\/",
+        "geo": {
+            "lat": 45.77114,
+            "lng": 15.943666,
+            "upit": "Arena Zagreb, Zagreb, Croatia",
+            "naziv": "Arena Zagreb, Ulica Vice Vukova, Mjesni odbor Lanište, Gradska četvrt Novi Zagreb - zapad, Zagreb, Grad Zagreb, 10173, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "arena-lexington",
+        "naslov": "Lexington Band u Areni Zagreb",
+        "kat": "music",
+        "datum": "2027-04-03",
+        "vrijeme": "20:00",
+        "lokacija": "Arena Zagreb, Zagreb, Croatia",
+        "opis": "Koncert Lexington Banda.",
+        "url": "https:\/\/www.zagrebarena.hr\/",
+        "geo": {
+            "lat": 45.77114,
+            "lng": 15.943666,
+            "upit": "Arena Zagreb, Zagreb, Croatia",
+            "naziv": "Arena Zagreb, Ulica Vice Vukova, Mjesni odbor Lanište, Gradska četvrt Novi Zagreb - zapad, Zagreb, Grad Zagreb, 10173, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "arena-pips",
+        "naslov": "Pips, Chips & Videoclips u Areni Zagreb",
+        "kat": "music",
+        "datum": "2027-04-10",
+        "vrijeme": "20:00",
+        "lokacija": "Arena Zagreb, Zagreb, Croatia",
+        "opis": "Koncert Pips, Chips & Videoclips.",
+        "url": "https:\/\/www.zagrebarena.hr\/",
+        "geo": {
+            "lat": 45.77114,
+            "lng": 15.943666,
+            "upit": "Arena Zagreb, Zagreb, Croatia",
+            "naziv": "Arena Zagreb, Ulica Vice Vukova, Mjesni odbor Lanište, Gradska četvrt Novi Zagreb - zapad, Zagreb, Grad Zagreb, 10173, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "advent-zagreb",
+        "naslov": "Otvorenje Adventa u Zagrebu",
+        "kat": "party",
+        "datum": "2026-11-28",
+        "vrijeme": "17:00",
+        "lokacija": "Trg bana Josipa Jelačića, Zagreb, Croatia",
+        "opis": "Advent Zagreb traje od 28. studenoga 2026. do 7. siječnja 2027. — Zrinjevac, Trg bana Jelačića, Gornji grad.",
+        "url": "https:\/\/www.adventzagreb.hr\/",
+        "geo": {
+            "lat": 45.813089,
+            "lng": 15.977168,
+            "upit": "Trg bana Josipa Jelačića, Zagreb, Croatia",
+            "naziv": "Trg bana Josipa Jelačića, Kaptol, Mjesni odbor \"August Cesarec\", Gradska četvrt Gornji grad - Medveščak, Zagreb, Grad Zagreb, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "docek-dubrovnik",
+        "naslov": "Doček 2027. na Stradunu",
+        "kat": "party",
+        "datum": "2026-12-31",
+        "vrijeme": "21:00",
+        "lokacija": "Stradun, Dubrovnik, Croatia",
+        "opis": "Plavi orkestar, Crvena jabuka i Adi Šoše (službeno potvrdio Grad Dubrovnik).",
+        "url": "https:\/\/www.dubrovnik.hr\/",
+        "geo": {
+            "lat": 42.641342,
+            "lng": 18.108851,
+            "upit": "Stradun, Dubrovnik, Croatia",
+            "naziv": "Stradun, Grad, Gradski kotar Grad, Dubrovnik, Grad Dubrovnik, Dubrovačko-neretvanska županija, 20108, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "docek-opatija",
+        "naslov": "Doček 2027. u Opatiji – Petar Grašo",
+        "kat": "party",
+        "datum": "2026-12-31",
+        "vrijeme": "21:00",
+        "lokacija": "Mrkat, Opatija, Croatia",
+        "opis": "DJ Vedran 21–23 h, Petar Grašo 23–24 h, The Dellboys Band 1–3 h (prema programu Grada Opatije).",
+        "url": "https:\/\/www.opatija.hr\/",
+        "geo": {
+            "lat": 45.338608,
+            "lng": 14.308744,
+            "upit": "Mrkat, Opatija, Croatia",
+            "naziv": "Tržnica Opatija, 82, Maršala Tita, Plahuti, Opatija, Grad Opatija, Primorsko-goranska županija, 51410, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "docek-pula",
+        "naslov": "Doček 2027. u Puli – Bajaga i Instruktori",
+        "kat": "party",
+        "datum": "2026-12-31",
+        "vrijeme": "21:00",
+        "lokacija": "Forum, Pula, Croatia",
+        "opis": "Bajaga i Instruktori, zatim Night Express (prema najavama; provjeriti satnicu).",
+        "url": "https:\/\/www.pula.hr\/",
+        "geo": {
+            "lat": 44.86995,
+            "lng": 13.842212,
+            "upit": "Forum, Pula, Croatia",
+            "naziv": "Forum, Sveti Mihovil, Monte Zaro, Pula, Grad Pula, Istarska županija, 52103, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "docek-rovinj",
+        "naslov": "Doček 2027. u Rovinju",
+        "kat": "party",
+        "datum": "2026-12-31",
+        "vrijeme": "20:30",
+        "lokacija": "Trg maršala Tita, Rovinj, Croatia",
+        "opis": "Le Monde Banda 20:30, Alen Islamović 22:45, DJ Nikola z Kukurini od 00:30 (prema najavama).",
+        "url": "https:\/\/www.rovinj-tourism.com\/",
+        "geo": {
+            "lat": 45.082119,
+            "lng": 13.634518,
+            "upit": "Trg maršala Tita, Rovinj, Croatia",
+            "naziv": "Trg maršala Tita, Stari grad, Rovinj, Grad Rovinj, Istarska županija, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    }
+]

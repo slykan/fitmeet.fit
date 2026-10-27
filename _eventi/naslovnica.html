@@ -1,0 +1,81 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+  html, body { margin: 0; background: #05070f; }
+  .c { position: relative; width: 1200px; height: 675px; overflow: hidden; font-family: "Segoe UI", Arial, sans-serif;
+       background: radial-gradient(900px 520px at 70% 45%, #10204a 0%, #0b1020 45%, #05070f 100%); }
+  .mreza { position: absolute; inset: 0; opacity: .14;
+       background-image: linear-gradient(#2a4cff 1px, transparent 1px), linear-gradient(90deg, #2a4cff 1px, transparent 1px);
+       background-size: 60px 60px; mask-image: radial-gradient(700px 400px at 70% 50%, #000, transparent); }
+  svg.ilu { position: absolute; left: 560px; top: 30px; width: 600px; height: 576px; }
+  .znak { position: absolute; left: 56px; top: 48px; width: 120px; height: 120px; border-radius: 50%;
+       background: url("../fitmeet-web/public/logo_full.png") center 23.5% / 340px auto no-repeat; }
+  .rijec { position: absolute; left: 60px; bottom: 120px; font-size: 92px; letter-spacing: 10px; font-weight: 300; line-height: 1; }
+  .rijec b { color: #6cff2f; font-weight: 300; } .rijec span { color: #fff; }
+  .slogan { position: absolute; left: 64px; bottom: 74px; font-size: 22px; letter-spacing: 7px; font-weight: 600; }
+  .slogan b { color: #6cff2f; font-weight: 600; } .slogan span { color: #2b9dff; }
+  .oznaka { position: absolute; left: 60px; top: 205px; padding: 10px 22px; border: 2px solid #6cff2f; border-radius: 40px; color: #6cff2f;
+       font-size: 26px; letter-spacing: 6px; font-weight: 700; text-transform: uppercase; box-shadow: 0 0 22px rgba(108,255,47,.35), inset 0 0 14px rgba(108,255,47,.2); }
+</style></head>
+<body>
+<div class="c">
+  <div class="mreza"></div>
+  <svg class="ilu" viewBox="0 0 640 615" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <defs>
+      <linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6cff2f"/><stop offset="1" stop-color="#2b9dff"/></linearGradient>
+      <filter id="sjaj" filterUnits="userSpaceOnUse" x="0" y="0" width="640" height="615"><feGaussianBlur stdDeviation="7" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    </defs>
+    <g id="krugovi" stroke="url(#g)" stroke-width="3" opacity=".35">
+      <circle cx="330" cy="300" r="270"/><circle cx="330" cy="300" r="210" stroke-dasharray="40 26"/><circle cx="330" cy="300" r="150" opacity=".6"/>
+    </g>
+    <g id="crtez" stroke="url(#g)" stroke-width="14" filter="url(#sjaj)"></g>
+  </svg>
+  <div class="znak"></div>
+  <div class="oznaka" id="oznaka"></div>
+  <div class="rijec"><b>FIT</b><span>MEET</span></div>
+  <div class="slogan"><b>FIND YOUR PEOPLE.</b> <span>MOVE TOGETHER.</span></div>
+</div>
+<script>
+// Line-art po kategoriji (?k=running|cycling|music|party|fitness)
+var CRTEZ = {
+  running: { oznaka: 'Utrka', d: [
+    'M352 120a30 30 0 1 0 0.1 0',                        // glava
+    'M340 175 L300 300',                                   // trup
+    'M300 300 L360 360 L330 470',                          // prednja noga
+    'M300 300 L250 380 L170 400',                          // stražnja noga
+    'M335 190 L400 240 L455 215',                          // prednja ruka
+    'M330 195 L265 215 L225 270',                          // stražnja ruka
+    'M80 520 Q330 470 600 520',                            // staza
+    'M120 470 L60 470 M150 440 L80 440 M110 410 L50 410'   // brzina
+  ]},
+  cycling: { oznaka: 'Biciklizam', d: [
+    'M190 430a85 85 0 1 0 0.1 0', 'M470 430a85 85 0 1 0 0.1 0',
+    'M190 430 L280 330 L420 330 L470 430 M280 330 L330 430 L420 330 M330 430 L190 430',
+    'M262 300 L300 300 M410 300 L420 330 L445 305',
+    'M360 150a28 28 0 1 0 0.1 0', 'M350 205 L290 300 M350 205 L430 300', 'M300 300 L330 430'
+  ]},
+  music: { oznaka: 'Koncert', d: [
+    'M120 300 L120 560 M520 300 L520 560 M120 300 L520 300',             // pozornica
+    'M170 300 L230 190 M470 300 L410 190 M320 300 L320 170',             // reflektori
+    'M300 120 q20 -40 40 0 v60', 'M360 120 v-40 l60 -15 v45',            // note
+    'M150 560 a25 25 0 1 1 50 0 M220 560 a25 25 0 1 1 50 0 M290 560 a25 25 0 1 1 50 0 M360 560 a25 25 0 1 1 50 0 M430 560 a25 25 0 1 1 50 0',
+    'M175 520 l-20 -60 M245 515 l0 -70 M315 520 l20 -65 M455 520 l25 -60' // ruke publike
+  ]},
+  party: { oznaka: 'Party', d: [
+    'M330 135a95 95 0 1 0 0.1 0', 'M330 135 L330 60',                    // disko kugla
+    'M240 230 L420 230 M250 185 L410 185 M250 275 L410 275 M330 135 L330 325 M280 150 Q250 230 280 310 M380 150 Q410 230 380 310',
+    'M140 140 l0 -40 M120 120 l40 0 M500 120 l0 -40 M480 100 l40 0 M130 420 l0 -40 M110 400 l40 0',  // iskre
+    'M150 520 L230 440 M230 520 L150 440 M440 520 L520 440 M520 520 L440 440'                        // vatromet
+  ]},
+  fitness: { oznaka: 'Fitness', d: [
+    'M140 150 L520 151',
+    'M165 95 L165 205 M200 75 L200 225 M495 95 L495 205 M460 75 L460 225',
+    'M330 185a30 30 0 1 0 0.1 0', 'M330 245 L331 400', 'M330 290 L260 230 L250 152 M330 290 L400 230 L410 152',
+    'M330 400 L275 480 L270 560 M330 400 L385 480 L390 560', 'M200 565 L460 565'
+  ]}
+};
+var k = new URLSearchParams(location.search).get('k') || 'running', c = CRTEZ[k], g = document.getElementById('crtez');
+document.getElementById('oznaka').textContent = c.oznaka;
+c.d.forEach(function (d) { var p = document.createElementNS('http://www.w3.org/2000/svg', 'path'); p.setAttribute('d', d); g.appendChild(p); });
+</script>
+</body></html>
