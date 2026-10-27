@@ -49,6 +49,10 @@ return [
     ['zadar-night-run', 'Rentlio Zadar Night Run', 'running', '2027-04-03', '20:30', 'Kopnena vrata, Zadar, Croatia', 'Noćni polumaraton (20:30), 10 km (20:45) i 5 km. Start kod Kopnenih vrata.', 'https://runners.hr/utrke/rentlio-zadar-night-run-2027-polumaraton/'],
     ['osjecki-ferivi', '23. Osječki Ferivi polumaraton', 'running', '2027-04-17', '09:00', 'Trg Svetog Trojstva, Osijek, Croatia', 'Polumaraton 21,1 km i štafeta 3×7 km (9:00) iz Tvrđe; dan ranije (16.4. u 19:00) noćna utrka na 5 km, dječje utrke 17.4. u 17:00 kod ZOO-a.', 'https://runners.hr/utrke/23-osjecki-ferivi-polumaraton-2027/'],
 
+    // ---------------- biciklizam
+    ['istria-granfondo', 'UCI Istria GranFondo', 'cycling', '2027-04-03', '10:00', 'Stella Maris, Umag, Croatia', 'UCI Gran Fondo World Series: Gran Fondo 105 km i Medio Fondo 80 km kroz sjeverozapadnu i središnju Istru, 4 okrepe; najboljih 25 % po dobnoj skupini kvalificira se za Svjetsko prvenstvo. Start i cilj kod Stella Maris resorta (uz ATP stadion). Satnica starta još nije objavljena — 10:00 je okvirno. Prijave do 1. travnja.', 'https://coloursofistria.com/en/events/istria-granfondo'],
+    ['krk-granfondo', 'Krk Granfondo Falkensteiner', 'cycling', '2027-04-24', '10:00', 'Obala 102, Punat, Croatia', 'Granfondo oko otoka Krka (~82 km): Punat – Malinska – Njivice – Omišalj – Dobrinj – Vrbnik – Baška. Zajednički start svih kategorija u 10:00; ceremonija otvaranja u 9:30, proglašenje u 15:00. Baza: Hotel Park Punat.', 'https://krkgranfondo.com/index.php/en/granfondo_en/'],
+
     // ---------------- koncerti (Arena Zagreb — satnica okvirna, provjeriti na ulaznici)
     ['arena-andre-rieu', 'André Rieu u Areni Zagreb', 'music', '2026-11-20', '19:30', 'Arena Zagreb, Zagreb, Croatia', 'André Rieu i Johann Strauss Orchestra.', 'https://www.zagrebarena.hr/'],
     ['arena-brightman', 'Sarah Brightman – A Winter Symphony', 'music', '2026-11-22', '20:00', 'Arena Zagreb, Zagreb, Croatia', 'Sarah Brightman s turnejom A Winter Symphony.', 'https://www.zagrebarena.hr/'],

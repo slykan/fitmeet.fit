@@ -748,6 +748,40 @@
         "izvor_vremena": "popis"
     },
     {
+        "kljuc": "istria-granfondo",
+        "naslov": "UCI Istria GranFondo",
+        "kat": "cycling",
+        "datum": "2027-04-03",
+        "vrijeme": "10:00",
+        "lokacija": "Stella Maris, Umag, Croatia",
+        "opis": "UCI Gran Fondo World Series: Gran Fondo 105 km i Medio Fondo 80 km kroz sjeverozapadnu i središnju Istru, 4 okrepe; najboljih 25 % po dobnoj skupini kvalificira se za Svjetsko prvenstvo. Start i cilj kod Stella Maris resorta (uz ATP stadion). Satnica starta još nije objavljena — 10:00 je okvirno. Prijave do 1. travnja.",
+        "url": "https:\/\/coloursofistria.com\/en\/events\/istria-granfondo",
+        "geo": {
+            "lat": 45.450306,
+            "lng": 13.518633,
+            "upit": "Stella Maris, Umag, Croatia",
+            "naziv": "Stella Maris, 8A, Entrance - Sol Stella & Sol Amfora, Kaldanija, Umag, Grad Umag, Istarska županija, 52470, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "krk-granfondo",
+        "naslov": "Krk Granfondo Falkensteiner",
+        "kat": "cycling",
+        "datum": "2027-04-24",
+        "vrijeme": "10:00",
+        "lokacija": "Obala 102, Punat, Croatia",
+        "opis": "Granfondo oko otoka Krka (~82 km): Punat – Malinska – Njivice – Omišalj – Dobrinj – Vrbnik – Baška. Zajednički start svih kategorija u 10:00; ceremonija otvaranja u 9:30, proglašenje u 15:00. Baza: Hotel Park Punat.",
+        "url": "https:\/\/krkgranfondo.com\/index.php\/en\/granfondo_en\/",
+        "geo": {
+            "lat": 45.020065,
+            "lng": 14.627812,
+            "upit": "Obala 102, Punat, Croatia",
+            "naziv": "Falkensteiner Hotel Park, 102, Obala, Punat, Općina Punat, Primorsko-goranska županija, 51521, Hrvatska"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
         "kljuc": "arena-andre-rieu",
         "naslov": "André Rieu u Areni Zagreb",
         "kat": "music",
