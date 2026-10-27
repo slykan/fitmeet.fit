@@ -748,6 +748,74 @@
         "izvor_vremena": "popis"
     },
     {
+        "kljuc": "celjski-mali-maraton",
+        "naslov": "15. Celjski mali maraton (SLO)",
+        "kat": "running",
+        "datum": "2026-11-08",
+        "vrijeme": "11:00",
+        "lokacija": "Kajak kanu center Špica, Celje, Slovenia",
+        "opis": "Utrke na 6,2, 11,1, 14 i 21 km te dječja i obiteljska utrka 1,6 km — sve u 11:00. Start i cilj: Kajak kanu center Špica; prijave i startni brojevi od 8:30.",
+        "url": "https:\/\/fatburn.si\/celjski-mali-maraton\/",
+        "geo": {
+            "lat": 46.229389,
+            "lng": 15.261683,
+            "upit": "Celje, Slovenia",
+            "naziv": "Celje, 3000, Slovenija"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "stozice-andre-rieu",
+        "naslov": "André Rieu u Stožicama (Ljubljana)",
+        "kat": "music",
+        "datum": "2026-11-21",
+        "vrijeme": "20:00",
+        "lokacija": "Dvorana Stožice, Ljubljana, Slovenia",
+        "opis": "André Rieu i Johann Strauss Orchestra u Dvorani Stožice.",
+        "url": "https:\/\/www.sport-ljubljana.si\/en\/andre-rieu-johann-strauss-orchestra-2026\/",
+        "geo": {
+            "lat": 46.050027,
+            "lng": 14.506929,
+            "upit": "Ljubljana, Slovenia",
+            "naziv": "Ljubljana, Upravna Enota Ljubljana, 1000, Slovenija"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "stozice-bryan-adams",
+        "naslov": "Bryan Adams u Stožicama (Ljubljana)",
+        "kat": "music",
+        "datum": "2026-12-12",
+        "vrijeme": "20:00",
+        "lokacija": "Dvorana Stožice, Ljubljana, Slovenia",
+        "opis": "Bryan Adams u Dvorani Stožice.",
+        "url": "https:\/\/www.sport-ljubljana.si\/en\/bryan-adams-ljubljana-2026-concert-at-dvorana-stozice\/",
+        "geo": {
+            "lat": 46.050027,
+            "lng": 14.506929,
+            "upit": "Ljubljana, Slovenia",
+            "naziv": "Ljubljana, Upravna Enota Ljubljana, 1000, Slovenija"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "utvv-vipava",
+        "naslov": "Ultra Trail Vipava Valley (SLO)",
+        "kat": "running",
+        "datum": "2027-04-23",
+        "vrijeme": "19:00",
+        "lokacija": "Ajdovščina, Slovenia",
+        "opis": "EMPEROR 160 km u petak u 19:00; CENTURION 100 km u ponoć (24.4.), GLADIATOR 60 km u 8:00 (24.4.) i CASTRA 10 km u 9:30 (25.4.). Start i cilj u Ajdovščini.",
+        "url": "https:\/\/gotrail.run\/en\/race\/ultra-trail-vipava-valley",
+        "geo": {
+            "lat": 45.912196,
+            "lng": 13.876009,
+            "upit": "Ajdovščina, Slovenia",
+            "naziv": "Ajdovščina, Slovenija"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
         "kljuc": "mostar-polumaraton",
         "naslov": "11. Mostarski polumaraton (BiH)",
         "kat": "running",
