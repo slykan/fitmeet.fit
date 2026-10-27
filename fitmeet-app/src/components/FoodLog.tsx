@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { ActivityIndicator, Alert, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 
 import { api } from '@/src/lib/api'
@@ -37,6 +37,10 @@ export function FoodLog<T>({ date, meals, recent, saved = [], quickDrinks, estim
   const [saveForLater, setSaveForLater] = useState(false)
   const [busy, setBusy] = useState<'estimate' | 'save' | string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  // Estimate/Save fire on touch-down: on Android the first tap starts closing the keyboard, the sheet
+  // shrinks under the finger and a normal onPress gets cancelled. The ref stops onPressIn + onPress
+  // (and fast double taps) from running the action twice.
+  const working = useRef(false)
 
   const eaten = meals.reduce((s, m) => s + m.kcal, 0)
   const fluids = meals.reduce((s, m) => s + (m.volume_ml ?? 0), 0)
@@ -86,7 +90,8 @@ export function FoodLog<T>({ date, meals, recent, saved = [], quickDrinks, estim
   }
 
   async function runEstimate() {
-    if (text.trim().length < 2) return
+    if (text.trim().length < 2 || working.current) return
+    working.current = true
     Keyboard.dismiss() // the press is already registered; hide the keyboard so the estimate is visible
     setBusy('estimate')
     setError(null)
@@ -98,13 +103,17 @@ export function FoodLog<T>({ date, meals, recent, saved = [], quickDrinks, estim
     } catch (e) {
       setError(errMsg(e, 'Could not estimate right now. You can enter the calories by hand.'))
     } finally {
+      working.current = false
       setBusy(null)
     }
   }
 
   async function saveMeal() {
+    if (working.current) return
     const total = parseInt(kcal, 10)
     if (!text.trim() || !Number.isFinite(total)) return setError('Describe the meal and enter calories.')
+    working.current = true
+    Keyboard.dismiss()
     const ok = await post({
       description: text.trim(),
       kind: estimate?.kind ?? 'meal',
@@ -117,6 +126,7 @@ export function FoodLog<T>({ date, meals, recent, saved = [], quickDrinks, estim
       volume_ml: estimate?.volume_ml || null,
       items: estimate?.items ?? null,
     }, 'save')
+    working.current = false
     if (ok) reset()
   }
 
@@ -244,11 +254,11 @@ export function FoodLog<T>({ date, meals, recent, saved = [], quickDrinks, estim
               <Pressable style={styles.linkBtn} onPress={() => { setKcal(''); setManual(true) }}><Text style={styles.linkText}>Enter kcal</Text></Pressable>
             )}
             {!hasTotal ? (
-              <Pressable style={[styles.saveBtn, (busy || text.trim().length < 2 || estimatesLeft <= 0) && styles.disabled]} onPress={runEstimate} disabled={!!busy || text.trim().length < 2 || estimatesLeft <= 0}>
+              <Pressable style={[styles.saveBtn, (busy || text.trim().length < 2 || estimatesLeft <= 0) && styles.disabled]} onPress={runEstimate} onPressIn={runEstimate} disabled={!!busy || text.trim().length < 2 || estimatesLeft <= 0}>
                 {busy === 'estimate' ? <ActivityIndicator color="#041109" /> : <Text style={styles.saveText}>Estimate</Text>}
               </Pressable>
             ) : (
-              <Pressable style={[styles.saveBtn, busy && styles.disabled]} onPress={saveMeal} disabled={!!busy}>
+              <Pressable style={[styles.saveBtn, busy && styles.disabled]} onPress={saveMeal} onPressIn={saveMeal} disabled={!!busy}>
                 {busy === 'save' ? <ActivityIndicator color="#041109" /> : <Text style={styles.saveText}>Save</Text>}
               </Pressable>
             )}
