@@ -1,6 +1,6 @@
 <?php
 /**
- * Uvoz javnih evenata na poslužitelju (tinker): organizator = slynetwork@gmail.com, bez push obavijesti
+ * Uvoz javnih evenata na poslužitelju (tinker): organizator = fit@fitmeet.fit (račun „FitMeet”), bez push obavijesti
  * i bez objave u feedu. Idempotentno po client_request_id = "import-<ključ>".
  * Očekuje ~/eventi-uvoz/eventi.json i ~/eventi-uvoz/<kategorija>.jpg
  */
@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Storage;
 
 $dir = getenv('HOME') . '/eventi-uvoz';
 $eventi = json_decode(file_get_contents("$dir/eventi.json"), true);
-$org = User::where('email', 'slynetwork@gmail.com')->firstOrFail();
+$org = User::where('email', 'fit@fitmeet.fit')->firstOrFail();
 
 $trajanje = function (array $e): int {
     if ($e['kat'] === 'music') return 180;
