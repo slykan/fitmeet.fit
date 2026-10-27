@@ -50,9 +50,9 @@ return [
     ['osjecki-ferivi', '23. Osječki Ferivi polumaraton', 'running', '2027-04-17', '09:00', 'Trg Svetog Trojstva, Osijek, Croatia', 'Polumaraton 21,1 km i štafeta 3×7 km (9:00) iz Tvrđe; dan ranije (16.4. u 19:00) noćna utrka na 5 km, dječje utrke 17.4. u 17:00 kod ZOO-a.', 'https://runners.hr/utrke/23-osjecki-ferivi-polumaraton-2027/'],
 
     // ---------------- Slovenija
-    ['celjski-mali-maraton', '15. Celjski mali maraton (SLO)', 'running', '2026-11-08', '11:00', 'Kajak kanu center Špica, Celje, Slovenia', 'Utrke na 6,2, 11,1, 14 i 21 km te dječja i obiteljska utrka 1,6 km — sve u 11:00. Start i cilj: Kajak kanu center Špica; prijave i startni brojevi od 8:30.', 'https://fatburn.si/celjski-mali-maraton/'],
-    ['stozice-andre-rieu', 'André Rieu u Stožicama (Ljubljana)', 'music', '2026-11-21', '20:00', 'Dvorana Stožice, Ljubljana, Slovenia', 'André Rieu i Johann Strauss Orchestra u Dvorani Stožice.', 'https://www.sport-ljubljana.si/en/andre-rieu-johann-strauss-orchestra-2026/'],
-    ['stozice-bryan-adams', 'Bryan Adams u Stožicama (Ljubljana)', 'music', '2026-12-12', '20:00', 'Dvorana Stožice, Ljubljana, Slovenia', 'Bryan Adams u Dvorani Stožice.', 'https://www.sport-ljubljana.si/en/bryan-adams-ljubljana-2026-concert-at-dvorana-stozice/'],
+    ['celjski-mali-maraton', '15. Celjski mali maraton (SLO)', 'running', '2026-11-08', '11:00', 'Špica, Celje, Slovenia', 'Utrke na 6,2, 11,1, 14 i 21 km te dječja i obiteljska utrka 1,6 km — sve u 11:00. Start i cilj: Kajak kanu center Špica; prijave i startni brojevi od 8:30.', 'https://fatburn.si/celjski-mali-maraton/'],
+    ['stozice-andre-rieu', 'André Rieu u Stožicama (Ljubljana)', 'music', '2026-11-21', '20:00', 'Arena Stožice, Ljubljana, Slovenia', 'André Rieu i Johann Strauss Orchestra u Dvorani Stožice.', 'https://www.sport-ljubljana.si/en/andre-rieu-johann-strauss-orchestra-2026/'],
+    ['stozice-bryan-adams', 'Bryan Adams u Stožicama (Ljubljana)', 'music', '2026-12-12', '20:00', 'Arena Stožice, Ljubljana, Slovenia', 'Bryan Adams u Dvorani Stožice.', 'https://www.sport-ljubljana.si/en/bryan-adams-ljubljana-2026-concert-at-dvorana-stozice/'],
     ['utvv-vipava', 'Ultra Trail Vipava Valley (SLO)', 'running', '2027-04-23', '19:00', 'Ajdovščina, Slovenia', 'EMPEROR 160 km u petak u 19:00; CENTURION 100 km u ponoć (24.4.), GLADIATOR 60 km u 8:00 (24.4.) i CASTRA 10 km u 9:30 (25.4.). Start i cilj u Ajdovščini.', 'https://gotrail.run/en/race/ultra-trail-vipava-valley'],
 
     // ---------------- BiH

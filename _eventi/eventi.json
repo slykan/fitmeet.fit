@@ -753,14 +753,14 @@
         "kat": "running",
         "datum": "2026-11-08",
         "vrijeme": "11:00",
-        "lokacija": "Kajak kanu center Špica, Celje, Slovenia",
+        "lokacija": "Špica, Celje, Slovenia",
         "opis": "Utrke na 6,2, 11,1, 14 i 21 km te dječja i obiteljska utrka 1,6 km — sve u 11:00. Start i cilj: Kajak kanu center Špica; prijave i startni brojevi od 8:30.",
         "url": "https:\/\/fatburn.si\/celjski-mali-maraton\/",
         "geo": {
-            "lat": 46.229389,
-            "lng": 15.261683,
-            "upit": "Celje, Slovenia",
-            "naziv": "Celje, 3000, Slovenija"
+            "lat": 46.232776,
+            "lng": 15.243067,
+            "upit": "Špica, Celje, Slovenia",
+            "naziv": "\"Brv Špica\" - v gradnji, Lisce, Celje, 3000, Slovenija"
         },
         "izvor_vremena": "popis"
     },
@@ -770,14 +770,14 @@
         "kat": "music",
         "datum": "2026-11-21",
         "vrijeme": "20:00",
-        "lokacija": "Dvorana Stožice, Ljubljana, Slovenia",
+        "lokacija": "Arena Stožice, Ljubljana, Slovenia",
         "opis": "André Rieu i Johann Strauss Orchestra u Dvorani Stožice.",
         "url": "https:\/\/www.sport-ljubljana.si\/en\/andre-rieu-johann-strauss-orchestra-2026\/",
         "geo": {
-            "lat": 46.050027,
-            "lng": 14.506929,
-            "upit": "Ljubljana, Slovenia",
-            "naziv": "Ljubljana, Upravna Enota Ljubljana, 1000, Slovenija"
+            "lat": 46.081371,
+            "lng": 14.52146,
+            "upit": "Arena Stožice, Ljubljana, Slovenia",
+            "naziv": "Arena Stožice, 100, Vojkova cesta, Nove Stožice (BS3), Četrtna skupnost Bežigrad, Ljubljana, Upravna Enota Ljubljana, 1000, Slovenija"
         },
         "izvor_vremena": "popis"
     },
@@ -787,14 +787,14 @@
         "kat": "music",
         "datum": "2026-12-12",
         "vrijeme": "20:00",
-        "lokacija": "Dvorana Stožice, Ljubljana, Slovenia",
+        "lokacija": "Arena Stožice, Ljubljana, Slovenia",
         "opis": "Bryan Adams u Dvorani Stožice.",
         "url": "https:\/\/www.sport-ljubljana.si\/en\/bryan-adams-ljubljana-2026-concert-at-dvorana-stozice\/",
         "geo": {
-            "lat": 46.050027,
-            "lng": 14.506929,
-            "upit": "Ljubljana, Slovenia",
-            "naziv": "Ljubljana, Upravna Enota Ljubljana, 1000, Slovenija"
+            "lat": 46.081371,
+            "lng": 14.52146,
+            "upit": "Arena Stožice, Ljubljana, Slovenia",
+            "naziv": "Arena Stožice, 100, Vojkova cesta, Nove Stožice (BS3), Četrtna skupnost Bežigrad, Ljubljana, Upravna Enota Ljubljana, 1000, Slovenija"
         },
         "izvor_vremena": "popis"
     },
