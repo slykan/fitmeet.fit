@@ -257,6 +257,11 @@ Artisan::command('huawei:sync', function () {
     $synced = 0;
 
     foreach ($connections as $connection) {
+        // Revoked for more than 2 days: the refresh token is dead for good (Huawei 1203/31204) and
+        // only a new authorization helps — stop polling it every 15 min and filling the log.
+        if ($connection->status === ProviderConnection::REVOKED && $connection->status_changed_at?->lt(now()->subDays(2))) {
+            continue;
+        }
         try {
             // Paused connections (revoked / Health Kit off) get a live re-check each poll,
             // so one that recovers resumes syncing without the user doing anything.
@@ -391,7 +396,8 @@ Artisan::command('huawei:diag {connection} {--days=2}', function () {
         ->where('started_at', '>=', now()->subDays($days))->orderByDesc('started_at')->get(['started_at', 'category', 'external_id']);
     $this->line('Spremljeno u FitMeet (zadnjih ' . $days . ' d): ' . $saved->count());
     foreach ($saved as $s) {
-        $this->line('  ' . $s->started_at . ' ' . $s->category . ' id ' . $s->external_id);
+        $category = $s->category instanceof \BackedEnum ? $s->category->value : (string) $s->category;
+        $this->line('  ' . $s->started_at . ' ' . $category . ' id ' . $s->external_id);
     }
 })->purpose('Diagnose one HUAWEI Health connection (no tokens printed)');
 

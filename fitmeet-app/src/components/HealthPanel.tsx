@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { useCallback, useEffect, useState } from 'react'
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 
-import { FoodLog, type Meal, type MealTemplate, type QuickDrink } from '@/src/components/FoodLog'
+import { FoodLog, type Meal, type MealTemplate, type QuickDrink, type SavedMeal } from '@/src/components/FoodLog'
 import { HealthGauge, type EnergyDay } from '@/src/components/HealthGauge'
 import { HrZonesCard } from '@/src/components/HrZonesCard'
 import { api } from '@/src/lib/api'
@@ -35,6 +35,7 @@ interface HealthPayload {
   is_today: boolean
   meals: Meal[]
   recent: MealTemplate[]
+  saved?: SavedMeal[]
   quick_drinks: QuickDrink[]
   estimates_left: number
 }
@@ -171,6 +172,7 @@ export function HealthPanel({ startEditing = false, onSaved }: { startEditing?: 
           date={data.date}
           meals={data.meals}
           recent={data.recent}
+          saved={data.saved}
           quickDrinks={data.quick_drinks}
           estimatesLeft={data.estimates_left}
           onChange={p => setData(p)}

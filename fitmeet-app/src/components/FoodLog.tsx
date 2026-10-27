@@ -11,6 +11,7 @@ export interface Meal {
   protein_g: number; carbs_g: number; fat_g: number; volume_ml: number | null; source: string; time: string
 }
 export type MealTemplate = Omit<Meal, 'id' | 'source' | 'time'>
+export type SavedMeal = MealTemplate & { id: number }
 export interface QuickDrink { key: string; label: string; kcal: number; protein_g: number; carbs_g: number; fat_g: number; volume_ml: number }
 interface Estimate { items: MealItem[]; kind: 'meal' | 'drink'; volume_ml: number; note: string; kcal: number; protein_g: number; carbs_g: number; fat_g: number; estimates_left: number }
 
@@ -21,22 +22,53 @@ const errMsg = (e: unknown, fallback: string) => (e as { response?: { data?: { m
 /**
  * Health › Food for one day: the day's meals and drinks, "+ Meal" (text → AI estimate →
  * check → save), quick drink buttons and "repeat" of recent meals (no AI, free).
+ * "My meals": a meal can be saved with its calories and picked again in the Add sheet.
  * Every change returns the whole Health payload, passed up via onChange.
  */
-export function FoodLog<T>({ date, meals, recent, quickDrinks, estimatesLeft, onChange }: {
-  date: string; meals: Meal[]; recent: MealTemplate[]; quickDrinks: QuickDrink[]; estimatesLeft: number; onChange: (payload: T) => void
+export function FoodLog<T>({ date, meals, recent, saved = [], quickDrinks, estimatesLeft, onChange }: {
+  date: string; meals: Meal[]; recent: MealTemplate[]; saved?: SavedMeal[]; quickDrinks: QuickDrink[]; estimatesLeft: number; onChange: (payload: T) => void
 }) {
   const [adding, setAdding] = useState(false)
   const [text, setText] = useState('')
   const [estimate, setEstimate] = useState<Estimate | null>(null)
   const [kcal, setKcal] = useState('')
+  const [manual, setManual] = useState(false)          // "Enter kcal": the field stays even while empty
+  const [fromSaved, setFromSaved] = useState<number | null>(null)
+  const [saveForLater, setSaveForLater] = useState(false)
   const [busy, setBusy] = useState<'estimate' | 'save' | string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const eaten = meals.reduce((s, m) => s + m.kcal, 0)
   const fluids = meals.reduce((s, m) => s + (m.volume_ml ?? 0), 0)
+  const hasTotal = !!estimate || manual
+  // while typing, offer "My meals" that match (all of them when the field is empty)
+  const q = text.trim().toLowerCase()
+  const suggestions = hasTotal ? [] : saved.filter(s => !q || s.description.toLowerCase().includes(q)).slice(0, 8)
 
-  const reset = () => { setAdding(false); setText(''); setEstimate(null); setKcal(''); setError(null) }
+  const reset = () => {
+    setAdding(false); setText(''); setEstimate(null); setKcal(''); setManual(false)
+    setFromSaved(null); setSaveForLater(false); setError(null)
+  }
+
+  // Pick a saved meal: description and calories filled in, no AI call; Save logs it
+  function pickSaved(s: SavedMeal) {
+    Keyboard.dismiss()
+    setText(s.description)
+    setEstimate({ items: s.items, kind: s.kind, volume_ml: s.volume_ml ?? 0, note: '', kcal: s.kcal,
+      protein_g: s.protein_g, carbs_g: s.carbs_g, fat_g: s.fat_g, estimates_left: estimatesLeft })
+    setKcal(String(s.kcal))
+    setFromSaved(s.id)
+    setError(null)
+  }
+
+  function forgetSaved(s: SavedMeal) {
+    Alert.alert('Remove from My meals?', s.description, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Remove', style: 'destructive', onPress: async () => {
+        try { const { data } = await api.delete<T>(`/saved-meals/${s.id}`, { params: { date } }); onChange(data) } catch {}
+      } },
+    ])
+  }
 
   async function post(body: Record<string, unknown>, key: string) {
     setBusy(key)
@@ -76,7 +108,9 @@ export function FoodLog<T>({ date, meals, recent, quickDrinks, estimatesLeft, on
     const ok = await post({
       description: text.trim(),
       kind: estimate?.kind ?? 'meal',
-      source: estimate ? 'ai' : 'manual',
+      source: fromSaved ? 'saved' : estimate ? 'ai' : 'manual',
+      saved_meal_id: fromSaved,
+      save: saveForLater && !fromSaved,
       kcal: total,
       // if the user changed the total, scale the macros along with it
       ...(estimate ? scaled(estimate, total) : { protein_g: 0, carbs_g: 0, fat_g: 0 }),
@@ -149,13 +183,26 @@ export function FoodLog<T>({ date, meals, recent, quickDrinks, estimatesLeft, on
           <TextInput
             style={styles.textArea}
             value={text}
-            onChangeText={t => { setText(t); if (estimate) { setEstimate(null); setKcal('') } }}
+            onChangeText={t => { setText(t); setFromSaved(null); if (estimate) { setEstimate(null); setKcal('') } }}
             placeholder="What did you eat or drink? e.g. 2 eggs, toast with butter, coffee with milk"
             placeholderTextColor={palette.textDim}
             multiline
             maxLength={500}
             autoFocus
           />
+          {suggestions.length > 0 && (
+            <View style={styles.saved}>
+              <Text style={styles.section}>My meals</Text>
+              {suggestions.map(s => (
+                <Pressable key={s.id} style={styles.savedRow} onPress={() => pickSaved(s)} onLongPress={() => forgetSaved(s)}>
+                  <Ionicons name="bookmark" size={13} color="#ff9f43" />
+                  <Text style={styles.savedText} numberOfLines={1}>{s.description}</Text>
+                  <Text style={styles.chipKcal}>{s.kcal} kcal</Text>
+                </Pressable>
+              ))}
+              <Text style={styles.note}>Tap to use · long-press to remove</Text>
+            </View>
+          )}
           {estimate && (
             <View style={styles.estimate}>
               {estimate.items.map((it, i) => (
@@ -168,20 +215,35 @@ export function FoodLog<T>({ date, meals, recent, quickDrinks, estimatesLeft, on
               {estimate.note ? <Text style={styles.note}>{estimate.note}</Text> : null}
             </View>
           )}
-          {(estimate || kcal !== '') && (
+          {hasTotal && (
             <View style={styles.kcalRow}>
               <Text style={styles.kcalLabel}>Total</Text>
-              <TextInput style={styles.kcalInput} value={kcal} onChangeText={setKcal} keyboardType="number-pad" />
+              <TextInput
+                style={[styles.kcalInput, manual && !estimate && styles.kcalInputActive]}
+                value={kcal}
+                onChangeText={t => setKcal(t.replace(/[^0-9]/g, ''))}
+                keyboardType="number-pad"
+                placeholder="0"
+                placeholderTextColor={palette.textDim}
+                autoFocus={manual && !estimate}
+                selectTextOnFocus
+              />
               <Text style={styles.kcalLabel}>kcal</Text>
             </View>
+          )}
+          {hasTotal && !fromSaved && (
+            <Pressable style={styles.checkRow} onPress={() => setSaveForLater(v => !v)} hitSlop={6}>
+              <Ionicons name={saveForLater ? 'checkbox' : 'square-outline'} size={20} color={saveForLater ? palette.accent : palette.textDim} />
+              <Text style={styles.checkText}>Save to My meals for next time</Text>
+            </Pressable>
           )}
           {error && <Text style={styles.error}>{error}</Text>}
           <View style={styles.actions}>
             <Pressable style={styles.cancelBtn} onPress={reset}><Text style={styles.cancelText}>Cancel</Text></Pressable>
-            {!estimate && kcal === '' && (
-              <Pressable style={styles.linkBtn} onPress={() => setKcal('0')}><Text style={styles.linkText}>Enter kcal</Text></Pressable>
+            {!hasTotal && (
+              <Pressable style={styles.linkBtn} onPress={() => { setKcal(''); setManual(true) }}><Text style={styles.linkText}>Enter kcal</Text></Pressable>
             )}
-            {!estimate && kcal === '' ? (
+            {!hasTotal ? (
               <Pressable style={[styles.saveBtn, (busy || text.trim().length < 2 || estimatesLeft <= 0) && styles.disabled]} onPress={runEstimate} disabled={!!busy || text.trim().length < 2 || estimatesLeft <= 0}>
                 {busy === 'estimate' ? <ActivityIndicator color="#041109" /> : <Text style={styles.saveText}>Estimate</Text>}
               </Pressable>
@@ -262,6 +324,12 @@ const styles = StyleSheet.create({
   kcalRow: { flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'flex-end' },
   kcalLabel: { color: palette.textMuted, fontSize: 13 },
   kcalInput: { width: 90, height: 40, borderRadius: 10, borderWidth: 1, borderColor: palette.line, color: palette.text, fontSize: 16, fontWeight: '800', textAlign: 'center' },
+  kcalInputActive: { borderWidth: 2, borderColor: palette.accent, backgroundColor: 'rgba(108,255,47,0.05)' },
+  checkRow: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-end' },
+  checkText: { color: palette.textMuted, fontSize: 13, fontWeight: '600' },
+  saved: { gap: 4 },
+  savedRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 9, paddingHorizontal: 10, borderRadius: 10, backgroundColor: palette.panelRaised },
+  savedText: { flex: 1, color: palette.text, fontSize: 13, fontWeight: '600' },
   error: { color: '#ff6b6b', fontSize: 12 },
   note: { color: palette.textDim, fontSize: 10 },
   actions: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 10 },

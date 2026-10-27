@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Meal;
+use App\Models\SavedMeal;
 use App\Services\HealthProfile;
 use App\Services\MealEstimator;
 use Carbon\Carbon;
@@ -65,7 +66,9 @@ class MealController extends Controller
             'date'               => ['nullable', 'date_format:Y-m-d', 'before_or_equal:' . now($tz)->toDateString(), 'after:' . now($tz)->subYear()->toDateString()],
             'description'        => ['required', 'string', 'max:500'],
             'kind'               => ['nullable', Rule::in(['meal', 'drink'])],
-            'source'             => ['nullable', Rule::in(['ai', 'repeat', 'quick', 'manual'])],
+            'source'             => ['nullable', Rule::in(['ai', 'repeat', 'quick', 'manual', 'saved'])],
+            'save'               => ['nullable', 'boolean'],                 // also store under "My meals"
+            'saved_meal_id'      => ['nullable', 'integer'],                 // logged from "My meals"
             'kcal'               => ['required', 'integer', 'between:0,6000'],
             'protein_g'          => ['nullable', 'numeric', 'between:0,500'],
             'carbs_g'            => ['nullable', 'numeric', 'between:0,1000'],
@@ -96,7 +99,35 @@ class MealController extends Controller
             'source'      => $data['source'] ?? 'manual',
         ]);
 
+        $user = $request->user();
+        if (! empty($data['saved_meal_id'])) {
+            SavedMeal::where('user_id', $user->id)->whereKey($data['saved_meal_id'])
+                ->update(['uses' => DB::raw('uses + 1'), 'last_used_at' => now()]);
+        }
+        if (! empty($data['save'])) {
+            // same description (ignoring case) updates the saved meal instead of adding a duplicate
+            $description = trim($data['description']);
+            $saved = SavedMeal::where('user_id', $user->id)->whereRaw('LOWER(description) = ?', [mb_strtolower($description)])->first()
+                ?? new SavedMeal(['user_id' => $user->id]);
+            $saved->fill([
+                'kind' => $data['kind'] ?? 'meal', 'description' => $description, 'items' => $data['items'] ?? null,
+                'kcal' => $data['kcal'], 'protein_g' => round((float) ($data['protein_g'] ?? 0), 1),
+                'carbs_g' => round((float) ($data['carbs_g'] ?? 0), 1), 'fat_g' => round((float) ($data['fat_g'] ?? 0), 1),
+                'volume_ml' => $data['volume_ml'] ?? null, 'uses' => ($saved->uses ?? 0) + 1, 'last_used_at' => now(),
+            ])->save();
+        }
+
         return response()->json(self::payload($request, $date));
+    }
+
+    /** Remove a meal from "My meals" (the logged meals stay). ?date= keeps the client on the day it shows. */
+    public function destroySaved(Request $request, SavedMeal $savedMeal): JsonResponse
+    {
+        abort_unless($savedMeal->user_id === $request->user()->id, 404);
+        $savedMeal->delete();
+        $date = $request->query('date');
+
+        return response()->json(self::payload($request, $date && preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) ? Carbon::parse($date, HealthProfile::tz()) : null));
     }
 
     public function destroy(Request $request, Meal $meal): JsonResponse
@@ -133,9 +164,17 @@ class MealController extends Controller
                 'protein_g' => $m->protein_g, 'carbs_g' => $m->carbs_g, 'fat_g' => $m->fat_g, 'volume_ml' => $m->volume_ml,
             ])->values();
 
+        // "My meals": most used first
+        $saved = SavedMeal::where('user_id', $user->id)->orderByDesc('uses')->orderByDesc('last_used_at')->limit(50)->get()
+            ->map(fn (SavedMeal $s) => [
+                'id' => $s->id, 'description' => $s->description, 'kind' => $s->kind, 'items' => $s->items ?? [], 'kcal' => $s->kcal,
+                'protein_g' => $s->protein_g, 'carbs_g' => $s->carbs_g, 'fat_g' => $s->fat_g, 'volume_ml' => $s->volume_ml,
+            ])->values();
+
         return $summary + [
             'meals'          => $meals,
             'recent'         => $recent,
+            'saved'          => $saved,
             'quick_drinks'   => self::QUICK_DRINKS,
             'estimates_left' => self::estimatesLeft($request),
         ];
