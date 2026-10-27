@@ -42,6 +42,8 @@
 2027-03-20 09:00 running  Halfyard Ultra Svetomartinska Mura               46.5256,16.3762 (točno)
 2027-04-03 20:30 running  Rentlio Zadar Night Run                          44.1121,15.2285 (točno)
 2027-04-17 09:00 running  23. Osječki Ferivi polumaraton                  45.5606,18.6958 (točno)
+2027-03-20 08:30 running  11. Mostarski polumaraton (BiH)                  43.3484,17.8050 (točno)
+2027-04-25 08:00 running  Sarajevo Marathon (BiH)                          43.8536,18.4063 (točno)
 2027-04-03 10:00 cycling  UCI Istria GranFondo                             45.4503,13.5186 (točno)
 2027-04-24 10:00 cycling  Krk Granfondo Falkensteiner                      45.0201,14.6278 (točno)
 2027-04-18 09:30 cycling  Gran Fondo Valdagno (Italija)                    45.6506,11.3022 (točno)

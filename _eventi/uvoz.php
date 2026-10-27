@@ -55,7 +55,7 @@ foreach ($eventi as $e) {
         'category' => $e['kat'],
         'lat' => $e['geo']['lat'],
         'lng' => $e['geo']['lng'],
-        'address' => preg_replace('/,\s*(Croatia|Italy|Serbia|Slovenia)$/', '', $e['lokacija']),
+        'address' => preg_replace('/,\s*(Croatia|Italy|Serbia|Slovenia|Bosnia and Herzegovina)$/', '', $e['lokacija']),
         'timezone' => 'Europe/Zagreb',
         'start_at' => $start->copy()->utc(),
         'duration_minutes' => $trajanje($e),

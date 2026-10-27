@@ -748,6 +748,40 @@
         "izvor_vremena": "popis"
     },
     {
+        "kljuc": "mostar-polumaraton",
+        "naslov": "11. Mostarski polumaraton (BiH)",
+        "kat": "running",
+        "datum": "2027-03-20",
+        "vrijeme": "08:30",
+        "lokacija": "Mepas Mall, Mostar, Bosnia and Herzegovina",
+        "opis": "Polumaraton sa startom na mostu Vojno–Potoci i ciljem ispred Mepas Malla (pin na karti je cilj). Organizirani autobusi do starta polaze 7:30–8:00 iz Ulice dr. Ante Starčevića (kod bivšeg hotela Ero). Startni brojevi samo u petak 19.3. od 10 do 22 h.",
+        "url": "https:\/\/mostar.run\/en\/races\/half-marathon\/",
+        "geo": {
+            "lat": 43.348421,
+            "lng": 17.804992,
+            "upit": "Mepas Mall, Mostar, Bosnia and Herzegovina",
+            "naziv": "Mepas Mall, bb, Kardinala Stepinca, Centar, Mostar, Mjesna zajednica Centar II, Grad Mostar, Hercegovačko-neretvanska županija, Federacija Bosne i Hercegovine, 88000, Bosna i Hercegovina"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
+        "kljuc": "sarajevo-marathon",
+        "naslov": "Sarajevo Marathon (BiH)",
+        "kat": "running",
+        "datum": "2027-04-25",
+        "vrijeme": "08:00",
+        "lokacija": "Vilsonovo šetalište, Sarajevo, Bosnia and Herzegovina",
+        "opis": "Maraton i polumaraton (21 km) u 8:00, uz utrku na 5 km; start i cilj na Vilsonovom šetalištu. Dan ranije (24.4.) utrka Starter.",
+        "url": "https:\/\/running.life\/en\/event\/sarajevo-marathon",
+        "geo": {
+            "lat": 43.853597,
+            "lng": 18.406267,
+            "upit": "Vilsonovo šetalište, Sarajevo, Bosnia and Herzegovina",
+            "naziv": "Wilsonovo šetalište, Sarajevo, Marijin Dvor, Centar Municipality, Grad Sarajevo, Sarajevska županija, Federacija Bosne i Hercegovine, 71144, Bosna i Hercegovina"
+        },
+        "izvor_vremena": "popis"
+    },
+    {
         "kljuc": "istria-granfondo",
         "naslov": "UCI Istria GranFondo",
         "kat": "cycling",
