@@ -129,6 +129,13 @@ function LoginContent() {
             <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Sign in to your account</p>
           </div>
 
+          {/* came from "Message" on a marketplace listing */}
+          {redirect?.startsWith('/messages') && redirect.includes('listing=') && (
+            <div className="text-sm rounded-xl px-4 py-3 border" style={{ borderColor: 'var(--primary)', background: 'rgba(57,255,20,0.08)', color: 'var(--text-primary)' }}>
+              Please sign in to message the seller. You&apos;ll go straight back to the message after signing in.
+            </div>
+          )}
+
           {error && (
             <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-xl px-4 py-3">
               {error}

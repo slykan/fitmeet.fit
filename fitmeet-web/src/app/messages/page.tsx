@@ -3,7 +3,7 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
-import { ArrowLeft, Check, Download, Flag, ImageIcon, MessageSquare, Plus, Search, Send, Trash2, UserCheck, UserPlus, UserX, Users, X } from 'lucide-react'
+import { ArrowLeft, Check, Download, Flag, ImageIcon, MessageSquare, Plus, Search, Send, Tag, Trash2, UserCheck, UserPlus, UserX, Users, X } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
 import api from '@/lib/api'
@@ -130,17 +130,21 @@ function ThreadView({
   userId,
   currentUserId,
   onBack,
+  listing,
 }: {
   conversationId?: string | null
   userId?: string | null
   currentUserId: number
   onBack: () => void
+  /** Message from a marketplace listing: shown above the input, the first message starts with its title + link */
+  listing?: { id: string; title: string } | null
 }) {
   const router = useRouter()
   const [conversation, setConversation] = useState<ConversationDetail | null>(null)
   const [messages, setMessages] = useState<Msg[]>([])
   const [loading, setLoading] = useState(true)
   const [body, setBody] = useState('')
+  const [about, setAbout] = useState(listing ?? null)
   const [sending, setSending] = useState(false)
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
@@ -196,12 +200,17 @@ function ThreadView({
     clearImage()
     try {
       const formData = new FormData()
-      if (text) formData.append('body', text)
+      // first message from a listing: say which one (title + link) so the seller knows what it is about
+      const withListing = about
+        ? `Re: ${about.title}\nhttps://fitmeet.fit/market/view/?id=${encodeURIComponent(about.id)}` + (text ? `\n\n${text}` : '')
+        : text
+      if (withListing) formData.append('body', withListing)
       if (file) formData.append('image_file', file)
       const { data } = await api.post(`/messages/conversations/${conversation.id}`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
       setMessages((current) => [...current, data.data])
+      setAbout(null)
     } finally {
       setSending(false)
       inputRef.current?.focus()
@@ -410,6 +419,14 @@ function ThreadView({
         <div ref={bottomRef} />
       </div>
 
+      {about && (
+        <div className="px-4 py-2 border-t flex items-center gap-2 text-sm" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
+          <Tag size={14} style={{ color: 'var(--primary)' }} />
+          <span style={{ color: 'var(--text-muted)' }}>About</span>
+          <a href={`/market/view/?id=${encodeURIComponent(about.id)}`} className="font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{about.title}</a>
+          <button onClick={() => setAbout(null)} className="ml-auto p-1 rounded-lg hover:bg-[--border]" style={{ color: 'var(--text-muted)' }} title="Don't mention the listing"><X size={14} /></button>
+        </div>
+      )}
       <div
         className="px-4 py-3 border-t flex gap-3 items-end"
         style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
@@ -550,6 +567,8 @@ function MessagesContent() {
   const params = useSearchParams()
   const conversationId = params.get('conversation')
   const userId = params.get('user')
+  const listingId = params.get('listing')
+  const listingTitle = params.get('listingTitle')
 
   const [mounted, setMounted] = useState(false)
   const [conversations, setConversations] = useState<Conversation[]>([])
@@ -577,7 +596,8 @@ function MessagesContent() {
   useEffect(() => {
     if (!mounted) return
     if (!token) {
-      router.replace('/login?redirect=/messages')
+      // keep the full address (e.g. ?user=…&listing=…) so sign-in returns straight to the message
+      router.replace(`/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`)
       return
     }
     if (!conversationId && !userId) {
@@ -670,6 +690,7 @@ function MessagesContent() {
         userId={userId}
         currentUserId={user.id}
         onBack={() => router.push('/messages')}
+        listing={listingId && listingTitle ? { id: listingId, title: listingTitle } : null}
       />
     )
   }

@@ -5,8 +5,8 @@ import * as MediaLibrary from 'expo-media-library'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
 import {
-  ActivityIndicator, Alert, Dimensions, Image, Modal, Pressable,
-  ScrollView, Share, StyleSheet, Text, View,
+  ActivityIndicator, Alert, Dimensions, Image, KeyboardAvoidingView, Modal, Platform, Pressable,
+  ScrollView, Share, StyleSheet, Text, TextInput, View,
 } from 'react-native'
 import { ReactNativeZoomableView } from '@openspacelabs/react-native-zoomable-view'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -54,6 +54,8 @@ export default function MarketDetailScreen() {
   const [listing, setListing] = useState<Listing | null>(null)
   const [loading, setLoading] = useState(true)
   const [acting, setActing] = useState(false)
+  const [messageOpen, setMessageOpen] = useState(false)
+  const [messageBody, setMessageBody] = useState('')
   const [saving, setSaving] = useState(false)
   const [activeImg, setActiveImg] = useState(0)
   const [lightbox, setLightbox] = useState(false)
@@ -89,17 +91,27 @@ export default function MarketDetailScreen() {
     finally { setSaving(false) }
   }
 
-  async function handleMessage() {
-    if (!listing) return
+  // Message: a box with the listing title above an empty message; the sent message starts with
+  // "Re: <title>" + link so the seller knows which listing it is about.
+  function handleMessage() {
+    setMessageBody('')
+    setMessageOpen(true)
+  }
+
+  async function sendMessage() {
+    if (!listing || !messageBody.trim()) return
     setActing(true)
     try {
-      await api.post('/messages/conversations', {
+      const { data } = await api.post('/messages/conversations', {
         participant_ids: [listing.seller.id],
-        body: `Hi, I'm interested in your listing: ${listing.title}`,
+        body: `Re: ${listing.title}\nhttps://fitmeet.fit/market/view/?id=${listing.id}\n\n${messageBody.trim()}`,
       })
-      router.push('/(tabs)/messages' as never)
-    } catch {
-      Alert.alert('Error', 'Could not open conversation.')
+      setMessageOpen(false)
+      setMessageBody('')
+      router.push(`/(tabs)/messages?conversation=${data.conversation.id}` as never)
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message
+      Alert.alert('Error', msg ?? 'Could not send the message.')
     } finally {
       setActing(false)
     }
@@ -399,6 +411,12 @@ export default function MarketDetailScreen() {
               <Ionicons name="grid-outline" size={13} color={palette.text} />
               <Text style={styles.sellerAllText}>{listing.is_mine ? 'My ads' : `Ads by ${listing.seller.name.split(' ')[0]}`}</Text>
             </Pressable>
+            {!listing.is_mine && !sold && (
+              <Pressable style={styles.sellerMsgBtn} onPress={handleMessage} hitSlop={6}>
+                <Ionicons name="chatbubble-outline" size={13} color="#031109" />
+                <Text style={styles.sellerMsgText}>Message</Text>
+              </Pressable>
+            )}
             {!listing.is_mine && (
               <Pressable onPress={() => reportContent('listing', listing.id)} hitSlop={10}>
                 <Ionicons name="flag-outline" size={18} color={palette.textDim} />
@@ -470,6 +488,42 @@ export default function MarketDetailScreen() {
         </View>
 
       </ScrollView>
+
+      {/* Message the seller about this listing */}
+      <Modal visible={messageOpen} transparent animationType="fade" onRequestClose={() => setMessageOpen(false)}>
+        <KeyboardAvoidingView style={styles.msgOverlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setMessageOpen(false)} />
+          <View style={styles.msgCard}>
+            <Text style={styles.msgTitle}>Message {listing.seller.name.split(' ')[0]}</Text>
+            <View style={styles.msgAbout}>
+              <Ionicons name="pricetag-outline" size={14} color={palette.accent} />
+              <Text style={styles.msgAboutText} numberOfLines={2}>{listing.title}</Text>
+            </View>
+            <TextInput
+              style={styles.msgInput}
+              value={messageBody}
+              onChangeText={setMessageBody}
+              placeholder="Write a message…"
+              placeholderTextColor={palette.textDim}
+              multiline
+              maxLength={1800}
+              autoFocus
+            />
+            <View style={styles.msgActions}>
+              <Pressable style={styles.msgCancel} onPress={() => setMessageOpen(false)}>
+                <Text style={styles.msgCancelText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.msgSend, (!messageBody.trim() || acting) && { opacity: 0.5 }]}
+                onPress={sendMessage}
+                disabled={!messageBody.trim() || acting}
+              >
+                {acting ? <ActivityIndicator size="small" color="#041109" /> : <Text style={styles.msgSendText}>Send</Text>}
+              </Pressable>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   )
 }
@@ -521,6 +575,28 @@ const styles = StyleSheet.create({
   sellerName:  { color: palette.text, fontWeight: '700', fontSize: 14 },
   sellerAllBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 10, borderWidth: 1, borderColor: palette.line },
   sellerAllText: { color: palette.text, fontWeight: '700', fontSize: 12 },
+  sellerMsgBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 10, backgroundColor: palette.accent },
+  sellerMsgText: { color: '#031109', fontWeight: '800', fontSize: 12 },
+  msgOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 20 },
+  msgCard: {
+    borderRadius: 20, borderWidth: 1, borderColor: palette.line,
+    backgroundColor: palette.panel, padding: 16, gap: 12,
+  },
+  msgTitle: { color: palette.text, fontSize: 16, fontWeight: '800' },
+  msgAbout: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  msgAboutText: { flex: 1, color: palette.textMuted, fontSize: 13, fontWeight: '600' },
+  msgInput: {
+    minHeight: 96, maxHeight: 200, borderRadius: 14, borderWidth: 1, borderColor: palette.line,
+    paddingHorizontal: 12, paddingVertical: 10, color: palette.text, fontSize: 15, textAlignVertical: 'top',
+  },
+  msgActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10 },
+  msgCancel: { height: 40, paddingHorizontal: 16, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  msgCancelText: { color: palette.textMuted, fontSize: 14, fontWeight: '700' },
+  msgSend: {
+    height: 40, minWidth: 84, paddingHorizontal: 18, borderRadius: 12,
+    backgroundColor: palette.accent, alignItems: 'center', justifyContent: 'center',
+  },
+  msgSendText: { color: '#041109', fontSize: 14, fontWeight: '800' },
 
   actions: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
   actionsRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },

@@ -146,6 +146,9 @@ function MarketShareContent() {
                       <Link href={`/market?seller=${listing.seller.id}&sellerName=${encodeURIComponent(listing.seller.name)}`} className="font-semibold underline underline-offset-2" style={{ color: 'var(--primary)' }}>
                         Ads by {listing.seller.name.split(' ')[0]}
                       </Link>
+                      <Link href={`/messages?user=${listing.seller.id}&listing=${listing.id}&listingTitle=${encodeURIComponent(listing.title)}`} className="font-semibold underline underline-offset-2" style={{ color: 'var(--primary)' }}>
+                        Message
+                      </Link>
                     </div>
                   </div>
                 </div>

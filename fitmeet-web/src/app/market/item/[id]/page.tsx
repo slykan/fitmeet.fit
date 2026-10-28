@@ -79,8 +79,8 @@ export default async function MarketItemPage({ params }: { params: Promise<{ id:
                   <div className="text-base leading-relaxed whitespace-pre-line pt-2 border-t" style={{ color: 'var(--text-muted)', borderColor: 'var(--border)' }}>{l.description}</div>
                 )}
                 <div className="flex flex-wrap items-center gap-3 pt-2">
-                  <Link href={`/market/view?id=${l.id}`} className="btn-primary inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold">
-                    <MessageCircle size={15} /> Contact {l.seller.name.split(' ')[0]}
+                  <Link href={`/messages?user=${l.seller.id}&listing=${l.id}&listingTitle=${encodeURIComponent(l.title)}`} className="btn-primary inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold">
+                    <MessageCircle size={15} /> Message {l.seller.name.split(' ')[0]}
                   </Link>
                   <Link href={`/market?seller=${l.seller.id}&sellerName=${encodeURIComponent(l.seller.name)}`}
                     className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-semibold transition-opacity hover:opacity-80" style={{ borderColor: 'var(--border)' }}>

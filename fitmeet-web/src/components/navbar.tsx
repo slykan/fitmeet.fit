@@ -140,6 +140,12 @@ export function Navbar() {
               </Link>
             </>
           )}
+          {/* signed-out visitors: public marketplace (signed-in users have it under Meet) */}
+          {!user && (
+            <Link href="/market" className="text-sm font-medium transition-colors hover:opacity-80" style={{ color: 'var(--text-muted)' }}>
+              Market
+            </Link>
+          )}
           <Link
             href="/blog"
             className={`hidden ${user ? 'lg:block' : 'md:block'} text-sm font-medium transition-colors hover:opacity-80`}

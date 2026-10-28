@@ -39,7 +39,8 @@ export function LatestMarketCarousel({ listings }: { listings: MarketListing[] }
 
   if (listings.length === 0) return null
 
-  const href = (id: number) => `/login?redirect=${encodeURIComponent(`/market/view?id=${id}`)}`
+  // signed in: full listing; signed out: /market/view sends visitors to the public listing page (no forced login)
+  const href = (id: number) => `/market/view/?id=${id}`
 
   return (
     <section className="py-12 md:py-14 border-b" style={{ borderColor: 'var(--border)' }}>
@@ -180,6 +181,11 @@ export function LatestMarketCarousel({ listings }: { listings: MarketListing[] }
               </Link>
             )
           })}
+        </div>
+        <div className="mt-6 flex justify-center">
+          <Link href="/market" className="btn-primary inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold">
+            Browse all listings <ChevronRight size={15} />
+          </Link>
         </div>
       </div>
     </section>
