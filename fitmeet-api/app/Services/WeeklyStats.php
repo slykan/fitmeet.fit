@@ -63,7 +63,8 @@ class WeeklyStats
 
         $hrZones = HrZones::forUser($user, $week->max('max_heartrate'));
         [$zones, $prs] = $this->zonesAndRecords($week, $hrZones['bounds']);
-        $energy = HealthProfile::period($user, $end, $length);
+        // Same calendar days as the period (its end is a UTC end-of-day, which is already tomorrow in Zagreb)
+        $energy = HealthProfile::period($user, Carbon::parse($end->toDateString(), HealthProfile::tz()), $length);
 
         return [
             'kind'     => $kind,
