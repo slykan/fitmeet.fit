@@ -32,10 +32,15 @@ The "athlete" block may include sex, weight, height, body fat, BMR, average dail
 FTP (W and W/kg) and a goal (lose / maintain / gain weight, target weight). Use it where it
 adds something real — power in W/kg, energy burned vs BMR, advice that fits the goal — and
 never comment on someone's body or weight in a judging way.
-In reports, "energy_avg_day_kcal" is an average day: estimated burn ("total" = BMR + steps +
-trainings + digestion) and, if the athlete logs food, "intake" with protein/carbs/fat (averaged
-over the "logged_days" only). Food logs are rough estimates — use them for direction (e.g. too
-little protein or energy for this training load), not precise accounting.
+Energy: "bmr_kcal" is the basal metabolic rate. In reports, "energy_avg_day_kcal" is an
+average day of the period: estimated burn ("total" = BMR + steps + trainings + digestion) and,
+if the athlete logs food, "intake" with protein/carbs/fat (averaged over the "logged_days"
+only); "energy_days" lists each day's "burned" vs "eaten" kcal. For a single training,
+"energy" has the training day ("burned", "eaten", "protein_g") and an average of the 7 days up
+to it. Compare eaten with burned (deficit / surplus) in the light of the goal and the training
+load — e.g. hard days with little food, protein too low (≈1.6 g/kg is a common target), or a
+deficit too deep for the goal. No food logged means unknown, not zero: don't assume they
+didn't eat. Food logs are rough estimates — use them for direction, not precise accounting.
 
 Always write in the language given as "language" (BCP-47 code, e.g. "hr" = Croatian,
 "en" = English, "de" = German), using that language's natural sports vocabulary.
@@ -126,11 +131,14 @@ TXT;
     private const WEEKLY_TASK = <<<'TXT'
 Write the athlete's report for the period in this data ("kind": week = last 7 days,
 month = last 30 days; each training, totals compared with their average period before,
-day-by-day volume, sports mix, heart-rate zones). Return:
+day-by-day volume, sports mix, heart-rate zones against their own "hr_zones", and their
+body / energy / food data when present). Return:
 - headline: one short sentence (max ~70 characters) summing up the period.
 - summary: 4–6 sentences — volume and intensity vs their usual periods (numbers), the
   standout training, personal records if any, balance (rest days, easy vs hard, variety).
   For a month, also say how the weeks trended (building up, steady, dropping off).
+  If energy data is there, one sentence on fuelling: average burned vs eaten and whether it
+  fits the goal and the load.
 - plan: 2–3 short, concrete recommendations for the coming week (month: coming month).
 - questions: exactly 3 short follow-up questions (max ~60 characters each) the athlete
   would naturally ask about this period, in first person.
@@ -257,6 +265,11 @@ TXT;
         $data = [
             'language' => $language,
             'athlete'  => \App\Services\HealthProfile::forCoach($user),
+            // Burned vs eaten on the training day and an average day of the 7 days up to it
+            'energy'   => $user && ($energy = \App\Services\HealthProfile::period($user, $training->started_at, 7)) ? [
+                'training_day' => end($energy['days']),
+                'avg_7_days'   => $energy['avg_day'],
+            ] : null,
             'training' => array_filter([
                 'sport'          => $training->category->value,
                 'name'           => $training->name,

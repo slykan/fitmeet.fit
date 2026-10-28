@@ -61,7 +61,9 @@ class WeeklyStats
             'km'        => round($g->sum('distance_m') / 1000, 1),
         ])->sortByDesc('minutes')->values()->all();
 
-        [$zones, $prs] = $this->zonesAndRecords($user, $week);
+        $hrZones = HrZones::forUser($user, $week->max('max_heartrate'));
+        [$zones, $prs] = $this->zonesAndRecords($week, $hrZones['bounds']);
+        $energy = HealthProfile::period($user, $end, $length);
 
         return [
             'kind'     => $kind,
@@ -79,6 +81,13 @@ class WeeklyStats
             'days'      => $days,
             'sports'    => $sports,
             'hr_zones_minutes' => $zones,
+            // The athlete's own zones (manual / max HR) — the coach judges intensity against these
+            'hr_zones' => $hrZones['bounds'] ? array_filter([
+                'lower_bounds_bpm' => array_combine(HrZones::NAMES, $hrZones['bounds']),
+                'set_by'           => $hrZones['source'],
+                'max_hr'           => $hrZones['max'],
+                'resting_hr'       => $hrZones['rest'],
+            ], fn ($v) => $v !== null) : null,
             'personal_records' => $prs,
             'trainings' => $week->map(fn (Training $t) => array_filter([
                 'id'    => $t->id,
@@ -92,9 +101,11 @@ class WeeklyStats
                 'elev'  => $t->elevation_gain ? (int) round($t->elevation_gain) : null,
             ], fn ($v) => $v !== null))->values()->all(),
             'last_training_at' => $week->max('started_at')?->toIso8601String(),
-            // Health profile for the AI coach (own report only): body, BMR, FTP, goal, avg day energy
+            // Health profile for the AI coach (own report only): body, BMR, FTP, goal, and the
+            // period's energy: average day + day by day burned (BMR + steps + trainings) vs eaten
             'athlete'  => HealthProfile::forCoach($user),
-            'energy_avg_day_kcal' => HealthProfile::summary($user, $today)['week'] ?? null,
+            'energy_avg_day_kcal' => $energy['avg_day'] ?? null,
+            'energy_days' => $energy['days'] ?? null,
         ];
     }
 
@@ -109,11 +120,10 @@ class WeeklyStats
     }
 
     /** HR zone minutes summed over the week, and best-effort PRs set this week. */
-    private function zonesAndRecords(User $user, Collection $week): array
+    private function zonesAndRecords(Collection $week, ?array $bounds): array
     {
         $sum = null;
         $prs = [];
-        $bounds = HrZones::forUser($user, $week->max('max_heartrate'))['bounds'];
 
         foreach ($week as $t) {
             $detail = $t->detail ?? ($t->dedup_group_id

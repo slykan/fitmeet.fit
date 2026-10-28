@@ -164,7 +164,12 @@ class UserController extends Controller
 
         unset($data['avatar_file'], $data['avatar_remove']);
 
-        $user->update($data);
+        // New HR zones / max / resting HR → the AI reports written before are out of date
+        $user->fill($data);
+        if ($user->isDirty(['hr_zones', 'hr_max', 'hr_rest', 'hr_zone_method'])) {
+            $user->health_updated_at = now();
+        }
+        $user->save();
         $user->refresh();
 
         return response()->json([

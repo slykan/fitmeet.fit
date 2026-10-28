@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons'
-import { useEffect, useMemo, useRef } from 'react'
-import { Pressable, StyleSheet, View } from 'react-native'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Modal, Pressable, StyleSheet, View } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import { WebView } from 'react-native-webview'
 import type { WebView as WebViewType } from 'react-native-webview'
 
@@ -316,6 +317,8 @@ export function HubMapCard({
   fitToEvents = true,
 }: Props) {
   const webViewRef = useRef<WebViewType>(null)
+  // Fullscreen like the event map (RouteReplayMap): same expand/contract button, top right
+  const [isFullscreen, setIsFullscreen] = useState(false)
   const html = useMemo(
     () => buildMapHtml(center, events, weather, showWind, showClouds, fitToEvents),
     [center.lat, center.lng, events],
@@ -329,12 +332,12 @@ export function HubMapCard({
     if (radarPath) webViewRef.current?.postMessage(JSON.stringify({ type: 'radarUpdate', path: radarPath }))
   }, [radarPath])
 
-  return (
+  const content = (
     <View
-      style={[styles.card, { height }]}
-      onTouchStart={onMapTouchStart}
-      onTouchEnd={onMapTouchEnd}
-      onTouchCancel={onMapTouchEnd}
+      style={[styles.card, isFullscreen ? styles.cardFullscreen : { height }]}
+      onTouchStart={isFullscreen ? undefined : onMapTouchStart}
+      onTouchEnd={isFullscreen ? undefined : onMapTouchEnd}
+      onTouchCancel={isFullscreen ? undefined : onMapTouchEnd}
     >
       <WebView
         ref={webViewRef}
@@ -347,9 +350,10 @@ export function HubMapCard({
           try {
             const data = JSON.parse(event.nativeEvent.data)
             if (data.type === 'eventPress' && typeof data.id === 'number') {
+              setIsFullscreen(false)
               onEventPress(data.id)
             } else if (data.type === 'mapMoveStart') {
-              onMapTouchStart?.()
+              if (!isFullscreen) onMapTouchStart?.()
             } else if (
               data.type === 'mapMoveEnd' &&
               data.center &&
@@ -357,7 +361,7 @@ export function HubMapCard({
               typeof data.center.lng === 'number'
             ) {
               onMapCenterChange?.(data.center)
-              onMapTouchEnd?.()
+              if (!isFullscreen) onMapTouchEnd?.()
             } else if (data.type === 'ready') {
               webViewRef.current?.postMessage(JSON.stringify({ type: 'weatherUpdate', weather, showWind, showClouds }))
               if (radarPath) webViewRef.current?.postMessage(JSON.stringify({ type: 'radarUpdate', path: radarPath }))
@@ -383,8 +387,20 @@ export function HubMapCard({
           <Ionicons name="rainy-outline" size={15} color={showClouds ? '#031109' : palette.text} />
         </Pressable>
       </View>
+      <Pressable style={styles.fullscreenBtn} onPress={() => setIsFullscreen((v) => !v)} hitSlop={8}>
+        <Ionicons name={isFullscreen ? 'contract-outline' : 'expand-outline'} size={15} color={palette.text} />
+      </Pressable>
     </View>
   )
+
+  if (isFullscreen) {
+    return (
+      <Modal visible transparent={false} animationType="fade" onRequestClose={() => setIsFullscreen(false)}>
+        <SafeAreaView style={styles.fullscreenSafeArea}>{content}</SafeAreaView>
+      </Modal>
+    )
+  }
+  return content
 }
 
 const styles = StyleSheet.create({
@@ -394,6 +410,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: palette.line,
     backgroundColor: '#060c1a',
+  },
+  cardFullscreen: { flex: 1, borderRadius: 0, borderWidth: 0 },
+  fullscreenSafeArea: { flex: 1, backgroundColor: '#060c1a' },
+  fullscreenBtn: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    width: 30, height: 30, borderRadius: 10,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(7,13,28,0.78)',
+    borderWidth: 1, borderColor: palette.line,
   },
   webview: { flex: 1, backgroundColor: 'transparent' },
   layerToggles: {

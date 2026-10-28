@@ -108,12 +108,59 @@ class HealthProfile
             return $base + ['bmr' => null, 'today' => null, 'week' => null];
         }
 
-        $days = [];
-        for ($i = 6; $i >= 0; $i--) {
-            $days[] = self::day($user, $date->copy()->subDays($i), $bmr['kcal']);
+        $days = self::days($user, $date, 7, $bmr['kcal']);
+
+        return $base + [
+            'bmr'   => $bmr,
+            'today' => end($days),
+            'week'  => self::average($days),
+            'w_per_kg' => $user->ftp_w ? round($user->ftp_w / $user->weight_kg, 2) : null,
+        ];
+    }
+
+    /**
+     * Energy for the AI reports: average day over the period ending on $end (burned vs eaten)
+     * plus a compact day-by-day list, so the coach can see under-fuelled training days.
+     */
+    public static function period(User $user, Carbon $end, int $length): ?array
+    {
+        $bmr = self::bmr($user);
+        if (! $bmr) {
+            return null;
         }
-        $avg = fn (string $k, int $p = 0) => round(array_sum(array_column($days, $k)) / 7, $p);
-        $week = [
+        $end = $end->copy()->tz(self::tz())->startOfDay();
+        $days = self::days($user, $end, $length, $bmr['kcal']);
+        $list = [];
+        foreach ($days as $i => $d) {
+            $list[] = array_filter([
+                'date'       => $end->copy()->subDays($length - 1 - $i)->toDateString(),
+                'burned'     => $d['total'],
+                'training'   => $d['training'] ?: null,
+                'eaten'      => $d['intake'] ?: null,
+                'protein_g'  => $d['intake'] ? $d['protein_g'] : null,
+            ], fn ($v) => $v !== null);
+        }
+
+        return ['avg_day' => self::average($days), 'days' => $list];
+    }
+
+    /** $length days ending on $end (oldest first). */
+    private static function days(User $user, Carbon $end, int $length, int $bmrKcal): array
+    {
+        $days = [];
+        for ($i = $length - 1; $i >= 0; $i--) {
+            $days[] = self::day($user, $end->copy()->subDays($i), $bmrKcal);
+        }
+
+        return $days;
+    }
+
+    /** Average day of a list of days; food only over the days that have meals logged. */
+    private static function average(array $days): array
+    {
+        $n = max(1, count($days));
+        $avg = fn (string $k, int $p = 0) => round(array_sum(array_column($days, $k)) / $n, $p);
+        $out = [
             'bmr' => (int) $avg('bmr'), 'steps' => (int) $avg('steps'), 'training' => (int) $avg('training'),
             'food' => (int) $avg('food'), 'total' => (int) $avg('total'), 'trainings' => $avg('trainings', 1),
             'estimated' => (bool) array_filter(array_column($days, 'estimated')),
@@ -123,15 +170,10 @@ class HealthProfile
             'logged_days' => count($logged),
         ];
         foreach (['protein_g', 'carbs_g', 'fat_g'] as $k) {
-            $week[$k] = $logged ? round(array_sum(array_column($logged, $k)) / count($logged), 1) : 0;
+            $out[$k] = $logged ? round(array_sum(array_column($logged, $k)) / count($logged), 1) : 0;
         }
 
-        return $base + [
-            'bmr'   => $bmr,
-            'today' => end($days),
-            'week'  => $week,
-            'w_per_kg' => $user->ftp_w ? round($user->ftp_w / $user->weight_kg, 2) : null,
-        ];
+        return $out;
     }
 
     /**

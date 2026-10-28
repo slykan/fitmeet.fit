@@ -130,7 +130,7 @@ class CoachController extends Controller
         $data = $request->validate(['language' => 'nullable|string|max:12']);
         $stats = $weekly->forUser($request->user(), null, $kind);
         $latest = $this->latestReport($request, $kind);
-        if ($latest && !$this->isStale($latest, $stats)) {
+        if ($latest && !$this->isStale($latest, $stats, $request->user())) {
             return response()->json($this->weeklyPayload($request, $stats));
         }
         if (!TrainingCoach::available()) {
@@ -216,10 +216,14 @@ class CoachController extends Controller
         return WeeklyReport::where('user_id', $request->user()->id)->where('kind', $kind)->latest('id')->first();
     }
 
-    /** A report is out of date once the 7-day window moved on or new trainings arrived. */
-    private function isStale(WeeklyReport $report, array $stats): bool
+    /**
+     * A report is out of date once the window moved on, new trainings arrived, or the athlete
+     * changed their health profile / HR zones after it was written.
+     */
+    private function isStale(WeeklyReport $report, array $stats, \App\Models\User $user): bool
     {
         return $report->period_end->toDateString() !== $stats['period']['end']
+            || ($user->health_updated_at && $user->health_updated_at->gt($report->created_at))
             || $report->trainings_count !== $stats['totals']['trainings']
             || $report->last_training_at?->toIso8601String() !== ($stats['last_training_at'] ? \Illuminate\Support\Carbon::parse($stats['last_training_at'])->toIso8601String() : null);
     }
@@ -240,7 +244,7 @@ class CoachController extends Controller
                 'period_start' => $report->period_start->toDateString(),
                 'period_end'   => $report->period_end->toDateString(),
                 'created_at'   => $report->created_at->toIso8601String(),
-                'stale'        => $this->isStale($report, $stats),
+                'stale'        => $this->isStale($report, $stats, $request->user()),
             ] : null,
             'quota' => [
                 'analyses_left'  => $this->left($request, 'analyze'),
