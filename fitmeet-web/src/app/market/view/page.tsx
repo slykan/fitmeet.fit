@@ -279,7 +279,7 @@ function ViewContent() {
                 className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl border font-bold flex-shrink-0 transition-opacity hover:opacity-80"
                 style={{ borderColor: 'var(--border)', color: 'var(--text-primary)' }}
               >
-                <LayoutGrid size={14} /> {listing.is_mine ? 'My ads' : 'All ads'}
+                <LayoutGrid size={14} /> {listing.is_mine ? 'My ads' : `Ads by ${listing.seller.name.split(' ')[0]}`}
               </button>
               {!listing.is_mine && (
                 <button

@@ -144,7 +144,7 @@ function MarketShareContent() {
                       <Tag size={15} style={{ color: 'var(--primary)' }} />
                       <span>Seller: {listing.seller.name}</span>
                       <Link href={`/market?seller=${listing.seller.id}&sellerName=${encodeURIComponent(listing.seller.name)}`} className="font-semibold underline underline-offset-2" style={{ color: 'var(--primary)' }}>
-                        All ads
+                        Ads by {listing.seller.name.split(' ')[0]}
                       </Link>
                     </div>
                   </div>

@@ -84,7 +84,7 @@ export default async function MarketItemPage({ params }: { params: Promise<{ id:
                   </Link>
                   <Link href={`/market?seller=${l.seller.id}&sellerName=${encodeURIComponent(l.seller.name)}`}
                     className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-semibold transition-opacity hover:opacity-80" style={{ borderColor: 'var(--border)' }}>
-                    <LayoutGrid size={15} /> All ads by {l.seller.name.split(' ')[0]}
+                    <LayoutGrid size={15} /> Ads by {l.seller.name.split(' ')[0]}
                   </Link>
                   <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Sign in required to message the seller.</span>
                 </div>

@@ -397,7 +397,7 @@ export default function MarketDetailScreen() {
               hitSlop={6}
             >
               <Ionicons name="grid-outline" size={13} color={palette.text} />
-              <Text style={styles.sellerAllText}>{listing.is_mine ? 'My ads' : 'All ads'}</Text>
+              <Text style={styles.sellerAllText}>{listing.is_mine ? 'My ads' : `Ads by ${listing.seller.name.split(' ')[0]}`}</Text>
             </Pressable>
             {!listing.is_mine && (
               <Pressable onPress={() => reportContent('listing', listing.id)} hitSlop={10}>
