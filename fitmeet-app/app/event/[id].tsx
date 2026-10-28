@@ -158,10 +158,14 @@ function canCheckInNow(event: EventDetail) {
 // Mirrors the backend's updateLocation() accept-window (EventController::updateLocation):
 // no lower bound (a checked-in user should appear immediately, not wait for start_at),
 // cut off 10 minutes after the event's scheduled end.
-function liveTrackingOpen(event: EventDetail) {
+function liveTrackingUntil(event: EventDetail) {
   const start = new Date(event.schedule.start_at).getTime()
   const durationMs = (event.schedule.duration_minutes ?? 60) * 60 * 1000
-  return event.status === 'active' && Date.now() <= start + durationMs + 10 * 60 * 1000
+  return start + durationMs + 10 * 60 * 1000
+}
+
+function liveTrackingOpen(event: EventDetail) {
+  return event.status === 'active' && Date.now() <= liveTrackingUntil(event)
 }
 
 function statsFromElevationProfile(profile: ElevationPoint[]) {
@@ -831,17 +835,28 @@ export default function EventDetailScreen() {
     let subscription: Location.LocationSubscription | null = null
     let cancelled = false
     const eventId = event.id
+    // Event over (end + 10 min) or the server says sharing ended: stop GPS + background task
+    const finish = () => {
+      if (cancelled) return
+      cancelled = true
+      subscription?.remove()
+      setEvent((prev) => (prev && prev.id === eventId ? { ...prev, live_sharing_enabled: false } : prev))
+      stopLiveLocationTracking(eventId).catch(() => {})
+    }
+    // (capped: setTimeout fires at once for delays over ~24.8 days)
+    const endTimer = setTimeout(finish, Math.min(2 ** 31 - 1, Math.max(0, liveTrackingUntil(event) - Date.now())))
     Location.watchPositionAsync(
       // distanceInterval: 0 -- see live-location.ts for why a movement filter
       // here would starve the stopped-rider detection of the beats it needs.
       { accuracy: Location.Accuracy.High, timeInterval: 5000, distanceInterval: 0 },
-      (loc) => postForegroundLocation(eventId, loc),
+      (loc) => { postForegroundLocation(eventId, loc).then((over) => { if (over) finish() }) },
     ).then((sub) => {
       if (cancelled) sub.remove()
       else subscription = sub
     }).catch(() => {})
     return () => {
       cancelled = true
+      clearTimeout(endTimer)
       subscription?.remove()
     }
   }, [event?.id, event?.live_sharing_enabled, event?.checked_in_at, event?.status, event?.schedule.start_at, event?.schedule.duration_minutes])
@@ -1047,7 +1062,7 @@ export default function EventDetailScreen() {
     if (!event) return
     setStartingLiveTracking(true)
     try {
-      const result = await startLiveLocationTracking(event.id)
+      const result = await startLiveLocationTracking(event.id, liveTrackingUntil(event))
       if (!result.started) {
         setShowLocationConsentModal(false)
         Alert.alert('Location permission needed', 'Enable location access in Settings to share your position with the group.')

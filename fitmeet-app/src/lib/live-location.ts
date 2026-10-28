@@ -9,6 +9,26 @@ import { api } from '@/src/lib/api'
 
 export const LOCATION_TASK_NAME = 'fitmeet-live-location'
 const TRACKED_EVENT_STORAGE_KEY = 'fitmeet-live-location-event-id'
+// Epoch ms after which the tracked event no longer accepts positions (its end + 10 min)
+const TRACKED_UNTIL_STORAGE_KEY = 'fitmeet-live-location-until'
+
+// updateLocation() answers that sharing is over for good: event ended / cancelled,
+// sharing switched off elsewhere (web, another device) or the user left the event.
+const SHARING_OVER_MESSAGES = [
+  'This event is not currently live.',
+  'Location sharing is not enabled.',
+  'You are not a participant of this event.',
+]
+
+function sharingOver(error: unknown): boolean {
+  const response = (error as { response?: { status?: number; data?: { message?: string } } })?.response
+  return response?.status === 422 && SHARING_OVER_MESSAGES.includes(response.data?.message ?? '')
+}
+
+async function pastTrackingWindow(): Promise<boolean> {
+  const until = Number(await AsyncStorage.getItem(TRACKED_UNTIL_STORAGE_KEY))
+  return until > 0 && Date.now() > until
+}
 
 type StartResult = {
   started: boolean
@@ -45,6 +65,13 @@ TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }: TaskManager.T
   const eventId = await AsyncStorage.getItem(TRACKED_EVENT_STORAGE_KEY)
   if (!eventId) return
 
+  // The event is over: stop the GPS and the "Sharing your live location" notification
+  // ourselves instead of running until the app happens to be opened again.
+  if (await pastTrackingWindow()) {
+    await stopLiveLocationTracking(eventId)
+    return
+  }
+
   const locations = (data as { locations?: Location.LocationObject[] } | undefined)?.locations
   if (!locations?.length) return
 
@@ -68,13 +95,18 @@ TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }: TaskManager.T
         recorded_at: new Date(location.timestamp).toISOString(),
         fix_at_ms: location.timestamp,
       })
-    } catch {
-      // Event ended / sharing disabled elsewhere — just skip this beat.
+    } catch (e) {
+      if (sharingOver(e)) {
+        await stopLiveLocationTracking(eventId)
+        return
+      }
+      // Network hiccup etc. — just skip this beat.
     }
   }
 })
 
-export async function startLiveLocationTracking(eventId: number | string): Promise<StartResult> {
+/** @param untilMs when the event stops accepting positions (end + 10 min) — tracking stops itself then */
+export async function startLiveLocationTracking(eventId: number | string, untilMs?: number): Promise<StartResult> {
   const foreground = await Location.requestForegroundPermissionsAsync()
   if (foreground.status !== 'granted') {
     return { started: false, background: false }
@@ -84,6 +116,8 @@ export async function startLiveLocationTracking(eventId: number | string): Promi
   const hasBackground = background.status === 'granted'
 
   await AsyncStorage.setItem(TRACKED_EVENT_STORAGE_KEY, String(eventId))
+  if (untilMs) await AsyncStorage.setItem(TRACKED_UNTIL_STORAGE_KEY, String(untilMs))
+  else await AsyncStorage.removeItem(TRACKED_UNTIL_STORAGE_KEY)
   lastKeptFixAtMs = 0
 
   try {
@@ -125,7 +159,7 @@ export async function stopLiveLocationTracking(eventId?: number | string) {
   if (alreadyStarted) {
     await Location.stopLocationUpdatesAsync(LOCATION_TASK_NAME).catch(() => {})
   }
-  await AsyncStorage.removeItem(TRACKED_EVENT_STORAGE_KEY)
+  await AsyncStorage.multiRemove([TRACKED_EVENT_STORAGE_KEY, TRACKED_UNTIL_STORAGE_KEY])
 
   const targetEventId = eventId ?? null
   if (targetEventId) {
@@ -137,8 +171,9 @@ export async function getTrackedLiveLocationEventId(): Promise<string | null> {
   return AsyncStorage.getItem(TRACKED_EVENT_STORAGE_KEY)
 }
 
-export async function postForegroundLocation(eventId: number | string, location: Location.LocationObject) {
-  if (!shouldKeepFix(location.timestamp)) return
+/** @returns true when the server says sharing is over (the caller should stop) */
+export async function postForegroundLocation(eventId: number | string, location: Location.LocationObject): Promise<boolean> {
+  if (!shouldKeepFix(location.timestamp)) return false
 
   try {
     await api.post(`/events/${eventId}/location`, {
@@ -148,9 +183,11 @@ export async function postForegroundLocation(eventId: number | string, location:
       recorded_at: new Date(location.timestamp).toISOString(),
       fix_at_ms: location.timestamp,
     })
-  } catch {
-    // ignore — next tick will retry
+  } catch (e) {
+    if (sharingOver(e)) return true
+    // otherwise ignore — next tick will retry
   }
+  return false
 }
 
 export async function openAndroidBatteryOptimizationSettings() {
