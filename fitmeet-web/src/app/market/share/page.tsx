@@ -143,6 +143,9 @@ function MarketShareContent() {
                     <div className="flex items-center gap-2">
                       <Tag size={15} style={{ color: 'var(--primary)' }} />
                       <span>Seller: {listing.seller.name}</span>
+                      <Link href={`/market?seller=${listing.seller.id}&sellerName=${encodeURIComponent(listing.seller.name)}`} className="font-semibold underline underline-offset-2" style={{ color: 'var(--primary)' }}>
+                        All ads
+                      </Link>
                     </div>
                   </div>
                 </div>

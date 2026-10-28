@@ -1182,8 +1182,15 @@ function MeetPageInner() {
   const [showCalendar, setShowCalendar] = useState(false)
 
   useEffect(() => {
-    if (!token) router.replace('/login')
-  }, [token, router])
+    if (token) return
+    // shared "All ads by …" link works without login: the public marketplace shows the same seller filter
+    const seller = searchParams.get('seller')
+    if (searchParams.get('tab') === 'market' && seller) {
+      router.replace(`/market?seller=${encodeURIComponent(seller)}&sellerName=${encodeURIComponent(searchParams.get('sellerName') ?? '')}`)
+      return
+    }
+    router.replace('/login')
+  }, [token, router, searchParams])
 
   useEffect(() => {
     const requested = searchParams.get('tab')

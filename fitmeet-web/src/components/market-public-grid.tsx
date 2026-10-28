@@ -2,29 +2,44 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { MapPin } from 'lucide-react'
+import { MapPin, X } from 'lucide-react'
 
 import { CATEGORY_EMOJI } from '@/lib/categories'
 import { apiBase, CONDITION_LABEL, place, priceLabel, type PublicListing } from '@/lib/market-public'
 
 // Public marketplace grid: starts with the listings baked in at build time (crawlers see them),
 // then refreshes from the public API so visitors always get the latest. No login needed.
+// /market?seller=ID&sellerName=… shows one seller's listings ("All ads by …" on a listing).
 export function MarketPublicGrid({ initial, builtIds }: { initial: PublicListing[]; builtIds: number[] }) {
   const [listings, setListings] = useState(initial)
   const [filter, setFilter] = useState<'all' | 'sell' | 'buy'>('all')
+  const [seller, setSeller] = useState<{ id: string; name: string } | null>(null)
 
   useEffect(() => {
-    fetch(`${apiBase()}/market/public-latest?limit=60`, { headers: { Accept: 'application/json' } })
+    // static export: query string is read in the browser, not at build time
+    const q = new URLSearchParams(window.location.search)
+    const id = q.get('seller')
+    if (id) setSeller({ id, name: q.get('sellerName') ?? '' })
+    fetch(`${apiBase()}/market/public-latest?limit=60${id ? `&seller=${encodeURIComponent(id)}` : ''}`, { headers: { Accept: 'application/json' } })
       .then(r => (r.ok ? r.json() : null))
       .then(p => { if (p?.data) setListings(p.data) })
       .catch(() => {})
   }, [])
 
   const built = new Set(builtIds)
-  const shown = listings.filter(l => filter === 'all' || l.type === filter)
+  const shown = listings.filter(l => (filter === 'all' || l.type === filter) && (!seller || String(l.seller.id) === seller.id))
 
   return (
     <>
+      {seller && (
+        <div className="flex items-center gap-2 mb-4 text-sm">
+          <span style={{ color: 'var(--text-muted)' }}>Ads by</span>
+          <a href="/market" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full font-bold text-xs"
+            style={{ background: 'rgba(57,255,20,0.12)', border: '1px solid var(--primary)', color: 'var(--primary)' }} title="Show all listings">
+            {seller.name || listings[0]?.seller.name || 'this seller'} <X size={12} />
+          </a>
+        </div>
+      )}
       <div className="flex gap-2 mb-6">
         {(['all', 'sell', 'buy'] as const).map(f => (
           <button key={f} onClick={() => setFilter(f)} className="px-4 h-9 rounded-full text-sm font-semibold border"

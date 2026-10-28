@@ -21,6 +21,8 @@ class MarketplaceController extends Controller
 
         $listings = MarketplaceListing::with(['seller', 'images'])
             ->where('status', 'active')
+            // ?seller=ID — javni popis oglasa jednog prodavača (/market?seller=…, bez prijave)
+            ->when($request->filled('seller'), fn ($q) => $q->where('user_id', (int) $request->query('seller')))
             ->latest()
             ->limit($limit)
             ->get();

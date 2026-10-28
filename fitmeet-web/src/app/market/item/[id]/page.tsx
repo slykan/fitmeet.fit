@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowLeft, MapPin, MessageCircle } from 'lucide-react'
+import { ArrowLeft, LayoutGrid, MapPin, MessageCircle } from 'lucide-react'
 import type { Metadata } from 'next'
 
 import { Navbar } from '@/components/navbar'
@@ -81,6 +81,10 @@ export default async function MarketItemPage({ params }: { params: Promise<{ id:
                 <div className="flex flex-wrap items-center gap-3 pt-2">
                   <Link href={`/market/view?id=${l.id}`} className="btn-primary inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold">
                     <MessageCircle size={15} /> Contact {l.seller.name.split(' ')[0]}
+                  </Link>
+                  <Link href={`/market?seller=${l.seller.id}&sellerName=${encodeURIComponent(l.seller.name)}`}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-semibold transition-opacity hover:opacity-80" style={{ borderColor: 'var(--border)' }}>
+                    <LayoutGrid size={15} /> All ads by {l.seller.name.split(' ')[0]}
                   </Link>
                   <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Sign in required to message the seller.</span>
                 </div>
