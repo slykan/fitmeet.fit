@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
-import { ChevronLeft, Flag, MapPin, MessageCircle, Pencil, CheckCircle2, Trash2, X, Share2, Heart, Eye } from 'lucide-react'
+import { ChevronLeft, Flag, MapPin, MessageCircle, Pencil, CheckCircle2, Trash2, X, Share2, Heart, Eye, LayoutGrid } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
 import api from '@/lib/api'
@@ -274,6 +274,13 @@ function ViewContent() {
                 <p className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>Seller</p>
                 <p className="font-bold text-sm truncate">{listing.seller.name}</p>
               </div>
+              <button
+                onClick={() => router.push(`/meet?tab=market&seller=${listing.seller.id}&sellerName=${encodeURIComponent(listing.seller.name)}`)}
+                className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl border font-bold flex-shrink-0 transition-opacity hover:opacity-80"
+                style={{ borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+              >
+                <LayoutGrid size={14} /> {listing.is_mine ? 'My ads' : 'All ads'}
+              </button>
               {!listing.is_mine && (
                 <button
                   onClick={() => reportContent('listing', listing.id)}

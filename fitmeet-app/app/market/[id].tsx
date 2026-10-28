@@ -391,6 +391,14 @@ export default function MarketDetailScreen() {
               <Text style={styles.sellerLabel}>Seller</Text>
               <Text style={styles.sellerName}>{listing.seller.name}</Text>
             </View>
+            <Pressable
+              style={styles.sellerAllBtn}
+              onPress={() => router.push(`/(tabs)/meet?tab=market&seller=${listing.seller.id}&sellerName=${encodeURIComponent(listing.seller.name)}` as never)}
+              hitSlop={6}
+            >
+              <Ionicons name="grid-outline" size={13} color={palette.text} />
+              <Text style={styles.sellerAllText}>{listing.is_mine ? 'My ads' : 'All ads'}</Text>
+            </Pressable>
             {!listing.is_mine && (
               <Pressable onPress={() => reportContent('listing', listing.id)} hitSlop={10}>
                 <Ionicons name="flag-outline" size={18} color={palette.textDim} />
@@ -511,6 +519,8 @@ const styles = StyleSheet.create({
   sellerAvatarText: { color: '#031109', fontWeight: '900', fontSize: 16 },
   sellerLabel: { color: palette.textMuted, fontSize: 11, fontWeight: '600' },
   sellerName:  { color: palette.text, fontWeight: '700', fontSize: 14 },
+  sellerAllBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 10, borderWidth: 1, borderColor: palette.line },
+  sellerAllText: { color: palette.text, fontWeight: '700', fontSize: 12 },
 
   actions: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
   actionsRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },

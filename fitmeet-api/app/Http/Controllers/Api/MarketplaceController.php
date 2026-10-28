@@ -117,6 +117,11 @@ HTML;
             $query->where('user_id', $request->user()->id);
         }
 
+        // ?seller=ID — svi oglasi jednog prodavača (gumb „All ads by this seller” na oglasu)
+        if ($request->filled('seller')) {
+            $query->where('user_id', (int) $request->seller);
+        }
+
         if ($request->filled('status') && in_array($request->status, ['active', 'sold'])) {
             $query->where('status', $request->status);
         } else if (! $request->filled('my') || ! $request->my) {

@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
-import { MapPin, Plus, ChevronDown, Search, Heart, Eye } from 'lucide-react'
+import { MapPin, Plus, ChevronDown, Search, Heart, Eye, X } from 'lucide-react'
 
 import api from '@/lib/api'
 import { CATEGORIES, CATEGORY_EMOJI } from '@/lib/categories'
@@ -39,7 +39,11 @@ type Condition   = '' | 'new' | 'used' | 'like_new'
 
 export function MarketTab() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { token } = useAuthStore()
+  // ?seller=ID&sellerName=… — svi oglasi jednog prodavača (gumb „All ads” na oglasu)
+  const seller = searchParams.get('seller') ?? ''
+  const sellerName = searchParams.get('sellerName') ?? ''
 
   const [listings,   setListings]  = useState<MarketListing[]>([])
   const [loading,    setLoading]   = useState(true)
@@ -75,11 +79,12 @@ export function MarketTab() {
     if (searchQ)     params.set('search',    searchQ)
     if (myOnly)      params.set('my',        '1')
     if (soldOnly)    params.set('status',    'sold')
+    if (seller)      params.set('seller',    seller)
     api.get(`/market?${params}`)
       .then(({ data }) => setListings(data.data ?? []))
       .catch(() => setListings([]))
       .finally(() => setLoading(false))
-  }, [token, typeFilter, category, condition, searchQ, savedOnly, myOnly, soldOnly])
+  }, [token, typeFilter, category, condition, searchQ, savedOnly, myOnly, soldOnly, seller])
 
   async function handleToggleSave(e: React.MouseEvent, listing: MarketListing) {
     e.stopPropagation()
@@ -148,6 +153,20 @@ export function MarketTab() {
           </button>
         </div>
       </div>
+
+      {seller && !savedOnly && (
+        <div className="flex items-center gap-2 text-sm">
+          <span style={{ color: 'var(--text-muted)' }}>Ads by</span>
+          <button
+            onClick={() => router.replace('/meet?tab=market')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full font-bold text-xs"
+            style={{ background: 'rgba(57,255,20,0.12)', border: '1px solid var(--primary)', color: 'var(--primary)' }}
+            title="Show all ads"
+          >
+            {sellerName || 'this seller'} <X size={12} />
+          </button>
+        </div>
+      )}
 
       {/* Search */}
       <div className="relative">

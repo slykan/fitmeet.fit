@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { EmptyEvents } from '@/src/components/EmptyEvents'
 import { EventCommentsPreview } from '@/src/components/EventCommentsPreview'
 import { InProgressBadge } from '@/src/components/InProgressBadge'
-import { router, useFocusEffect } from 'expo-router'
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router'
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import {
   ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, Share,
@@ -1161,7 +1161,8 @@ const CONDITION_LABEL_MAP: Record<string, string> = { new: 'New', used: 'Used', 
 type MarketType = '' | 'sell' | 'buy'
 type MarketCond = '' | 'new' | 'used' | 'like_new'
 
-const MarketTab = forwardRef<LoadMoreHandle>(function MarketTab(_props, ref) {
+// seller/sellerName dolaze iz /(tabs)/meet?tab=market&seller=… (gumb „All ads” na oglasu)
+const MarketTab = forwardRef<LoadMoreHandle, { seller?: string; sellerName?: string }>(function MarketTab({ seller, sellerName }, ref) {
   const [items, setItems] = useState<MarketItem[]>([])
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -1194,6 +1195,7 @@ const MarketTab = forwardRef<LoadMoreHandle>(function MarketTab(_props, ref) {
         if (searchRef.current.trim()) params.search = searchRef.current.trim()
         if (myOnly) params.my = '1'
         if (soldOnly) params.status = 'sold'
+        if (seller) params.seller = seller
         const { data } = await api.get('/market', { params })
         const incoming: MarketItem[] = data.data ?? []
         setItems(prev => pageNum === 1 ? incoming : [...prev, ...incoming])
@@ -1206,7 +1208,7 @@ const MarketTab = forwardRef<LoadMoreHandle>(function MarketTab(_props, ref) {
       setLoading(false)
       setLoadingMore(false)
     }
-  }, [typeFilter, category, condition, savedOnly, myOnly, soldOnly])
+  }, [typeFilter, category, condition, savedOnly, myOnly, soldOnly, seller])
 
   const hasMore = page < lastPage
 
@@ -1263,6 +1265,16 @@ const MarketTab = forwardRef<LoadMoreHandle>(function MarketTab(_props, ref) {
           <Ionicons name="add" size={22} color="#041109" />
         </Pressable>
       </View>
+
+      {!!seller && !savedOnly && (
+        <View style={styles.sellerFilterRow}>
+          <Text style={styles.sellerFilterLabel}>Ads by</Text>
+          <Pressable style={styles.sellerFilterChip} onPress={() => router.setParams({ seller: '', sellerName: '' })} hitSlop={6}>
+            <Text style={styles.sellerFilterChipText}>{sellerName || 'this seller'}</Text>
+            <Ionicons name="close" size={13} color={palette.accent} />
+          </Pressable>
+        </View>
+      )}
 
       {/* Search */}
       <View style={styles.searchBar}>
@@ -1527,6 +1539,8 @@ const TAB_ICONS: Record<'events' | 'routes' | 'people' | 'market', keyof typeof 
 export default function MeetScreen() {
   const tabBarHeight = useBottomTabBarHeight()
   const [tab, setTab] = useState<'events' | 'people' | 'routes' | 'market'>('events')
+  const params = useLocalSearchParams<{ tab?: string; seller?: string; sellerName?: string }>()
+  useEffect(() => { if (params.tab === 'market') setTab('market') }, [params.tab, params.seller])
   const [showCalendar, setShowCalendar] = useState(false)
   const peopleTabRef = useRef<PeopleTabHandle>(null)
   const eventsTabRef = useRef<LoadMoreHandle>(null)
@@ -1629,7 +1643,7 @@ export default function MeetScreen() {
         {tab === 'events' ? <EventsTab ref={eventsTabRef} />
           : tab === 'routes' ? <RoutesTab ref={routesTabRef} />
           : tab === 'people' ? <PeopleTab ref={peopleTabRef} />
-          : <MarketTab ref={marketTabRef} />}
+          : <MarketTab ref={marketTabRef} seller={params.seller} sellerName={params.sellerName} />}
 
       </ScrollView>
     </SafeAreaView>
@@ -1805,6 +1819,10 @@ const styles = StyleSheet.create({
   detailsGridValue: { color: palette.text, fontWeight: '700' },
 
   // Search
+  sellerFilterRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  sellerFilterLabel: { color: palette.textMuted, fontSize: 13 },
+  sellerFilterChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, borderWidth: 1, borderColor: palette.accent, backgroundColor: 'rgba(57,255,20,0.12)' },
+  sellerFilterChipText: { color: palette.accent, fontWeight: '700', fontSize: 12 },
   searchBar: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     backgroundColor: palette.panel, borderRadius: 16,
