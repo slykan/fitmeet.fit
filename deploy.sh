@@ -36,6 +36,8 @@ npm install --legacy-peer-deps
 npm run build
 
 echo "→ deploy web..."
-cp -rf dist/. ~/public_html/ 2>/dev/null; true
+# .htaccess NE ide iz builda: public/.htaccess u repou je stara proxy verzija (localhost:3000) i ruši cijeli web.
+# Živa ~/public_html/.htaccess (SPA fallback, OG za /events/share, PHP 8.4) održava se ručno; kopija ~/htaccess.bak-20261026.
+rsync -a --exclude '.htaccess' dist/ ~/public_html/ 2>/dev/null; true
 
 echo "✓ Deployed!"
