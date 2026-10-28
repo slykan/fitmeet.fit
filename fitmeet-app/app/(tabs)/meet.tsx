@@ -1241,6 +1241,19 @@ const MarketTab = forwardRef<LoadMoreHandle, { seller?: string; sellerName?: str
 
   const activeCat = CATEGORIES.find(c => c.value === category)
 
+  // Share the public marketplace (or this seller's ads) with a title and a short description
+  function shareMarket() {
+    const name = sellerName || items[0]?.seller.name || ''
+    const url = seller
+      ? `https://fitmeet.fit/market/?seller=${encodeURIComponent(seller)}&sellerName=${encodeURIComponent(name)}`
+      : 'https://fitmeet.fit/market/'
+    const title = seller ? `Ads by ${name} – FitMeet Marketplace` : 'FitMeet Marketplace'
+    const text = seller
+      ? `Bikes and sports gear for sale by ${name}. See all listings on FitMeet.`
+      : 'Sports gear from people near you – bikes, running gear, SUP boards and more. Browse free on FitMeet.'
+    Share.share({ title, message: `${title}\n${text}\n\n${url}` })
+  }
+
   const marketFilterCount =
     (typeFilter ? 1 : 0) + (category ? 1 : 0) + (condition ? 1 : 0) + (savedOnly ? 1 : 0) + (myOnly ? 1 : 0) + (soldOnly ? 1 : 0)
 
@@ -1261,9 +1274,14 @@ const MarketTab = forwardRef<LoadMoreHandle, { seller?: string; sellerName?: str
             </View>
           )}
         </Pressable>
-        <Pressable style={styles.createBtn} onPress={() => router.push('/market/create' as never)}>
-          <Ionicons name="add" size={22} color="#041109" />
-        </Pressable>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <Pressable style={styles.marketShareBtn} onPress={shareMarket} hitSlop={6} accessibilityLabel="Share the marketplace">
+            <Ionicons name="share-social-outline" size={18} color={palette.text} />
+          </Pressable>
+          <Pressable style={styles.createBtn} onPress={() => router.push('/market/create' as never)}>
+            <Ionicons name="add" size={22} color="#041109" />
+          </Pressable>
+        </View>
       </View>
 
       {!!seller && !savedOnly && (
@@ -1662,6 +1680,11 @@ const styles = StyleSheet.create({
   createBtn: {
     width: 42, height: 42, borderRadius: 14,
     backgroundColor: palette.accent,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  marketShareBtn: {
+    width: 42, height: 42, borderRadius: 14,
+    borderWidth: 1, borderColor: palette.line,
     alignItems: 'center', justifyContent: 'center',
   },
   calendarBtn: {

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
-import { MapPin, Plus, ChevronDown, Search, Heart, Eye, X } from 'lucide-react'
+import { MapPin, Plus, ChevronDown, Search, Heart, Eye, Share2, X } from 'lucide-react'
 
 import api from '@/lib/api'
 import { CATEGORIES, CATEGORY_EMOJI } from '@/lib/categories'
@@ -98,6 +98,28 @@ export function MarketTab() {
     } catch {}
   }
 
+  const [shareCopied, setShareCopied] = useState(false)
+
+  // Share the public marketplace (or this seller's ads): phone share sheet, otherwise copy the link
+  async function shareMarket() {
+    const name = sellerName || listings[0]?.seller.name || ''
+    const url = seller
+      ? `https://fitmeet.fit/market/?seller=${encodeURIComponent(seller)}&sellerName=${encodeURIComponent(name)}`
+      : 'https://fitmeet.fit/market/'
+    const title = seller ? `Ads by ${name} – FitMeet Marketplace` : 'FitMeet Marketplace'
+    const text = seller
+      ? `Bikes and sports gear for sale by ${name}. See all listings on FitMeet.`
+      : 'Sports gear from people near you – bikes, running gear, SUP boards and more. Browse free on FitMeet.'
+    try {
+      if (navigator.share) { await navigator.share({ title, text, url }); return }
+    } catch { return }
+    try {
+      await navigator.clipboard.writeText(`${title}\n${text}\n${url}`)
+      setShareCopied(true)
+      setTimeout(() => setShareCopied(false), 2000)
+    } catch {}
+  }
+
   const activeCat = CATEGORIES.find(c => c.value === category)
 
   return (
@@ -143,6 +165,14 @@ export function MarketTab() {
             }}
           >
             <Heart size={13} fill={savedOnly ? '#f87171' : 'none'} /> Saved
+          </button>
+          <button
+            onClick={shareMarket}
+            title="Share the marketplace"
+            className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl border font-bold flex-shrink-0 transition-opacity hover:opacity-80"
+            style={{ borderColor: 'var(--border)', color: shareCopied ? 'var(--primary)' : 'var(--text-muted)', background: 'var(--surface)' }}
+          >
+            <Share2 size={13} /> {shareCopied ? 'Copied' : 'Share'}
           </button>
           <button
             onClick={() => router.push('/market/create')}

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { MapPin, X } from 'lucide-react'
+import { MapPin, Share2, X } from 'lucide-react'
 
 import { CATEGORY_EMOJI } from '@/lib/categories'
 import { apiBase, CONDITION_LABEL, place, priceLabel, type PublicListing } from '@/lib/market-public'
@@ -26,6 +26,28 @@ export function MarketPublicGrid({ initial, builtIds }: { initial: PublicListing
       .catch(() => {})
   }, [])
 
+  const [copied, setCopied] = useState(false)
+
+  // Share this page (whole marketplace, or one seller's ads): phone share sheet, otherwise copy the link
+  async function share() {
+    const name = seller ? (seller.name || listings[0]?.seller.name || '') : ''
+    const url = seller
+      ? `https://fitmeet.fit/market/?seller=${encodeURIComponent(seller.id)}&sellerName=${encodeURIComponent(name)}`
+      : 'https://fitmeet.fit/market/'
+    const title = seller ? `Ads by ${name} – FitMeet Marketplace` : 'FitMeet Marketplace'
+    const text = seller
+      ? `Bikes and sports gear for sale by ${name}. See all listings on FitMeet.`
+      : 'Sports gear from people near you – bikes, running gear, SUP boards and more. Browse free on FitMeet.'
+    try {
+      if (navigator.share) { await navigator.share({ title, text, url }); return }
+    } catch { return } // share sheet closed
+    try {
+      await navigator.clipboard.writeText(`${title}\n${text}\n${url}`)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {}
+  }
+
   const built = new Set(builtIds)
   const shown = listings.filter(l => (filter === 'all' || l.type === filter) && (!seller || String(l.seller.id) === seller.id))
 
@@ -40,13 +62,17 @@ export function MarketPublicGrid({ initial, builtIds }: { initial: PublicListing
           </a>
         </div>
       )}
-      <div className="flex gap-2 mb-6">
+      <div className="flex flex-wrap items-center gap-2 mb-6">
         {(['all', 'sell', 'buy'] as const).map(f => (
           <button key={f} onClick={() => setFilter(f)} className="px-4 h-9 rounded-full text-sm font-semibold border"
             style={{ borderColor: filter === f ? 'var(--primary)' : 'var(--border)', background: filter === f ? 'rgba(57,255,20,0.1)' : 'transparent', color: filter === f ? 'var(--primary)' : 'var(--text-muted)' }}>
             {f === 'all' ? 'All' : f === 'sell' ? 'For sale' : 'Wanted'}
           </button>
         ))}
+        <button onClick={share} className="ml-auto inline-flex items-center gap-2 px-4 h-9 rounded-full text-sm font-semibold border transition-opacity hover:opacity-80"
+          style={{ borderColor: 'var(--border)', color: 'var(--text-primary)' }}>
+          <Share2 size={14} /> {copied ? 'Link copied' : 'Share'}
+        </button>
       </div>
       {shown.length === 0 ? (
         <p className="py-16 text-center" style={{ color: 'var(--text-muted)' }}>No listings right now — be the first to post one.</p>
