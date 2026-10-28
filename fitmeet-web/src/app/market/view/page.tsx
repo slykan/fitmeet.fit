@@ -51,6 +51,16 @@ function ViewContent() {
   const [acting, setActing] = useState(false)
   const [copied, setCopied] = useState(false)
 
+  // not signed in: open the public listing page instead of a blank screen
+  // (/market/item/<id>/ is built at deploy time; newer listings fall back to /market/share/?id=)
+  useEffect(() => {
+    if (token || !id) return
+    const pub = `/market/item/${encodeURIComponent(id)}/`
+    fetch(pub, { method: 'HEAD' })
+      .then(r => router.replace(r.ok ? pub : `/market/share/?id=${encodeURIComponent(id)}`))
+      .catch(() => router.replace(`/market/share/?id=${encodeURIComponent(id)}`))
+  }, [token, id, router])
+
   useEffect(() => {
     if (!token || !id) return
     api.get(`/market/${id}`)
