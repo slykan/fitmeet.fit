@@ -125,10 +125,10 @@ function buildDetails(t: TrainingItem): DetailStat[] {
 
 function TotalStat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-col items-center text-center gap-1 lg:flex-row lg:text-left lg:gap-2 min-w-0">
       <span style={{ color: 'var(--primary)' }}>{icon}</span>
-      <div>
-        <p className="text-sm font-bold leading-none">{value}</p>
+      <div className="min-w-0">
+        <p className="text-sm font-bold leading-none whitespace-nowrap">{value}</p>
         <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{label}</p>
       </div>
     </div>
@@ -297,7 +297,8 @@ export function TrainingsTab() {
       </div>
 
       {!loading && totals && totals.count > 0 && (
-        <div className="rounded-2xl border p-4 flex flex-wrap gap-x-6 gap-y-3"
+        // phone: 3 columns in two rows (like the app); wide screens: all six in one row
+        <div className="rounded-2xl border p-4 grid grid-cols-3 lg:grid-cols-6 gap-x-3 gap-y-4"
           style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
           <TotalStat icon={<Activity size={15} />} label={totals.count === 1 ? 'Training' : 'Trainings'} value={String(totals.count)} />
           {formatDistance(totals.distance_m) && (
