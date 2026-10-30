@@ -163,6 +163,18 @@ export default function ProfileScreen() {
                 </Text>
               </View>
             ) : null}
+            {home.city ? (
+              <>
+                <View style={styles.row}>
+                  <Ionicons name="location-outline" size={12} color={palette.textDim} />
+                  <Text style={styles.phone}>{home.city}{home.country ? `, ${home.country}` : ''}</Text>
+                </View>
+                <View style={styles.row}>
+                  <Ionicons name="navigate-outline" size={12} color={palette.textDim} />
+                  <Text style={styles.phone}>{RADIUS_LABELS[user.radius] ?? user.radius}</Text>
+                </View>
+              </>
+            ) : null}
           </View>
         </View>
 
@@ -231,23 +243,6 @@ export default function ProfileScreen() {
             <Ionicons name="chevron-forward" size={16} color={palette.textDim} />
           </Pressable>
         )}
-
-        {/* Location */}
-        {home.city ? (
-          <View style={styles.card}>
-            <Text style={styles.sectionLabel}>Location</Text>
-            <View style={styles.row}>
-              <Ionicons name="location-outline" size={15} color={palette.accent} />
-              <Text style={styles.rowText}>
-                {home.city}{home.country ? `, ${home.country}` : ''}
-              </Text>
-            </View>
-            <View style={styles.row}>
-              <Ionicons name="navigate-outline" size={15} color={palette.textDim} />
-              <Text style={styles.rowText}>{RADIUS_LABELS[user.radius] ?? user.radius}</Text>
-            </View>
-          </View>
-        ) : null}
 
         {/* Interests */}
         {(categories.length > 0 || user.skill_level) ? (
