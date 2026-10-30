@@ -616,14 +616,15 @@ const styles = StyleSheet.create({
   providerText: { fontSize: 11, fontWeight: '800' },
   detailsActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
   mergedRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  // three equal columns (icon above value + label) → up to 5 totals fit in two rows on a phone
   totalsCard: {
-    flexDirection: 'row', flexWrap: 'wrap', gap: 16,
+    flexDirection: 'row', flexWrap: 'wrap', rowGap: 12,
     backgroundColor: 'rgba(108,255,47,0.07)', borderRadius: 18,
-    borderWidth: 1, borderColor: 'rgba(108,255,47,0.28)', padding: spacing.md,
+    borderWidth: 1, borderColor: 'rgba(108,255,47,0.28)', paddingVertical: 12, paddingHorizontal: 6,
   },
-  totalStat: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  totalStatValue: { color: palette.text, fontSize: 14, fontWeight: '800' },
-  totalStatLabel: { color: palette.textDim, fontSize: 11, marginTop: 1 },
+  totalStat: { width: '33.33%', alignItems: 'center', gap: 3, paddingHorizontal: 2 },
+  totalStatValue: { color: palette.text, fontSize: 14, fontWeight: '800', textAlign: 'center' },
+  totalStatLabel: { color: palette.textDim, fontSize: 11, marginTop: 1, textAlign: 'center' },
   detailsToggle: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 },
   detailsToggleText: { color: palette.accent, fontSize: 12, fontWeight: '700' },
   detailsExpanded: {
