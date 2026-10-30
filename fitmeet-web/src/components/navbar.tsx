@@ -107,11 +107,6 @@ export function Navbar() {
                 style={{ color: 'var(--text-muted)' }}>
                 Meet
               </Link>
-              <Link href="/ranks"
-                className="hidden md:block text-sm font-medium transition-colors hover:opacity-80"
-                style={{ color: 'var(--text-muted)' }}>
-                Ranks
-              </Link>
               <Link href="/notifications"
                 className="hidden md:relative md:block text-sm font-medium transition-colors hover:opacity-80"
                 style={{ color: 'var(--text-muted)' }}>
@@ -124,6 +119,11 @@ export function Navbar() {
                     </span>
                   )}
                 </span>
+              </Link>
+              <Link href="/ranks"
+                className="hidden md:block text-sm font-medium transition-colors hover:opacity-80"
+                style={{ color: 'var(--text-muted)' }}>
+                Ranks
               </Link>
               <Link href="/messages"
                 className="hidden md:block text-sm font-medium transition-colors hover:opacity-80"
@@ -188,14 +188,6 @@ export function Navbar() {
               </Link>
 
               <Link
-                href="/ranks"
-                className="p-2 rounded-lg text-[--text-muted] hover:text-[--text-primary] transition-colors"
-                title="Community Badges"
-              >
-                <Trophy size={18} />
-              </Link>
-
-              <Link
                 href="/notifications"
                 className="relative p-2 rounded-lg text-[--text-muted] hover:text-[--text-primary] transition-colors"
                 title="Feed"
@@ -213,6 +205,14 @@ export function Navbar() {
                     {notifCount > 99 ? '99+' : notifCount}
                   </span>
                 )}
+              </Link>
+
+              <Link
+                href="/ranks"
+                className="p-2 rounded-lg text-[--text-muted] hover:text-[--text-primary] transition-colors"
+                title="Community Badges"
+              >
+                <Trophy size={18} />
               </Link>
 
               <Link
