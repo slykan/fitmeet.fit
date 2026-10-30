@@ -98,6 +98,9 @@ const YEARS = [0, ...Array.from({ length: 6 }, (_, i) => CURRENT_YEAR - i)]
 
 const PACE_CATEGORIES = new Set(['running', 'hiking'])
 
+/** One beer (0.33 l lager) ≈ 150 kcal — totals card shows calories burned as beers. */
+const KCAL_PER_BEER = 150
+
 function formatTrainingDuration(seconds: number | null): string | null {
   if (!seconds) return null
   const h = Math.floor(seconds / 3600)
@@ -379,6 +382,15 @@ export function TrainingsFeedTab() {
               <View>
                 <Text style={styles.totalStatValue}>{Math.round(totals.calories)} kcal</Text>
                 <Text style={styles.totalStatLabel}>Calories</Text>
+              </View>
+            </View>
+          )}
+          {totals.calories >= KCAL_PER_BEER && (
+            <View style={styles.totalStat}>
+              <Ionicons name="beer-outline" size={16} color={palette.accent} />
+              <View>
+                <Text style={styles.totalStatValue}>{Math.round(totals.calories / KCAL_PER_BEER).toLocaleString('hr-HR')} 🍺</Text>
+                <Text style={styles.totalStatLabel}>Beers burned</Text>
               </View>
             </View>
           )}

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Activity, ChevronDown, Clock, Flame, Gauge, HeartPulse, Layers, Link2, Mountain, Sparkles, Tag, Trash2, Wind, X, Zap } from 'lucide-react'
+import { Activity, Beer, ChevronDown, Clock, Flame, Gauge, HeartPulse, Layers, Link2, Mountain, Sparkles, Tag, Trash2, Wind, X, Zap } from 'lucide-react'
 
 import api from '@/lib/api'
 import { CATEGORIES, CATEGORY_EMOJI } from '@/lib/categories'
@@ -311,6 +311,10 @@ export function TrainingsTab() {
           )}
           {totals.calories > 0 && (
             <TotalStat icon={<Flame size={15} />} label="Total calories" value={`${Math.round(totals.calories)} kcal`} />
+          )}
+          {/* one beer (0.33 l lager) ≈ 150 kcal */}
+          {totals.calories >= 150 && (
+            <TotalStat icon={<Beer size={15} />} label="Beers burned" value={`${Math.round(totals.calories / 150).toLocaleString('hr-HR')} 🍺`} />
           )}
         </div>
       )}
