@@ -46,18 +46,24 @@ class EventController extends Controller
                 ->whereIn('events.status', ['active', 'cancelled'])
                 ->where('events.start_at', '<=', now());
 
-            return $this->applyEventSort($request, $query, 'start_at');
+            return $this->applyEventSort($request, $query, 'past');
         }
 
         $query = $query->upcoming();
 
-        return $this->applyEventSort($request, $query, 'created_at');
+        return $this->applyEventSort($request, $query, 'upcoming');
     }
 
-    private function applyEventSort(Request $request, $query, string $defaultSort)
+    /**
+     * Order for event lists. Default ("soonest"): upcoming = in progress first, then by start time
+     * (soonest first); past = most recent first. order=desc reverses the date order.
+     * Sorting by date on the server keeps paginated lists (20 per page in the app) in one order.
+     */
+    private function applyEventSort(Request $request, $query, string $window)
     {
         $sort = $request->string('sort')->toString();
         $direction = strtolower($request->string('order', 'desc')->toString()) === 'asc' ? 'asc' : 'desc';
+        $reversed = strtolower($request->string('order')->toString()) === 'desc';
 
         if ($sort === 'views') {
             return $query->orderBy('events.views_count', $direction)
@@ -73,13 +79,14 @@ class EventController extends Controller
             return $query->orderBy('events.created_at', $direction);
         }
 
-        if ($defaultSort === 'start_at') {
-            return $query->orderByDesc('events.start_at');
+        if ($window === 'past') {
+            return $query->orderBy('events.start_at', $reversed ? 'asc' : 'desc')->orderByDesc('events.id');
         }
 
         return $query
             ->orderByRaw('CASE WHEN events.start_at <= NOW() AND DATE_ADD(events.start_at, INTERVAL COALESCE(events.duration_minutes, 60) MINUTE) >= NOW() THEN 0 ELSE 1 END ASC')
-            ->orderByDesc('events.created_at');
+            ->orderBy('events.start_at', $reversed ? 'desc' : 'asc')
+            ->orderBy('events.id');
     }
 
     private function requestCoordinates(Request $request): array
@@ -1128,13 +1135,16 @@ HTML;
     // GET /api/events/my
     public function my(Request $request): JsonResponse
     {
-        $events = $request->user()
+        $query = $request->user()
             ->events()
             ->with('organizer')
-            ->withCount('comments')
-            ->whereIn('events.status', ['active', 'cancelled'])
-            ->orderByDesc('events.start_at')
-            ->get();
+            ->withCount('comments');
+
+        // Meet › Events "My" filter sends past=0/1 (upcoming or past, like the other filters);
+        // without it (My Events page, Hub map) all own events are returned, newest first.
+        $events = $request->has('past')
+            ? $this->applyTimeWindow($request, $query)->get()
+            : $query->whereIn('events.status', ['active', 'cancelled'])->orderByDesc('events.start_at')->get();
 
         return response()->json(['data' => EventResource::collection($events)]);
     }

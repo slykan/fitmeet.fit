@@ -836,14 +836,14 @@ function EventsTab() {
   useEffect(() => {
     setLoading(true)
     if (goingOnly) {
-      api.get('/events/joined', { params: pastOnly ? { past: 1 } : {} })
+      api.get('/events/joined', { params: { past: pastOnly ? 1 : 0 } })
         .then(({ data }) => setEvents(sortEventsBySchedule(applyFriendsFilter(data.data ?? []), pastOnly)))
         .catch(() => setEvents([]))
         .finally(() => setLoading(false))
       return
     }
     if (myOnly) {
-      api.get('/events/my', { params: pastOnly ? { past: 1 } : {} })
+      api.get('/events/my', { params: { past: pastOnly ? 1 : 0 } }) // past=0 → only upcoming (like the other filters)
         .then(({ data }) => setEvents(sortEventsBySchedule(applyFriendsFilter(data.data ?? []), pastOnly)))
         .catch(() => setEvents([]))
         .finally(() => setLoading(false))

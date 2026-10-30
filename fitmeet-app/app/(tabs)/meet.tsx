@@ -260,8 +260,11 @@ const EventsTab = forwardRef<LoadMoreHandle>(function EventsTab(_props, ref) {
       if (sortKey !== 'soonest') {
         params.sort = sortKey
         params.order = sortDirection
+      } else if (sortDirection === 'desc') {
+        params.order = 'desc' // server sorts by date too, so every loaded page continues the same order
       }
-      if (pastOnly) params.past = 1
+      // always sent: /events/my only filters past/upcoming when the parameter is present
+      params.past = pastOnly ? 1 : 0
       if (goingOnly) {
         url = '/events/joined'
       } else if (myOnly) {
