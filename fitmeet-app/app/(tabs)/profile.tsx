@@ -52,6 +52,10 @@ export default function ProfileScreen() {
   const [saving, setSaving]     = useState<PrefField | null>(null)
   const [prefError, setPrefError] = useState<string | null>(null)
   const [pushSaving, setPushSaving] = useState(false)
+  // dropdowns on the profile, closed by default
+  const [emailOpen, setEmailOpen] = useState(false)
+  const [pushOpen, setPushOpen] = useState(false)
+  const [eventsOpen, setEventsOpen] = useState(false)
   const [exporting, setExporting] = useState(false)
 
   async function downloadMyData() {
@@ -175,6 +179,21 @@ export default function ProfileScreen() {
                 </View>
               </>
             ) : null}
+            {/* interests (was a separate card) */}
+            {categories.length > 0 && (
+              <View style={[styles.tags, { marginTop: 6 }]}>
+                {categories.map(cat => (
+                  <View key={cat} style={styles.tag}>
+                    <Text style={styles.tagText}>{cat.replace('_', ' ')}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+            {user.skill_level ? (
+              <Text style={[styles.skillText, { marginTop: 2 }]}>
+                Level: <Text style={styles.skillValue}>{user.skill_level}</Text>
+              </Text>
+            ) : null}
           </View>
         </View>
 
@@ -244,45 +263,38 @@ export default function ProfileScreen() {
           </Pressable>
         )}
 
-        {/* Interests */}
-        {(categories.length > 0 || user.skill_level) ? (
-          <View style={styles.card}>
-            <Text style={styles.sectionLabel}>Interests</Text>
-            {categories.length > 0 && (
-              <View style={styles.tags}>
-                {categories.map(cat => (
-                  <View key={cat} style={styles.tag}>
-                    <Text style={styles.tagText}>{cat.replace('_', ' ')}</Text>
-                  </View>
-                ))}
-              </View>
-            )}
-            {user.skill_level ? (
-              <Text style={styles.skillText}>
-                Level: <Text style={styles.skillValue}>{user.skill_level}</Text>
-              </Text>
-            ) : null}
-          </View>
-        ) : null}
-
         {/* Events shortcuts */}
         <View style={styles.card}>
-          <Text style={styles.sectionLabel}>Events</Text>
-          <Pressable style={styles.linkRow} onPress={() => router.push('/event/my' as never)}>
-            <Ionicons name="calendar-outline" size={18} color={palette.accent} />
-            <Text style={styles.linkText}>My Events</Text>
-            <Ionicons name="chevron-forward" size={16} color={palette.textDim} />
+          <Pressable style={styles.dropHeader} onPress={() => setEventsOpen(v => !v)} hitSlop={6}>
+            <Text style={[styles.sectionLabel, { flex: 1, marginBottom: 0 }]}>Events</Text>
+            <Ionicons name={eventsOpen ? 'chevron-up' : 'chevron-down'} size={16} color={palette.textDim} />
           </Pressable>
-          <Pressable style={styles.linkRow} onPress={() => router.push('/event/create' as never)}>
-            <Ionicons name="add-circle-outline" size={18} color={palette.accent} />
-            <Text style={styles.linkText}>Create New Event</Text>
-            <Ionicons name="chevron-forward" size={16} color={palette.textDim} />
-          </Pressable>
+          {eventsOpen && (
+            <>
+              <Pressable style={styles.linkRow} onPress={() => router.push('/event/my' as never)}>
+                <Ionicons name="calendar-outline" size={18} color={palette.accent} />
+                <Text style={styles.linkText}>My Events</Text>
+                <Ionicons name="chevron-forward" size={16} color={palette.textDim} />
+              </Pressable>
+              <Pressable style={styles.linkRow} onPress={() => router.push('/event/create' as never)}>
+                <Ionicons name="add-circle-outline" size={18} color={palette.accent} />
+                <Text style={styles.linkText}>Create New Event</Text>
+                <Ionicons name="chevron-forward" size={16} color={palette.textDim} />
+              </Pressable>
+            </>
+          )}
         </View>
 
         {/* Email preferences */}
         <View style={styles.card}>
-          <Text style={styles.sectionLabel}>Email settings</Text>
+          <Pressable style={styles.dropHeader} onPress={() => setEmailOpen(v => !v)} hitSlop={6}>
+            <Text style={[styles.sectionLabel, { flex: 1, marginBottom: 0 }]}>Email settings</Text>
+            <Text style={styles.dropSummary}>
+              {PREF_ROWS.filter(r => emailPreferences[PREF_KEY[r.field]]).length} of {PREF_ROWS.length} on
+            </Text>
+            <Ionicons name={emailOpen ? 'chevron-up' : 'chevron-down'} size={16} color={palette.textDim} />
+          </Pressable>
+          {emailOpen && (
           <View style={styles.prefList}>
             {PREF_ROWS.map(({ field, label, desc, icon }) => {
               const enabled  = emailPreferences[PREF_KEY[field]]
@@ -314,14 +326,18 @@ export default function ProfileScreen() {
               )
             })}
           </View>
+          )}
           {prefError ? <Text style={styles.errorText}>{prefError}</Text> : null}
         </View>
 
         {/* Push notifications */}
         <View style={styles.card}>
-          <View style={styles.pushHeader}>
-            <Text style={styles.sectionLabel}>Push notifications</Text>
-          </View>
+          <Pressable style={styles.dropHeader} onPress={() => setPushOpen(v => !v)} hitSlop={6}>
+            <Text style={[styles.sectionLabel, { flex: 1, marginBottom: 0 }]}>Push notifications</Text>
+            <Text style={styles.dropSummary}>{pushEnabled ? 'On' : 'Off'}</Text>
+            <Ionicons name={pushOpen ? 'chevron-up' : 'chevron-down'} size={16} color={palette.textDim} />
+          </Pressable>
+          {pushOpen && (
           <View style={styles.prefList}>
             <View style={styles.prefRow}>
               <Ionicons
@@ -361,6 +377,7 @@ export default function ProfileScreen() {
               </View>
             ))}
           </View>
+          )}
         </View>
 
         {/* About */}
@@ -446,6 +463,8 @@ const styles = StyleSheet.create({
   },
   settingsLinkText: { flex: 1, color: palette.text, fontSize: 15, fontWeight: '700' },
 
+  dropHeader:  { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  dropSummary: { color: palette.textDim, fontSize: 12, fontWeight: '600' },
   pushHeader:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
   comingBadge: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, borderColor: palette.line },
   comingText:  { color: palette.textDim, fontSize: 11, fontWeight: '600' },
