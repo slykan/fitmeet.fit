@@ -9,7 +9,7 @@ import { Navbar } from '@/components/navbar'
 import { Button } from '@/components/ui/button'
 import { BadgeGrid } from '@/components/badge-grid'
 import { ConnectedAppsCard } from '@/components/connected-apps-card'
-import { AlertTriangle, Bell, HeartPulse, Calendar, Camera, Download, Mail, MapPin, Phone, Globe, Navigation, Pencil, Share2, Trash2, UserPlus } from 'lucide-react'
+import { AlertTriangle, Bell, HeartPulse, Calendar, Camera, ChevronDown, Download, Mail, MapPin, Phone, Navigation, Pencil, Share2, Trash2, UserPlus } from 'lucide-react'
 import api from '@/lib/api'
 
 interface AlibiStats {
@@ -105,6 +105,7 @@ export default function ProfilePage() {
   const avatarInputRef = useRef<HTMLInputElement | null>(null)
   const [savingPreference, setSavingPreference] = useState<EmailPreferenceField | null>(null)
   const [preferenceError, setPreferenceError] = useState<string | null>(null)
+  const [emailOpen, setEmailOpen] = useState(false) // Email settings closed by default (same as the app)
   const [avatarLoading, setAvatarLoading] = useState(false)
   const [avatarError, setAvatarError] = useState<string | null>(null)
 
@@ -254,6 +255,36 @@ export default function ProfilePage() {
                 <Phone size={12} /> {user.phone}
               </p>
             )}
+            {/* location and interests (were separate cards) */}
+            {user.home.city ? (
+              <>
+                <p className="text-sm mt-0.5 flex items-center justify-center sm:justify-start gap-1.5" style={{ color: 'var(--text-muted)' }}>
+                  <MapPin size={12} /> {user.home.city}{user.home.country ? `, ${user.home.country}` : ''}
+                </p>
+                <p className="text-sm mt-0.5 flex items-center justify-center sm:justify-start gap-1.5" style={{ color: 'var(--text-muted)' }}>
+                  <Navigation size={12} /> {RADIUS_LABELS[user.radius] ?? user.radius}
+                </p>
+              </>
+            ) : (
+              <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                <Link href="/onboarding" className="underline" style={{ color: 'var(--primary)' }}>Add location</Link>
+              </p>
+            )}
+            {user.categories?.length > 0 && (
+              <div className="flex flex-wrap justify-center sm:justify-start gap-1.5 mt-2.5">
+                {user.categories.map(cat => (
+                  <span key={cat} className="px-2.5 py-0.5 rounded-full text-xs border capitalize"
+                    style={{ borderColor: 'var(--primary)', color: 'var(--primary)', background: 'rgba(57,255,20,0.08)' }}>
+                    {cat.replace('_', ' ')}
+                  </span>
+                ))}
+              </div>
+            )}
+            {user.skill_level && (
+              <p className="text-xs mt-1.5 capitalize" style={{ color: 'var(--text-muted)' }}>
+                Level: <strong style={{ color: 'var(--text-primary)' }}>{user.skill_level}</strong>
+              </p>
+            )}
           </div>
 
           <div className="flex gap-1.5 w-full sm:w-auto">
@@ -289,10 +320,18 @@ export default function ProfilePage() {
           className="rounded-2xl border p-4 sm:p-6 mb-5"
           style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
         >
-          <h2 className="font-bold text-sm uppercase tracking-wide mb-4 flex items-center gap-2">
-            <Mail size={14} style={{ color: 'var(--primary)' }} /> Email settings
-          </h2>
-          <div className="space-y-3">
+          {/* closed by default, like on the app */}
+          <button type="button" onClick={() => setEmailOpen(v => !v)} className="w-full flex items-center gap-2 text-left" aria-expanded={emailOpen}>
+            <h2 className="flex-1 font-bold text-sm uppercase tracking-wide flex items-center gap-2">
+              <Mail size={14} style={{ color: 'var(--primary)' }} /> Email settings
+            </h2>
+            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+              {[friendEmails, newEventEmails, reminderEmails, friendEventEmails].filter(Boolean).length} of 4 on
+            </span>
+            <ChevronDown size={16} style={{ color: 'var(--text-muted)', transform: emailOpen ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }} />
+          </button>
+          {emailOpen && (
+          <div className="space-y-3 mt-4">
             <PreferenceRow
               icon={<UserPlus size={14} />}
               label="Friend activity"
@@ -326,71 +365,11 @@ export default function ProfilePage() {
               onToggle={() => toggleEmailPreference('email_friend_events' as EmailPreferenceField, friendEventEmails)}
             />
           </div>
+          )}
           {preferenceError && (
             <p className="text-xs mt-4 text-red-400">{preferenceError}</p>
           )}
         </div>
-
-        {/* Location */}
-        <div
-          className="rounded-2xl border p-4 sm:p-6 mb-5"
-          style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
-        >
-          <h2 className="font-bold text-sm uppercase tracking-wide mb-4 flex items-center gap-2">
-            <MapPin size={14} style={{ color: 'var(--primary)' }} /> Location
-          </h2>
-          {user.home.city ? (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm min-w-0">
-                <Globe size={14} style={{ color: 'var(--text-muted)' }} />
-                <span className="break-words">{user.home.city}{user.home.country ? `, ${user.home.country}` : ''}</span>
-              </div>
-              {user.home.lat && user.home.lng && (
-                <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                  📍 {user.home.lat?.toFixed(4)}, {user.home.lng?.toFixed(4)}
-                </div>
-              )}
-              <div className="flex items-center gap-2 text-sm mt-2 min-w-0">
-                <Navigation size={14} style={{ color: 'var(--text-muted)' }} />
-                <span className="break-words">{RADIUS_LABELS[user.radius] ?? user.radius}</span>
-              </div>
-            </div>
-          ) : (
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-              No location set. <Link href="/onboarding" className="underline" style={{ color: 'var(--primary)' }}>Add location</Link>
-            </p>
-          )}
-        </div>
-
-        {/* Interests */}
-        {(user.categories?.length > 0 || user.skill_level) && (
-          <div
-            className="rounded-2xl border p-4 sm:p-6 mb-5"
-            style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
-          >
-            <h2 className="font-bold text-sm uppercase tracking-wide mb-4 flex items-center gap-2">
-              <Navigation size={14} style={{ color: 'var(--primary)' }} /> Interests
-            </h2>
-            {user.categories?.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-3">
-                {user.categories.map(cat => (
-                  <span
-                    key={cat}
-                    className="px-3 py-1 rounded-full text-sm border"
-                    style={{ borderColor: 'var(--primary)', color: 'var(--primary)', background: 'rgba(57,255,20,0.08)' }}
-                  >
-                    {cat.replace('_', ' ')}
-                  </span>
-                ))}
-              </div>
-            )}
-            {user.skill_level && (
-              <span className="text-sm capitalize" style={{ color: 'var(--text-muted)' }}>
-                Level: <strong style={{ color: 'var(--text-primary)' }}>{user.skill_level}</strong>
-              </span>
-            )}
-          </div>
-        )}
 
         {/* No profile yet */}
         {!user.home.city && !user.categories?.length && (

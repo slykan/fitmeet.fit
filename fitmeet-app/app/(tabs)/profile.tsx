@@ -136,6 +136,10 @@ export default function ProfileScreen() {
 
         {/* Identity card */}
         <View style={styles.card}>
+          <Pressable style={styles.cardEditBtn} onPress={() => router.push('/settings' as never)} hitSlop={8} accessibilityLabel="Edit profile & settings">
+            <Ionicons name="create-outline" size={15} color={palette.text} />
+            <Text style={styles.cardEditText}>Edit</Text>
+          </Pressable>
           <View>
             {user.avatar ? (
               <Image source={{ uri: user.avatar }} style={styles.avatar} />
@@ -463,6 +467,8 @@ const styles = StyleSheet.create({
   },
   settingsLinkText: { flex: 1, color: palette.text, fontSize: 15, fontWeight: '700' },
 
+  cardEditBtn: { position: 'absolute', top: 12, right: 12, zIndex: 2, flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, borderWidth: 1, borderColor: palette.line, backgroundColor: palette.panel },
+  cardEditText: { color: palette.text, fontSize: 12, fontWeight: '700' },
   dropHeader:  { flexDirection: 'row', alignItems: 'center', gap: 8 },
   dropSummary: { color: palette.textDim, fontSize: 12, fontWeight: '600' },
   pushHeader:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
