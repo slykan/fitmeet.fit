@@ -169,13 +169,6 @@ export default function ProfileScreen() {
         {/* Alibi stats */}
         <AlibiCard />
 
-        {/* Health: sex, weight, height, body fat, steps, FTP, heart rate zones — BMR, daily energy, AI coach */}
-        <Pressable style={styles.settingsLink} onPress={() => router.push('/health' as never)}>
-          <Ionicons name="heart-outline" size={18} color="#ff3b30" />
-          <Text style={styles.settingsLinkText}>Health settings</Text>
-          <Ionicons name="chevron-forward" size={16} color={palette.textDim} />
-        </Pressable>
-
         {/* Badges */}
         <BadgeGrid />
 
@@ -190,6 +183,13 @@ export default function ProfileScreen() {
         <Pressable style={styles.settingsLink} onPress={() => router.push('/settings' as never)}>
           <Ionicons name="settings-outline" size={18} color={palette.accent} />
           <Text style={styles.settingsLinkText}>Edit profile & settings</Text>
+          <Ionicons name="chevron-forward" size={16} color={palette.textDim} />
+        </Pressable>
+
+        {/* Health: sex, weight, height, body fat, steps, FTP, heart rate zones — BMR, daily energy, AI coach */}
+        <Pressable style={styles.settingsLink} onPress={() => router.push('/health' as never)}>
+          <Ionicons name="heart-outline" size={18} color="#ff3b30" />
+          <Text style={styles.settingsLinkText}>Health settings</Text>
           <Ionicons name="chevron-forward" size={16} color={palette.textDim} />
         </Pressable>
 
