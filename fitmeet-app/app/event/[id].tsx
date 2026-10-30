@@ -27,6 +27,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import { api } from '@/src/lib/api'
 import { enableAutoCheckIn, syncAutoCheckInGeofences } from '@/src/lib/auto-checkin'
 import { enrichGpxWithElevation, fetchElevationProfile, parseGpxTextAsync } from '@/src/lib/gpx'
+import { downloadGpx, gpxFileName, saveGpxFile } from '@/src/lib/save-gpx'
 import type { TrackSegment } from '@/src/lib/gpx'
 import { analyzeRouteSurface, type SurfaceAnalysis } from '@/src/lib/route-surface'
 import { playApplauseSound, playRandomActionSound } from '@/src/lib/action-sounds'
@@ -1217,25 +1218,9 @@ export default function EventDetailScreen() {
       const endpoint = event.is_private
         ? `${baseUrl}/events/${event.id}/gpx`
         : `${baseUrl}/events/public/${event.id}/gpx`
-      const filename = `${event.title.trim().replace(/\s+/g, '-')}.gpx`
-      const fileUri = FileSystem.cacheDirectory + filename
-      await FileSystem.downloadAsync(endpoint, fileUri, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      })
-      const raw = await FileSystem.readAsStringAsync(fileUri)
-      const enriched = await enrichGpxWithElevation(raw)
-      await FileSystem.writeAsStringAsync(fileUri, enriched)
-      if (Platform.OS === 'ios') {
-        await Share.share({ url: fileUri })
-      } else {
-        const perms = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync()
-        if (!perms.granted) return
-        const destUri = await FileSystem.StorageAccessFramework.createFileAsync(
-          perms.directoryUri, filename, 'application/gpx+xml',
-        )
-        await FileSystem.writeAsStringAsync(destUri, enriched)
-        Alert.alert('GPX saved', `${filename} saved to selected folder.`)
-      }
+      const filename = gpxFileName(event.title)
+      const raw = await downloadGpx(endpoint, filename, token)
+      await saveGpxFile(filename, await enrichGpxWithElevation(raw))
     } catch {
       Alert.alert('GPX route', 'Could not download GPX file.')
     }

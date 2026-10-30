@@ -26,6 +26,7 @@ import { WikiPhotosStrip } from '@/src/components/WikiPhotosStrip'
 import { CATEGORIES } from '@/src/lib/categories'
 import { api } from '@/src/lib/api'
 import { enrichGpxWithElevation, fetchElevationProfile, parseGpxTextAsync, reverseGpxTrack } from '@/src/lib/gpx'
+import { downloadGpx, gpxFileName, saveGpxFile } from '@/src/lib/save-gpx'
 import type { GpxParsed } from '@/src/lib/gpx'
 import { analyzeRouteSurface, type SurfaceAnalysis } from '@/src/lib/route-surface'
 import { useAuthStore } from '@/src/store/auth'
@@ -315,26 +316,9 @@ export default function RouteViewScreen() {
     if (!id || !route) return
     try {
       const baseUrl = api.defaults.baseURL ?? 'https://api.fitmeet.fit/api'
-      const token = useAuthStore.getState().token
-      const filename = `${route.title.trim().replace(/\s+/g, '-')}.gpx`
-      const fileUri = FileSystem.cacheDirectory + filename
-      await FileSystem.downloadAsync(`${baseUrl}/routes/${id}/gpx`, fileUri, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      })
-      const raw = await FileSystem.readAsStringAsync(fileUri)
-      const enriched = await enrichGpxWithElevation(raw)
-      await FileSystem.writeAsStringAsync(fileUri, enriched)
-      if (Platform.OS === 'ios') {
-        await Share.share({ url: fileUri })
-      } else {
-        const perms = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync()
-        if (!perms.granted) return
-        const destUri = await FileSystem.StorageAccessFramework.createFileAsync(
-          perms.directoryUri, filename, 'application/gpx+xml',
-        )
-        await FileSystem.writeAsStringAsync(destUri, enriched)
-        Alert.alert('GPX saved', `${filename} saved to selected folder.`)
-      }
+      const filename = gpxFileName(route.title)
+      const raw = await downloadGpx(`${baseUrl}/routes/${id}/gpx`, filename, useAuthStore.getState().token)
+      await saveGpxFile(filename, await enrichGpxWithElevation(raw))
     } catch {
       Alert.alert('GPX route', 'Could not download GPX file.')
     }
