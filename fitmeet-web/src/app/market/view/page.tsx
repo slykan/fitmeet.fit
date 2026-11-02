@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
-import { ChevronLeft, Flag, MapPin, MessageCircle, Pencil, CheckCircle2, Trash2, X, Share2, Heart, Eye, LayoutGrid } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Flag, MapPin, MessageCircle, Pencil, CheckCircle2, Trash2, X, Share2, Heart, Eye, LayoutGrid } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
 import api from '@/lib/api'
@@ -274,34 +274,42 @@ function ViewContent() {
             </div>
 
             {/* Seller */}
-            <div className="flex items-center gap-3 pt-1 border-t" style={{ borderColor: 'var(--border)' }}>
-              <div className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center font-black text-sm"
-                style={{ background: 'var(--primary)', color: '#000' }}>
-                {listing.seller.avatar
-                  ? <Image src={listing.seller.avatar} alt="" width={36} height={36} className="object-cover" />
-                  : listing.seller.name.charAt(0).toUpperCase()}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>Seller</p>
-                <p className="font-bold text-sm truncate">{listing.seller.name}</p>
+            <div className="space-y-3 pt-3 border-t" style={{ borderColor: 'var(--border)' }}>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => router.push(`/users/view?id=${listing.seller.id}`)}
+                  className="flex min-w-0 flex-1 items-center gap-3 text-left transition-opacity hover:opacity-80"
+                >
+                  <div className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center font-black text-sm"
+                    style={{ background: 'var(--primary)', color: '#000' }}>
+                    {listing.seller.avatar
+                      ? <Image src={listing.seller.avatar} alt="" width={36} height={36} className="object-cover" />
+                      : listing.seller.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>Seller · view profile</p>
+                    <p className="font-bold text-sm break-words">{listing.seller.name}</p>
+                  </div>
+                  <ChevronRight size={16} className="flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+                </button>
+                {!listing.is_mine && (
+                  <button
+                    onClick={() => reportContent('listing', listing.id)}
+                    title="Report listing"
+                    className="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-xl border transition-opacity hover:opacity-80"
+                    style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}
+                  >
+                    <Flag size={15} />
+                  </button>
+                )}
               </div>
               <button
                 onClick={() => router.push(`/meet?tab=market&seller=${listing.seller.id}&sellerName=${encodeURIComponent(listing.seller.name)}`)}
-                className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl border font-bold flex-shrink-0 transition-opacity hover:opacity-80"
+                className="flex w-full items-center justify-center gap-1.5 text-sm px-3 py-2.5 rounded-xl border font-bold transition-opacity hover:opacity-80"
                 style={{ borderColor: 'var(--border)', color: 'var(--text-primary)' }}
               >
-                <LayoutGrid size={14} /> {listing.is_mine ? 'My ads' : `Ads by ${listing.seller.name.split(' ')[0]}`}
+                <LayoutGrid size={15} /> {listing.is_mine ? 'My ads' : `All ads by ${listing.seller.name}`}
               </button>
-              {!listing.is_mine && (
-                <button
-                  onClick={() => reportContent('listing', listing.id)}
-                  title="Report listing"
-                  className="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-xl border transition-opacity hover:opacity-80"
-                  style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}
-                >
-                  <Flag size={15} />
-                </button>
-              )}
             </div>
 
             {/* Actions */}

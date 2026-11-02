@@ -391,31 +391,35 @@ export default function MarketDetailScreen() {
           )}
 
           {/* Seller */}
-          <View style={styles.sellerRow}>
-            <View style={styles.sellerAvatar}>
-              {listing.seller.avatar ? (
-                <Image source={{ uri: listing.seller.avatar }} style={{ width: 36, height: 36, borderRadius: 18 }} resizeMode="cover" />
-              ) : (
-                <Text style={styles.sellerAvatarText}>{listing.seller.name.charAt(0).toUpperCase()}</Text>
+          <View style={styles.sellerBlock}>
+            <View style={styles.sellerRow}>
+              <Pressable style={styles.sellerProfile} onPress={() => router.push(`/user/${listing.seller.id}` as never)}>
+                <View style={styles.sellerAvatar}>
+                  {listing.seller.avatar ? (
+                    <Image source={{ uri: listing.seller.avatar }} style={{ width: 36, height: 36, borderRadius: 18 }} resizeMode="cover" />
+                  ) : (
+                    <Text style={styles.sellerAvatarText}>{listing.seller.name.charAt(0).toUpperCase()}</Text>
+                  )}
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.sellerLabel}>Seller · view profile</Text>
+                  <Text style={styles.sellerName}>{listing.seller.name}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={palette.textDim} />
+              </Pressable>
+              {!listing.is_mine && (
+                <Pressable onPress={() => reportContent('listing', listing.id)} hitSlop={10}>
+                  <Ionicons name="flag-outline" size={18} color={palette.textDim} />
+                </Pressable>
               )}
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.sellerLabel}>Seller</Text>
-              <Text style={styles.sellerName} numberOfLines={1}>{listing.seller.name}</Text>
             </View>
             <Pressable
               style={styles.sellerAllBtn}
               onPress={() => router.push(`/(tabs)/meet?tab=market&seller=${listing.seller.id}&sellerName=${encodeURIComponent(listing.seller.name)}` as never)}
-              hitSlop={6}
             >
-              <Ionicons name="grid-outline" size={13} color={palette.text} />
-              <Text style={styles.sellerAllText}>{listing.is_mine ? 'My ads' : `Ads by ${listing.seller.name.split(' ')[0]}`}</Text>
+              <Ionicons name="grid-outline" size={14} color={palette.text} />
+              <Text style={styles.sellerAllText}>{listing.is_mine ? 'My ads' : `All ads by ${listing.seller.name}`}</Text>
             </Pressable>
-            {!listing.is_mine && (
-              <Pressable onPress={() => reportContent('listing', listing.id)} hitSlop={10}>
-                <Ionicons name="flag-outline" size={18} color={palette.textDim} />
-              </Pressable>
-            )}
           </View>
 
           {/* Actions — row 1: secondary buttons */}
@@ -562,13 +566,15 @@ const styles = StyleSheet.create({
   locationRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   locationText:{ color: palette.textDim, fontSize: 13 },
 
-  sellerRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingTop: 4, borderTopWidth: 1, borderTopColor: palette.line },
+  sellerBlock: { gap: 10, paddingTop: 12, borderTopWidth: 1, borderTopColor: palette.line },
+  sellerRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  sellerProfile: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
   sellerAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: palette.accent, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   sellerAvatarText: { color: '#031109', fontWeight: '900', fontSize: 16 },
   sellerLabel: { color: palette.textMuted, fontSize: 11, fontWeight: '600' },
   sellerName:  { color: palette.text, fontWeight: '700', fontSize: 14 },
-  sellerAllBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 10, borderWidth: 1, borderColor: palette.line },
-  sellerAllText: { color: palette.text, fontWeight: '700', fontSize: 12 },
+  sellerAllBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: palette.line },
+  sellerAllText: { color: palette.text, fontWeight: '700', fontSize: 13, flexShrink: 1 },
   msgOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 20 },
   msgCard: {
     borderRadius: 20, borderWidth: 1, borderColor: palette.line,
