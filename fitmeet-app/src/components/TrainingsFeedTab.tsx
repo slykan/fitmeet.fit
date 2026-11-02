@@ -156,7 +156,7 @@ export function TrainingsFeedTab() {
   const [loadingMore, setLoadingMore] = useState(false)
   const [page, setPage] = useState(1)
   const [lastPage, setLastPage] = useState(1)
-  const [scope, setScope] = useState<Scope>('friends')
+  const scope: Scope = 'mine' // only the user's own trainings
   const [category, setCategory] = useState('')
   const [month, setMonth] = useState(0)
   const [year, setYear] = useState(0)
@@ -185,7 +185,7 @@ export function TrainingsFeedTab() {
   const [showFilter, setShowFilter] = useState(false)
   const [deletingId, setDeletingId] = useState<number | null>(null)
 
-  const activeFilterCount = (scope === 'mine' ? 1 : 0) + (category ? 1 : 0) + (month ? 1 : 0) + (year ? 1 : 0)
+  const activeFilterCount = (category ? 1 : 0) + (month ? 1 : 0) + (year ? 1 : 0)
 
   const load = useCallback(async (pageNum = 1) => {
     if (pageNum === 1) setLoading(true)
@@ -298,16 +298,6 @@ export function TrainingsFeedTab() {
 
       {showFilter && (
         <View style={styles.filterDropdownThin}>
-          <Text style={styles.filterSectionLabel}>Show</Text>
-          <View style={styles.filterRow}>
-            <Pressable style={[styles.filterChip, scope === 'friends' && styles.filterChipActive]} onPress={() => setScope('friends')}>
-              <Text style={[styles.filterLabel, scope === 'friends' && styles.filterLabelActive]}>Everyone</Text>
-            </Pressable>
-            <Pressable style={[styles.filterChip, scope === 'mine' && styles.filterChipActive]} onPress={() => setScope('mine')}>
-              <Text style={[styles.filterLabel, scope === 'mine' && styles.filterLabelActive]}>Just me</Text>
-            </Pressable>
-          </View>
-
           <Text style={styles.filterSectionLabel}>Category</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
             <Pressable style={[styles.filterChip, !category && styles.filterChipActive]} onPress={() => setCategory('')}>

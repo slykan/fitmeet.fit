@@ -189,7 +189,7 @@ export function TrainingsTab() {
   }
   const [totals, setTotals] = useState<Totals | null>(null)
   const [loading, setLoading] = useState(true)
-  const [scope, setScope] = useState<'friends' | 'mine'>('friends')
+  const scope: 'friends' | 'mine' = 'mine' // only the user's own trainings
   const [category, setCategory] = useState('')
   const [month, setMonth] = useState(0)
   const [year, setYear] = useState(0)
@@ -247,20 +247,6 @@ export function TrainingsTab() {
         </div>
       )}
       <div className="flex gap-2">
-        <button
-          onClick={() => setScope('friends')}
-          className="text-xs px-3 py-1.5 rounded-full border font-medium transition-colors"
-          style={chipStyle(scope === 'friends')}
-        >
-          Everyone
-        </button>
-        <button
-          onClick={() => setScope('mine')}
-          className="text-xs px-3 py-1.5 rounded-full border font-medium transition-colors"
-          style={chipStyle(scope === 'mine')}
-        >
-          Just me
-        </button>
         <button
           onClick={() => router.push('/reports')}
           className="ml-auto inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border font-bold transition-opacity hover:opacity-80"
