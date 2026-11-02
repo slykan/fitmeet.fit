@@ -35,7 +35,7 @@ interface TrainingItem {
   user: TrainingUser | null
 }
 
-interface Totals {
+export interface Totals {
   count: number
   distance_m: number
   duration_s: number
@@ -132,6 +132,34 @@ function TotalStat({ icon, label, value }: { icon: React.ReactNode; label: strin
         <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{label}</p>
       </div>
     </div>
+  )
+}
+
+/** Sum of trainings; renders nothing when there are none. Also used on public profiles. */
+export function TrainingTotalsCard({ totals }: { totals: Totals | null | undefined }) {
+  if (!totals || totals.count <= 0) return null
+  return (
+      // phone: 3 columns in two rows (like the app); wide screens: all six in one row
+      <div className="rounded-2xl border p-4 grid grid-cols-3 lg:grid-cols-6 gap-x-3 gap-y-4"
+        style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
+        <TotalStat icon={<Activity size={15} />} label={totals.count === 1 ? 'Training' : 'Trainings'} value={String(totals.count)} />
+        {formatDistance(totals.distance_m) && (
+          <TotalStat icon={<Zap size={15} />} label="Total distance" value={formatDistance(totals.distance_m)!} />
+        )}
+        {formatDuration(totals.duration_s) && (
+          <TotalStat icon={<Clock size={15} />} label="Total time" value={formatDuration(totals.duration_s)!} />
+        )}
+        {totals.elevation_gain > 0 && (
+          <TotalStat icon={<Mountain size={15} />} label="Total elevation" value={`${Math.round(totals.elevation_gain)} m`} />
+        )}
+        {totals.calories > 0 && (
+          <TotalStat icon={<Flame size={15} />} label="Total calories" value={`${Math.round(totals.calories)} kcal`} />
+        )}
+        {/* one beer (0.33 l lager) ≈ 150 kcal */}
+        {totals.calories >= 150 && (
+          <TotalStat icon={<Beer size={15} />} label="Beers burned" value={`${Math.round(totals.calories / 150).toLocaleString('hr-HR')} 🍺`} />
+        )}
+      </div>
   )
 }
 
@@ -282,29 +310,7 @@ export function TrainingsTab() {
         </select>
       </div>
 
-      {!loading && totals && totals.count > 0 && (
-        // phone: 3 columns in two rows (like the app); wide screens: all six in one row
-        <div className="rounded-2xl border p-4 grid grid-cols-3 lg:grid-cols-6 gap-x-3 gap-y-4"
-          style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
-          <TotalStat icon={<Activity size={15} />} label={totals.count === 1 ? 'Training' : 'Trainings'} value={String(totals.count)} />
-          {formatDistance(totals.distance_m) && (
-            <TotalStat icon={<Zap size={15} />} label="Total distance" value={formatDistance(totals.distance_m)!} />
-          )}
-          {formatDuration(totals.duration_s) && (
-            <TotalStat icon={<Clock size={15} />} label="Total time" value={formatDuration(totals.duration_s)!} />
-          )}
-          {totals.elevation_gain > 0 && (
-            <TotalStat icon={<Mountain size={15} />} label="Total elevation" value={`${Math.round(totals.elevation_gain)} m`} />
-          )}
-          {totals.calories > 0 && (
-            <TotalStat icon={<Flame size={15} />} label="Total calories" value={`${Math.round(totals.calories)} kcal`} />
-          )}
-          {/* one beer (0.33 l lager) ≈ 150 kcal */}
-          {totals.calories >= 150 && (
-            <TotalStat icon={<Beer size={15} />} label="Beers burned" value={`${Math.round(totals.calories / 150).toLocaleString('hr-HR')} 🍺`} />
-          )}
-        </div>
-      )}
+      {!loading && <TrainingTotalsCard totals={totals} />}
 
       {loading && (
         <div className="text-center py-12 text-sm" style={{ color: 'var(--text-muted)' }}>Loading...</div>

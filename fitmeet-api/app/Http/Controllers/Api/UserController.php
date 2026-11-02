@@ -8,6 +8,7 @@ use App\Http\Resources\UserResource;
 use App\Models\Event;
 use App\Models\EventComment;
 use App\Models\FriendRequest;
+use App\Models\Training;
 use App\Models\User;
 use App\Models\UserBlock;
 use App\Models\UserPushToken;
@@ -280,6 +281,34 @@ class UserController extends Controller
         $isBlocked = $me->id !== $user->id
             && UserBlock::where('blocker_id', $me->id)->where('blocked_id', $user->id)->exists();
 
+        // Sum of all synced trainings — only when the user shares trainings (null = default on)
+        // and nobody blocked anybody; null when hidden or there are none.
+        $trainingTotals = null;
+        $sharesTrainings = $me->id === $user->id || $user->share_trainings_in_feed !== false;
+        $blockedEitherWay = $me->id !== $user->id && UserBlock::where(function ($q) use ($me, $user) {
+            $q->where('blocker_id', $me->id)->where('blocked_id', $user->id);
+        })->orWhere(function ($q) use ($me, $user) {
+            $q->where('blocker_id', $user->id)->where('blocked_id', $me->id);
+        })->exists();
+        if ($sharesTrainings && ! $blockedEitherWay) {
+            $t = Training::where('user_id', $user->id)->where('is_primary', true)->selectRaw('
+                COUNT(*) as count,
+                COALESCE(SUM(distance_m), 0) as distance_m,
+                COALESCE(SUM(duration_s), 0) as duration_s,
+                COALESCE(SUM(elevation_gain), 0) as elevation_gain,
+                COALESCE(SUM(calories), 0) as calories
+            ')->first();
+            if ((int) $t->count > 0) {
+                $trainingTotals = [
+                    'count'          => (int) $t->count,
+                    'distance_m'     => (float) $t->distance_m,
+                    'duration_s'     => (int) $t->duration_s,
+                    'elevation_gain' => (float) $t->elevation_gain,
+                    'calories'       => (float) $t->calories,
+                ];
+            }
+        }
+
         return response()->json([
             'id'               => $user->id,
             'name'             => $user->name,
@@ -292,6 +321,7 @@ class UserController extends Controller
             'friendship_status'=> $friendshipStatus,
             'beer_score'       => $beerScore,
             'stats'            => $stats,
+            'training_totals'  => $trainingTotals,
             'is_blocked'       => $isBlocked,
             'badges'           => app(BadgeService::class)->catalogFor($user),
         ]);

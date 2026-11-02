@@ -9,6 +9,7 @@ import { useAuthStore } from '@/store/auth'
 import api from '@/lib/api'
 import { blockUser, reportContent, unblockUser } from '@/lib/moderation'
 import { BadgeGrid, BadgeGridItem } from '@/components/badge-grid'
+import { TrainingTotalsCard, type Totals } from '@/components/trainings-tab'
 import { ShareButton } from '@/components/share-button'
 import { useBadgesStore } from '@/store/badges'
 
@@ -33,6 +34,7 @@ interface UserProfile {
     beers:          number
   }
   badges: BadgeGridItem[]
+  training_totals?: Totals | null
 }
 
 const STAT_ROWS: { key: keyof UserProfile['stats']; label: string; emoji: string; color: string }[] = [
@@ -231,6 +233,11 @@ function UserProfileContent() {
               </span>
             ))}
           </div>
+        )}
+
+        {/* Sum of all trainings — only when the user has any and shares them */}
+        {profile.training_totals && profile.training_totals.count > 0 && (
+          <div className="mb-5"><TrainingTotalsCard totals={profile.training_totals} /></div>
         )}
 
         {/* Total + verdict */}

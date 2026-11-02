@@ -10,6 +10,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { api } from '@/src/lib/api'
 import { presentUserModerationMenu } from '@/src/lib/moderation'
 import { BadgeGrid, BadgeGridItem } from '@/src/components/BadgeGrid'
+import { TrainingTotalsCard, type TrainingTotals } from '@/src/components/TrainingTotalsCard'
 import { useBadgesStore } from '@/src/store/badges'
 import { palette, spacing } from '@/src/theme'
 
@@ -34,6 +35,7 @@ interface UserProfile {
     beers:          number
   }
   badges: BadgeGridItem[]
+  training_totals?: TrainingTotals | null
 }
 
 const STAT_ROWS: { key: keyof UserProfile['stats']; label: string; emoji: string; color: string }[] = [
@@ -342,6 +344,9 @@ export default function UserProfileScreen() {
             ))}
           </View>
         )}
+
+        {/* Sum of all trainings — only when the user has any and shares them */}
+        <TrainingTotalsCard totals={profile.training_totals} />
 
         {/* Score card */}
         <View style={styles.scoreCard}>

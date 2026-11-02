@@ -9,6 +9,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 
 import { api } from '@/src/lib/api'
 import { CATEGORIES } from '@/src/lib/categories'
+import { TrainingTotalsCard, type TrainingTotals } from '@/src/components/TrainingTotalsCard'
 import { palette, spacing } from '@/src/theme'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -39,14 +40,6 @@ interface TrainingItem {
   is_merged: boolean
   is_mine: boolean
   user: TrainingUser | null
-}
-
-interface TrainingTotals {
-  count: number
-  distance_m: number
-  duration_s: number
-  elevation_gain: number
-  calories: number
 }
 
 interface TrainingDetailStat {
@@ -97,9 +90,6 @@ const CURRENT_YEAR = new Date().getFullYear()
 const YEARS = [0, ...Array.from({ length: 6 }, (_, i) => CURRENT_YEAR - i)]
 
 const PACE_CATEGORIES = new Set(['running', 'hiking'])
-
-/** One beer (0.33 l lager) ≈ 150 kcal — totals card shows calories burned as beers. */
-const KCAL_PER_BEER = 150
 
 function formatTrainingDuration(seconds: number | null): string | null {
   if (!seconds) return null
@@ -330,62 +320,7 @@ export function TrainingsFeedTab() {
         </View>
       )}
 
-      {!loading && totals && totals.count > 0 && (
-        <View style={styles.totalsCard}>
-          <View style={styles.totalStat}>
-            <Ionicons name="barbell-outline" size={16} color={palette.accent} />
-            <View>
-              <Text style={styles.totalStatValue}>{totals.count}</Text>
-              <Text style={styles.totalStatLabel}>{totals.count === 1 ? 'Training' : 'Trainings'}</Text>
-            </View>
-          </View>
-          {formatTrainingDistance(totals.distance_m) && (
-            <View style={styles.totalStat}>
-              <Ionicons name="flash-outline" size={16} color={palette.accent} />
-              <View>
-                <Text style={styles.totalStatValue}>{formatTrainingDistance(totals.distance_m)}</Text>
-                <Text style={styles.totalStatLabel}>Distance</Text>
-              </View>
-            </View>
-          )}
-          {formatTrainingDuration(totals.duration_s) && (
-            <View style={styles.totalStat}>
-              <Ionicons name="time-outline" size={16} color={palette.accent} />
-              <View>
-                <Text style={styles.totalStatValue}>{formatTrainingDuration(totals.duration_s)}</Text>
-                <Text style={styles.totalStatLabel}>Time</Text>
-              </View>
-            </View>
-          )}
-          {totals.elevation_gain > 0 && (
-            <View style={styles.totalStat}>
-              <Ionicons name="triangle-outline" size={16} color={palette.accent} />
-              <View>
-                <Text style={styles.totalStatValue}>{Math.round(totals.elevation_gain)} m</Text>
-                <Text style={styles.totalStatLabel}>Elevation</Text>
-              </View>
-            </View>
-          )}
-          {totals.calories > 0 && (
-            <View style={styles.totalStat}>
-              <Ionicons name="flame-outline" size={16} color={palette.accent} />
-              <View>
-                <Text style={styles.totalStatValue}>{Math.round(totals.calories)} kcal</Text>
-                <Text style={styles.totalStatLabel}>Calories</Text>
-              </View>
-            </View>
-          )}
-          {totals.calories >= KCAL_PER_BEER && (
-            <View style={styles.totalStat}>
-              <Ionicons name="beer-outline" size={16} color={palette.accent} />
-              <View>
-                <Text style={styles.totalStatValue}>{Math.round(totals.calories / KCAL_PER_BEER).toLocaleString('hr-HR')} 🍺</Text>
-                <Text style={styles.totalStatLabel}>Beers burned</Text>
-              </View>
-            </View>
-          )}
-        </View>
-      )}
+      {!loading && <TrainingTotalsCard totals={totals} />}
 
       {loading && <ActivityIndicator color={palette.accent} style={{ paddingVertical: spacing.xl }} />}
     </View>
@@ -618,15 +553,6 @@ const styles = StyleSheet.create({
   providerText: { fontSize: 11, fontWeight: '800' },
   detailsActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
   mergedRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  // three equal columns (icon above value + label) → up to 5 totals fit in two rows on a phone
-  totalsCard: {
-    flexDirection: 'row', flexWrap: 'wrap', rowGap: 12,
-    backgroundColor: 'rgba(108,255,47,0.07)', borderRadius: 18,
-    borderWidth: 1, borderColor: 'rgba(108,255,47,0.28)', paddingVertical: 12, paddingHorizontal: 6,
-  },
-  totalStat: { width: '33.33%', alignItems: 'center', gap: 3, paddingHorizontal: 2 },
-  totalStatValue: { color: palette.text, fontSize: 14, fontWeight: '800', textAlign: 'center' },
-  totalStatLabel: { color: palette.textDim, fontSize: 11, marginTop: 1, textAlign: 'center' },
   detailsToggle: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 },
   detailsToggleText: { color: palette.accent, fontSize: 12, fontWeight: '700' },
   detailsExpanded: {
