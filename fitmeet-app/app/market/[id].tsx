@@ -401,7 +401,7 @@ export default function MarketDetailScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.sellerLabel}>Seller</Text>
-              <Text style={styles.sellerName}>{listing.seller.name}</Text>
+              <Text style={styles.sellerName} numberOfLines={1}>{listing.seller.name}</Text>
             </View>
             <Pressable
               style={styles.sellerAllBtn}
@@ -411,12 +411,6 @@ export default function MarketDetailScreen() {
               <Ionicons name="grid-outline" size={13} color={palette.text} />
               <Text style={styles.sellerAllText}>{listing.is_mine ? 'My ads' : `Ads by ${listing.seller.name.split(' ')[0]}`}</Text>
             </Pressable>
-            {!listing.is_mine && !sold && (
-              <Pressable style={styles.sellerMsgBtn} onPress={handleMessage} hitSlop={6}>
-                <Ionicons name="chatbubble-outline" size={13} color="#031109" />
-                <Text style={styles.sellerMsgText}>Message</Text>
-              </Pressable>
-            )}
             {!listing.is_mine && (
               <Pressable onPress={() => reportContent('listing', listing.id)} hitSlop={10}>
                 <Ionicons name="flag-outline" size={18} color={palette.textDim} />
@@ -575,8 +569,6 @@ const styles = StyleSheet.create({
   sellerName:  { color: palette.text, fontWeight: '700', fontSize: 14 },
   sellerAllBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 10, borderWidth: 1, borderColor: palette.line },
   sellerAllText: { color: palette.text, fontWeight: '700', fontSize: 12 },
-  sellerMsgBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 10, backgroundColor: palette.accent },
-  sellerMsgText: { color: '#031109', fontWeight: '800', fontSize: 12 },
   msgOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 20 },
   msgCard: {
     borderRadius: 20, borderWidth: 1, borderColor: palette.line,

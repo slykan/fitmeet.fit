@@ -292,15 +292,6 @@ function ViewContent() {
               >
                 <LayoutGrid size={14} /> {listing.is_mine ? 'My ads' : `Ads by ${listing.seller.name.split(' ')[0]}`}
               </button>
-              {!listing.is_mine && !sold && (
-                <button
-                  onClick={handleMessage}
-                  className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl font-bold flex-shrink-0 transition-opacity hover:opacity-80"
-                  style={{ background: 'var(--primary)', color: '#000' }}
-                >
-                  <MessageCircle size={14} /> Message
-                </button>
-              )}
               {!listing.is_mine && (
                 <button
                   onClick={() => reportContent('listing', listing.id)}

@@ -1,4 +1,4 @@
-import { Alert } from 'react-native'
+import { Alert, Platform } from 'react-native'
 
 import { api } from '@/src/lib/api'
 
@@ -12,21 +12,39 @@ const REASONS: { key: string; label: string }[] = [
   { key: 'other', label: 'Other' },
 ]
 
+function submitReport(type: ReportableType, id: number, reason: string) {
+  api.post('/reports', { reportable_type: type, reportable_id: id, reason })
+    .then(() => Alert.alert('Report submitted', 'Our team reviews reports within 24 hours.'))
+    .catch(() => Alert.alert('Error', 'Could not submit report. Please try again.'))
+}
+
 export function reportContent(type: ReportableType, id: number) {
+  const button = (r: { key: string; label: string }) => ({ text: r.label, onPress: () => submitReport(type, id, r.key) })
+
+  if (Platform.OS === 'android') {
+    // Android dialogs show at most 3 buttons (the rest, incl. Cancel, are dropped), so the reasons
+    // are split over two dialogs; both close with Back or a tap outside.
+    const [spam, harassment, inappropriate, safety, other] = REASONS
+    Alert.alert(
+      'Report',
+      'Why are you reporting this?',
+      [
+        button(spam),
+        button(inappropriate),
+        {
+          text: 'More…',
+          onPress: () => Alert.alert('Report', 'Why are you reporting this?', [button(harassment), button(safety), button(other)], { cancelable: true }),
+        },
+      ],
+      { cancelable: true },
+    )
+    return
+  }
+
   Alert.alert(
     'Report',
     'Why are you reporting this?',
-    [
-      ...REASONS.map((reason) => ({
-        text: reason.label,
-        onPress: () => {
-          api.post('/reports', { reportable_type: type, reportable_id: id, reason: reason.key })
-            .then(() => Alert.alert('Report submitted', 'Our team reviews reports within 24 hours.'))
-            .catch(() => Alert.alert('Error', 'Could not submit report. Please try again.'))
-        },
-      })),
-      { text: 'Cancel', style: 'cancel' },
-    ],
+    [...REASONS.map(button), { text: 'Cancel', style: 'cancel' }],
   )
 }
 
