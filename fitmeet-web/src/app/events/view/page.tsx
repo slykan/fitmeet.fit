@@ -29,6 +29,7 @@ import { Button } from '@/components/ui/button'
 import type { LiveParticipant, RoutePoi } from '@/components/location-picker-map'
 import type { ReplayPoint, ReplayTrack } from '@/components/route-replay-map'
 import { LiveProgressBar } from '@/components/live-progress-bar'
+import { PaymentTiers } from '@/components/payment-tiers'
 
 function initialsFor(name: string) {
   const parts = (name || '?').trim().split(/\s+/).filter(Boolean)
@@ -357,6 +358,9 @@ function EventContent() {
   }
   const [showParticipants, setShowParticipants] = useState(false)
   const [showReminderModal, setShowReminderModal] = useState(false)
+  // 'created' right after creating an event on the web, 'joined' after the reminder step of a join
+  const [supportModal, setSupportModal] = useState<'created' | 'joined' | null>(null)
+  const joinedJustNow = useRef(false)
   const [selectedOffsets,  setSelectedOffsets]  = useState<Set<string>>(new Set())
   const [settingReminders, setSettingReminders] = useState(false)
   const [activeOffsets,    setActiveOffsets]    = useState<string[]>([])
@@ -407,6 +411,13 @@ function EventContent() {
       .then(({ data }) => {
         const loadedEvent = data.data as Event
         setEvent(loadedEvent)
+        if (searchParams.get('created') === '1' && loadedEvent.is_organizer) {
+          setSupportModal('created')
+          // drop ?created=1 so a reload does not show it again
+          const url = new URL(window.location.href)
+          url.searchParams.delete('created')
+          window.history.replaceState(null, '', url.toString())
+        }
         if (loadedEvent.location?.lat != null && loadedEvent.location?.lng != null) {
           setWeatherCenter({ lat: loadedEvent.location.lat, lng: loadedEvent.location.lng })
         }
@@ -561,7 +572,7 @@ function EventContent() {
     return () => { cancelled = true }
   }, [event?.id, selectedTrackUserId, trackParticipants])
 
-  async function handleJoin() {
+  async function handleJoin(offerSupport = true) {
     if (!event) return
     setJoining(true)
     setError(null)
@@ -572,6 +583,7 @@ function EventContent() {
       setEvent(e => e ? { ...e, is_joined: true, participants_count: e.participants_count + 1 } : e)
       setActiveOffsets([])
       setSelectedOffsets(new Set())
+      joinedJustNow.current = offerSupport
       setShowReminderModal(true)
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Failed to join.'
@@ -581,8 +593,16 @@ function EventContent() {
     }
   }
 
+  function closeReminderModal() {
+    setShowReminderModal(false)
+    if (joinedJustNow.current) {
+      joinedJustNow.current = false
+      window.setTimeout(() => setSupportModal('joined'), 350)
+    }
+  }
+
   async function handleSetReminders() {
-    if (!event) { setShowReminderModal(false); return }
+    if (!event) { closeReminderModal(); return }
     setSettingReminders(true)
     try {
       const offsets = Array.from(selectedOffsets)
@@ -591,7 +611,7 @@ function EventContent() {
     } catch {}
     finally {
       setSettingReminders(false)
-      setShowReminderModal(false)
+      closeReminderModal()
     }
   }
 
@@ -1351,7 +1371,7 @@ function EventContent() {
                 </button>
               </div>
             ) : (
-              <Button size="lg" className="w-full" loading={joining} onClick={handleJoin} disabled={event.is_full}>
+              <Button size="lg" className="w-full" loading={joining} onClick={() => handleJoin()} disabled={event.is_full}>
                 {event.is_full ? 'Event is full' : 'Join event'}
               </Button>
             )
@@ -1430,7 +1450,7 @@ function EventContent() {
                 Want a reminder before it starts?
               </p>
             </div>
-            <button onClick={() => setShowReminderModal(false)} style={{ color: 'var(--text-muted)' }}>
+            <button onClick={closeReminderModal} style={{ color: 'var(--text-muted)' }}>
               <X size={20} />
             </button>
           </div>
@@ -1466,7 +1486,7 @@ function EventContent() {
           {/* Actions */}
           <div className="flex gap-2">
             <button
-              onClick={() => setShowReminderModal(false)}
+              onClick={closeReminderModal}
               className="flex-1 py-2.5 rounded-xl border text-sm font-medium transition-colors hover:bg-[--border]"
               style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}
             >
@@ -1483,6 +1503,71 @@ function EventContent() {
           </div>
         </div>
       </div>
+      )}
+
+      {/* Support modal: after creating an event, or after joining one */}
+      {supportModal && event && (
+        <div className="fixed inset-0 z-[2000] flex items-end sm:items-center justify-center p-4 overflow-y-auto"
+          style={{ background: 'rgba(0,0,0,0.7)' }}
+          onClick={() => setSupportModal(null)}>
+          <div className="w-full rounded-2xl border p-6 space-y-5 my-auto"
+            style={{ maxWidth: 440, background: 'var(--surface)', borderColor: 'var(--border)' }}
+            onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between gap-3">
+              {supportModal === 'created' ? (
+                <div>
+                  <div className="text-2xl mb-1">🎉</div>
+                  <h2 className="font-bold text-lg">Event created</h2>
+                  <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                    {event.title} is live{event.is_joined ? ' and you are on the list' : ''}. Share it now, or support FitMeet while the good mood is still fresh.
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <div className="text-2xl mb-1">🍺</div>
+                  <h2 className="font-bold text-lg">Buy me a beer</h2>
+                  <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                    FitMeet stays free — support it if you feel like it.
+                  </p>
+                </div>
+              )}
+              <button onClick={() => setSupportModal(null)} style={{ color: 'var(--text-muted)' }}>
+                <X size={20} />
+              </button>
+            </div>
+
+            {supportModal === 'created' && (
+              <div className="flex gap-2">
+                <button
+                  onClick={handleShare}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-opacity hover:opacity-80"
+                  style={{ background: 'var(--primary)', color: '#000' }}
+                >
+                  <Share2 size={15} /> {copied ? 'Link copied' : 'Share event'}
+                </button>
+                {!event.is_joined && event.status === 'active' && (
+                  <button
+                    onClick={() => { setSupportModal(null); handleJoin(false) }}
+                    className="flex-1 py-2.5 rounded-xl border text-sm font-medium transition-colors hover:bg-[--border]"
+                    style={{ borderColor: 'var(--border)' }}
+                  >
+                    Join event
+                  </button>
+                )}
+              </div>
+            )}
+
+            <PaymentTiers onSuccess={() => setSupportModal(null)} />
+
+            <button
+              onClick={() => setSupportModal(null)}
+              className="w-full py-2 text-sm"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              Maybe later
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Live-position cluster list */}

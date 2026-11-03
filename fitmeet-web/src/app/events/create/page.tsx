@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useForm, Controller } from 'react-hook-form'
-import { Calendar, MapPin, Info, Settings, Lock, Unlock, LocateFixed, Search, CirclePlay, Link2 } from 'lucide-react'
+import { Calendar, MapPin, Info, Settings, Lock, Unlock, LocateFixed, Search, CirclePlay, Link2, Check } from 'lucide-react'
 
 import { Navbar } from '@/components/navbar'
 import ElevationChart from '@/components/elevation-chart'
@@ -84,6 +84,8 @@ export default function CreateEventPage() {
   // failed/lost-connection attempt) dedupe server-side instead of creating duplicates.
   const clientRequestId = useRef(`${Date.now()}-${Math.random().toString(36).slice(2, 10)}`)
   const [saving,   setSaving]   = useState(false)
+  const [joinOnCreate, setJoinOnCreate] = useState(true)
+  const [notifyOnJoin, setNotifyOnJoin] = useState(true)
   const [error,    setError]    = useState<string | null>(null)
   const [locating, setLocating] = useState(false)
   const [mapEnabled, setMapEnabled] = useState(false)
@@ -161,6 +163,8 @@ export default function CreateEventPage() {
     watchedForm.skill_level?.length > 0 ||
     watchedForm.max_participants?.trim().length > 0 ||
     watchedForm.is_private ||
+    !joinOnCreate ||
+    !notifyOnJoin ||
     watchedForm.distance_km?.trim().length > 0 ||
     watchedForm.elevation_gain?.trim().length > 0 ||
     watchedForm.max_grade?.trim().length > 0 ||
@@ -419,7 +423,13 @@ export default function CreateEventPage() {
       const { data: res } = await api.post('/events', fd)
       playRandomActionSound()
       if (res.newly_unlocked?.length) useBadgesStore.getState().enqueue(res.newly_unlocked)
-      router.replace(`/events/view?id=${res.data.id}`)
+      const newId = res.data.id
+      if (joinOnCreate) {
+        const joinRes = await api.post(`/events/${newId}/join`).catch(() => null)
+        if (joinRes?.data?.newly_unlocked?.length) useBadgesStore.getState().enqueue(joinRes.data.newly_unlocked)
+        if (notifyOnJoin) await api.post(`/events/${newId}/join-notifications`, { enabled: true }).catch(() => {})
+      }
+      router.replace(`/events/view?id=${newId}&created=1`)
     } catch (err: unknown) {
       const e   = err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } }
       const msg =
@@ -835,6 +845,13 @@ export default function CreateEventPage() {
               </div>
             </Section>
 
+            <div className="space-y-2">
+              <JoinToggle checked={joinOnCreate} onChange={setJoinOnCreate} label="Join this event automatically" />
+              {joinOnCreate && (
+                <JoinToggle checked={notifyOnJoin} onChange={setNotifyOnJoin} label="Notify me when someone joins" className="ml-6" />
+              )}
+            </div>
+
             {error && (
               <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-xl px-4 py-3">
                 {error}
@@ -951,6 +968,34 @@ function Section({
       </div>
       {children}
     </div>
+  )
+}
+
+function JoinToggle({
+  checked, onChange, label, className,
+}: {
+  checked: boolean
+  onChange: (value: boolean) => void
+  label: string
+  className?: string
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onChange(!checked)}
+      className={cn('flex items-center gap-3 text-sm text-left', className)}
+      style={{ color: checked ? 'var(--text-primary)' : 'var(--text-muted)' }}
+    >
+      <span
+        className="w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all"
+        style={checked
+          ? { borderColor: 'var(--primary)', background: 'var(--primary)' }
+          : { borderColor: 'var(--border)' }}
+      >
+        {checked && <Check size={13} strokeWidth={3} color="#041109" />}
+      </span>
+      {label}
+    </button>
   )
 }
 
