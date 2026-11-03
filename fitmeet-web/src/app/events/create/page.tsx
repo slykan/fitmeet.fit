@@ -10,6 +10,7 @@ import { Navbar } from '@/components/navbar'
 import ElevationChart from '@/components/elevation-chart'
 import api from '@/lib/api'
 import { playRandomActionSound } from '@/lib/action-sounds'
+import { compressImage } from '@/lib/compress-image'
 import { eventDateToLocalInput, eventLocalInputToUtcIso, resolveEventTimeZone, resolveTimeZoneFromCoords } from '@/lib/event-time'
 import { parseGpx, GpxResult } from '@/lib/parse-gpx'
 import { formatAddress } from '@/lib/format-address'
@@ -84,6 +85,8 @@ export default function CreateEventPage() {
   // failed/lost-connection attempt) dedupe server-side instead of creating duplicates.
   const clientRequestId = useRef(`${Date.now()}-${Math.random().toString(36).slice(2, 10)}`)
   const [saving,   setSaving]   = useState(false)
+  // set once the event exists, so the leave guard does not re-arm and cancel the redirect
+  const [created,  setCreated]  = useState(false)
   const [joinOnCreate, setJoinOnCreate] = useState(true)
   const [notifyOnJoin, setNotifyOnJoin] = useState(true)
   const [error,    setError]    = useState<string | null>(null)
@@ -151,7 +154,7 @@ export default function CreateEventPage() {
   const watchedDuration = watch('duration_minutes')
   const watchedForm      = watch()
 
-  const hasUnsavedCreateChanges = !saving && (
+  const hasUnsavedCreateChanges = !saving && !created && (
     watchedForm.title?.trim().length > 0 ||
     watchedForm.category?.length > 0 ||
     watchedForm.description?.trim().length > 0 ||
@@ -416,7 +419,7 @@ export default function CreateEventPage() {
       else if (gpxFile)        fd.append('gpx_file',  gpxFile)
       else if (gpxText && gpxName) { fd.append('gpx_text', gpxText); fd.append('gpx_name', gpxName) }
       if (!fitMeetRouteId && (gpxFile || gpxText) && routeTitle.trim()) fd.append('route_title', routeTitle.trim())
-      if (imageFile)           fd.append('image_file', imageFile)
+      if (imageFile)           fd.append('image_file', await compressImage(imageFile, 1600, 0.85))
       if (data.link_url?.trim())    fd.append('link_url',    data.link_url.trim())
       if (data.youtube_url?.trim()) fd.append('youtube_url', data.youtube_url.trim())
 
@@ -424,6 +427,8 @@ export default function CreateEventPage() {
       playRandomActionSound()
       if (res.newly_unlocked?.length) useBadgesStore.getState().enqueue(res.newly_unlocked)
       const newId = res.data.id
+      allowNavigationRef.current = true
+      setCreated(true)
       if (joinOnCreate) {
         const joinRes = await api.post(`/events/${newId}/join`).catch(() => null)
         if (joinRes?.data?.newly_unlocked?.length) useBadgesStore.getState().enqueue(joinRes.data.newly_unlocked)
@@ -437,7 +442,6 @@ export default function CreateEventPage() {
         Object.values(e?.response?.data?.errors ?? {})[0]?.[0] ??
         'Failed to create event. Please try again.'
       setError(msg)
-    } finally {
       setSaving(false)
     }
   }

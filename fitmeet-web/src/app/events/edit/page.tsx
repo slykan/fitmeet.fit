@@ -15,6 +15,7 @@ import { formatAddress } from '@/lib/format-address'
 import { useAuthStore } from '@/store/auth'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { compressImage } from '@/lib/compress-image'
 import CategoryPicker from '@/components/category-picker'
 import { RouteImportModal, type ImportableRoute } from '@/components/route-import-modal'
 
@@ -346,7 +347,7 @@ function EditContent() {
       else if (gpxFile)        fd.append('gpx_file', gpxFile)
       else if (gpxText && gpxName) { fd.append('gpx_text', gpxText); fd.append('gpx_name', gpxName) }
       if (!fitMeetRouteId && (gpxFile || gpxText) && routeTitle.trim()) fd.append('route_title', routeTitle.trim())
-      if (imageFile)           fd.append('image_file', imageFile)
+      if (imageFile)           fd.append('image_file', await compressImage(imageFile, 1600, 0.85))
       fd.append('link_url',    data.link_url?.trim() || '')
       fd.append('youtube_url', data.youtube_url?.trim() || '')
 
