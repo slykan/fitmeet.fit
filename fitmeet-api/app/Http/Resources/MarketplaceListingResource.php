@@ -25,6 +25,9 @@ class MarketplaceListingResource extends JsonResource
             'location'    => [
                 'city'    => $this->location_city,
                 'country' => $this->location_country,
+                // taken from the seller's home, so only ~1 km precise for the map pin
+                'lat'     => $this->lat !== null ? round((float) $this->lat, 2) : null,
+                'lng'     => $this->lng !== null ? round((float) $this->lng, 2) : null,
             ],
             'images'      => $this->whenLoaded('images', fn () =>
                 $this->images->map(fn ($img) => url('/storage/' . $img->path))->values()

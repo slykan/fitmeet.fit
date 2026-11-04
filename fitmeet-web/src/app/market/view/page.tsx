@@ -1,6 +1,7 @@
 'use client'
 
 import { Suspense, useEffect, useState } from 'react'
+import dynamic from 'next/dynamic'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import { ChevronLeft, ChevronRight, Flag, MapPin, MessageCircle, Pencil, CheckCircle2, Trash2, Share2, Heart, Eye, LayoutGrid } from 'lucide-react'
@@ -12,6 +13,8 @@ import { CATEGORY_EMOJI } from '@/lib/categories'
 import { reportContent } from '@/lib/moderation'
 import { useAuthStore } from '@/store/auth'
 
+const ListingMap = dynamic(() => import('@/components/listing-map'), { ssr: false })
+
 interface MarketListing {
   id: number
   type: 'sell' | 'buy'
@@ -22,7 +25,7 @@ interface MarketListing {
   condition: 'new' | 'used' | 'like_new' | null
   category: { value: string; label: string }
   status: string
-  location: { city: string | null; country: string | null }
+  location: { city: string | null; country: string | null; lat?: number | null; lng?: number | null }
   images: string[]
   seller: { id: number; name: string; avatar: string | null }
   is_mine: boolean
@@ -259,6 +262,9 @@ function ViewContent() {
                 <MapPin size={14} />
                 {[listing.location.city, listing.location.country].filter(Boolean).join(', ')}
               </div>
+            )}
+            {listing.location.lat != null && listing.location.lng != null && (
+              <ListingMap lat={listing.location.lat} lng={listing.location.lng} />
             )}
 
             <div className="flex items-center gap-4 text-xs" style={{ color: 'var(--text-muted)' }}>

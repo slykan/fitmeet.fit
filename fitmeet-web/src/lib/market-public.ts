@@ -11,7 +11,7 @@ export interface PublicListing {
   condition: 'new' | 'used' | 'like_new' | null
   category: { value: string; label: string }
   status: string
-  location: { city: string | null; country: string | null }
+  location: { city: string | null; country: string | null; lat?: number | null; lng?: number | null }
   images: string[]
   seller: { id: number; name: string; avatar: string | null }
   created_at: string

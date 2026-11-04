@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { ArrowLeft, LayoutGrid, MapPin, MessageCircle } from 'lucide-react'
 import type { Metadata } from 'next'
 
+import { ListingMapLazy } from '@/components/listing-map-lazy'
 import { MarketGallery } from '@/components/market-gallery'
 import { Navbar } from '@/components/navbar'
 import { CATEGORY_EMOJI } from '@/lib/categories'
@@ -72,6 +73,7 @@ export default async function MarketItemPage({ params }: { params: Promise<{ id:
                 {l.description && (
                   <div className="text-base leading-relaxed whitespace-pre-line pt-2 border-t" style={{ color: 'var(--text-muted)', borderColor: 'var(--border)' }}>{l.description}</div>
                 )}
+                {l.location.lat != null && l.location.lng != null && <ListingMapLazy lat={l.location.lat} lng={l.location.lng} />}
                 <div className="flex flex-wrap items-center gap-3 pt-2">
                   <Link href={`/messages?user=${l.seller.id}&listing=${l.id}&listingTitle=${encodeURIComponent(l.title)}`} className="btn-primary inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold">
                     <MessageCircle size={15} /> Message {l.seller.name.split(' ')[0]}

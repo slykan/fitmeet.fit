@@ -11,6 +11,7 @@ import {
 import { ReactNativeZoomableView } from '@openspacelabs/react-native-zoomable-view'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
+import { ListingMap } from '@/src/components/ListingMap'
 import { SelectableText } from '@/src/components/SelectableText'
 import { api } from '@/src/lib/api'
 import { CATEGORIES } from '@/src/lib/categories'
@@ -31,7 +32,7 @@ interface Listing {
   condition: 'new' | 'used' | 'like_new' | null
   category: { value: string; label: string }
   status: string
-  location: { city: string | null; country: string | null }
+  location: { city: string | null; country: string | null; lat?: number | null; lng?: number | null }
   images: string[]
   seller: { id: number; name: string; avatar: string | null }
   is_mine: boolean
@@ -447,6 +448,13 @@ export default function MarketDetailScreen() {
                 {[listing.location.city, listing.location.country].filter(Boolean).join(', ')}
               </Text>
             </View>
+          )}
+          {listing.location.lat != null && listing.location.lng != null && (
+            <ListingMap
+              lat={listing.location.lat}
+              lng={listing.location.lng}
+              label={[listing.location.city, listing.location.country].filter(Boolean).join(', ') || listing.title}
+            />
           )}
 
           {/* Views + saves */}
