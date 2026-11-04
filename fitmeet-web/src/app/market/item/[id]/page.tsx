@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { ArrowLeft, LayoutGrid, MapPin, MessageCircle } from 'lucide-react'
 import type { Metadata } from 'next'
 
+import { MarketGallery } from '@/components/market-gallery'
 import { Navbar } from '@/components/navbar'
 import { CATEGORY_EMOJI } from '@/lib/categories'
 import { CONDITION_LABEL, getPublicListings, place, priceLabel } from '@/lib/market-public'
@@ -51,18 +52,11 @@ export default async function MarketItemPage({ params }: { params: Promise<{ id:
             <p className="py-16 text-center" style={{ color: 'var(--text-muted)' }}>This listing is no longer available. <Link href="/market" className="underline">Browse the marketplace</Link>.</p>
           ) : (
             <article className="rounded-2xl border overflow-hidden" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
-              <div className="relative flex items-center justify-center text-7xl" style={{ background: 'var(--background)', height: l.images[0] ? 420 : 220 }}>
-                {l.images[0]
-                  // eslint-disable-next-line @next/next/no-img-element
-                  ? <img src={l.images[0]} alt={l.title} className="absolute inset-0 w-full h-full object-contain" />
-                  : (CATEGORY_EMOJI[l.category.value] ?? '🏷️')}
-              </div>
-              {l.images.length > 1 && (
-                <div className="flex gap-2 p-3 overflow-x-auto">
-                  {l.images.slice(1, 6).map((src, i) => (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img key={i} src={src} alt={`${l.title} photo ${i + 2}`} className="h-20 w-28 rounded-lg object-cover shrink-0" loading="lazy" />
-                  ))}
+              {l.images.length > 0 ? (
+                <MarketGallery images={l.images} title={l.title} />
+              ) : (
+                <div className="relative flex items-center justify-center text-7xl" style={{ background: 'var(--background)', height: 220 }}>
+                  {CATEGORY_EMOJI[l.category.value] ?? '🏷️'}
                 </div>
               )}
               <div className="p-5 sm:p-6 space-y-4">

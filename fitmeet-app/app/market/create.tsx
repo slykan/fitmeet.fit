@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons'
+import { ImageManipulator, SaveFormat } from 'expo-image-manipulator'
 import * as ImagePicker from 'expo-image-picker'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
@@ -13,6 +14,22 @@ import { CATEGORIES } from '@/src/lib/categories'
 import { SupportFitMeetCard } from '@/src/components/SupportFitMeetCard'
 import { useAuthStore } from '@/src/store/auth'
 import { palette, spacing } from '@/src/theme'
+
+// Phone photos are 3–5 MB; six of them would exceed the API upload limit (16 MB per request).
+// Long side max 1600 px, JPEG 82 % → a few hundred KB each. On failure the original is sent.
+async function shrinkPhoto(a: ImagePicker.ImagePickerAsset): Promise<{ uri: string } | null> {
+  try {
+    const ctx = ImageManipulator.manipulate(a.uri)
+    if (Math.max(a.width ?? 0, a.height ?? 0) > 1600) {
+      ctx.resize((a.width ?? 0) >= (a.height ?? 0) ? { width: 1600 } : { height: 1600 })
+    }
+    const img = await ctx.renderAsync()
+    const out = await img.saveAsync({ compress: 0.82, format: SaveFormat.JPEG })
+    return { uri: out.uri }
+  } catch {
+    return null
+  }
+}
 
 const CONDITIONS = [
   { value: 'new',      label: 'New' },
@@ -70,7 +87,7 @@ export default function MarketCreateScreen() {
   const totalImages = photos.length
 
   async function pickImages() {
-    const remaining = 5 - totalImages
+    const remaining = 6 - totalImages
     if (remaining <= 0) return
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
@@ -80,13 +97,18 @@ export default function MarketCreateScreen() {
     })
     if (result.canceled) return
     const stamp = Date.now()
-    const added: Photo[] = result.assets.slice(0, remaining).map((a, i) => ({
-      key: `new${stamp}-${i}`,
-      kind: 'new',
-      uri: a.uri,
-      asset: { uri: a.uri, name: a.fileName ?? `image_${stamp}_${i}.jpg`, type: a.mimeType ?? 'image/jpeg' },
+    const added: Photo[] = await Promise.all(result.assets.slice(0, remaining).map(async (a, i) => {
+      const small = await shrinkPhoto(a)
+      return {
+        key: `new${stamp}-${i}`,
+        kind: 'new' as const,
+        uri: small?.uri ?? a.uri,
+        asset: small
+          ? { uri: small.uri, name: `image_${stamp}_${i}.jpg`, type: 'image/jpeg' }
+          : { uri: a.uri, name: a.fileName ?? `image_${stamp}_${i}.jpg`, type: a.mimeType ?? 'image/jpeg' },
+      }
     }))
-    setPhotos(prev => [...prev, ...added].slice(0, 5))
+    setPhotos(prev => [...prev, ...added].slice(0, 6))
   }
 
   function removeImage(idx: number) {
@@ -216,7 +238,7 @@ export default function MarketCreateScreen() {
         {type === 'sell' && (
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>
-              Photos <Text style={{ fontWeight: '400', color: palette.textMuted }}>(max 5 · arrows reorder, first = cover)</Text>
+              Photos <Text style={{ fontWeight: '400', color: palette.textMuted }}>(max 6 · arrows reorder, first = cover)</Text>
             </Text>
             <View style={styles.imageRow}>
               {photos.map((p, i) => (
@@ -238,7 +260,7 @@ export default function MarketCreateScreen() {
                   )}
                 </View>
               ))}
-              {totalImages < 5 && (
+              {totalImages < 6 && (
                 <Pressable style={styles.imagePicker} onPress={pickImages}>
                   <Ionicons name="add" size={26} color={palette.textMuted} />
                 </Pressable>

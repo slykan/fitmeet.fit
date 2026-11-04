@@ -82,7 +82,7 @@ function CreateContent() {
 
   async function pickImages(files: FileList | null) {
     if (!files) return
-    const room = Math.max(0, 5 - photos.length)
+    const room = Math.max(0, 6 - photos.length)
     const picked = await Promise.all(Array.from(files).slice(0, room).map(compressImage))
     const stamp = Date.now()
     setPhotos(p => [...p, ...picked.map((file, i) => ({ key: `new${stamp}-${i}`, kind: 'new' as const, file, url: URL.createObjectURL(file) }))])
@@ -176,7 +176,7 @@ function CreateContent() {
           {/* Images — only for sell */}
           {type === 'sell' && (
             <div className="rounded-2xl border p-4 space-y-3" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
-              <p className="font-bold text-sm">Photos <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(max 5 · use the arrows to reorder, the first one is the cover)</span></p>
+              <p className="font-bold text-sm">Photos <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(max 6 · use the arrows to reorder, the first one is the cover)</span></p>
               <div className="flex flex-wrap gap-2">
                 {photos.map((photo, i) => (
                   <div key={photo.key} className="relative w-24 h-24 rounded-xl overflow-hidden border" style={{ borderColor: i === 0 ? 'var(--primary)' : 'var(--border)' }}>
@@ -205,7 +205,7 @@ function CreateContent() {
                     )}
                   </div>
                 ))}
-                {photos.length < 5 && (
+                {photos.length < 6 && (
                   <button
                     onClick={() => fileRef.current?.click()}
                     className="w-24 h-24 rounded-xl border-2 border-dashed flex items-center justify-center text-2xl transition-opacity hover:opacity-70"

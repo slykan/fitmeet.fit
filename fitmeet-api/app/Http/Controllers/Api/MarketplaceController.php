@@ -222,7 +222,7 @@ HTML;
             'currency'    => 'nullable|string|size:3',
             'condition'   => ['nullable', Rule::in(['new', 'used', 'like_new'])],
             'category'    => ['required', Rule::in(\App\Enums\Category::values())],
-            'images'      => 'nullable|array|max:5',
+            'images'      => 'nullable|array|max:6',
             'images.*'    => 'image|max:5120',
         ]);
 
@@ -270,7 +270,7 @@ HTML;
             'currency'         => 'nullable|string|size:3',
             'condition'        => ['nullable', Rule::in(['new', 'used', 'like_new'])],
             'category'         => ['sometimes', Rule::in(\App\Enums\Category::values())],
-            'images'           => 'nullable|array|max:5',
+            'images'           => 'nullable|array|max:6',
             'images.*'         => 'image|max:5120',
             'keep_image_ids'   => 'nullable|array',
             'keep_image_ids.*' => 'integer',
@@ -289,7 +289,7 @@ HTML;
         // "id:<existing image id>" or "new:<index in images[]>". Photos not listed are deleted.
         $order = json_decode((string) $request->input('image_order', ''), true);
         if (is_array($order)) {
-            $order = array_slice(array_values(array_filter($order, fn ($t) => is_string($t) && preg_match('/^(id|new):\d+$/', $t))), 0, 5);
+            $order = array_slice(array_values(array_filter($order, fn ($t) => is_string($t) && preg_match('/^(id|new):\d+$/', $t))), 0, 6);
             $keep = [];
             foreach ($order as $t) {
                 if (str_starts_with($t, 'id:')) $keep[] = (int) substr($t, 3);

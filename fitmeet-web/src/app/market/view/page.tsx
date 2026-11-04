@@ -3,8 +3,9 @@
 import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
-import { ChevronLeft, ChevronRight, Flag, MapPin, MessageCircle, Pencil, CheckCircle2, Trash2, X, Share2, Heart, Eye, LayoutGrid } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Flag, MapPin, MessageCircle, Pencil, CheckCircle2, Trash2, Share2, Heart, Eye, LayoutGrid } from 'lucide-react'
 
+import { ImageLightbox, ImageSwiper } from '@/components/image-swiper'
 import { Navbar } from '@/components/navbar'
 import api from '@/lib/api'
 import { CATEGORY_EMOJI } from '@/lib/categories'
@@ -174,41 +175,34 @@ function ViewContent() {
 
           {/* Lightbox */}
           {lightbox && (
-            <div
-              className="fixed inset-0 z-50 flex items-center justify-center"
-              style={{ background: 'rgba(0,0,0,0.92)' }}
-              onClick={() => setLightbox(false)}
-            >
-              <button
-                className="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center"
-                style={{ background: 'rgba(255,255,255,0.12)' }}
-                onClick={() => setLightbox(false)}
-              >
-                <X size={20} color="#fff" />
-              </button>
-              <div className="relative w-full h-full max-w-4xl max-h-[90vh] m-4">
-                <Image src={listing.images[activeImg]} alt={listing.title} fill className="object-contain" unoptimized />
-              </div>
-            </div>
+            <ImageLightbox
+              images={listing.images}
+              index={activeImg}
+              onIndexChange={setActiveImg}
+              onClose={() => setLightbox(false)}
+              alt={listing.title}
+            />
           )}
 
           {/* Images */}
           {listing.images.length > 0 ? (
             <div className="space-y-2">
-              <button
-                className="relative w-full rounded-2xl overflow-hidden cursor-zoom-in"
-                style={{ height: 340, background: 'var(--surface)' }}
-                onClick={() => setLightbox(true)}
+              <ImageSwiper
+                images={listing.images}
+                index={activeImg}
+                onIndexChange={setActiveImg}
+                alt={listing.title}
+                onTap={() => setLightbox(true)}
+                className="rounded-2xl cursor-zoom-in bg-[var(--surface)]"
               >
-                <Image src={listing.images[activeImg]} alt={listing.title} fill className="object-contain" unoptimized />
                 {sold && (
-                  <div className="absolute inset-0 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.55)' }}>
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ background: 'rgba(0,0,0,0.55)' }}>
                     <span className="text-2xl font-black px-6 py-3 rounded-2xl border-2" style={{ color: '#f87171', borderColor: '#f87171', background: 'rgba(248,113,113,0.1)' }}>SOLD</span>
                   </div>
                 )}
-              </button>
+              </ImageSwiper>
               {listing.images.length > 1 && (
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                   {listing.images.map((src, i) => (
                     <button
                       key={i}

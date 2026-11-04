@@ -3,7 +3,7 @@ import * as Clipboard from 'expo-clipboard'
 import { File, Paths } from 'expo-file-system/next'
 import * as MediaLibrary from 'expo-media-library'
 import { router, useLocalSearchParams } from 'expo-router'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator, Alert, Dimensions, Image, KeyboardAvoidingView, Modal, Platform, Pressable,
   ScrollView, Share, StyleSheet, Text, TextInput, View,
@@ -59,7 +59,18 @@ export default function MarketDetailScreen() {
   const [saving, setSaving] = useState(false)
   const [activeImg, setActiveImg] = useState(0)
   const [lightbox, setLightbox] = useState(false)
+  const [coverWidth, setCoverWidth] = useState(0)
+  const coverRef = useRef<ScrollView>(null)
   const [downloading, setDownloading] = useState(false)
+
+  // one place to change the photo: keeps the swipeable cover in step with thumbnails and the enlarged view
+  function showImage(i: number) {
+    const n = listing?.images.length ?? 0
+    if (!n) return
+    const next = Math.max(0, Math.min(n - 1, i))
+    setActiveImg(next)
+    if (coverWidth) coverRef.current?.scrollTo({ x: next * coverWidth, animated: !lightbox })
+  }
   const [descCopied, setDescCopied] = useState(false)
 
   async function copyDescription() {
@@ -247,7 +258,13 @@ export default function MarketDetailScreen() {
             minZoom={1}
             initialZoom={1}
             bindToBorders
+            disablePanOnInitialZoom
             style={styles.lightboxZoomContainer}
+            onPanResponderEnd={(_e, g, z) => {
+              // not zoomed in: a horizontal swipe browses the photos
+              if (z.zoomLevel > 1.05 || Math.abs(g.dx) < 50 || Math.abs(g.dx) < Math.abs(g.dy) * 1.2) return
+              showImage(activeImg + (g.dx < 0 ? 1 : -1))
+            }}
           >
             <Image
               source={{ uri: listing.images[activeImg] }}
@@ -256,9 +273,24 @@ export default function MarketDetailScreen() {
             />
           </ReactNativeZoomableView>
           {listing.images.length > 1 && (
+            <>
+              {activeImg > 0 && (
+                <Pressable style={[styles.lightboxArrow, { left: 10 }]} onPress={() => showImage(activeImg - 1)} hitSlop={10}>
+                  <Ionicons name="chevron-back" size={26} color="#fff" />
+                </Pressable>
+              )}
+              {activeImg < listing.images.length - 1 && (
+                <Pressable style={[styles.lightboxArrow, { right: 10 }]} onPress={() => showImage(activeImg + 1)} hitSlop={10}>
+                  <Ionicons name="chevron-forward" size={26} color="#fff" />
+                </Pressable>
+              )}
+              <Text style={styles.lightboxCounter}>{activeImg + 1} / {listing.images.length}</Text>
+            </>
+          )}
+          {listing.images.length > 1 && (
             <View style={styles.lightboxThumbs}>
               {listing.images.map((src, i) => (
-                <Pressable key={i} onPress={() => setActiveImg(i)}>
+                <Pressable key={i} onPress={() => showImage(i)}>
                   <Image
                     source={{ uri: src }}
                     style={[styles.lightboxThumb, i === activeImg && styles.lightboxThumbActive]}
@@ -282,21 +314,48 @@ export default function MarketDetailScreen() {
         {/* Images */}
         {listing.images.length > 0 ? (
           <View style={{ gap: 8 }}>
-            <Pressable onPress={() => setLightbox(true)} style={styles.mainImage}>
-              <Image source={{ uri: listing.images[activeImg] }} style={styles.mainImage} resizeMode="cover" />
+            <View style={styles.mainImage} onLayout={e => setCoverWidth(e.nativeEvent.layout.width)}>
+              {/* swipe through the photos; a tap opens the enlarged view */}
+              <ScrollView
+                ref={coverRef}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                onMomentumScrollEnd={e => {
+                  if (coverWidth) setActiveImg(Math.round(e.nativeEvent.contentOffset.x / coverWidth))
+                }}
+              >
+                {listing.images.map((src, i) => (
+                  <Pressable key={i} onPress={() => setLightbox(true)}>
+                    <Image source={{ uri: src }} style={{ width: coverWidth || SCREEN_WIDTH - spacing.lg * 2, height: 280 }} resizeMode="cover" />
+                  </Pressable>
+                ))}
+              </ScrollView>
               {sold && (
-                <View style={styles.soldOverlay}>
+                <View style={styles.soldOverlay} pointerEvents="none">
                   <Text style={styles.soldText}>SOLD</Text>
                 </View>
               )}
-              <View style={styles.zoomHint}>
+              {listing.images.length > 1 && (
+                <>
+                  <View style={styles.coverCounter} pointerEvents="none">
+                    <Text style={styles.coverCounterText}>{activeImg + 1} / {listing.images.length}</Text>
+                  </View>
+                  <View style={styles.coverDots} pointerEvents="none">
+                    {listing.images.map((_, i) => (
+                      <View key={i} style={[styles.coverDot, i === activeImg && styles.coverDotActive]} />
+                    ))}
+                  </View>
+                </>
+              )}
+              <View style={styles.zoomHint} pointerEvents="none">
                 <Ionicons name="expand-outline" size={14} color="#fff" />
               </View>
-            </Pressable>
+            </View>
             {listing.images.length > 1 && (
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -spacing.lg }} contentContainerStyle={{ paddingHorizontal: spacing.lg, gap: 8 }}>
                 {listing.images.map((src, i) => (
-                  <Pressable key={i} onPress={() => setActiveImg(i)}>
+                  <Pressable key={i} onPress={() => showImage(i)}>
                     <Image
                       source={{ uri: src }}
                       style={[styles.thumb, activeImg === i && styles.thumbActive]}
@@ -537,6 +596,13 @@ const styles = StyleSheet.create({
   soldOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center' },
   soldText: { color: '#f87171', fontWeight: '900', fontSize: 28, borderWidth: 2, borderColor: '#f87171', paddingHorizontal: 20, paddingVertical: 6, borderRadius: 12 },
   zoomHint: { position: 'absolute', bottom: 10, right: 10, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 8, padding: 6 },
+  coverCounter: { position: 'absolute', top: 10, left: 10, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 },
+  coverCounterText: { color: '#fff', fontSize: 12, fontWeight: '700' },
+  coverDots: { position: 'absolute', bottom: 12, left: 0, right: 0, flexDirection: 'row', justifyContent: 'center', gap: 6 },
+  coverDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.55)' },
+  coverDotActive: { width: 16, backgroundColor: '#fff' },
+  lightboxArrow: { position: 'absolute', top: '45%', width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center' },
+  lightboxCounter: { position: 'absolute', top: 58, alignSelf: 'center', color: '#fff', fontSize: 13, fontWeight: '700', backgroundColor: 'rgba(0,0,0,0.45)', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999, overflow: 'hidden' },
   thumb:       { width: 64, height: 64, borderRadius: 14, borderWidth: 2, borderColor: palette.line },
   thumbActive: { borderColor: palette.accent },
 
@@ -614,8 +680,8 @@ const styles = StyleSheet.create({
   lightboxTopBar: { position: 'absolute', top: 50, right: 20, flexDirection: 'row', gap: 10, zIndex: 10 },
   lightboxAction: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' },
   lightboxZoomContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  lightboxThumbs: { flexDirection: 'row', gap: 8, justifyContent: 'center', paddingVertical: 16, paddingHorizontal: 20 },
-  lightboxThumb:  { width: 56, height: 56, borderRadius: 12, borderWidth: 2, borderColor: 'rgba(255,255,255,0.25)' },
+  lightboxThumbs: { flexDirection: 'row', gap: 8, justifyContent: 'center', paddingVertical: 16, paddingHorizontal: 12 },
+  lightboxThumb:  { width: 48, height: 48, borderRadius: 10, borderWidth: 2, borderColor: 'rgba(255,255,255,0.25)' },
   lightboxThumbActive: { borderColor: palette.accent },
 
   statsRow:  { flexDirection: 'row', alignItems: 'center', gap: 12 },
