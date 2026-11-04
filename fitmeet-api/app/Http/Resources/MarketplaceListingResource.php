@@ -29,6 +29,8 @@ class MarketplaceListingResource extends JsonResource
                 'lat'     => $this->lat !== null ? round((float) $this->lat, 2) : null,
                 'lng'     => $this->lng !== null ? round((float) $this->lng, 2) : null,
             ],
+            // only with ?near_lat/near_lng (Near me), whole km like the rounded pin
+            'distance_km' => $this->distance_km !== null ? (int) round((float) $this->distance_km) : null,
             'images'      => $this->whenLoaded('images', fn () =>
                 $this->images->map(fn ($img) => url('/storage/' . $img->path))->values()
             ),

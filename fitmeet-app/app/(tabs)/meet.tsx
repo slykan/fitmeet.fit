@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { EmptyEvents } from '@/src/components/EmptyEvents'
 import { EventCommentsPreview } from '@/src/components/EventCommentsPreview'
 import { InProgressBadge } from '@/src/components/InProgressBadge'
+import * as Location from 'expo-location'
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router'
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import {
@@ -1151,6 +1152,7 @@ interface MarketItem {
   category: { value: string; label: string }
   status: string
   location: { city: string | null; country: string | null }
+  distance_km?: number | null
   images: string[]
   seller: { id: number; name: string }
   is_mine: boolean
@@ -1180,6 +1182,25 @@ const MarketTab = forwardRef<LoadMoreHandle, { seller?: string; sellerName?: str
   const [myOnly, setMyOnly] = useState(false)
   const [soldOnly, setSoldOnly] = useState(false)
   const searchRef = useRef('')
+  // Near me: closest listings first, from the phone's location (falls back to the profile's home)
+  const [near, setNear] = useState<{ lat: number; lng: number } | null>(null)
+  const [locating, setLocating] = useState(false)
+  const home = useAuthStore(s => s.user?.home)
+
+  async function toggleNearMe() {
+    if (near) { setNear(null); return }
+    setLocating(true)
+    try {
+      const perm = await Location.requestForegroundPermissionsAsync()
+      if (perm.status === 'granted') {
+        let pos = await Location.getLastKnownPositionAsync({ maxAge: 5 * 60_000 })
+        if (!pos) pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced })
+        if (pos) { setNear({ lat: pos.coords.latitude, lng: pos.coords.longitude }); return }
+      }
+    } catch {} finally { setLocating(false) }
+    if (home?.lat != null && home?.lng != null) setNear({ lat: home.lat, lng: home.lng })
+    else Alert.alert('Near me', 'Allow location access or set your home city in your profile to use Near me.')
+  }
 
   const load = useCallback(async (pageNum = 1) => {
     if (pageNum === 1) setLoading(true)
@@ -1199,6 +1220,10 @@ const MarketTab = forwardRef<LoadMoreHandle, { seller?: string; sellerName?: str
         if (myOnly) params.my = '1'
         if (soldOnly) params.status = 'sold'
         if (seller) params.seller = seller
+        if (near) {
+          params.near_lat = near.lat.toFixed(4)
+          params.near_lng = near.lng.toFixed(4)
+        }
         const { data } = await api.get('/market', { params })
         const incoming: MarketItem[] = data.data ?? []
         setItems(prev => pageNum === 1 ? incoming : [...prev, ...incoming])
@@ -1211,7 +1236,7 @@ const MarketTab = forwardRef<LoadMoreHandle, { seller?: string; sellerName?: str
       setLoading(false)
       setLoadingMore(false)
     }
-  }, [typeFilter, category, condition, savedOnly, myOnly, soldOnly, seller])
+  }, [typeFilter, category, condition, savedOnly, myOnly, soldOnly, seller, near])
 
   const hasMore = page < lastPage
 
@@ -1276,6 +1301,16 @@ const MarketTab = forwardRef<LoadMoreHandle, { seller?: string; sellerName?: str
               <Text style={styles.filterBadgeText}>{marketFilterCount}</Text>
             </View>
           )}
+        </Pressable>
+        <Pressable
+          style={[styles.filterBtn, near && styles.filterBtnActive, { marginRight: 'auto', marginLeft: 8 }]}
+          onPress={toggleNearMe}
+          disabled={locating}
+        >
+          {locating
+            ? <ActivityIndicator size="small" color={palette.text} />
+            : <Ionicons name="navigate-outline" size={15} color={near ? '#031109' : palette.text} />}
+          <Text style={[styles.filterBtnLabel, near && styles.filterBtnLabelActive]}>Near me</Text>
         </Pressable>
         <View style={{ flexDirection: 'row', gap: 8 }}>
           <Pressable style={styles.marketShareBtn} onPress={shareMarket} hitSlop={6} accessibilityLabel="Share the marketplace">
@@ -1447,7 +1482,7 @@ const MarketTab = forwardRef<LoadMoreHandle, { seller?: string; sellerName?: str
                     <View style={styles.detailRow}>
                       <Ionicons name="location-outline" size={12} color={palette.textDim} />
                       <Text style={styles.detailText}>
-                        {[item.location.city, item.location.country].filter(Boolean).join(', ')}
+                        {[item.location.city, item.location.country].filter(Boolean).join(', ')}{item.distance_km != null ? ` · ${item.distance_km < 1 ? '<1' : item.distance_km} km` : ''}
                       </Text>
                     </View>
                   )}
@@ -1502,7 +1537,7 @@ const MarketTab = forwardRef<LoadMoreHandle, { seller?: string; sellerName?: str
                       <View style={styles.detailRow}>
                         <Ionicons name="location-outline" size={12} color={palette.textDim} />
                         <Text style={styles.detailText} numberOfLines={1}>
-                          {[item.location.city, item.location.country].filter(Boolean).join(', ')}
+                          {[item.location.city, item.location.country].filter(Boolean).join(', ')}{item.distance_km != null ? ` · ${item.distance_km < 1 ? '<1' : item.distance_km} km` : ''}
                         </Text>
                       </View>
                     )}
@@ -1631,9 +1666,12 @@ export default function MeetScreen() {
             </Text>
           </View>
           <View style={{ flexDirection: 'row', gap: 8 }}>
-            <Pressable style={styles.calendarBtn} onPress={() => setShowCalendar(true)}>
-              <Ionicons name="calendar-outline" size={18} color={palette.accent} />
-            </Pressable>
+            {/* the schedule is about events, so only on that tab */}
+            {tab === 'events' && (
+              <Pressable style={styles.calendarBtn} onPress={() => setShowCalendar(true)}>
+                <Ionicons name="calendar-outline" size={18} color={palette.accent} />
+              </Pressable>
+            )}
             <Pressable style={styles.calendarBtn} onPress={() => router.push('/moments' as never)}>
               <Ionicons name="images-outline" size={18} color={palette.accent} />
             </Pressable>

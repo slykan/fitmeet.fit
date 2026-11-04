@@ -1232,13 +1232,16 @@ function MeetPageInner() {
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-2xl font-bold">Meet</h1>
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => setShowCalendar(true)}
-                className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-xl font-semibold transition-opacity hover:opacity-80"
-                style={{ background: 'rgba(57,255,20,0.08)', border: '1px solid rgba(57,255,20,0.25)', color: 'var(--primary)' }}
-              >
-                <Calendar size={15} /> <span className="hidden sm:inline">Schedule</span>
-              </button>
+              {/* the schedule is about events, so only on that tab */}
+              {tab === 'events' && (
+                <button
+                  onClick={() => setShowCalendar(true)}
+                  className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-xl font-semibold transition-opacity hover:opacity-80"
+                  style={{ background: 'rgba(57,255,20,0.08)', border: '1px solid rgba(57,255,20,0.25)', color: 'var(--primary)' }}
+                >
+                  <Calendar size={15} /> <span className="hidden sm:inline">Schedule</span>
+                </button>
+              )}
               <a
                 href="/moments"
                 className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-xl font-semibold transition-opacity hover:opacity-80"

@@ -150,6 +150,21 @@ HTML;
             });
         }
 
+        // ?near_lat=&near_lng= — „Near me”: closest first, listings without coordinates at the end
+        if ($request->filled('near_lat') && $request->filled('near_lng')) {
+            $lat = max(-90, min(90, (float) $request->near_lat));
+            $lng = max(-180, min(180, (float) $request->near_lng));
+            $query->select('marketplace_listings.*')
+                ->selectRaw(
+                    '(6371 * acos(least(1, greatest(-1, cos(radians(?)) * cos(radians(lat)) * cos(radians(lng) - radians(?)) + sin(radians(?)) * sin(radians(lat)))))) as distance_km',
+                    [$lat, $lng, $lat]
+                )
+                ->reorder()
+                ->orderByRaw('lat is null')
+                ->orderBy('distance_km')
+                ->orderByDesc('created_at');
+        }
+
         $listings = $query->paginate(20);
 
         return response()->json([

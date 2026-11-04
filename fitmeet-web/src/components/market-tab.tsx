@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
-import { MapPin, Plus, ChevronDown, Search, Heart, Eye, Share2, X } from 'lucide-react'
+import { MapPin, Navigation, Plus, ChevronDown, Search, Heart, Eye, Share2, X } from 'lucide-react'
 
 import api from '@/lib/api'
 import { CATEGORIES, CATEGORY_EMOJI } from '@/lib/categories'
@@ -19,6 +19,7 @@ interface MarketListing {
   category: { value: string; label: string }
   status: string
   location: { city: string | null; country: string | null }
+  distance_km?: number | null
   images: string[]
   seller: { id: number; name: string; avatar: string | null }
   is_mine: boolean
@@ -40,7 +41,7 @@ type Condition   = '' | 'new' | 'used' | 'like_new'
 export function MarketTab() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { token } = useAuthStore()
+  const { token, user } = useAuthStore()
   // ?seller=ID&sellerName=… — svi oglasi jednog prodavača (gumb „All ads” na oglasu)
   const seller = searchParams.get('seller') ?? ''
   const sellerName = searchParams.get('sellerName') ?? ''
@@ -56,6 +57,27 @@ export function MarketTab() {
   const [soldOnly,   setSoldOnly]  = useState(false)
   const [search,     setSearch]    = useState('')
   const [searchQ,    setSearchQ]   = useState('')
+  // Near me: closest listings first, from the browser location (falls back to the profile's home)
+  const [near,       setNear]      = useState<{ lat: number; lng: number } | null>(null)
+  const [locating,   setLocating]  = useState(false)
+
+  function toggleNearMe() {
+    if (near) { setNear(null); return }
+    const home = user?.home?.lat != null && user?.home?.lng != null ? { lat: user.home.lat, lng: user.home.lng } : null
+    if (!navigator.geolocation) {
+      if (home) setNear(home); else alert('Location is not available. Set your home city in Settings.')
+      return
+    }
+    setLocating(true)
+    navigator.geolocation.getCurrentPosition(
+      pos => { setNear({ lat: pos.coords.latitude, lng: pos.coords.longitude }); setLocating(false) },
+      () => {
+        setLocating(false)
+        if (home) setNear(home); else alert('Allow location access or set your home city in Settings to use Near me.')
+      },
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 },
+    )
+  }
 
   useEffect(() => {
     const timer = setTimeout(() => setSearchQ(search.trim()), 350)
@@ -80,11 +102,15 @@ export function MarketTab() {
     if (myOnly)      params.set('my',        '1')
     if (soldOnly)    params.set('status',    'sold')
     if (seller)      params.set('seller',    seller)
+    if (near) {
+      params.set('near_lat', near.lat.toFixed(4))
+      params.set('near_lng', near.lng.toFixed(4))
+    }
     api.get(`/market?${params}`)
       .then(({ data }) => setListings(data.data ?? []))
       .catch(() => setListings([]))
       .finally(() => setLoading(false))
-  }, [token, typeFilter, category, condition, searchQ, savedOnly, myOnly, soldOnly, seller])
+  }, [token, typeFilter, category, condition, searchQ, savedOnly, myOnly, soldOnly, seller, near])
 
   async function handleToggleSave(e: React.MouseEvent, listing: MarketListing) {
     e.stopPropagation()
@@ -287,6 +313,20 @@ export function MarketTab() {
         >
           Sold
         </button>
+
+        {/* Near me */}
+        <button
+          onClick={toggleNearMe}
+          disabled={locating}
+          className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-full border font-semibold transition-colors"
+          style={{
+            borderColor: near ? 'var(--primary)' : 'var(--border)',
+            color:       near ? 'var(--primary)' : 'var(--text-muted)',
+            background:  near ? 'rgba(57,255,20,0.08)' : 'transparent',
+          }}
+        >
+          <Navigation size={11} /> {locating ? 'Locating…' : 'Near me'}
+        </button>
       </div>
 
       {/* Results */}
@@ -329,7 +369,7 @@ export function MarketTab() {
                   )}
                   {(listing.location.city || listing.location.country) && (
                     <p className="flex items-center gap-1 text-xs" style={{ color: 'var(--text-muted)' }}>
-                      <MapPin size={11} /> {[listing.location.city, listing.location.country].filter(Boolean).join(', ')}
+                      <MapPin size={11} /> {[listing.location.city, listing.location.country].filter(Boolean).join(', ')}{listing.distance_km != null && ` · ${listing.distance_km < 1 ? '<1' : listing.distance_km} km`}
                     </p>
                   )}
                 </div>
@@ -378,7 +418,7 @@ export function MarketTab() {
                     <div className="flex items-center gap-3 text-xs" style={{ color: 'var(--text-muted)' }}>
                       {(listing.location.city || listing.location.country) && (
                         <span className="flex items-center gap-1">
-                          <MapPin size={11} /> {[listing.location.city, listing.location.country].filter(Boolean).join(', ')}
+                          <MapPin size={11} /> {[listing.location.city, listing.location.country].filter(Boolean).join(', ')}{listing.distance_km != null && ` · ${listing.distance_km < 1 ? '<1' : listing.distance_km} km`}
                         </span>
                       )}
                       {(listing.views_count ?? 0) > 0 && (
