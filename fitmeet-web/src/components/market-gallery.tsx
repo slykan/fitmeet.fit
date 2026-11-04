@@ -15,20 +15,21 @@ export function MarketGallery({ images, title }: { images: string[]; title: stri
         <ImageLightbox images={images} index={active} onIndexChange={setActive} onClose={() => setOpen(false)} alt={title} />
       )}
       <div style={{ background: 'var(--background)' }}>
-        <ImageSwiper images={images} index={active} onIndexChange={setActive} alt={title} height={420} onTap={() => setOpen(true)} className="cursor-zoom-in" />
+        <ImageSwiper images={images} index={active} onIndexChange={setActive} alt={title} height={420} onTap={() => setOpen(true)} className="cursor-zoom-in" playButton paused={open} />
       </div>
       {images.length > 1 && (
-        <div className="flex gap-2 p-3 overflow-x-auto">
+        // six columns: all photos fit across the width, also on a phone
+        <div className="grid grid-cols-6 gap-2 p-3">
           {images.map((src, i) => (
             <button
               key={i}
               type="button"
               onClick={() => setActive(i)}
-              className="shrink-0 rounded-lg overflow-hidden border-2 transition-colors"
+              className="rounded-lg overflow-hidden border-2 transition-colors"
               style={{ borderColor: i === active ? 'var(--primary)' : 'transparent' }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={src} alt={`${title} photo ${i + 1}`} className="h-20 w-28 object-cover" loading="lazy" />
+              <img src={src} alt={`${title} photo ${i + 1}`} className="block w-full aspect-[4/3] object-cover" loading="lazy" />
             </button>
           ))}
         </div>

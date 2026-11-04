@@ -194,6 +194,8 @@ function ViewContent() {
                 alt={listing.title}
                 onTap={() => setLightbox(true)}
                 className="rounded-2xl cursor-zoom-in bg-[var(--surface)]"
+                playButton
+                paused={lightbox}
               >
                 {sold && (
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ background: 'rgba(0,0,0,0.55)' }}>
@@ -202,12 +204,13 @@ function ViewContent() {
                 )}
               </ImageSwiper>
               {listing.images.length > 1 && (
-                <div className="flex gap-2 flex-wrap">
+                // six columns: all photos fit across the width, also on a phone
+                <div className="grid grid-cols-6 gap-2">
                   {listing.images.map((src, i) => (
                     <button
                       key={i}
                       onClick={() => setActiveImg(i)}
-                      className="relative w-16 h-16 rounded-xl overflow-hidden border-2 transition-colors"
+                      className="relative aspect-square rounded-xl overflow-hidden border-2 transition-colors"
                       style={{ borderColor: activeImg === i ? 'var(--primary)' : 'var(--border)' }}
                     >
                       <Image src={src} alt="" fill className="object-cover" unoptimized />

@@ -2,12 +2,13 @@
 
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Pause, Play, X } from 'lucide-react'
 
 /**
  * Photo carousel: swipe with a finger (or drag with the mouse), arrows on desktop.
  * Used for the market cover and, with `fullscreen`, for the enlarged view (← → and Esc work there too).
  * A tap/click without dragging calls onTap (the cover uses it to open the enlarged view).
+ * `playButton` adds a play/pause button that moves to the next photo every 5 s (held while `paused`).
  */
 export function ImageSwiper({
   images,
@@ -20,6 +21,8 @@ export function ImageSwiper({
   children,
   className = '',
   arrowsAlways = false,
+  playButton = false,
+  paused = false,
 }: {
   images: string[]
   index: number
@@ -31,12 +34,22 @@ export function ImageSwiper({
   children?: ReactNode
   className?: string
   arrowsAlways?: boolean
+  playButton?: boolean
+  paused?: boolean
 }) {
   const box = useRef<HTMLDivElement>(null)
   const start = useRef<{ x: number; y: number; id: number } | null>(null)
   const axis = useRef<'x' | 'y' | null>(null)
   const [dx, setDx] = useState(0)
+  const [playing, setPlaying] = useState(false)
   const n = images.length
+
+  // any change of photo (arrow, swipe, thumbnail) restarts the 5 s wait; wraps to the first
+  useEffect(() => {
+    if (!playing || paused || n < 2 || dx) return
+    const t = setTimeout(() => onIndexChange((index + 1) % n), 5000)
+    return () => clearTimeout(t)
+  }, [playing, paused, n, dx, index, onIndexChange])
 
   const go = (i: number) => onIndexChange(Math.max(0, Math.min(n - 1, i)))
 
@@ -155,6 +168,19 @@ export function ImageSwiper({
           >
             {index + 1} / {n}
           </span>
+          {playButton && (
+            <button
+              type="button"
+              aria-label={playing ? 'Pause slideshow' : 'Play slideshow'}
+              onPointerDown={e => e.stopPropagation()}
+              onPointerUp={e => e.stopPropagation()}
+              onClick={e => { e.stopPropagation(); setPlaying(p => !p) }}
+              className="absolute top-3 right-3 w-9 h-9 rounded-full flex items-center justify-center cursor-pointer"
+              style={{ background: 'rgba(0,0,0,0.55)', color: '#fff' }}
+            >
+              {playing ? <Pause size={16} fill="#fff" /> : <Play size={16} fill="#fff" className="ml-0.5" />}
+            </button>
+          )}
         </>
       )}
     </div>

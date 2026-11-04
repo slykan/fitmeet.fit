@@ -71,6 +71,19 @@ export default function MarketDetailScreen() {
     setActiveImg(next)
     if (coverWidth) coverRef.current?.scrollTo({ x: next * coverWidth, animated: !lightbox })
   }
+
+  const THUMB_GAP = 6
+  const thumbSize = Math.floor(((coverWidth || SCREEN_WIDTH - spacing.lg * 2) - THUMB_GAP * 5) / 6)
+
+  // play button on the cover: next photo every 5 s, wrapping around; any manual change restarts the wait
+  const [playing, setPlaying] = useState(false)
+  useEffect(() => {
+    const n = listing?.images.length ?? 0
+    if (!playing || lightbox || n < 2) return
+    const t = setTimeout(() => showImage((activeImg + 1) % n), 5000)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playing, lightbox, activeImg, coverWidth, listing?.images.length])
   const [descCopied, setDescCopied] = useState(false)
 
   async function copyDescription() {
@@ -346,6 +359,9 @@ export default function MarketDetailScreen() {
                       <View key={i} style={[styles.coverDot, i === activeImg && styles.coverDotActive]} />
                     ))}
                   </View>
+                  <Pressable style={styles.coverPlay} onPress={() => setPlaying(p => !p)} hitSlop={8}>
+                    <Ionicons name={playing ? 'pause' : 'play'} size={16} color="#fff" />
+                  </Pressable>
                 </>
               )}
               <View style={styles.zoomHint} pointerEvents="none">
@@ -353,17 +369,18 @@ export default function MarketDetailScreen() {
               </View>
             </View>
             {listing.images.length > 1 && (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -spacing.lg }} contentContainerStyle={{ paddingHorizontal: spacing.lg, gap: 8 }}>
+              // sized so all 6 fit exactly across the cover width
+              <View style={styles.thumbRow}>
                 {listing.images.map((src, i) => (
                   <Pressable key={i} onPress={() => showImage(i)}>
                     <Image
                       source={{ uri: src }}
-                      style={[styles.thumb, activeImg === i && styles.thumbActive]}
+                      style={[styles.thumb, { width: thumbSize, height: thumbSize }, activeImg === i && styles.thumbActive]}
                       resizeMode="cover"
                     />
                   </Pressable>
                 ))}
-              </ScrollView>
+              </View>
             )}
           </View>
         ) : (
@@ -603,7 +620,9 @@ const styles = StyleSheet.create({
   coverDotActive: { width: 16, backgroundColor: '#fff' },
   lightboxArrow: { position: 'absolute', top: '45%', width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center' },
   lightboxCounter: { position: 'absolute', top: 58, alignSelf: 'center', color: '#fff', fontSize: 13, fontWeight: '700', backgroundColor: 'rgba(0,0,0,0.45)', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999, overflow: 'hidden' },
-  thumb:       { width: 64, height: 64, borderRadius: 14, borderWidth: 2, borderColor: palette.line },
+  coverPlay: { position: 'absolute', top: 10, right: 10, width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center' },
+  thumbRow:    { flexDirection: 'row', gap: 6 },
+  thumb:       { borderRadius: 12, borderWidth: 2, borderColor: palette.line },
   thumbActive: { borderColor: palette.accent },
 
   noImageBox: { height: 180, borderRadius: 20, backgroundColor: palette.panel, borderWidth: 1, borderColor: palette.line, alignItems: 'center', justifyContent: 'center' },

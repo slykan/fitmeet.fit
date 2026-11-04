@@ -120,6 +120,11 @@ export function Navbar() {
                   )}
                 </span>
               </Link>
+              <Link href="/market"
+                className="hidden md:block text-sm font-medium transition-colors hover:opacity-80"
+                style={{ color: 'var(--text-muted)' }}>
+                Market
+              </Link>
               <Link href="/ranks"
                 className="hidden md:block text-sm font-medium transition-colors hover:opacity-80"
                 style={{ color: 'var(--text-muted)' }}>
@@ -140,7 +145,7 @@ export function Navbar() {
               </Link>
             </>
           )}
-          {/* signed-out visitors: public marketplace (signed-in users have it under Meet) */}
+          {/* signed-out visitors: public marketplace (signed-in users get it after Feed, desktop only) */}
           {!user && (
             <Link href="/market" className="text-sm font-medium transition-colors hover:opacity-80" style={{ color: 'var(--text-muted)' }}>
               Market
