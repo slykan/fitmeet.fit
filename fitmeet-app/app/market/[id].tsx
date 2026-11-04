@@ -11,6 +11,7 @@ import {
 import { ReactNativeZoomableView } from '@openspacelabs/react-native-zoomable-view'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
+import { SelectableText } from '@/src/components/SelectableText'
 import { api } from '@/src/lib/api'
 import { CATEGORIES } from '@/src/lib/categories'
 import { reportContent } from '@/src/lib/moderation'
@@ -394,7 +395,7 @@ export default function MarketDetailScreen() {
 
           {/* Title + price */}
           <View style={{ gap: 6 }}>
-            <Text style={styles.listingTitle}>{listing.title}</Text>
+            <SelectableText text={listing.title} style={styles.listingTitle} />
             {listing.price > 0 && (
               <Text style={styles.price}>
                 {listing.price.toFixed(0)}{' '}
@@ -428,7 +429,7 @@ export default function MarketDetailScreen() {
           {/* Description */}
           {listing.description ? (
             <View style={styles.descriptionBlock}>
-              <Text style={styles.description} selectable>{listing.description}</Text>
+              <SelectableText text={listing.description} style={styles.description} />
               <Pressable style={styles.copyDescBtn} onPress={copyDescription} hitSlop={8}>
                 <Ionicons name={descCopied ? 'checkmark' : 'copy-outline'} size={14} color={descCopied ? palette.accent : palette.textDim} />
                 <Text style={[styles.copyDescText, descCopied && { color: palette.accent }]}>
@@ -621,7 +622,7 @@ const styles = StyleSheet.create({
   lightboxArrow: { position: 'absolute', top: '45%', width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center' },
   lightboxCounter: { position: 'absolute', top: 58, alignSelf: 'center', color: '#fff', fontSize: 13, fontWeight: '700', backgroundColor: 'rgba(0,0,0,0.45)', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999, overflow: 'hidden' },
   coverPlay: { position: 'absolute', top: 10, right: 10, width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center' },
-  thumbRow:    { flexDirection: 'row', gap: 6 },
+  thumbRow:    { flexDirection: 'row', justifyContent: 'center', gap: 6 },
   thumb:       { borderRadius: 12, borderWidth: 2, borderColor: palette.line },
   thumbActive: { borderColor: palette.accent },
 

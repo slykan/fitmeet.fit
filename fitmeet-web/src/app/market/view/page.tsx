@@ -204,13 +204,13 @@ function ViewContent() {
                 )}
               </ImageSwiper>
               {listing.images.length > 1 && (
-                // six columns: all photos fit across the width, also on a phone
-                <div className="grid grid-cols-6 gap-2">
+                // centred; on a phone each is a sixth of the width so all 6 fit, on desktop a fixed small size
+                <div className="flex justify-center gap-2">
                   {listing.images.map((src, i) => (
                     <button
                       key={i}
                       onClick={() => setActiveImg(i)}
-                      className="relative aspect-square rounded-xl overflow-hidden border-2 transition-colors"
+                      className="relative w-[calc((100%-2.5rem)/6)] md:w-16 aspect-square rounded-xl overflow-hidden border-2 transition-colors"
                       style={{ borderColor: activeImg === i ? 'var(--primary)' : 'var(--border)' }}
                     >
                       <Image src={src} alt="" fill className="object-cover" unoptimized />

@@ -18,14 +18,14 @@ export function MarketGallery({ images, title }: { images: string[]; title: stri
         <ImageSwiper images={images} index={active} onIndexChange={setActive} alt={title} height={420} onTap={() => setOpen(true)} className="cursor-zoom-in" playButton paused={open} />
       </div>
       {images.length > 1 && (
-        // six columns: all photos fit across the width, also on a phone
-        <div className="grid grid-cols-6 gap-2 p-3">
+        // centred; on a phone each is a sixth of the width so all 6 fit, on desktop a fixed small size
+        <div className="flex justify-center gap-2 p-3">
           {images.map((src, i) => (
             <button
               key={i}
               type="button"
               onClick={() => setActive(i)}
-              className="rounded-lg overflow-hidden border-2 transition-colors"
+              className="w-[calc((100%-2.5rem)/6)] md:w-28 rounded-lg overflow-hidden border-2 transition-colors"
               style={{ borderColor: i === active ? 'var(--primary)' : 'transparent' }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
