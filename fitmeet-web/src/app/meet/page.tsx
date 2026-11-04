@@ -418,6 +418,26 @@ function PeopleTab() {
     finally { setActing(null) }
   }
 
+  // friend requests I received, shown above the list with Accept / Delete
+  const [requests, setRequests] = useState<{ id: number; sender: UserItem }[]>([])
+  const [actingReq, setActingReq] = useState<number | null>(null)
+
+  const loadRequests = useCallback(() => {
+    api.get('/friends/requests').then(({ data }) => setRequests(data.data ?? [])).catch(() => {})
+  }, [])
+  useEffect(() => { loadRequests() }, [loadRequests])
+
+  async function answerRequest(req: { id: number; sender: UserItem }, accept: boolean) {
+    setActingReq(req.id)
+    try {
+      await api.post(`/friends/${accept ? 'accept' : 'decline'}/${req.id}`)
+      setRequests(r => r.filter(x => x.id !== req.id))
+      setUsers(u => u.map(x => x.id === req.sender.id ? { ...x, friendship_status: accept ? 'friends' : null } : x))
+    } catch {
+      loadRequests()
+    } finally { setActingReq(null) }
+  }
+
   async function handleRemove(userId: number) {
     setActing(userId)
     try {
@@ -540,6 +560,43 @@ function PeopleTab() {
       {addError && (
         <div className="text-sm px-4 py-2.5 rounded-xl border" style={{ background: 'rgba(248,113,113,0.1)', borderColor: '#f87171', color: '#f87171' }}>
           {addError}
+        </div>
+      )}
+
+      {requests.length > 0 && (
+        <div className="rounded-2xl border p-4 space-y-3" style={{ borderColor: 'rgba(57,255,20,0.35)', background: 'rgba(57,255,20,0.05)' }}>
+          <p className="text-xs font-black uppercase tracking-wide" style={{ color: 'var(--primary)' }}>Friend requests · {requests.length}</p>
+          {requests.map(req => (
+            <div key={req.id} className="flex items-center gap-3">
+              <Avatar user={req.sender} />
+              <div className="flex-1 min-w-0">
+                <a href={`/users/view?id=${req.sender.id}`} className="block font-semibold text-sm truncate hover:underline underline-offset-2">{req.sender.name}</a>
+                {(req.sender.home?.city || req.sender.home?.country) && (
+                  <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
+                    {[req.sender.home.city, req.sender.home.country].filter(Boolean).join(', ')}
+                  </p>
+                )}
+              </div>
+              <div className="flex-shrink-0 flex items-center gap-1.5">
+                <button
+                  onClick={() => answerRequest(req, true)}
+                  disabled={actingReq === req.id}
+                  className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-bold transition-opacity hover:opacity-80 disabled:opacity-50"
+                  style={{ background: 'var(--primary)', color: '#000' }}
+                >
+                  <UserPlus size={13} /> Accept
+                </button>
+                <button
+                  onClick={() => answerRequest(req, false)}
+                  disabled={actingReq === req.id}
+                  className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors hover:border-red-400 hover:text-red-400 disabled:opacity-50"
+                  style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 

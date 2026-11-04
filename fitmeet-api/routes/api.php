@@ -174,6 +174,7 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\EnsureNotBanned::class])
     Route::post('notifications/read',              [FriendController::class, 'notificationsMarkRead']);
     Route::get('notifications',                   [FriendController::class, 'notifications']);
     Route::get('feed',                            [FeedController::class, 'index']);
+    Route::get('friends/requests',                [FriendController::class, 'incomingRequests']);
     Route::post('friends/request/{user}',         [FriendController::class, 'request']);
     Route::post('friends/accept/{friendRequest}',   [FriendController::class, 'accept']);
     Route::post('friends/decline/{friendRequest}',  [FriendController::class, 'decline']);

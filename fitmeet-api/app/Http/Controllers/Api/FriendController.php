@@ -240,6 +240,24 @@ class FriendController extends Controller
         return response()->json(['count' => $pending + $accepted + $reminders + $newEvents + $cancelled + $rescheduled + $started + $eventComments + $eventMentions + $momentReminders + $trainingsSynced + $ridersStopped + $announcements]);
     }
 
+    // GET /friends/requests — pending requests I received (Meet › People shows them above the list)
+    public function incomingRequests(Request $request): JsonResponse
+    {
+        $requests = FriendRequest::with('sender')
+            ->where('receiver_id', $request->user()->id)
+            ->where('status', 'pending')
+            ->whereNotIn('sender_id', $request->user()->blockedUserIds())
+            ->latest()
+            ->get()
+            ->map(fn ($r) => [
+                'id'         => $r->id,
+                'sender'     => new UserResource($r->sender),
+                'created_at' => $r->created_at->toIso8601String(),
+            ]);
+
+        return response()->json(['data' => $requests]);
+    }
+
     // GET /notifications
     public function notifications(Request $request): JsonResponse
     {

@@ -18,6 +18,7 @@ import { CalendarModal } from '@/src/components/CalendarModal'
 import { CATEGORIES } from '@/src/lib/categories'
 import { WeatherBadge } from '@/src/components/WeatherBadge'
 import { useAuthStore } from '@/src/store/auth'
+import { useBadgesStore } from '@/src/store/badges'
 import { palette, spacing } from '@/src/theme'
 import { fetchEventWeatherSnapshots, type EventWeatherSnapshot } from '@/src/lib/event-weather-snapshots'
 import { sortEventsBySchedule } from '@/src/lib/event-order'
@@ -935,6 +936,27 @@ const PeopleTab = forwardRef<PeopleTabHandle>(function PeopleTab(_props, ref) {
     finally { setActing(null) }
   }
 
+  // friend requests I received, shown above the list with Accept / Delete
+  const [requests, setRequests] = useState<{ id: number; sender: UserItem }[]>([])
+  const [actingReq, setActingReq] = useState<number | null>(null)
+
+  const loadRequests = useCallback(() => {
+    api.get('/friends/requests').then(({ data }) => setRequests(data.data ?? [])).catch(() => {})
+  }, [])
+  useFocusEffect(loadRequests)
+
+  async function answerRequest(req: { id: number; sender: UserItem }, accept: boolean) {
+    setActingReq(req.id)
+    try {
+      const { data } = await api.post(`/friends/${accept ? 'accept' : 'decline'}/${req.id}`)
+      if (data?.newly_unlocked?.length) useBadgesStore.getState().enqueue(data.newly_unlocked)
+      setRequests(r => r.filter(x => x.id !== req.id))
+      setUsers(u => u.map(x => x.id === req.sender.id ? { ...x, friendship_status: accept ? 'friends' : null } : x))
+    } catch {
+      loadRequests()
+    } finally { setActingReq(null) }
+  }
+
   async function handleRemove(userId: number) {
     Alert.alert('Remove friend', 'Remove this person from your friends list?', [
       { text: 'Cancel', style: 'cancel' },
@@ -1035,6 +1057,41 @@ const PeopleTab = forwardRef<PeopleTabHandle>(function PeopleTab(_props, ref) {
               </Pressable>
             )
           })}
+        </View>
+      )}
+
+      {requests.length > 0 && (
+        <View style={styles.requestsBox}>
+          <Text style={styles.requestsTitle}>Friend requests · {requests.length}</Text>
+          {requests.map(req => (
+            <Pressable key={req.id} style={styles.requestRow} onPress={() => router.push(`/user/${req.sender.id}` as never)}>
+              <View style={styles.userAvatar}>
+                {req.sender.avatar
+                  ? <Image source={{ uri: req.sender.avatar }} style={styles.userAvatarImg} />
+                  : <Text style={styles.userAvatarText}>{req.sender.name.charAt(0).toUpperCase()}</Text>}
+              </View>
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text style={styles.userName} numberOfLines={1}>{req.sender.name}</Text>
+                {(req.sender.home?.city || req.sender.home?.country) && (
+                  <Text style={styles.userLocation} numberOfLines={1}>
+                    {[req.sender.home.city, req.sender.home.country].filter(Boolean).join(', ')}
+                  </Text>
+                )}
+              </View>
+              {actingReq === req.id ? (
+                <ActivityIndicator color={palette.accent} />
+              ) : (
+                <View style={{ flexDirection: 'row', gap: 6 }}>
+                  <Pressable style={[styles.friendBtn, styles.friendBtnActive]} onPress={() => answerRequest(req, true)} hitSlop={4}>
+                    <Text style={styles.friendBtnActiveText}>Accept</Text>
+                  </Pressable>
+                  <Pressable style={styles.friendBtn} onPress={() => answerRequest(req, false)} hitSlop={4}>
+                    <Text style={styles.friendBtnText}>Delete</Text>
+                  </Pressable>
+                </View>
+              )}
+            </Pressable>
+          ))}
         </View>
       )}
 
@@ -1949,6 +2006,12 @@ const styles = StyleSheet.create({
   friendBtnActive:     { borderColor: palette.accent, backgroundColor: 'rgba(108,255,47,0.1)' },
   friendBtnText:       { color: palette.textMuted, fontSize: 12, fontWeight: '700' },
   friendBtnActiveText: { color: palette.accent, fontSize: 12, fontWeight: '700' },
+  requestsBox: {
+    gap: 10, padding: spacing.md, borderRadius: 20,
+    borderWidth: 1, borderColor: 'rgba(108,255,47,0.36)', backgroundColor: 'rgba(108,255,47,0.06)',
+  },
+  requestsTitle: { color: palette.accent, fontSize: 12, fontWeight: '900', textTransform: 'uppercase' },
+  requestRow:    { flexDirection: 'row', alignItems: 'center', gap: 12 },
 
   marketSavedActive: { borderColor: 'rgba(248,113,113,0.4)', backgroundColor: 'rgba(248,113,113,0.08)' },
 })
