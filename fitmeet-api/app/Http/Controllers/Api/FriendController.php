@@ -41,7 +41,7 @@ class FriendController extends Controller
             return response()->json(['message' => 'Request already exists.', 'status' => $existing->status], 422);
         }
 
-        FriendRequest::create([
+        $friendRequest = FriendRequest::create([
             'sender_id'   => $me->id,
             'receiver_id' => $user->id,
             'status'      => 'pending',
@@ -53,13 +53,23 @@ class FriendController extends Controller
             } catch (\Throwable) {}
         }
 
+        // Data message so the app's notification shows Accept / Decline buttons
+        // (categoryId, see push-notifications.ts); older apps just get a plain alert.
+        $title = 'New friend request';
+        $body = "{$me->name} sent you a friend request.";
         SendPushNotification::dispatch(
             [$user->id],
-            'New friend request',
-            "{$me->name} sent you a friend request.",
+            $title,
+            $body,
             [
                 'type' => 'friend_request',
                 'user_id' => $me->id,
+                'friend_request_id' => $friendRequest->id,
+                'categoryId' => 'friend_request',
+                'channelId' => 'default',
+                '_data_only' => 'true',
+                '_title' => $title,
+                '_body' => $body,
             ],
         );
 

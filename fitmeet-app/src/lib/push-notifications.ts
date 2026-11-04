@@ -19,6 +19,7 @@ const BEER_PURCHASED_CATEGORY_ID = 'beer_purchased'
 const BEER_PURCHASED_CHANNEL_ID = 'beer_purchased'
 const RIDER_STOPPED_CATEGORY_ID = 'rider_stopped'
 const RIDER_STOPPED_CHANNEL_ID = 'rider_stopped'
+const FRIEND_REQUEST_CATEGORY_ID = 'friend_request'
 const APPLAUSE_SENT_CHANNEL_ID = 'applause_sent'
 
 function notificationDataFromTaskPayload(data: unknown) {
@@ -61,6 +62,8 @@ const BUY_BEER_ACTION_ID = 'buy_beer'
 const SEE_RANK_ACTION_ID = 'see_rank'
 const CHECK_RIDER_ACTION_ID = 'check_rider'
 const DISMISS_RIDER_ACTION_ID = 'dismiss_rider'
+const ACCEPT_FRIEND_ACTION_ID = 'accept_friend'
+const DECLINE_FRIEND_ACTION_ID = 'decline_friend'
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -255,6 +258,21 @@ async function registerNotificationCategories() {
       options: { opensAppToForeground: false },
     },
   ]).catch(() => {})
+
+  // Both open the app: the API call needs our JS running, which a background
+  // action on a killed app doesn't guarantee.
+  await Notifications.setNotificationCategoryAsync(FRIEND_REQUEST_CATEGORY_ID, [
+    {
+      identifier: ACCEPT_FRIEND_ACTION_ID,
+      buttonTitle: 'Accept',
+      options: { opensAppToForeground: true },
+    },
+    {
+      identifier: DECLINE_FRIEND_ACTION_ID,
+      buttonTitle: 'Decline',
+      options: { opensAppToForeground: true },
+    },
+  ]).catch(() => {})
 }
 
 // getLastNotificationResponseAsync() keeps returning the same tap until another
@@ -300,6 +318,22 @@ async function handleNotificationResponse(response: Notifications.NotificationRe
 
   if (eventId && actionIdentifier === CHECK_RIDER_ACTION_ID) {
     navigateWhenReady(`/event/${eventId}`)
+    return
+  }
+
+  const friendRequestId = data?.friend_request_id != null ? String(data.friend_request_id) : null
+  if (friendRequestId && (actionIdentifier === ACCEPT_FRIEND_ACTION_ID || actionIdentifier === DECLINE_FRIEND_ACTION_ID)) {
+    const accepting = actionIdentifier === ACCEPT_FRIEND_ACTION_ID
+    await Notifications.dismissNotificationAsync(response.notification.request.identifier).catch(() => {})
+    let accepted = false
+    try {
+      const { data: result } = await api.post(`/friends/${accepting ? 'accept' : 'decline'}/${friendRequestId}`)
+      if (result?.newly_unlocked?.length) useBadgesStore.getState().enqueue(result.newly_unlocked)
+      accepted = accepting
+    } catch {}
+    // Accepted: show the new friend. Declined (or the call failed): the alerts list.
+    const senderId = data?.user_id != null ? String(data.user_id) : null
+    navigateWhenReady(accepted && senderId ? `/user/${senderId}` : '/(tabs)/notifications?tab=alerts')
     return
   }
 
