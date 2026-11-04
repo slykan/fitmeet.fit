@@ -181,7 +181,7 @@ export default function TabsLayout() {
     >
       <Tabs.Screen name="hub"           options={{ title: 'Hub' }} />
       <Tabs.Screen name="meet"          options={{ title: 'Meet' }} />
-      <Tabs.Screen name="notifications" options={{ title: 'Feed', tabBarBadge: notifCount > 0 ? notifCount : undefined }} />
+      <Tabs.Screen name="notifications" options={{ title: 'Activity', tabBarBadge: notifCount > 0 ? notifCount : undefined }} />
       <Tabs.Screen name="messages"      options={{ title: 'Chat',   tabBarBadge: msgCount   > 0 ? msgCount   : undefined }} />
       <Tabs.Screen name="ranks"         options={{ title: 'Ranks' }} />
       <Tabs.Screen name="profile"       options={{ title: 'Profile' }} />

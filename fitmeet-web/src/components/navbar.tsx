@@ -111,7 +111,7 @@ export function Navbar() {
                 className="hidden md:relative md:block text-sm font-medium transition-colors hover:opacity-80"
                 style={{ color: 'var(--text-muted)' }}>
                 <span className="relative">
-                  Feed
+                  Activity
                   {notifCount > 0 && (
                     <span className="absolute -top-1.5 -right-3.5 min-w-[16px] h-4 rounded-full flex items-center justify-center text-[10px] font-bold px-1"
                       style={{ background: '#ef4444', color: '#fff' }}>
@@ -195,7 +195,7 @@ export function Navbar() {
               <Link
                 href="/notifications"
                 className="relative p-2 rounded-lg text-[--text-muted] hover:text-[--text-primary] transition-colors"
-                title="Feed"
+                title="Activity"
               >
                 <Bell size={18} />
                 {notifCount > 0 && (
@@ -265,7 +265,7 @@ export function Navbar() {
                     </div>
 
                     <div className="py-1">
-                      <MenuItem icon={<Bell size={15} />}         label="Feed" onClick={() => navigate('/notifications')} badge={notifCount} />
+                      <MenuItem icon={<Bell size={15} />}         label="Activity" onClick={() => navigate('/notifications')} badge={notifCount} />
                       <MenuItem icon={<ShieldCheck size={15} />}  label="Your Alibi"   onClick={() => navigate('/alibi')} />
                       <MenuItem icon={<Settings size={15} />}     label="Settings"     onClick={() => navigate('/profile')} />
                       <MenuItem icon={<Users size={15} />}        label="Meet"         onClick={() => navigate('/meet')} />

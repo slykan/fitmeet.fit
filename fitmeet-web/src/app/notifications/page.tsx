@@ -277,7 +277,7 @@ export default function NotificationsPage() {
 
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-2xl font-bold">
-              {tab === 'activity' ? 'Activity' : tab === 'trainings' ? 'Trainings' : tab === 'health' ? 'Health' : 'Alerts'}
+              {tab === 'activity' ? 'Feed' : tab === 'trainings' ? 'Trainings' : tab === 'health' ? 'Health' : 'Alerts'}
             </h1>
             {tab === 'trainings' && (
               <Link
@@ -301,7 +301,7 @@ export default function NotificationsPage() {
                   color:      tab === t ? '#000' : 'var(--text-muted)',
                 }}
               >
-                {t === 'activity' ? 'Activity' : t === 'trainings' ? 'Trainings' : t === 'health' ? 'Health' : 'Alerts'}
+                {t === 'activity' ? 'Feed' : t === 'trainings' ? 'Trainings' : t === 'health' ? 'Health' : 'Alerts'}
                 {t === 'alerts' && alertsUnread > 0 && (
                   <span
                     className="absolute top-1 right-2 w-[7px] h-[7px] rounded-full"

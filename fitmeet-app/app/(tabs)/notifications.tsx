@@ -25,7 +25,7 @@ const TAB_ICONS: Record<FeedTab, keyof typeof Ionicons.glyphMap> = {
   alerts:    'notifications-outline',
 }
 const TAB_LABELS: Record<FeedTab, string> = {
-  activity:  'Activity',
+  activity:  'Feed',
   trainings: 'Trainings',
   health:    'Health',
   alerts:    'Alerts',
@@ -235,9 +235,9 @@ export default function NotificationsScreen() {
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
         <View>
-          <Text style={styles.eyebrow}>Feed</Text>
+          <Text style={styles.eyebrow}>Activity</Text>
           <Text style={styles.title}>
-            {tab === 'activity' ? 'Activity' : tab === 'trainings' ? 'Trainings' : tab === 'health' ? 'Health' : 'Alerts'}
+            {tab === 'activity' ? 'Feed' : tab === 'trainings' ? 'Trainings' : tab === 'health' ? 'Health' : 'Alerts'}
           </Text>
         </View>
         {tab === 'alerts' && notifications.length > 0 && (
