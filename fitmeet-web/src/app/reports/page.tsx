@@ -28,7 +28,7 @@ interface Payload { available: boolean; stats: Stats; report: CoachNote | null; 
 
 const SPORT_COLOR: Record<string, string> = {
   cycling: '#ffaa00', running: '#39ff14', walking: '#3399ff', hiking: '#2dd4bf', fitness: '#c084fc',
-  swimming: '#38bdf8', kayaking: '#22d3ee', yoga: '#f472b6', skiing: '#94a3b8', football: '#a3e635', other: '#8f9bbd',
+  swimming: '#38bdf8', rowing: '#22d3ee', yoga: '#f472b6', skiing: '#94a3b8', football: '#a3e635', other: '#8f9bbd',
 }
 const color = (s: string) => SPORT_COLOR[s] ?? '#8f9bbd'
 const ZONES = [

@@ -26,7 +26,6 @@ export const CATEGORIES = [
   { value: 'gaming',       emoji: '🎮',  label: 'Gaming' },
   { value: 'beach',        emoji: '🏖️',  label: 'Beach' },
   { value: 'camping',      emoji: '🏕️',  label: 'Camping' },
-  { value: 'kayaking',     emoji: '🚣',  label: 'Kayaking' },
   { value: 'photography',  emoji: '📷',  label: 'Photography' },
   { value: 'art',          emoji: '🎨',  label: 'Art' },
   { value: 'other',        emoji: '📌',  label: 'Other' },

@@ -17,6 +17,8 @@ return Application::configure(basePath: dirname(__DIR__))
         // doesn't send an Accept: application/json header crashes with a 500
         // (RouteNotFoundException) instead of a clean 401 JSON response.
         $middleware->redirectGuestsTo(fn () => null);
+
+        $middleware->appendToGroup('api', \App\Http\Middleware\MergeKayakingIntoRowing::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

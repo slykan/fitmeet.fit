@@ -1083,7 +1083,7 @@ var CATS = [
   {v:'hiking',   e:'🥾', l:'Hike'},
   {v:'skiing',   e:'⛷️', l:'Ski'},
   {v:'climbing', e:'🏔️', l:'Climb'},
-  {v:'kayaking', e:'🚣', l:'Kayak'},
+  {v:'rowing', e:'🚣', l:'Rowing'},
   {v:'rowing',   e:'🚣', l:'Row'},
   {v:'other',    e:'✏️', l:'Free'},
 ];

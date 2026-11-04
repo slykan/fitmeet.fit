@@ -36,6 +36,7 @@ enum Category: string
     // Outdoor
     case Beach        = 'beach';
     case Camping      = 'camping';
+    // merged into Rowing 2026-11-04; kept only so stray old values still load (MergeKayakingIntoRowing)
     case Kayaking     = 'kayaking';
 
     // Culture
@@ -75,7 +76,7 @@ enum Category: string
             self::Gaming      => 'Gaming',
             self::Beach       => 'Beach',
             self::Camping     => 'Camping',
-            self::Kayaking    => 'Kayaking',
+            self::Kayaking    => 'Rowing',
             self::Photography => 'Photography',
             self::Art         => 'Art',
             self::Other       => 'Other',
@@ -106,6 +107,7 @@ enum Category: string
     {
         $grouped = [];
         foreach (self::cases() as $case) {
+            if ($case === self::Kayaking) continue;
             $grouped[$case->group()][] = [
                 'value' => $case->value,
                 'label' => $case->label(),

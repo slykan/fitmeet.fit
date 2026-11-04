@@ -202,7 +202,7 @@ class TrainingSyncService
             'RockClimbing' => Category::Climbing,
             'IceSkate' => Category::IceSkating,
             'InlineSkate' => Category::InlineSkating,
-            'Kayaking', 'Canoeing', 'Rowing' => Category::Kayaking,
+            'Kayaking', 'Canoeing', 'Rowing' => Category::Rowing,
             'Soccer' => Category::Football,
             'Basketball' => Category::Basketball,
             'Tennis' => Category::Tennis,

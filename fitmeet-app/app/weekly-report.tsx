@@ -44,7 +44,7 @@ const KIND_TEXT: Record<Kind, { title: string; compare: string; next: string; ct
 
 const SPORT_COLOR: Record<string, string> = {
   cycling: '#ffaa00', running: '#6cff2f', walking: '#3399ff', hiking: '#2dd4bf',
-  fitness: '#c084fc', swimming: '#38bdf8', kayaking: '#22d3ee', yoga: '#f472b6',
+  fitness: '#c084fc', swimming: '#38bdf8', rowing: '#22d3ee', yoga: '#f472b6',
   skiing: '#e2e8f0', football: '#a3e635', other: '#8f9bbd',
 }
 const sportColor = (s: string) => SPORT_COLOR[s] ?? '#8f9bbd'
