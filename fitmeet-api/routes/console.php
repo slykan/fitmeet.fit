@@ -128,6 +128,28 @@ Artisan::command('events:send-started', function () {
     }
 
     $this->info("Dispatched {$events->count()} event(s) starting soon.");
+
+    // Early arrivals (automatic check-in, present_at set before check-in opened) are
+    // checked in as soon as it opens — not only when "Starting soon" goes out, which
+    // misses them if that push already went (e.g. the event was moved later).
+    $early = \DB::table('event_participants')
+        ->join('events', 'events.id', '=', 'event_participants.event_id')
+        ->join('users', 'users.id', '=', 'event_participants.user_id')
+        ->where('event_participants.status', 'joined')
+        ->whereNotNull('event_participants.present_at')
+        ->whereNull('event_participants.checked_in_at')
+        ->where('users.auto_check_in', true)
+        ->where('events.status', 'active')
+        ->where('events.start_at', '<=', now()->addMinutes(30))
+        ->where('events.start_at', '>', now()->subHours(26))
+        ->get(['event_participants.event_id', 'event_participants.user_id']);
+
+    foreach ($early as $row) {
+        $event = Event::find($row->event_id);
+        if ($event && now()->lte(\App\Services\AutoCheckIn::window($event)[1])) {
+            \App\Services\AutoCheckIn::checkIn($event, (int) $row->user_id);
+        }
+    }
 })->purpose('Send notifications before joined events start');
 
 Schedule::command('events:send-started')->everyMinute();

@@ -434,6 +434,13 @@ HTML;
             && ! $freshEvent->start_at->equalTo($originalStartAt)
         ) {
             SendEventRescheduledNotifications::dispatch($freshEvent, $originalStartAt);
+
+            // "Starting soon" was for the old time: let events:send-started fire again.
+            if ($freshEvent->start_at->isFuture()) {
+                \App\Models\EventNotification::where('event_id', $freshEvent->id)
+                    ->where('type', 'event_started')
+                    ->delete();
+            }
         }
 
         if ($freshEvent->gpx_path && $gpxTextForRoute) {
