@@ -71,4 +71,11 @@ return [
         'redirect_uri'  => env('HUAWEI_REDIRECT_URI', 'https://fitmeet.fit/huawei-callback'),
     ],
 
+
+    // Puls statistika (puls.on-click.hr) preko vlastite domene, da je blokeri ne režu
+    'puls' => [
+        'url' => env('PULS_URL', 'https://puls.on-click.hr'),
+        'key' => env('PULS_PROXY_KEY'),
+    ],
+
 ];

@@ -248,3 +248,7 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\EnsureNotBanned::class])
         Route::post('reports/{report}/resolve', [AdminReportController::class, 'resolve']);
     });
 });
+
+// Puls statistika preko vlastite domene (fitmeet.fit web → api.fitmeet.fit/api/s/…), bez auth i sesije
+Route::get('/s/app.js', [\App\Http\Controllers\Api\PulsProxyController::class, 'skripta']);
+Route::post('/s/e', [\App\Http\Controllers\Api\PulsProxyController::class, 'dogadaj'])->middleware('throttle:120,1');

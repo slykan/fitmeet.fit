@@ -38,7 +38,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
         </Providers>
         <Footer />
-        <script defer src="https://puls.on-click.hr/p.js" data-site="e93558dd5z" />
+        <script defer src="https://api.fitmeet.fit/api/s/app.js" data-site="e93558dd5z" data-api="https://api.fitmeet.fit/api/s/e" />
       </body>
     </html>
   )
