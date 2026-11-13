@@ -38,6 +38,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
         </Providers>
         <Footer />
+        <script defer src="https://puls.on-click.hr/p.js" data-site="e93558dd5z" />
       </body>
     </html>
   )
