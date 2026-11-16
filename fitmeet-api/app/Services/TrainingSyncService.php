@@ -182,7 +182,10 @@ class TrainingSyncService
     public function mapHuaweiCategory(mixed $rawType): Category
     {
         return match ((string) $rawType) {
+            '56' => Category::Running, // confirmed 2026-11-16: outdoor running (paired with Strava "Run")
             '57' => Category::Running, // confirmed: indoor running (treadmill, no altitude data)
+            '54' => Category::Rowing,  // confirmed 2026-11-16: rowing (13/13 paired with Strava "Rowing")
+            '79' => Category::Fitness, // confirmed 2026-11-16: strength training (21/21 paired with Strava "WeightTraining")
             '90' => Category::Walking, // confirmed: outdoor walking (has GPS altitude data)
             '97' => Category::Cycling, // confirmed 2026-10-10: indoor cycling (no distance, heart rate only)
             default => Category::Other,
