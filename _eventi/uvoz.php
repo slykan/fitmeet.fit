@@ -18,6 +18,7 @@ $trajanje = function (array $e): int {
     if ($e['kat'] === 'party') return str_starts_with($e['kljuc'], 'docek') ? 360 : 240;
     if ($e['kat'] === 'fitness') return 600;
     return match (true) {
+        str_starts_with($e['kljuc'], 'wings-for-life') => 180,
         str_contains($e['kljuc'], 'ultra') || $e['kljuc'] === 'halfyard-mura' => 720,
         str_contains($e['kljuc'], 'trail') || in_array($e['kljuc'], ['omiska-transverzala', 'papuk-trail'], true) => 300,
         str_contains($e['naslov'], 'polumaraton') || str_contains(mb_strtolower($e['naslov']), 'half') => 180,

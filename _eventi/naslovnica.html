@@ -84,7 +84,7 @@ var CRTEZ = {
   ]}
 };
 var k = new URLSearchParams(location.search).get('k') || 'running', c = CRTEZ[k], g = document.getElementById('crtez');
-document.getElementById('oznaka').textContent = c.oznaka;
+document.getElementById('oznaka').textContent = new URLSearchParams(location.search).get('o') || c.oznaka;   // ?o= vlastita oznaka (npr. naziv utrke)
 c.d.forEach(function (d) { var p = document.createElementNS('http://www.w3.org/2000/svg', 'path'); p.setAttribute('d', d); g.appendChild(p); });
 </script>
 </body></html>
