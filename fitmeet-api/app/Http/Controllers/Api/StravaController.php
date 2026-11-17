@@ -46,7 +46,7 @@ class StravaController
 
         return response()->json([
             'access_token' => $data['access_token'],
-            'athlete_id'   => $data['athlete']['id'] ?? null,
+            'athlete_id'   => isset($data['athlete']['id']) ? (string) ($data['athlete']['id_str'] ?? $data['athlete']['id']) : null,
         ]);
     }
 
@@ -58,7 +58,7 @@ class StravaController
         if (!$data) return response()->json(['message' => 'Strava auth failed.'], 422);
 
         $accessToken = $data['access_token'] ?? null;
-        $athleteId = $data['athlete']['id'] ?? null;
+        $athleteId = isset($data['athlete']['id']) ? (string) ($data['athlete']['id_str'] ?? $data['athlete']['id']) : null;
         if (!$accessToken || !$athleteId) {
             return response()->json(['message' => 'Strava auth failed.'], 422);
         }
@@ -152,7 +152,7 @@ class StravaController
         if (!$data) return response()->json(['message' => 'Strava auth failed.'], 422);
 
         $athlete  = $data['athlete'];
-        $stravaId = (string) $athlete['id'];
+        $stravaId = (string) ($athlete['id_str'] ?? $athlete['id']);
         $name     = trim(($athlete['firstname'] ?? '') . ' ' . ($athlete['lastname'] ?? '')) ?: 'Strava User';
         $avatar   = $athlete['profile'] ?? null;
 
@@ -200,7 +200,7 @@ class StravaController
         $connection = ProviderConnection::updateOrCreate(
             ['user_id' => $user->id, 'provider' => 'strava'],
             [
-                'external_athlete_id' => (string) $data['athlete']['id'],
+                'external_athlete_id' => (string) ($data['athlete']['id_str'] ?? $data['athlete']['id']),
                 'access_token'        => $data['access_token'],
                 'refresh_token'       => $data['refresh_token'] ?? null,
                 'token_expires_at'    => isset($data['expires_at'])
@@ -284,7 +284,7 @@ class StravaController
     {
         $objectType = $request->input('object_type');
         $aspectType = $request->input('aspect_type');
-        $objectId   = $request->input('object_id');
+        $objectId   = $request->input('object_id_str', $request->input('object_id'));
         $ownerId    = $request->input('owner_id');
 
         if ($objectType !== 'activity' || !$objectId || !$ownerId) {

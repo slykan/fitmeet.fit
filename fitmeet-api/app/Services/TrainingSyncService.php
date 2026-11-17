@@ -19,7 +19,8 @@ class TrainingSyncService
      */
     public function storeStravaActivity(User $user, array $activity, bool $notify = false): ?Training
     {
-        $externalId = isset($activity['id']) ? (string) $activity['id'] : null;
+        // Strava IDs go 64-bit from 01.06.2027.; id_str is the safe form.
+        $externalId = isset($activity['id_str']) || isset($activity['id']) ? (string) ($activity['id_str'] ?? $activity['id']) : null;
         if (!$externalId || empty($activity['start_date'])) {
             return null;
         }
