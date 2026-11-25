@@ -1,0 +1,13 @@
+[
+  {
+    "kljuc": "ironman-703-beograd-2027",
+    "naslov": "IRONMAN 70.3 Belgrade 2027",
+    "kat": "running",
+    "datum": "2027-09-12",
+    "vrijeme": "07:00",
+    "lokacija": "Ada Ciganlija, Beograd, Serbia",
+    "opis": "Polu-Ironman triatlon na Adi Ciganliji: 1,9 km plivanja u mirnom Savskom jezeru, 90 km ravne cestovne biciklističke staze i polumaraton od 21,1 km. Okupi ekipu za trening i zajednički put u Beograd! Satnica je okvirna (start ujutro), točnu satnicu i prijave provjeri na službenoj stranici.",
+    "url": "https://www.ironman.com/races/im703-belgrade",
+    "geo": { "lat": 44.784437, "lng": 20.381037, "upit": "Ada Ciganlija, Beograd", "naziv": "Ada Ciganlija, Čukarica, Beograd" }
+  }
+]

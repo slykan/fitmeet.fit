@@ -2,14 +2,14 @@
 /**
  * Uvoz javnih evenata na poslužitelju (tinker): organizator = fit@fitmeet.fit (račun „FitMeet”), bez push obavijesti
  * i bez objave u feedu. Idempotentno po client_request_id = "import-<ključ>".
- * Očekuje ~/eventi-uvoz/eventi.json i ~/eventi-uvoz/<kategorija>.jpg
+ * Očekuje ~/eventi-uvoz/eventi.json i ~/eventi-uvoz/<kategorija>.jpg (ili vlastitu <ključ>.jpg); drugi direktorij: UVOZ_DIR=…
  */
 use App\Models\Event;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 
-$dir = getenv('HOME') . '/eventi-uvoz';
+$dir = getenv('UVOZ_DIR') ?: getenv('HOME') . '/eventi-uvoz';
 $eventi = json_decode(file_get_contents("$dir/eventi.json"), true);
 $org = User::where('email', 'fit@fitmeet.fit')->firstOrFail();
 
@@ -19,6 +19,7 @@ $trajanje = function (array $e): int {
     if ($e['kat'] === 'fitness') return 600;
     return match (true) {
         str_starts_with($e['kljuc'], 'wings-for-life') => 180,
+        str_starts_with($e['kljuc'], 'ironman') => 510,
         str_contains($e['kljuc'], 'ultra') || $e['kljuc'] === 'halfyard-mura' => 720,
         str_contains($e['kljuc'], 'trail') || in_array($e['kljuc'], ['omiska-transverzala', 'papuk-trail'], true) => 300,
         str_contains($e['naslov'], 'polumaraton') || str_contains(mb_strtolower($e['naslov']), 'half') => 180,
@@ -46,7 +47,7 @@ foreach ($eventi as $e) {
     $opis .= "\n\nViše informacija i prijave: " . $e['url'];
     // svaki event dobiva vlastitu kopiju naslovnice (brisanje eventa briše i njegovu sliku)
     $slika = 'event-images/fitmeet-' . $e['kljuc'] . '.jpg';
-    Storage::disk('public')->put($slika, file_get_contents("$dir/" . $e['kat'] . '.jpg'));
+    Storage::disk('public')->put($slika, file_get_contents(is_file("$dir/{$e['kljuc']}.jpg") ? "$dir/{$e['kljuc']}.jpg" : "$dir/" . $e['kat'] . '.jpg'));
 
     Event::create([
         'user_id' => $org->id,
