@@ -98,6 +98,6 @@ export function buildEventJsonLd(event: SharedEvent) {
       name: 'FitMeet',
       url: 'https://fitmeet.fit',
     },
-    url: `https://fitmeet.fit/events/share/${event.id}`,
+    url: `https://fitmeet.fit/events/share/${event.id}/`,
   }
 }

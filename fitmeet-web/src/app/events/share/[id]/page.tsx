@@ -19,7 +19,7 @@ type EventSharePathProps = {
 export const dynamicParams = false
 
 export async function generateStaticParams() {
-  const events = await getPublicShareEvents(20)
+  const events = await getPublicShareEvents(60)
   return events.map((event) => ({ id: String(event.id) }))
 }
 
@@ -49,7 +49,7 @@ export async function generateMetadata({ params }: EventSharePathProps): Promise
 
   const title = `${event.title} | FitMeet`
   const description = buildDescription(event)
-  const canonicalUrl = `https://fitmeet.fit/events/share/${event.id}`
+  const canonicalUrl = `https://fitmeet.fit/events/share/${event.id}/`
 
   return {
     title,

@@ -2,6 +2,7 @@ import type { MetadataRoute } from 'next'
 import { posts } from '@/lib/posts'
 import { guides } from '@/lib/guides'
 import { tools } from '@/lib/tools'
+import { getPublicShareEvents } from '@/app/events/share/share-seo'
 
 export const dynamic = 'force-static'
 
@@ -64,8 +65,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.8,
   }))
 
-  // Event and listing share pages are rendered in the browser (near-empty HTML) and are noindex:
-  // only content pages go into the sitemap. Listings use the pre-rendered /market/item/<id>/ pages.
+  // /events/share/?id= and /market/share/?id= are rendered in the browser (noindex). The sitemap uses the
+  // pre-rendered copies: /events/share/<id>/ (same list as generateStaticParams) and /market/item/<id>/.
   const guidePages: MetadataRoute.Sitemap = guides.map((g) => ({
     url: siteUrl(`/guides/${g.slug}`),
     lastModified: new Date(g.updatedAt),
@@ -87,5 +88,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: listing.status === 'sold' ? 0.4 : 0.6,
   }))
 
-  return [...staticPages, ...guidePages, ...toolPages, ...blogPages, ...marketPages]
+  const eventPages: MetadataRoute.Sitemap = (await getPublicShareEvents(60)).map((event) => ({
+    url: siteUrl(`/events/share/${event.id}`),
+    lastModified: new Date(event.created_at ?? Date.now()),
+    changeFrequency: 'daily',
+    priority: 0.7,
+  }))
+
+  return [...staticPages, ...guidePages, ...toolPages, ...blogPages, ...eventPages, ...marketPages]
 }

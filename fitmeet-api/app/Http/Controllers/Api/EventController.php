@@ -282,7 +282,7 @@ class EventController extends Controller
     // GET /api/events/public-latest
     public function publicLatest(Request $request): JsonResponse
     {
-        $limit = max(1, min(20, (int) $request->integer('limit', 10)));
+        $limit = max(1, min(60, (int) $request->integer('limit', 10)));
 
         $events = Event::query()
             ->with('organizer')

@@ -4,6 +4,8 @@ import ShareEventClientPage from './share-client'
 import { FALLBACK_DESCRIPTION, FALLBACK_IMAGE, FALLBACK_TITLE } from './share-seo'
 
 export const metadata: Metadata = {
+  // near-empty HTML (event loads in the browser): keep out of search, the indexable copy is /events/share/<id>/
+  robots: { index: false, follow: true },
   title: FALLBACK_TITLE,
   description: FALLBACK_DESCRIPTION,
   openGraph: {

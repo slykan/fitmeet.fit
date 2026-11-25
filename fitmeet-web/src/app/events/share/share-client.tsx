@@ -204,9 +204,8 @@ function ShareEventContent({
   id: string | null
   initialEvent: SharedEvent | null
 }) {
-  const searchParams = useSearchParams()
   const { token } = useAuthStore()
-  const eventId = id ?? searchParams.get('id')
+  const eventId = id
   const [event, setEvent] = useState<SharedEvent | null>(initialEvent)
   const [loading, setLoading] = useState(!initialEvent)
   const [error, setError] = useState<string | null>(null)
@@ -439,9 +438,19 @@ export default function ShareEventClientPage({
   id: string | null
   initialEvent: SharedEvent | null
 }) {
+  // /events/share/<id>/ is pre-rendered with the event: render it directly so the HTML contains
+  // the event (crawlers). useSearchParams() would bail out to client rendering in a static export.
+  if (id) return <ShareEventContent id={id} initialEvent={initialEvent} />
+
   return (
     <Suspense>
-      <ShareEventContent id={id} initialEvent={initialEvent} />
+      <ShareEventFromQuery />
     </Suspense>
   )
+}
+
+// /events/share/?id=X (links shared from the app, events created after the last build)
+function ShareEventFromQuery() {
+  const searchParams = useSearchParams()
+  return <ShareEventContent id={searchParams.get('id')} initialEvent={null} />
 }

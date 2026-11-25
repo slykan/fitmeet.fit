@@ -42,7 +42,8 @@ export function LatestEventsCarousel({ events }: { events: LatestEvent[] }) {
       events.map((event) => {
         const timing = formatDate(event.schedule.start_at, event.schedule.timezone)
         const past = isPastEvent(event.schedule.start_at, event.schedule.duration_minutes)
-        const href = `/login?redirect=${encodeURIComponent(`/events/share/?id=${event.id}`)}`
+        // public, pre-rendered event page (crawlable); it has its own "Sign In to Join" button
+        const href = `/events/share/${event.id}/`
 
         return (
           <Link
