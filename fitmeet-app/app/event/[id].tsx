@@ -25,6 +25,7 @@ import type { ElevationPoint } from '@/src/components/ElevationChart'
 import { CATEGORIES } from '@/src/lib/categories'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { api } from '@/src/lib/api'
+import { shrinkPhoto } from '@/src/lib/shrink-photo'
 import { enableAutoCheckIn, syncAutoCheckInGeofences } from '@/src/lib/auto-checkin'
 import { enrichGpxWithElevation, fetchElevationProfile, parseGpxTextAsync } from '@/src/lib/gpx'
 import { downloadGpx, gpxFileName, saveGpxFile } from '@/src/lib/save-gpx'
@@ -593,7 +594,12 @@ export default function EventDetailScreen() {
 
   async function uploadMoment(moment: ImagePicker.ImagePickerAsset) {
     const form = new FormData()
-    form.append('image', {
+    const small = await shrinkPhoto(moment)
+    form.append('image', small ? {
+      uri: small.uri,
+      name: 'moment.jpg',
+      type: 'image/jpeg',
+    } as never : {
       uri: moment.uri,
       name: moment.fileName ?? 'moment.jpg',
       type: moment.mimeType ?? 'image/jpeg',

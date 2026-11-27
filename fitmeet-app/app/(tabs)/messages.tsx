@@ -23,6 +23,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs'
 
 import { api } from '@/src/lib/api'
+import { shrinkPhoto } from '@/src/lib/shrink-photo'
 import { setBackOverride } from '@/src/lib/back-scroll'
 import { subscribeChatRefresh } from '@/src/lib/chat-refresh'
 import { presentUserModerationMenu } from '@/src/lib/moderation'
@@ -327,7 +328,10 @@ function ThreadView({
     setSending(true)
     try {
       const fd = new FormData()
-      fd.append('image_file', { uri: asset.uri, name: 'photo.jpg', type: 'image/jpeg' } as never)
+      const small = await shrinkPhoto(asset)
+      fd.append('image_file', small
+        ? { uri: small.uri, name: 'photo.jpg', type: 'image/jpeg' } as never
+        : { uri: asset.uri, name: asset.fileName ?? 'photo.jpg', type: asset.mimeType ?? 'image/jpeg' } as never)
       const { data } = await api.post(
         `/messages/conversations/${conv.id}`,
         fd,

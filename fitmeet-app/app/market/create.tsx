@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons'
-import { ImageManipulator, SaveFormat } from 'expo-image-manipulator'
 import * as ImagePicker from 'expo-image-picker'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
@@ -10,26 +9,14 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { api } from '@/src/lib/api'
+import { shrinkPhoto } from '@/src/lib/shrink-photo'
 import { CATEGORIES } from '@/src/lib/categories'
 import { SupportFitMeetCard } from '@/src/components/SupportFitMeetCard'
 import { useAuthStore } from '@/src/store/auth'
 import { palette, spacing } from '@/src/theme'
 
-// Phone photos are 3–5 MB; six of them would exceed the API upload limit (16 MB per request).
-// Long side max 1600 px, JPEG 82 % → a few hundred KB each. On failure the original is sent.
-async function shrinkPhoto(a: ImagePicker.ImagePickerAsset): Promise<{ uri: string } | null> {
-  try {
-    const ctx = ImageManipulator.manipulate(a.uri)
-    if (Math.max(a.width ?? 0, a.height ?? 0) > 1600) {
-      ctx.resize((a.width ?? 0) >= (a.height ?? 0) ? { width: 1600 } : { height: 1600 })
-    }
-    const img = await ctx.renderAsync()
-    const out = await img.saveAsync({ compress: 0.82, format: SaveFormat.JPEG })
-    return { uri: out.uri }
-  } catch {
-    return null
-  }
-}
+// Phone photos are 3–5 MB; six of them would exceed the API upload limit (16 MB per request),
+// so each one goes through shrinkPhoto (src/lib/shrink-photo.ts) first.
 
 const CONDITIONS = [
   { value: 'new',      label: 'New' },

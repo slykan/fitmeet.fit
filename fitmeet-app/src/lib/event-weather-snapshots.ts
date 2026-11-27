@@ -6,6 +6,7 @@ export type EventWeatherSnapshot = EventWeather & {
 }
 
 const CLIENT_TTL_MS = 15 * 60 * 1000
+const MAX_IDS_PER_REQUEST = 30
 
 type SnapshotCacheEntry = {
   value: EventWeatherSnapshot | null
@@ -28,15 +29,24 @@ export async function fetchEventWeatherSnapshots(
   })
 
   if (missingIds.length > 0) {
-    const { data } = await api.post('/events/weather-snapshots', {
-      event_ids: missingIds,
-    })
+    // API accepts at most MAX_IDS_PER_REQUEST ids (validation max:30); bigger lists returned 422
+    const chunks: number[][] = []
+    for (let i = 0; i < missingIds.length; i += MAX_IDS_PER_REQUEST) {
+      chunks.push(missingIds.slice(i, i + MAX_IDS_PER_REQUEST))
+    }
 
-    const payload = (data?.data ?? {}) as Record<string, EventWeatherSnapshot | null>
-    missingIds.forEach((id) => {
-      snapshotCache.set(id, {
-        value: payload[String(id)] ?? null,
-        fetchedAt: now,
+    const results = await Promise.allSettled(
+      chunks.map((ids) => api.post('/events/weather-snapshots', { event_ids: ids })),
+    )
+
+    results.forEach((result, i) => {
+      if (result.status !== 'fulfilled') return
+      const payload = (result.value.data?.data ?? {}) as Record<string, EventWeatherSnapshot | null>
+      chunks[i].forEach((id) => {
+        snapshotCache.set(id, {
+          value: payload[String(id)] ?? null,
+          fetchedAt: now,
+        })
       })
     })
   }

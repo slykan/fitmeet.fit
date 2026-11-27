@@ -22,6 +22,7 @@ import type { GpxParsed } from '@/src/lib/gpx'
 import { isValidYouTubeUrl } from '@/src/lib/youtube'
 import { cloudLabel, EventWeather, fetchEventWeather, weatherIconName } from '@/src/lib/weather'
 import { playRandomActionSound } from '@/src/lib/action-sounds'
+import { shrinkPhoto } from '@/src/lib/shrink-photo'
 import { useBadgesStore } from '@/src/store/badges'
 import { palette, spacing } from '@/src/theme'
 
@@ -523,10 +524,14 @@ export default function CreateEventScreen() {
       allowsEditing: false,
     })
     if (!result.canceled && result.assets[0]) {
-      setImageUri(result.assets[0].uri)
-      setImageName(result.assets[0].fileName ?? 'image.jpg')
-      setImagePreview(result.assets[0].uri)
+      const asset = result.assets[0]
+      setImagePreview(asset.uri)
       setImageRemoved(false)
+      // Upload a resized JPEG (few hundred KB) instead of the original (PNG screenshots were 2+ MB)
+      const small = await shrinkPhoto(asset)
+      setImageUri(small?.uri ?? asset.uri)
+      const baseName = (asset.fileName ?? 'image').replace(/\.[^.]+$/, '')
+      setImageName(small ? `${baseName}.jpg` : (asset.fileName ?? 'image.jpg'))
     }
   }
 
